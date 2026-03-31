@@ -7,10 +7,18 @@ import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { buildTeamDetailHref } from '@/lib/dashboard/workspace-routes';
 import { Users } from 'lucide-react';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
+};
+
+type SeasonRosterTeam = {
+  id: string;
+  name: string;
+  short_name: string | null;
+  primary_color: string | null;
 };
 
 export default async function SeasonRostersPage({ params }: Props) {
@@ -81,12 +89,19 @@ export default async function SeasonRostersPage({ params }: Props) {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(teams ?? []).map((team: any) => {
+            {(teams ?? []).map((team: SeasonRosterTeam) => {
               const count = countMap.get(team.id) || 0;
               return (
                 <Link
                   key={team.id}
-                  href={`/${locale}/dashboard/captain/${team.id}`}
+                  href={buildTeamDetailHref({
+                    locale,
+                    teamId: team.id,
+                    tab: 'roster',
+                    leagueId,
+                    seasonId,
+                    from: 'season-rosters',
+                  })}
                   className="flex items-center gap-4 p-5 bg-white/[0.04] border border-white/10 rounded-xl hover:border-rink-500/30 transition-all"
                 >
                   <div

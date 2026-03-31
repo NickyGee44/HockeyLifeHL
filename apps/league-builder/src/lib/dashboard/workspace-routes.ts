@@ -1,4 +1,5 @@
 export type DashboardWorkspaceScope = 'organization' | 'league' | 'season';
+export type TeamDetailSource = 'season-rosters';
 
 export type SeasonWorkspaceRouteKey =
   | 'home'
@@ -54,6 +55,50 @@ export function buildSeasonWorkspaceHref(
   route: SeasonWorkspaceRouteKey = 'home'
 ) {
   return `${buildLeagueSeasonsHref(locale, leagueId)}/${seasonId}${SEASON_ROUTE_SUFFIX[route]}`;
+}
+
+export function buildTeamDetailHref(params: {
+  locale: string;
+  teamId: string;
+  tab?: string;
+  leagueId?: string | null;
+  seasonId?: string | null;
+  from?: TeamDetailSource | string | null;
+}) {
+  const searchParams = new URLSearchParams();
+
+  if (params.tab) {
+    searchParams.set('tab', params.tab);
+  }
+
+  if (params.leagueId) {
+    searchParams.set('leagueId', params.leagueId);
+  }
+
+  if (params.seasonId) {
+    searchParams.set('seasonId', params.seasonId);
+  }
+
+  if (params.from) {
+    searchParams.set('from', params.from);
+  }
+
+  const basePath = `${localePrefix(params.locale)}/dashboard/teams/${params.teamId}`;
+  const query = searchParams.toString();
+
+  return query ? `${basePath}?${query}` : basePath;
+}
+
+export function buildTeamDetailBackHref(params: {
+  leagueId: string;
+  seasonId?: string | null;
+  from?: string | null;
+}) {
+  if (params.from === 'season-rosters' && params.seasonId) {
+    return `/dashboard/leagues/${params.leagueId}/seasons/${params.seasonId}/rosters`;
+  }
+
+  return `/dashboard/leagues/${params.leagueId}/teams-divisions`;
 }
 
 function normalizePathname(pathname: string, locale: string) {

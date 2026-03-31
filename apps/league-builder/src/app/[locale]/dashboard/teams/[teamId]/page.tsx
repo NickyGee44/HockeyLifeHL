@@ -1,6 +1,6 @@
 import { getCurrentUser } from '@/lib/actions/auth';
 import { getTeam } from '@/lib/actions/teams';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { redirect } from '@/i18n/navigation';
 import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
@@ -14,10 +14,11 @@ import {
   Mail } from 'lucide-react';
 import TeamDetailClient from '@/components/dashboard/teams/team-detail-client';
 import { setRequestLocale } from 'next-intl/server';
+import { buildTeamDetailBackHref } from '@/lib/dashboard/workspace-routes';
 
 type Props = {
   params: Promise<{ locale: string; teamId: string }>;
-  searchParams: Promise<{ tab?: string; leagueId?: string }>;
+  searchParams: Promise<{ tab?: string; leagueId?: string; seasonId?: string; from?: string }>;
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; teamId: string }> }) {
@@ -49,10 +50,28 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
   }
 
   const team = result.data;
-  const { data: activeSeason } = await getCurrentSeason(team.league_id);
   const resolvedSearchParams = await searchParams;
   const currentTab = resolvedSearchParams.tab || 'roster';
-  const sourceLeagueId = resolvedSearchParams.leagueId || team.league_id;
+  const sourceLeagueId =
+    resolvedSearchParams.leagueId === team.league_id ? resolvedSearchParams.leagueId : team.league_id;
+
+  const [validatedRequestedSeasonId, { data: activeSeason }] = await Promise.all([
+    resolvedSearchParams.seasonId
+      ? validateSeasonForLeague(team.league_id, resolvedSearchParams.seasonId)
+      : Promise.resolve(null),
+    getCurrentSeason(team.league_id),
+  ]);
+
+  const rosterSeasonId = validatedRequestedSeasonId || activeSeason?.id;
+  const backHref = buildTeamDetailBackHref({
+    leagueId: sourceLeagueId,
+    from: resolvedSearchParams.from || null,
+    seasonId: validatedRequestedSeasonId,
+  });
+  const backLabel =
+    resolvedSearchParams.from === 'season-rosters' && validatedRequestedSeasonId
+      ? 'Back to Rosters'
+      : 'Back to Teams & Divisions';
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -60,11 +79,11 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={`/dashboard/leagues/${sourceLeagueId}/teams-divisions`}
+            href={backHref}
             className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Teams & Divisions
+            {backLabel}
           </Link>
 
           {/* Team Header Card */}
@@ -182,14 +201,14 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
         </div>
 
         {/* Content with Tabs - Client Component */}
-        <TeamDetailClient team={team} initialTab={currentTab} seasonId={activeSeason?.id} />
+        <TeamDetailClient team={team} initialTab={currentTab} seasonId={rosterSeasonId} />
       </div>
     </div>
   );
 }
 
 async function getCurrentSeason(leagueId: string) {
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
   return supabase
     .from('seasons')
     .select('id, name')
@@ -198,4 +217,16 @@ async function getCurrentSeason(leagueId: string) {
     .order('start_date', { ascending: false })
     .limit(1)
     .maybeSingle();
+}
+
+async function validateSeasonForLeague(leagueId: string, seasonId: string) {
+  const supabase = createServiceRoleClient();
+  const { data: season } = await supabase
+    .from('seasons')
+    .select('id')
+    .eq('id', seasonId)
+    .eq('league_id', leagueId)
+    .maybeSingle();
+
+  return season?.id || null;
 }

@@ -36,6 +36,7 @@ import {
   getUnassignedTeams,
   type DivisionWithTeamCount,
 } from '@/lib/actions/divisions';
+import { buildTeamDetailHref } from '@/lib/dashboard/workspace-routes';
 
 // ==============================================================================
 // TYPES
@@ -44,15 +45,15 @@ import {
 interface Team {
   id: string;
   name: string;
-  short_name: string;
+  short_name: string | null;
   logo_url: string | null;
   primary_color: string | null;
   secondary_color: string | null;
-  status: string;
+  status: string | null;
   captain?: {
     id: string;
-    full_name: string;
-    email: string;
+    full_name: string | null;
+    email: string | null;
   } | null;
 }
 
@@ -108,13 +109,13 @@ export function DivisionTeamManager({
   const filteredTeams = teams.filter(
     (team) =>
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+      (team.short_name?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
 
   const filteredUnassignedTeams = unassignedTeams.filter(
     (team) =>
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.short_name.toLowerCase().includes(searchQuery.toLowerCase())
+      (team.short_name?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
 
   // Toggle team selection
@@ -263,7 +264,11 @@ export function DivisionTeamManager({
 
                 <div className="flex items-center gap-2">
                   <Link
-                    href={`/dashboard/teams/${team.id}`}
+                    href={buildTeamDetailHref({
+                      locale: '',
+                      teamId: team.id,
+                      leagueId,
+                    })}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
                   >
                     <Shield className="w-4 h-4" />

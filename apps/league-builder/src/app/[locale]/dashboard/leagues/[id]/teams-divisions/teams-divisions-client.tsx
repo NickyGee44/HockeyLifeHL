@@ -6,6 +6,22 @@ import { cn } from '@hockey-life/ui';
 import { Users, LayoutGrid, UserX, Trophy, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import { LeagueTeamsClient } from '@/components/teams/LeagueTeamsClient';
 import { DivisionList } from '@/components/divisions';
+import type { DivisionWithTeamCount } from '@/lib/actions/divisions';
+
+interface LeagueTeam {
+  id: string;
+  name: string;
+  short_name: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  logo_url: string | null;
+  status: string | null;
+  division_id: string | null;
+  divisions: {
+    id: string;
+    name: string;
+  } | null;
+}
 
 interface FreeAgentPlayer {
   id: string;
@@ -13,13 +29,13 @@ interface FreeAgentPlayer {
   status: string;
   preferred_position: string | null;
   preferred_jersey_number: number | null;
-  payment_status: string;
-  amount_paid_cents: number;
-  submitted_at: string;
+  payment_status: string | null;
+  amount_paid_cents: number | null;
+  submitted_at: string | null;
   player: {
     id: string;
-    full_name: string;
-    email: string;
+    full_name: string | null;
+    email: string | null;
     phone: string | null;
   } | null;
 }
@@ -29,8 +45,8 @@ interface TeamsDivisionsClientProps {
   leagueName: string;
   leaguePrimaryColor: string | null;
   locale: string;
-  teams: any[];
-  divisions: any[];
+  teams: LeagueTeam[];
+  divisions: DivisionWithTeamCount[];
   freeAgentPlayers: FreeAgentPlayer[];
   totalTeams: number;
   unassignedTeams: number;

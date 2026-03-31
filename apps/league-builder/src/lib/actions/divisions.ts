@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { verifyLeagueOwnerAccess } from './permissions';
@@ -28,6 +28,24 @@ export interface DivisionWithTeamCount extends Division {
   team_count: number;
 }
 
+export interface DivisionTeamCaptain {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+}
+
+export interface DivisionTeam {
+  id: string;
+  name: string;
+  short_name: string | null;
+  logo_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+  status: string | null;
+  captain_id: string | null;
+  captain?: DivisionTeamCaptain | null;
+}
+
 export interface CreateDivisionParams {
   leagueId: string;
   name: string;
@@ -52,6 +70,158 @@ export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+interface AuthorizedDivisionContext {
+  leagueId: string;
+  supabase: ReturnType<typeof createServiceRoleClient>;
+}
+
+interface AuthorizedTeamContext extends AuthorizedDivisionContext {
+  teamId: string;
+  currentDivisionId: string | null;
+}
+
+type DivisionWithJoinedTeamCount = Division & {
+  teams?: Array<{ count: number | null }> | null;
+};
+
+type DivisionUpdateData = {
+  name?: string;
+  description?: string | null;
+  skill_level?: string | null;
+  max_teams?: number | null;
+  game_duration_minutes?: number;
+  period_count?: number;
+};
+
+async function authorizeLeagueDivisionAccess(
+  leagueId: string
+): Promise<ActionResult<AuthorizedDivisionContext>> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  return {
+    success: true,
+    data: {
+      leagueId,
+      supabase: createServiceRoleClient(),
+    },
+  };
+}
+
+async function authorizeExistingDivisionAccess(
+  divisionId: string
+): Promise<ActionResult<AuthorizedDivisionContext>> {
+  const supabase = createServiceRoleClient();
+
+  try {
+    const { data: division, error } = await supabase
+      .from('divisions')
+      .select('league_id')
+      .eq('id', divisionId)
+      .maybeSingle();
+
+    if (error) {
+      if (isDevelopment) {
+        console.error('Error fetching division context:', sanitizeErrorForLogging(error));
+      }
+      return { success: false, error: 'Failed to fetch division' };
+    }
+
+    if (!division) {
+      return { success: false, error: 'Division not found' };
+    }
+
+    const access = await verifyLeagueOwnerAccess(division.league_id);
+    if (!access.authorized) {
+      return { success: false, error: access.error || 'Not authorized' };
+    }
+
+    return {
+      success: true,
+      data: {
+        leagueId: division.league_id,
+        supabase,
+      },
+    };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in authorizeExistingDivisionAccess:', sanitizeErrorForLogging(error));
+    }
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+async function authorizeExistingTeamAccess(
+  teamId: string
+): Promise<ActionResult<AuthorizedTeamContext>> {
+  const supabase = createServiceRoleClient();
+
+  try {
+    const { data: team, error } = await supabase
+      .from('teams')
+      .select('league_id, division_id')
+      .eq('id', teamId)
+      .maybeSingle();
+
+    if (error) {
+      if (isDevelopment) {
+        console.error('Error fetching team context:', sanitizeErrorForLogging(error));
+      }
+      return { success: false, error: 'Failed to fetch team' };
+    }
+
+    if (!team) {
+      return { success: false, error: 'Team not found' };
+    }
+
+    const access = await verifyLeagueOwnerAccess(team.league_id);
+    if (!access.authorized) {
+      return { success: false, error: access.error || 'Not authorized' };
+    }
+
+    return {
+      success: true,
+      data: {
+        teamId,
+        leagueId: team.league_id,
+        currentDivisionId: team.division_id,
+        supabase,
+      },
+    };
+  } catch (error) {
+    if (isDevelopment) {
+      console.error('Unexpected error in authorizeExistingTeamAccess:', sanitizeErrorForLogging(error));
+    }
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+function normalizeDivisionName(name: string) {
+  return name.trim();
+}
+
+function mapCreateDivisionError(error: { code?: string | null } | null | undefined) {
+  if (error?.code === '23505') {
+    return 'A division with this name already exists in the league';
+  }
+
+  if (error?.code === '23503') {
+    return 'League not found';
+  }
+
+  return 'Failed to create division';
+}
+
+function mapUpdateDivisionError(error: { code?: string | null } | null | undefined) {
+  if (error?.code === '23505') {
+    return 'A division with this name already exists in the league';
+  }
+
+  return 'Failed to update division';
+}
+
 // ==============================================================================
 // READ OPERATIONS
 // ==============================================================================
@@ -60,7 +230,12 @@ export type ActionResult<T = void> =
  * Get all divisions for a league with team counts
  */
 export async function getDivisions(leagueId: string): Promise<ActionResult<DivisionWithTeamCount[]>> {
-  const supabase = await createClient();
+  const context = await authorizeLeagueDivisionAccess(leagueId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase } = context.data;
 
   try {
     // Get divisions with teams joined
@@ -81,9 +256,9 @@ export async function getDivisions(leagueId: string): Promise<ActionResult<Divis
     }
 
     // Transform to include team count
-    const divisionsWithCount = (divisions || []).map(div => ({
+    const divisionsWithCount = ((divisions || []) as DivisionWithJoinedTeamCount[]).map(div => ({
       ...div,
-      team_count: (div.teams as any)?.[0]?.count || 0,
+      team_count: div.teams?.[0]?.count || 0,
       teams: undefined, // Remove the nested teams array
     })) as DivisionWithTeamCount[];
 
@@ -100,7 +275,12 @@ export async function getDivisions(leagueId: string): Promise<ActionResult<Divis
  * Get a single division by ID
  */
 export async function getDivision(divisionId: string): Promise<ActionResult<DivisionWithTeamCount>> {
-  const supabase = await createClient();
+  const context = await authorizeExistingDivisionAccess(divisionId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase } = context.data;
 
   try {
     const { data: division, error } = await supabase
@@ -119,11 +299,13 @@ export async function getDivision(divisionId: string): Promise<ActionResult<Divi
       return { success: false, error: 'Division not found' };
     }
 
+    const typedDivision = division as DivisionWithJoinedTeamCount;
+
     return {
       success: true,
       data: {
-        ...division,
-        team_count: (division.teams as any)?.[0]?.count || 0,
+        ...typedDivision,
+        team_count: typedDivision.teams?.[0]?.count || 0,
         teams: undefined,
       } as DivisionWithTeamCount,
     };
@@ -138,8 +320,13 @@ export async function getDivision(divisionId: string): Promise<ActionResult<Divi
 /**
  * Get teams in a specific division
  */
-export async function getDivisionTeams(divisionId: string): Promise<ActionResult<any[]>> {
-  const supabase = await createClient();
+export async function getDivisionTeams(divisionId: string): Promise<ActionResult<DivisionTeam[]>> {
+  const context = await authorizeExistingDivisionAccess(divisionId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase } = context.data;
 
   try {
     const { data: teams, error } = await supabase
@@ -173,13 +360,13 @@ export async function getDivisionTeams(divisionId: string): Promise<ActionResult
             .select('id, full_name, email')
             .eq('id', team.captain_id)
             .single();
-          return { ...team, captain: captain || null };
+          return { ...team, captain: (captain as DivisionTeamCaptain | null) || null };
         }
         return { ...team, captain: null };
       })
     );
 
-    return { success: true, data: teamsWithCaptains };
+    return { success: true, data: teamsWithCaptains as DivisionTeam[] };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getDivisionTeams:', sanitizeErrorForLogging(error));
@@ -191,8 +378,13 @@ export async function getDivisionTeams(divisionId: string): Promise<ActionResult
 /**
  * Get unassigned teams (teams not in any division) for a league
  */
-export async function getUnassignedTeams(leagueId: string): Promise<ActionResult<any[]>> {
-  const supabase = await createClient();
+export async function getUnassignedTeams(leagueId: string): Promise<ActionResult<DivisionTeam[]>> {
+  const context = await authorizeLeagueDivisionAccess(leagueId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase } = context.data;
 
   try {
     const { data: teams, error } = await supabase
@@ -228,13 +420,13 @@ export async function getUnassignedTeams(leagueId: string): Promise<ActionResult
             .select('id, full_name, email')
             .eq('id', team.captain_id)
             .single();
-          return { ...team, captain: captain || null };
+          return { ...team, captain: (captain as DivisionTeamCaptain | null) || null };
         }
         return { ...team, captain: null };
       })
     );
 
-    return { success: true, data: teamsWithCaptains };
+    return { success: true, data: teamsWithCaptains as DivisionTeam[] };
   } catch (error) {
     if (isDevelopment) {
       console.error('Unexpected error in getUnassignedTeams:', sanitizeErrorForLogging(error));
@@ -260,23 +452,33 @@ export async function createDivision(params: CreateDivisionParams): Promise<Acti
     gameDurationMinutes = 60,
     periodCount = 3,
   } = params;
-
-  // Verify access
-  const access = await verifyLeagueOwnerAccess(leagueId);
-  if (!access.authorized) {
-    return { success: false, error: access.error || 'Not authorized' };
+  const normalizedName = normalizeDivisionName(name);
+  if (!normalizedName) {
+    return { success: false, error: 'Division name is required' };
   }
 
-  const supabase = await createClient();
+  const context = await authorizeLeagueDivisionAccess(leagueId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase } = context.data;
 
   try {
     // Check for duplicate division name in league
-    const { data: existingDivision } = await supabase
+    const { data: existingDivision, error: duplicateCheckError } = await supabase
       .from('divisions')
       .select('id')
       .eq('league_id', leagueId)
-      .eq('name', name)
-      .single();
+      .eq('name', normalizedName)
+      .maybeSingle();
+
+    if (duplicateCheckError) {
+      if (isDevelopment) {
+        console.error('Error validating division name:', sanitizeErrorForLogging(duplicateCheckError));
+      }
+      return { success: false, error: 'Failed to create division' };
+    }
 
     if (existingDivision) {
       return { success: false, error: 'A division with this name already exists in the league' };
@@ -287,7 +489,7 @@ export async function createDivision(params: CreateDivisionParams): Promise<Acti
       .from('divisions')
       .insert({
         league_id: leagueId,
-        name,
+        name: normalizedName,
         description: description || null,
         skill_level: skillLevel || null,
         max_teams: maxTeams || null,
@@ -301,7 +503,7 @@ export async function createDivision(params: CreateDivisionParams): Promise<Acti
       if (isDevelopment) {
         console.error('Error creating division:', sanitizeErrorForLogging(insertError));
       }
-      return { success: false, error: 'Failed to create division' };
+      return { success: false, error: mapCreateDivisionError(insertError) };
     }
 
     revalidatePath(`/dashboard/leagues/${leagueId}/divisions`);
@@ -323,36 +525,37 @@ export async function createDivision(params: CreateDivisionParams): Promise<Acti
  */
 export async function updateDivision(params: UpdateDivisionParams): Promise<ActionResult<Division>> {
   const { divisionId, ...updates } = params;
+  const context = await authorizeExistingDivisionAccess(divisionId);
+  if (!context.success) {
+    return context;
+  }
 
-  const supabase = await createClient();
+  const { supabase, leagueId } = context.data;
 
   try {
-    // Get division to verify league ownership
-    const { data: division, error: fetchError } = await supabase
-      .from('divisions')
-      .select('league_id')
-      .eq('id', divisionId)
-      .single();
+    const normalizedName =
+      updates.name !== undefined ? normalizeDivisionName(updates.name) : undefined;
 
-    if (fetchError || !division) {
-      return { success: false, error: 'Division not found' };
-    }
-
-    // Verify access
-    const access = await verifyLeagueOwnerAccess(division.league_id);
-    if (!access.authorized) {
-      return { success: false, error: access.error || 'Not authorized' };
+    if (normalizedName !== undefined && !normalizedName) {
+      return { success: false, error: 'Division name is required' };
     }
 
     // Check for duplicate name if name is being updated
-    if (updates.name) {
-      const { data: existingDivision } = await supabase
+    if (normalizedName) {
+      const { data: existingDivision, error: duplicateCheckError } = await supabase
         .from('divisions')
         .select('id')
-        .eq('league_id', division.league_id)
-        .eq('name', updates.name)
+        .eq('league_id', leagueId)
+        .eq('name', normalizedName)
         .neq('id', divisionId)
-        .single();
+        .maybeSingle();
+
+      if (duplicateCheckError) {
+        if (isDevelopment) {
+          console.error('Error validating updated division name:', sanitizeErrorForLogging(duplicateCheckError));
+        }
+        return { success: false, error: 'Failed to update division' };
+      }
 
       if (existingDivision) {
         return { success: false, error: 'A division with this name already exists in the league' };
@@ -360,8 +563,8 @@ export async function updateDivision(params: UpdateDivisionParams): Promise<Acti
     }
 
     // Build update object
-    const updateData: Record<string, any> = {};
-    if (updates.name !== undefined) updateData.name = updates.name;
+    const updateData: DivisionUpdateData = {};
+    if (normalizedName !== undefined) updateData.name = normalizedName;
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.skillLevel !== undefined) updateData.skill_level = updates.skillLevel;
     if (updates.maxTeams !== undefined) updateData.max_teams = updates.maxTeams;
@@ -379,10 +582,10 @@ export async function updateDivision(params: UpdateDivisionParams): Promise<Acti
       if (isDevelopment) {
         console.error('Error updating division:', sanitizeErrorForLogging(updateError));
       }
-      return { success: false, error: 'Failed to update division' };
+      return { success: false, error: mapUpdateDivisionError(updateError) };
     }
 
-    revalidatePath(`/dashboard/leagues/${division.league_id}/divisions`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/divisions`);
     return { success: true, data: updatedDivision as Division };
   } catch (error) {
     if (isDevelopment) {
@@ -401,25 +604,14 @@ export async function updateDivision(params: UpdateDivisionParams): Promise<Acti
  * Teams will have their division_id set to NULL (handled by FK ON DELETE SET NULL)
  */
 export async function deleteDivision(divisionId: string): Promise<ActionResult<void>> {
-  const supabase = await createClient();
+  const context = await authorizeExistingDivisionAccess(divisionId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase, leagueId } = context.data;
 
   try {
-    // Get division to verify league ownership
-    const { data: division, error: fetchError } = await supabase
-      .from('divisions')
-      .select('league_id')
-      .eq('id', divisionId)
-      .single();
-
-    if (fetchError || !division) {
-      return { success: false, error: 'Division not found' };
-    }
-
-    // Verify access
-    const access = await verifyLeagueOwnerAccess(division.league_id);
-    if (!access.authorized) {
-      return { success: false, error: access.error || 'Not authorized' };
-    }
 
     // Delete division (teams will be unassigned automatically via FK constraint)
     const { error: deleteError } = await supabase
@@ -434,7 +626,7 @@ export async function deleteDivision(divisionId: string): Promise<ActionResult<v
       return { success: false, error: 'Failed to delete division' };
     }
 
-    revalidatePath(`/dashboard/leagues/${division.league_id}/divisions`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/divisions`);
     return { success: true, data: undefined };
   } catch (error) {
     if (isDevelopment) {
@@ -455,25 +647,14 @@ export async function assignTeamToDivision(
   teamId: string,
   divisionId: string | null
 ): Promise<ActionResult<void>> {
-  const supabase = await createClient();
+  const context = await authorizeExistingTeamAccess(teamId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase, leagueId, currentDivisionId } = context.data;
 
   try {
-    // Get team to verify league ownership
-    const { data: team, error: teamError } = await supabase
-      .from('teams')
-      .select('league_id')
-      .eq('id', teamId)
-      .single();
-
-    if (teamError || !team) {
-      return { success: false, error: 'Team not found' };
-    }
-
-    // Verify access
-    const access = await verifyLeagueOwnerAccess(team.league_id);
-    if (!access.authorized) {
-      return { success: false, error: access.error || 'Not authorized' };
-    }
 
     // If divisionId is provided, verify it belongs to the same league
     if (divisionId) {
@@ -487,12 +668,12 @@ export async function assignTeamToDivision(
         return { success: false, error: 'Division not found' };
       }
 
-      if (division.league_id !== team.league_id) {
+      if (division.league_id !== leagueId) {
         return { success: false, error: 'Division does not belong to the same league as the team' };
       }
 
       // Check max_teams constraint
-      if (division.max_teams) {
+      if (division.max_teams && currentDivisionId !== divisionId) {
         const { count: currentTeamCount } = await supabase
           .from('teams')
           .select('*', { count: 'exact', head: true })
@@ -517,8 +698,8 @@ export async function assignTeamToDivision(
       return { success: false, error: 'Failed to assign team to division' };
     }
 
-    revalidatePath(`/dashboard/leagues/${team.league_id}/divisions`);
-    revalidatePath(`/dashboard/leagues/${team.league_id}/teams`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/divisions`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/teams`);
     return { success: true, data: undefined };
   } catch (error) {
     if (isDevelopment) {
@@ -536,13 +717,12 @@ export async function bulkAssignTeamsToDivision(
   divisionId: string | null,
   leagueId: string
 ): Promise<ActionResult<{ assigned: number; failed: string[] }>> {
-  // Verify access
-  const access = await verifyLeagueOwnerAccess(leagueId);
-  if (!access.authorized) {
-    return { success: false, error: access.error || 'Not authorized' };
+  const context = await authorizeLeagueDivisionAccess(leagueId);
+  if (!context.success) {
+    return context;
   }
 
-  const supabase = await createClient();
+  const { supabase } = context.data;
   const failed: string[] = [];
   let assigned = 0;
 
@@ -563,31 +743,20 @@ export async function bulkAssignTeamsToDivision(
         return { success: false, error: 'Division does not belong to this league' };
       }
 
-      // Check max_teams constraint
-      if (division.max_teams) {
-        const { count: currentTeamCount } = await supabase
-          .from('teams')
-          .select('*', { count: 'exact', head: true })
-          .eq('division_id', divisionId);
-
-        const availableSpots = division.max_teams - (currentTeamCount || 0);
-        if (teamIds.length > availableSpots) {
-          return {
-            success: false,
-            error: `Division only has ${availableSpots} available spots (max ${division.max_teams} teams)`
-          };
-        }
-      }
     }
 
     // Verify all teams belong to the league
     const { data: teams, error: teamsError } = await supabase
       .from('teams')
-      .select('id, league_id')
+      .select('id, league_id, division_id')
       .in('id', teamIds);
 
     if (teamsError) {
       return { success: false, error: 'Failed to verify teams' };
+    }
+
+    if (!teams || teams.length !== teamIds.length) {
+      return { success: false, error: 'Some teams were not found' };
     }
 
     const invalidTeams = teams?.filter(t => t.league_id !== leagueId) || [];
@@ -596,6 +765,31 @@ export async function bulkAssignTeamsToDivision(
         success: false,
         error: `Some teams do not belong to this league: ${invalidTeams.map(t => t.id).join(', ')}`
       };
+    }
+
+    if (divisionId) {
+      const { data: division } = await supabase
+        .from('divisions')
+        .select('max_teams')
+        .eq('id', divisionId)
+        .maybeSingle();
+
+      if (division?.max_teams) {
+        const { count: currentTeamCount } = await supabase
+          .from('teams')
+          .select('*', { count: 'exact', head: true })
+          .eq('division_id', divisionId);
+
+        const netNewAssignments = teams.filter((team) => team.division_id !== divisionId).length;
+        const availableSpots = division.max_teams - (currentTeamCount || 0);
+
+        if (netNewAssignments > availableSpots) {
+          return {
+            success: false,
+            error: `Division only has ${availableSpots} available spots (max ${division.max_teams} teams)`
+          };
+        }
+      }
     }
 
     // Update all teams
@@ -644,25 +838,14 @@ export async function reassignDivisionTeams(
   fromDivisionId: string,
   toDivisionId: string | null
 ): Promise<ActionResult<{ reassigned: number }>> {
-  const supabase = await createClient();
+  const context = await authorizeExistingDivisionAccess(fromDivisionId);
+  if (!context.success) {
+    return context;
+  }
+
+  const { supabase, leagueId } = context.data;
 
   try {
-    // Get the source division to verify league ownership
-    const { data: fromDivision, error: divError } = await supabase
-      .from('divisions')
-      .select('league_id')
-      .eq('id', fromDivisionId)
-      .single();
-
-    if (divError || !fromDivision) {
-      return { success: false, error: 'Source division not found' };
-    }
-
-    // Verify access
-    const access = await verifyLeagueOwnerAccess(fromDivision.league_id);
-    if (!access.authorized) {
-      return { success: false, error: access.error || 'Not authorized' };
-    }
 
     // If toDivisionId is provided, verify it belongs to the same league
     if (toDivisionId) {
@@ -676,7 +859,7 @@ export async function reassignDivisionTeams(
         return { success: false, error: 'Target division not found' };
       }
 
-      if (toDivision.league_id !== fromDivision.league_id) {
+      if (toDivision.league_id !== leagueId) {
         return { success: false, error: 'Target division must be in the same league' };
       }
     }
@@ -700,8 +883,8 @@ export async function reassignDivisionTeams(
       return { success: false, error: 'Failed to reassign teams' };
     }
 
-    revalidatePath(`/dashboard/leagues/${fromDivision.league_id}/divisions`);
-    revalidatePath(`/dashboard/leagues/${fromDivision.league_id}/teams`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/divisions`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/teams`);
     return { success: true, data: { reassigned: teamCount || 0 } };
   } catch (error) {
     if (isDevelopment) {

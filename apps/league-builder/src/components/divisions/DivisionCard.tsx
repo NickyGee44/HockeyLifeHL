@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { DivisionWithTeamCount } from '@/lib/actions/divisions';
+import { buildTeamDetailHref } from '@/lib/dashboard/workspace-routes';
 
 // ==============================================================================
 // TYPES
@@ -43,7 +44,7 @@ interface DivisionCardProps {
   teams?: Array<{
     id: string;
     name: string;
-    short_name: string;
+    short_name: string | null;
     logo_url: string | null;
     primary_color: string | null;
   }>;
@@ -167,7 +168,11 @@ export function DivisionCard({
               {teams.map((team) => (
                 <Link
                   key={team.id}
-                  href={`/${locale}/dashboard/teams/${team.id}`}
+                  href={buildTeamDetailHref({
+                    locale,
+                    teamId: team.id,
+                    leagueId,
+                  })}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/[0.04] transition-colors"
                 >
                   <div

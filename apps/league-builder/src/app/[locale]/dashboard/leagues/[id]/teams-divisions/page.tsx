@@ -1,5 +1,5 @@
 import { setRequestLocale } from 'next-intl/server';
-import { redirect as nextRedirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getDivisions } from '@/lib/actions/divisions';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { TeamsDivisionsClient } from './teams-divisions-client';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { getSeasonParticipationTeamIds } from '@/lib/seasons/team-participation';
+import { getPreferredSeasonWorkspace } from '@/lib/dashboard/server-workspace';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
@@ -36,31 +37,28 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     notFound();
   }
 
-  // Get current season (active or in playoffs)
-  const { data: currentSeason } = await supabase
+  // Keep this league-level page aligned with the currently selected season
+  // workspace instead of guessing from whichever season is active.
+  const { data: seasons } = await supabase
     .from('seasons')
-    .select('id, name')
+    .select('id, name, status, start_date, end_date')
     .eq('league_id', leagueId)
-    .in('status', ['active', 'playoffs'])
     .order('start_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .returns<Array<{
+      id: string;
+      name: string;
+      status: string | null;
+      start_date: string | null;
+      end_date: string | null;
+    }>>();
 
-  // Get season team IDs from participation markers, registrations, rosters, or games
-  let seasonTeamIds: string[] | null = null;
-  if (currentSeason) {
-    const teamIds = await getSeasonParticipationTeamIds(
-      serviceClient,
-      leagueId,
-      currentSeason.id
-    );
-    if (teamIds.length > 0) {
-      seasonTeamIds = teamIds;
-    }
-  }
+  const preferredSeason = await getPreferredSeasonWorkspace(leagueId, seasons ?? []);
+  const seasonTeamIds = preferredSeason
+    ? await getSeasonParticipationTeamIds(serviceClient, leagueId, preferredSeason.id)
+    : null;
 
   // Build teams query — filter to current-season teams if we have a season
-  let teamsQuery = supabase
+  const baseTeamsQuery = supabase
     .from('teams')
     .select(`
       id,
@@ -80,11 +78,11 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     .neq('status', 'inactive')
     .order('name');
 
-  if (seasonTeamIds) {
-    teamsQuery = (teamsQuery as any).in('id', seasonTeamIds);
-  }
-
-  const { data: teams, error: teamsError } = await teamsQuery;
+  const { data: teams, error: teamsError } = seasonTeamIds === null
+    ? await baseTeamsQuery
+    : seasonTeamIds.length > 0
+      ? await baseTeamsQuery.in('id', seasonTeamIds)
+      : { data: [], error: null };
 
   if (teamsError) {
     console.error('[Teams & Divisions Page] Error fetching teams:', teamsError.message);
@@ -94,24 +92,15 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
   const divisionsResult = await getDivisions(leagueId);
   const divisions = divisionsResult.success ? divisionsResult.data : [];
 
-  // Get team counts for division stats
-  const { count: totalTeams } = await supabase
-    .from('teams')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId)
-    .eq('status', 'active');
-
-  const { count: unassignedTeams } = await supabase
-    .from('teams')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId)
-    .eq('status', 'active')
-    .is('division_id', null);
+  const totalTeams = teams?.length ?? 0;
+  const unassignedTeams = (teams ?? []).filter(
+    (team: { division_id: string | null }) => !team.division_id
+  ).length;
 
   // Fetch players registered for this league who haven't been assigned to a team yet.
   // Uses serviceClient so the profiles join isn't blocked by RLS (which restricts
   // profiles reads to auth.uid() only on the regular client).
-  const { data: freeAgentPlayers } = await (serviceClient as any)
+  let freeAgentQuery = serviceClient
     .from('registration_submissions')
     .select(`
       id,
@@ -128,9 +117,15 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
     `)
     .eq('league_id', leagueId)
     .is('team_id', null)
-    .in('status', ['approved', 'imported'])
+    .or('status.eq.approved,status.eq.imported')
     .not('submitted_at', 'is', null)
     .order('submitted_at', { ascending: false });
+
+  if (preferredSeason) {
+    freeAgentQuery = freeAgentQuery.eq('season_id', preferredSeason.id);
+  }
+
+  const { data: freeAgentPlayers } = await freeAgentQuery;
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -150,6 +145,7 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
               <h1 className="text-3xl font-black text-white tracking-tight">Teams & Divisions</h1>
               <p className="text-neutral-400 mt-1">
                 Manage teams and divisions in {league.name}
+                {preferredSeason ? ` for ${preferredSeason.name ?? 'the selected season'}` : ''}
               </p>
             </div>
 
