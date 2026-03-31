@@ -64,6 +64,7 @@ import {
 } from './imported-aggregate-season-overrides';
 import { getBalancedLeagueColors } from './theme-palette';
 import { pickOperationalSeason } from './seasons/operational';
+import { resolveSeasonParticipationTeamIds } from './season-team-participation';
 
 // Default brand colors from BRAND-KIT.md
 const DEFAULT_PRIMARY = '#D4AF37';
@@ -510,35 +511,74 @@ export async function getSeasons(leagueId: string): Promise<Season[]> {
 /**
  * Fetch all teams for a league
  */
-export async function getTeams(leagueId: string, seasonId?: string): Promise<Team[]> {
+async function getSeasonParticipationTeamIds(
+  leagueId: string,
+  seasonId: string
+): Promise<string[]> {
   const supabase = await createClient();
 
-  // If seasonId provided, filter to only teams with active rosters in that season
-  if (seasonId) {
-    const { data: rosterTeams } = await supabase
+  const [
+    seasonPreferenceResult,
+    rosterResult,
+    registrationResult,
+    gameResult,
+  ] = await Promise.all([
+    supabase
+      .from('team_schedule_preferences')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+    supabase
       .from('team_rosters')
       .select('team_id')
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
-      .eq('status', 'active');
+      .eq('status', 'active'),
+    supabase
+      .from('registration_submissions')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .not('team_id', 'is', null)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted']),
+    supabase
+      .from('games')
+      .select('home_team_id, away_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+  ]);
 
-    const teamIds = rosterTeams && rosterTeams.length > 0
-      ? [...new Set(rosterTeams.map(r => r.team_id))]
-      : null;
+  return resolveSeasonParticipationTeamIds({
+    seasonPreferenceTeamIds: (seasonPreferenceResult.data ?? []).map((row) => row.team_id),
+    rosterTeamIds: (rosterResult.data ?? []).map((row) => row.team_id),
+    registrationTeamIds: (registrationResult.data ?? []).map((row) => row.team_id),
+    gameTeamIds: (gameResult.data ?? []).flatMap((row) => [row.home_team_id, row.away_team_id]),
+  });
+}
 
-    // If a season was specified but has no active rosters yet, fall through
-    // to return all teams for the league rather than an empty list.
-    if (teamIds) {
-      const { data, error } = await supabase
-        .from('teams')
-        .select(`*, division:divisions(*)`)
-        .eq('league_id', leagueId)
-        .in('id', teamIds)
-        .order('name', { ascending: true });
+export async function getTeams(leagueId: string, seasonId?: string): Promise<Team[]> {
+  const supabase = await createClient();
 
-      if (error || !data) return [];
-      return data as Team[];
+  // If seasonId provided, filter to the teams actually participating in that
+  // season, falling back to season-specific schedule prefs only when there are
+  // no harder participation markers yet.
+  if (seasonId) {
+    const teamIds = await getSeasonParticipationTeamIds(leagueId, seasonId);
+
+    if (teamIds.length === 0) {
+      return [];
     }
+
+    const { data, error } = await supabase
+      .from('teams')
+      .select(`*, division:divisions(*)`)
+      .eq('league_id', leagueId)
+      .in('id', teamIds)
+      .order('name', { ascending: true });
+
+    if (error || !data) return [];
+    return data as Team[];
   }
 
   const { data, error } = await supabase
