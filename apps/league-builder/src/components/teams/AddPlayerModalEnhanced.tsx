@@ -32,6 +32,9 @@ interface Player {
   id: string;
   full_name: string;
   avatar_url?: string | null;
+  latest_team_name?: string | null;
+  latest_season_name?: string | null;
+  source?: 'roster' | 'registration';
 }
 
 const POSITIONS = [
@@ -101,8 +104,17 @@ export function AddPlayerModalEnhanced({
     setError(null);
 
     try {
+      const params = new URLSearchParams({
+        q: query,
+        teamId,
+      });
+
+      if (seasonId) {
+        params.set('seasonId', seasonId);
+      }
+
       const response = await fetch(
-        `/api/leagues/${leagueId}/players/search?q=${encodeURIComponent(query)}&teamId=${encodeURIComponent(teamId)}`
+        `/api/leagues/${leagueId}/players/search?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -215,6 +227,24 @@ export function AddPlayerModalEnhanced({
     setError(null);
   };
 
+  const getPlayerContextLabel = (player: Player) => {
+    if (player.latest_team_name && player.latest_season_name) {
+      return `${player.latest_team_name} • ${player.latest_season_name}`;
+    }
+
+    if (player.latest_season_name) {
+      return player.source === 'registration'
+        ? `Registered in ${player.latest_season_name}`
+        : player.latest_season_name;
+    }
+
+    if (player.latest_team_name) {
+      return player.latest_team_name;
+    }
+
+    return null;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="bg-neutral-900 border-white/10 max-w-md">
@@ -224,7 +254,7 @@ export function AddPlayerModalEnhanced({
           </DialogTitle>
           <DialogDescription className="text-neutral-400">
             {step === 'search'
-              ? 'Search for an existing player or invite a new one'
+              ? 'Search league players from this season or previous seasons, or invite a new one'
               : `Add ${selectedPlayer?.full_name} to the team roster`}
           </DialogDescription>
         </DialogHeader>
@@ -250,7 +280,7 @@ export function AddPlayerModalEnhanced({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
               <Input
                 type="text"
-                placeholder="Search by name..."
+                placeholder="Search by player name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -283,6 +313,9 @@ export function AddPlayerModalEnhanced({
                     />
                     <div className="flex-1 text-left">
                       <p className="font-medium text-white">{player.full_name}</p>
+                      {getPlayerContextLabel(player) && (
+                        <p className="text-sm text-neutral-500">{getPlayerContextLabel(player)}</p>
+                      )}
                     </div>
                     <UserPlus className="w-4 h-4 text-neutral-400" />
                   </button>
@@ -291,14 +324,14 @@ export function AddPlayerModalEnhanced({
                 <div className="text-center py-8">
                   <p className="text-neutral-400">No players found</p>
                   <p className="text-sm text-neutral-500 mt-1">
-                    Try a different search term
+                    Try a different name or invite the player by email below
                   </p>
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <p className="text-neutral-400">Start typing to search</p>
                   <p className="text-sm text-neutral-500 mt-1">
-                    Search for existing organization members by name
+                    Search players from this league, including previous seasons
                   </p>
                 </div>
               )}

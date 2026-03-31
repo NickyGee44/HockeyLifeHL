@@ -1,8 +1,9 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
+import { verifyCaptainOrAdminAccess } from './permissions';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -608,13 +609,12 @@ export async function removePlayerFromRoster(teamId: string, playerId: string) {
  * Get previous seasons for a team's league (for roster import)
  */
 export async function getTeamPreviousSeasons(teamId: string) {
-  // Verify captain access
-  const access = await verifyCaptainAccess(teamId);
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     // Get the team's league
@@ -656,13 +656,12 @@ export async function getTeamPreviousSeasons(teamId: string) {
  * Get roster from a previous season for import preview
  */
 export async function getPreviousSeasonRoster(teamId: string, seasonId: string) {
-  // Verify captain access
-  const access = await verifyCaptainAccess(teamId);
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     const { data: roster, error } = await supabase
@@ -706,7 +705,12 @@ export async function getPreviousSeasonRoster(teamId: string, seasonId: string) 
  * Get current season for a team
  */
 export async function getTeamCurrentSeason(teamId: string) {
-  const supabase = await createClient();
+  const access = await verifyCaptainOrAdminAccess(teamId);
+  if (!access.authorized) {
+    return { error: access.error || 'Not authorized' };
+  }
+
+  const supabase = createServiceRoleClient();
 
   try {
     // Get the team's league
@@ -771,13 +775,12 @@ export async function importPlayersFromPreviousSeason(params: {
 }): Promise<RosterImportResult> {
   const { teamId, fromSeasonId, toSeasonId, selectedPlayerIds } = params;
 
-  // Verify captain access
-  const access = await verifyCaptainAccess(teamId);
+  const access = await verifyCaptainOrAdminAccess(teamId);
   if (!access.authorized) {
     return { success: false, error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     // Call the database function
@@ -809,6 +812,8 @@ export async function importPlayersFromPreviousSeason(params: {
     }
 
     revalidatePath(`/dashboard/captain/${teamId}`);
+    revalidatePath(`/dashboard/teams/${teamId}`);
+    revalidatePath(`/teams/${teamId}`);
 
     return {
       success: true,

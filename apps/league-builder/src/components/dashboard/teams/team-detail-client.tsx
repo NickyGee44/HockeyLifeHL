@@ -9,6 +9,7 @@ import {
   Calendar,
   BarChart3,
   UserPlus,
+  Download,
   Trophy,
   Clock,
   AlertCircle,
@@ -17,6 +18,7 @@ import { RosterTable } from '@/components/teams/RosterTable';
 import { AddPlayerModalEnhanced } from '@/components/teams/AddPlayerModalEnhanced';
 import { RosterExportButton } from '@/components/teams/RosterExportButton';
 import { TeamEmailBlast } from '@/components/teams/TeamEmailBlast';
+import ImportRosterModal from '@/components/captain/ImportRosterModal';
 
 interface Team {
   id: string;
@@ -52,6 +54,7 @@ export default function TeamDetailClient({ team, initialTab, seasonId }: TeamDet
   const searchParams = useSearchParams();
   const [currentTab, setCurrentTab] = useState(initialTab);
   const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+  const [isImportRosterOpen, setIsImportRosterOpen] = useState(false);
 
   const handleTabChange = (tabId: string) => {
     setCurrentTab(tabId);
@@ -76,6 +79,16 @@ export default function TeamDetailClient({ team, initialTab, seasonId }: TeamDet
               <div className="flex items-center gap-2">
                 <TeamEmailBlast teamId={team.id} teamName={team.name} />
                 <RosterExportButton teamId={team.id} />
+                <button
+                  onClick={() => setIsImportRosterOpen(true)}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm',
+                    'border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] transition-colors'
+                  )}
+                >
+                  <Download className="w-4 h-4" />
+                  Import Previous Season
+                </button>
                 <button
                   onClick={() => setIsAddPlayerOpen(true)}
                   disabled={team.roster_count >= (team.max_roster_size ?? 23)}
@@ -212,6 +225,16 @@ export default function TeamDetailClient({ team, initialTab, seasonId }: TeamDet
         seasonId={seasonId}
         onSuccess={() => {
           setIsAddPlayerOpen(false);
+          router.refresh();
+        }}
+      />
+      <ImportRosterModal
+        isOpen={isImportRosterOpen}
+        onClose={() => setIsImportRosterOpen(false)}
+        teamId={team.id}
+        targetSeasonId={seasonId}
+        onImportComplete={() => {
+          setIsImportRosterOpen(false);
           router.refresh();
         }}
       />

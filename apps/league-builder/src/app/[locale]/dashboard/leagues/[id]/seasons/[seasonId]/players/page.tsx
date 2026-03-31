@@ -19,7 +19,28 @@ type Props = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function SeasonPlayersPage({ params, searchParams }: Props) {
+type SeasonPaymentRow = {
+  id: string;
+  player_id: string | null;
+  team_id: string | null;
+  amount_cents: number | null;
+  amount_paid_cents: number | null;
+  status: string | null;
+  payment_method: string | null;
+  season_fee?: {
+    name?: string | null;
+  } | null;
+};
+
+type ApprovedRegistrationRow = {
+  player_id: string | null;
+  team_id: string | null;
+  assigned_team_id: string | null;
+  preferred_position: string | null;
+  preferred_jersey_number: number | null;
+};
+
+export default async function SeasonPlayersPage({ params, searchParams: _searchParams }: Props) {
   const { locale, id: leagueId, seasonId } = await params;
   setRequestLocale(locale);
 
@@ -74,6 +95,20 @@ export default async function SeasonPlayersPage({ params, searchParams }: Props)
     .eq('season_id', seasonId)
     .eq('league_id', leagueId);
 
+  // Approved registrations should also appear here even before a player is rostered.
+  const { data: registrations } = await serviceClient
+    .from('registration_submissions')
+    .select(
+      'player_id, team_id, assigned_team_id, preferred_position, preferred_jersey_number, status, submitted_at'
+    )
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .eq('status', 'approved')
+    .not('submitted_at', 'is', null);
+
+  const paymentRows = (payments ?? []) as SeasonPaymentRow[];
+  const registrationRows = (registrations ?? []) as ApprovedRegistrationRow[];
+
   // Get teams for this league (for team assignment)
   const { data: teams } = await supabase
     .from('teams')
@@ -81,19 +116,74 @@ export default async function SeasonPlayersPage({ params, searchParams }: Props)
     .eq('league_id', leagueId)
     .order('name');
 
+  const teamById = new Map(
+    (teams ?? []).map((team) => [
+      team.id,
+      { name: team.name, short_name: team.short_name },
+    ])
+  );
+
+  const registrationPlayerIds = Array.from(
+    new Set(
+      (registrations ?? [])
+        .map((registration) => registration.player_id)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    )
+  );
+
+  const { data: registrationProfiles } = registrationPlayerIds.length
+    ? await serviceClient
+        .from('profiles')
+        .select('id, full_name, email, avatar_url, phone')
+        .in('id', registrationPlayerIds)
+    : { data: [] };
+
+  const registrationProfileById = new Map(
+    (registrationProfiles ?? []).map((profile) => [profile.id, profile])
+  );
+
   // Index payments by player_id for quick lookup
-  const paymentsByPlayer = new Map<string, any>();
-  for (const p of payments ?? []) {
+  const paymentsByPlayer = new Map<string, SeasonPaymentRow>();
+  for (const p of paymentRows) {
     if (p.player_id) paymentsByPlayer.set(p.player_id, p);
   }
 
   // Build unique player list from roster entries (primary) + any payment-only players
   const playerMap = new Map<string, any>();
 
-  // 1. Players from team_rosters
+  // 1. Approved registrations (including imported previous-season players)
+  for (const registration of registrationRows) {
+    if (!registration.player_id || playerMap.has(registration.player_id)) continue;
+    const profile = registrationProfileById.get(registration.player_id);
+    if (!profile) continue;
+    const payment = paymentsByPlayer.get(registration.player_id);
+    const teamId = registration.assigned_team_id || registration.team_id || null;
+    const team = teamId ? teamById.get(teamId) : null;
+
+    playerMap.set(registration.player_id, {
+      id: profile.id,
+      fullName: profile.full_name || 'Unknown',
+      email: profile.email || '',
+      phone: profile.phone || '',
+      avatarUrl: profile.avatar_url || null,
+      teamId,
+      teamName: team?.name || 'Unassigned',
+      teamShortName: team?.short_name || '',
+      jerseyNumber: registration.preferred_jersey_number,
+      position: registration.preferred_position,
+      rosterStatus: null,
+      paymentStatus: payment?.status || 'none',
+      amountCents: payment?.amount_cents || 0,
+      amountPaidCents: payment?.amount_paid_cents || 0,
+      paymentMethod: payment?.payment_method || null,
+      feeName: payment?.season_fee?.name || '',
+      paymentId: payment?.id || null,
+    });
+  }
+
+  // 2. Players from team_rosters
   for (const entry of rosterEntries ?? []) {
     if (!entry.player?.id) continue;
-    if (playerMap.has(entry.player.id)) continue;
     const payment = paymentsByPlayer.get(entry.player.id);
     playerMap.set(entry.player.id, {
       id: entry.player.id,
@@ -116,34 +206,53 @@ export default async function SeasonPlayersPage({ params, searchParams }: Props)
     });
   }
 
-  // 2. Players with payments but not on a roster (e.g. registered but unassigned)
-  for (const p of payments ?? []) {
-    if (!p.player_id || playerMap.has(p.player_id)) continue;
-    // Need to fetch player info separately for payment-only entries
-    const { data: playerData } = await (serviceClient as any)
-      .from('users')
-      .select('id, full_name, email, avatar_url, phone')
-      .eq('id', p.player_id)
-      .maybeSingle();
-    if (!playerData) continue;
-    playerMap.set(p.player_id, {
-      id: playerData.id,
-      fullName: playerData.full_name || 'Unknown',
-      email: playerData.email || '',
-      phone: playerData.phone || '',
-      avatarUrl: playerData.avatar_url || null,
-      teamId: p.team_id || null,
-      teamName: 'Unassigned',
-      teamShortName: '',
+  // 3. Players with payments but not on a roster or approved registration
+  const paymentOnlyPlayerIds: string[] = Array.from(
+    new Set(
+      paymentRows
+        .map((payment: SeasonPaymentRow) => payment.player_id)
+        .filter(
+          (playerId: string | null): playerId is string =>
+            typeof playerId === 'string' && playerId.length > 0 && !playerMap.has(playerId)
+        )
+    )
+  );
+
+  const { data: paymentOnlyProfiles } = paymentOnlyPlayerIds.length
+    ? await serviceClient
+        .from('profiles')
+        .select('id, full_name, email, avatar_url, phone')
+        .in('id', paymentOnlyPlayerIds)
+    : { data: [] };
+
+  const paymentOnlyProfileById = new Map(
+    (paymentOnlyProfiles ?? []).map((profile) => [profile.id, profile])
+  );
+
+  for (const payment of paymentRows) {
+    if (!payment.player_id || playerMap.has(payment.player_id)) continue;
+    const profile = paymentOnlyProfileById.get(payment.player_id);
+    if (!profile) continue;
+    const team = payment.team_id ? teamById.get(payment.team_id) : null;
+
+    playerMap.set(payment.player_id, {
+      id: profile.id,
+      fullName: profile.full_name || 'Unknown',
+      email: profile.email || '',
+      phone: profile.phone || '',
+      avatarUrl: profile.avatar_url || null,
+      teamId: payment.team_id || null,
+      teamName: team?.name || 'Unassigned',
+      teamShortName: team?.short_name || '',
       jerseyNumber: null,
       position: null,
       rosterStatus: null,
-      paymentStatus: p.status,
-      amountCents: p.amount_cents,
-      amountPaidCents: p.amount_paid_cents,
-      paymentMethod: p.payment_method,
-      feeName: p.season_fee?.name || '',
-      paymentId: p.id,
+      paymentStatus: payment.status,
+      amountCents: payment.amount_cents,
+      amountPaidCents: payment.amount_paid_cents,
+      paymentMethod: payment.payment_method,
+      feeName: payment.season_fee?.name || '',
+      paymentId: payment.id,
     });
   }
 

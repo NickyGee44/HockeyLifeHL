@@ -34,6 +34,7 @@ interface ImportRosterModalProps {
   onClose: () => void;
   teamId: string;
   onImportComplete: () => void;
+  targetSeasonId?: string;
 }
 
 export default function ImportRosterModal({
@@ -41,6 +42,7 @@ export default function ImportRosterModal({
   onClose,
   teamId,
   onImportComplete,
+  targetSeasonId,
 }: ImportRosterModalProps) {
   const t = useTranslations('captain.roster');
 
@@ -66,9 +68,18 @@ export default function ImportRosterModal({
     }
 
     // Load current season
-    const currentSeasonResult = await getTeamCurrentSeason(teamId);
-    if (currentSeasonResult.success && currentSeasonResult.data) {
-      setCurrentSeason(currentSeasonResult.data);
+    if (targetSeasonId) {
+      setCurrentSeason({
+        id: targetSeasonId,
+        name: '',
+        start_date: '',
+        end_date: null,
+      });
+    } else {
+      const currentSeasonResult = await getTeamCurrentSeason(teamId);
+      if (currentSeasonResult.success && currentSeasonResult.data) {
+        setCurrentSeason(currentSeasonResult.data);
+      }
     }
 
     setLoading(false);
@@ -126,14 +137,15 @@ export default function ImportRosterModal({
   };
 
   const handleImport = async () => {
-    if (!currentSeason || selectedPlayerIds.size === 0) return;
+    const destinationSeasonId = targetSeasonId || currentSeason?.id;
+    if (!destinationSeasonId || selectedPlayerIds.size === 0) return;
 
     setImporting(true);
 
     const result = await importPlayersFromPreviousSeason({
       teamId,
       fromSeasonId: selectedSeasonId,
-      toSeasonId: currentSeason.id,
+      toSeasonId: destinationSeasonId,
       selectedPlayerIds: Array.from(selectedPlayerIds),
     });
 

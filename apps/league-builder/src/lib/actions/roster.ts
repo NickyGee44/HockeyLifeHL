@@ -58,7 +58,7 @@ export async function addPlayerToRoster(params: AddPlayerToRosterParams) {
     return { error: access.error || 'Not authorized' };
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
     // Check if jersey number is available using helper function
@@ -135,6 +135,8 @@ export async function addPlayerToRoster(params: AddPlayerToRosterParams) {
     }
 
     revalidatePath(`/teams/${teamId}`);
+    revalidatePath(`/dashboard/teams/${teamId}`);
+    revalidatePath(`/dashboard/captain/${teamId}`);
     return { success: true, data: roster };
   } catch (error) {
     if (isDevelopment) {

@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   Search,
@@ -41,9 +40,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { markPaymentAsPaid } from '@/lib/payments/payment-actions';
+import { ImportPlayersButton } from '@/components/players/ImportPlayersButton';
+import { ImportPreviousSeasonPlayersButton } from '@/components/players/ImportPreviousSeasonPlayersButton';
 
 interface SeasonPlayer {
   id: string;
@@ -188,6 +187,10 @@ export function SeasonPlayersClient({
                   {seasonName} &middot; {leagueName}
                 </p>
               </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ImportPreviousSeasonPlayersButton leagueId={leagueId} seasonId={seasonId} />
+              <ImportPlayersButton leagueId={leagueId} seasonId={seasonId} />
             </div>
           </div>
         </div>
