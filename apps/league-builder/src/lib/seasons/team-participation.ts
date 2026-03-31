@@ -36,6 +36,25 @@ function uniqueIds(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.filter((value): value is string => Boolean(value)))];
 }
 
+export function resolveSeasonParticipationTeamIds(params: {
+  seasonPreferenceTeamIds: Array<string | null | undefined>;
+  rosterTeamIds: Array<string | null | undefined>;
+  registrationTeamIds: Array<string | null | undefined>;
+  gameTeamIds: Array<string | null | undefined>;
+}): string[] {
+  const hardParticipationIds = uniqueIds([
+    ...params.rosterTeamIds,
+    ...params.registrationTeamIds,
+    ...params.gameTeamIds,
+  ]);
+
+  if (hardParticipationIds.length > 0) {
+    return hardParticipationIds;
+  }
+
+  return uniqueIds(params.seasonPreferenceTeamIds);
+}
+
 function buildSeedRow(
   leagueId: string,
   seasonId: string,
@@ -100,14 +119,12 @@ export async function getSeasonParticipationTeamIds(
       .eq('season_id', seasonId),
   ]);
 
-  const ids = uniqueIds([
-    ...(seasonPreferenceResult.data ?? []).map((row) => row.team_id),
-    ...(rosterResult.data ?? []).map((row) => row.team_id),
-    ...(registrationResult.data ?? []).map((row) => row.team_id),
-    ...(gameResult.data ?? []).flatMap((row) => [row.home_team_id, row.away_team_id]),
-  ]);
-
-  return ids;
+  return resolveSeasonParticipationTeamIds({
+    seasonPreferenceTeamIds: (seasonPreferenceResult.data ?? []).map((row) => row.team_id),
+    rosterTeamIds: (rosterResult.data ?? []).map((row) => row.team_id),
+    registrationTeamIds: (registrationResult.data ?? []).map((row) => row.team_id),
+    gameTeamIds: (gameResult.data ?? []).flatMap((row) => [row.home_team_id, row.away_team_id]),
+  });
 }
 
 export async function getSeasonParticipationTeams(
