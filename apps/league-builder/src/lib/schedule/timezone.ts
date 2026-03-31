@@ -113,6 +113,56 @@ export function getTimeStringInTimeZone(date: Date, timeZone: string): string {
   return `${pad2(parts.hour)}:${pad2(parts.minute)}`;
 }
 
+export function formatDateInTimeZone(
+  date: Date,
+  timeZone: string,
+  options: Intl.DateTimeFormatOptions,
+  locale = 'en-US'
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    ...options,
+    timeZone: resolveScheduleTimeZone(timeZone),
+  }).format(date);
+}
+
+export function toDatetimeLocalInTimeZone(date: Date, timeZone: string): string {
+  const parts = getDateTimePartsInTimeZone(date, resolveScheduleTimeZone(timeZone));
+  return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}T${pad2(parts.hour)}:${pad2(parts.minute)}`;
+}
+
+export function parseDatetimeLocalInTimeZone(value: string, timeZone: string): Date {
+  const [dateKey, timeWithSeconds] = value.split('T');
+  if (!dateKey || !timeWithSeconds) {
+    throw new Error(`Invalid datetime-local value: ${value}`);
+  }
+
+  return createDateAtTimeInTimeZone(dateKey, timeWithSeconds.slice(0, 5), timeZone);
+}
+
+export function normalizeScheduledAtInput(
+  value: Date | string,
+  timeZone: string,
+): Date {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error('Invalid scheduled_at value: empty string');
+  }
+
+  if (/([zZ]|[+-]\d{2}:?\d{2})$/.test(trimmed)) {
+    return new Date(trimmed);
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    return parseDatetimeLocalInTimeZone(trimmed.slice(0, 16), timeZone);
+  }
+
+  return new Date(trimmed);
+}
+
 export function getDayOfWeekInTimeZone(date: Date, timeZone: string): number {
   const dateKey = getDateKeyInTimeZone(date, timeZone);
   return getDayOfWeekForDateKey(dateKey);
@@ -131,6 +181,20 @@ export function addDaysToDateKey(dateKey: string, days: number): string {
   const { year, month, day } = parseDateKey(dateKey);
   const next = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0, 0));
   return `${next.getUTCFullYear()}-${pad2(next.getUTCMonth() + 1)}-${pad2(next.getUTCDate())}`;
+}
+
+export function shiftDatetimeLocalByDays(value: string, days: number, timeZone: string): string {
+  const [dateKey, timeWithSeconds] = value.split('T');
+  if (!dateKey || !timeWithSeconds) {
+    return value;
+  }
+
+  const shiftedDateKey = addDaysToDateKey(dateKey, days);
+  const timeValue = timeWithSeconds.slice(0, 5);
+  return toDatetimeLocalInTimeZone(
+    createDateAtTimeInTimeZone(shiftedDateKey, timeValue, timeZone),
+    timeZone
+  );
 }
 
 /**

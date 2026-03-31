@@ -4,7 +4,10 @@ import {
   createDateAtTimeInTimeZone,
   getDateKeyInTimeZone,
   getTimeStringInTimeZone,
+  parseDatetimeLocalInTimeZone,
   resolveScheduleTimeZone,
+  shiftDatetimeLocalByDays,
+  toDatetimeLocalInTimeZone,
 } from '@/lib/schedule/timezone';
 
 describe('schedule timezone utilities', () => {
@@ -31,5 +34,18 @@ describe('schedule timezone utilities', () => {
     expect(getTimeStringInTimeZone(utcGame, 'America/Toronto')).toBe('20:00');
     expect(getTimeStringInTimeZone(utcGame, 'America/Vancouver')).toBe('17:00');
   });
-});
 
+  it('round-trips datetime-local values in Eastern Time', () => {
+    const value = '2026-07-02T20:30';
+    const parsed = parseDatetimeLocalInTimeZone(value, 'America/Toronto');
+
+    expect(toDatetimeLocalInTimeZone(parsed, 'America/Toronto')).toBe(value);
+    expect(parsed.toISOString()).toBe('2026-07-03T00:30:00.000Z');
+  });
+
+  it('shifts datetime-local values by calendar days inside the target timezone', () => {
+    expect(shiftDatetimeLocalByDays('2026-07-02T20:30', 7, 'America/Toronto')).toBe(
+      '2026-07-09T20:30'
+    );
+  });
+});

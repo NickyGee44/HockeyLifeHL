@@ -26,6 +26,13 @@ import {
   TeamSchedulePreference,
   ScheduleConstraintConfig,
   AdditionalIceSlot } from './types';
+import {
+  addDaysToDateKey,
+  createDateAtTimeInTimeZone,
+  getDateKeyInTimeZone,
+  getDayOfWeekForDateKey,
+  resolveScheduleTimeZone,
+} from './timezone';
 
 // ============================================================================
 // ROUND ROBIN GENERATION
@@ -471,61 +478,49 @@ function getAvailableTimeSlots(
   additionalIceSlots?: AdditionalIceSlot[]
 ): Date[] {
   const slots: Date[] = [];
+  const timeZone = resolveScheduleTimeZone(undefined);
   const startDate = new Date(config.startDate);
   const endDate = new Date(config.endDate);
+  const startDateKey = getDateKeyInTimeZone(startDate, timeZone);
+  const endDateKey = getDateKeyInTimeZone(endDate, timeZone);
 
   // Get blackout periods
   const blackouts = getBlackoutPeriods(constraints);
 
   const holidaySet = new Set(config.holidayDates ?? []);
 
-  // Iterate through each day in the range
-  const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    // Skip holiday dates
-    if (config.skipHolidays && holidaySet.size > 0) {
-      const ds = currentDate.toISOString().split('T')[0];
-      if (holidaySet.has(ds)) {
-        currentDate.setDate(currentDate.getDate() + 1);
-        continue;
-      }
+  // Iterate through each day in the range using Eastern calendar days
+  let currentDateKey = startDateKey;
+  while (currentDateKey <= endDateKey) {
+    if (config.skipHolidays && holidaySet.has(currentDateKey)) {
+      currentDateKey = addDaysToDateKey(currentDateKey, 1);
+      continue;
     }
 
-    const dayOfWeek = currentDate.getDay();
+    const dayOfWeek = getDayOfWeekForDateKey(currentDateKey);
 
-    // Check if this is a game day
     if (config.gameDays.includes(dayOfWeek)) {
-      // Add each game time
       for (const timeStr of config.gameTimes) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const slotDate = new Date(currentDate);
-        slotDate.setHours(hours, minutes, 0, 0);
+        const slotDate = createDateAtTimeInTimeZone(currentDateKey, timeStr, timeZone);
 
-        // Check if slot is blacked out
         if (!isSlotBlackedOut(slotDate, blackouts)) {
           slots.push(slotDate);
         }
       }
     }
 
-    // Move to next day
-    currentDate.setDate(currentDate.getDate() + 1);
+    currentDateKey = addDaysToDateKey(currentDateKey, 1);
   }
 
-  // Merge in additional (one-off) ice time slots
   if (additionalIceSlots && additionalIceSlots.length > 0) {
     for (const iceSlot of additionalIceSlots) {
-      const [hours, minutes] = iceSlot.startTime.split(':').map(Number);
-      const slotDate = new Date(iceSlot.date + 'T00:00:00');
-      slotDate.setHours(hours, minutes, 0, 0);
+      const slotDate = createDateAtTimeInTimeZone(iceSlot.date, iceSlot.startTime, timeZone);
 
-      // Only add if within the season date range and not blacked out
       if (slotDate >= startDate && slotDate <= endDate && !isSlotBlackedOut(slotDate, blackouts)) {
         slots.push(slotDate);
       }
     }
 
-    // Re-sort chronologically after merging
     slots.sort((a, b) => a.getTime() - b.getTime());
   }
 
