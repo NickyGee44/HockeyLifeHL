@@ -145,7 +145,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
             alt={team.team.name}
             width={80}
             height={80}
-            className="rounded-lg bg-white object-contain p-1 group-hover:scale-105 transition-transform"
+            className="rounded-lg group-hover:scale-105 transition-transform"
           />
           <div>
             <h3 className="text-lg font-bold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">

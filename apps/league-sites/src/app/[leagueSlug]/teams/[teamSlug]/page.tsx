@@ -147,7 +147,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                         alt={team.name}
                         width={96}
                         height={96}
-                        className="h-full w-full bg-white object-contain p-2"
+                        className="h-full w-full"
                       />
                     </div>
 

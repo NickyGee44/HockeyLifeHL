@@ -37,7 +37,7 @@ function TeamLogo({ team }: { team: StandingsTeam }) {
       alt={team.name}
       width={40}
       height={40}
-      className="rounded bg-white object-contain p-1"
+      className="rounded"
     />
   );
 }

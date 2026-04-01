@@ -144,7 +144,7 @@ function TeamInitial({ name, logo }: TeamInitialProps) {
         alt={name}
         width={48}
         height={48}
-        className="rounded-lg bg-white object-contain p-1 transition-all duration-300"
+        className="rounded-lg transition-all duration-300"
       />
       {/* Subtle shine effect on hover */}
       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
