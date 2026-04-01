@@ -69,6 +69,7 @@ import {
 import { getBalancedLeagueColors } from './theme-palette';
 import { pickOperationalSeason } from './seasons/operational';
 import { resolveSeasonParticipationTeamIds } from './season-team-participation';
+import { filterPublicStandings, filterPublicTeams } from './publicSiteVisibility';
 
 // Default brand colors from BRAND-KIT.md
 const DEFAULT_PRIMARY = '#D4AF37';
@@ -582,7 +583,7 @@ export async function getTeams(leagueId: string, seasonId?: string): Promise<Tea
       .order('name', { ascending: true });
 
     if (error || !data) return [];
-    return data as Team[];
+    return filterPublicTeams(data as Team[]);
   }
 
   const { data, error } = await supabase
@@ -598,7 +599,7 @@ export async function getTeams(leagueId: string, seasonId?: string): Promise<Tea
     return [];
   }
 
-  return data as Team[];
+  return filterPublicTeams(data as Team[]);
 }
 
 /**
@@ -624,7 +625,8 @@ export async function getTeamBySlug(
     return null;
   }
 
-  return data as Team;
+  const [team] = filterPublicTeams([data as Team]);
+  return team ?? null;
 }
 
 /**
@@ -1052,7 +1054,7 @@ export async function getStandings(
   // If seasonId provided, filter to only teams participating in that season
   let teamsQuery = supabase
     .from('teams')
-    .select('id, name, logo_url, division_id, divisions(id, name)')
+    .select('id, name, logo_url, division_id, team_type, divisions(id, name)')
     .eq('league_id', leagueId);
 
   if (seasonId) {
@@ -1079,6 +1081,7 @@ export async function getStandings(
         logo_url: t.logo_url,
         division_id: div?.id || t.division_id,
         division_name: div?.name,
+        team_type: t.team_type ?? 'standard',
       }];
     }) || []
   );
@@ -1094,7 +1097,7 @@ export async function getStandings(
 
   if (!rpcError && rpcData && Array.isArray(rpcData)) {
     // Enrich RPC data with team names and logos, filtering out teams with 0 games
-    return rpcData.filter((s: any) => Number(s.games_played) > 0).map((s: any) => {
+    const enrichedStandings = rpcData.filter((s: any) => Number(s.games_played) > 0).map((s: any) => {
       const teamInfo = teamInfoMap.get(s.team_id);
       return {
         team_id: s.team_id,
@@ -1102,6 +1105,7 @@ export async function getStandings(
         team_logo: teamInfo?.logo_url || null,
         division_id: teamInfo?.division_id || null,
         division_name: teamInfo?.division_name || null,
+        team_type: teamInfo?.team_type || 'standard',
         games_played: Number(s.games_played) || 0,
         wins: Number(s.wins) || 0,
         losses: Number(s.losses) || 0,
@@ -1115,6 +1119,8 @@ export async function getStandings(
         last_10: null,
       };
     }) as TeamStanding[];
+
+    return filterPublicStandings(enrichedStandings);
   }
 
   // Fallback: Query team_standings table directly
@@ -1133,7 +1139,7 @@ export async function getStandings(
     return [];
   }
 
-  return standings.map((s) => {
+  return filterPublicStandings(standings.map((s) => {
     const teamInfo = teamInfoMap.get(s.team_id);
     return {
       team_id: s.team_id,
@@ -1141,6 +1147,7 @@ export async function getStandings(
       team_logo: teamInfo?.logo_url || s.logo_url || null,
       division_id: teamInfo?.division_id || null,
       division_name: teamInfo?.division_name || null,
+      team_type: teamInfo?.team_type || 'standard',
       games_played: Number(s.games_played) || 0,
       wins: Number(s.wins) || 0,
       losses: Number(s.losses) || 0,
@@ -1153,7 +1160,7 @@ export async function getStandings(
       streak: null,
       last_10: null,
     };
-  }) as TeamStanding[];
+  })) as TeamStanding[];
 }
 
 /**

@@ -5,7 +5,7 @@ import { useRouter } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import { Input } from '@/components/ui/input';
 import { ColorPicker } from './ColorPicker';
-import { createTeam, type CreateTeamParams } from '@/lib/actions/teams';
+import { createTeam, type CreateTeamParams, type TeamType } from '@/lib/actions/teams';
 import {
   Check,
   ChevronLeft,
@@ -36,6 +36,7 @@ interface FormData {
   contactEmail: string;
   contactPhone: string;
   notes: string;
+  teamType: TeamType;
 }
 
 const STEPS = [
@@ -67,6 +68,7 @@ export function TeamCreationWizard({
     contactEmail: '',
     contactPhone: '',
     notes: '',
+    teamType: 'standard',
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -144,6 +146,7 @@ export function TeamCreationWizard({
         contactEmail: formData.contactEmail || undefined,
         contactPhone: formData.contactPhone || undefined,
         notes: formData.notes || undefined,
+        teamType: formData.teamType,
       };
 
       const result = await createTeam(params);
@@ -227,6 +230,28 @@ export function TeamCreationWizard({
                 </select>
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Team Type
+              </label>
+              <select
+                value={formData.teamType}
+                onChange={(e) => updateField('teamType', e.target.value as TeamType)}
+                className={cn(
+                  'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
+                  'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
+                )}
+              >
+                <option value="standard">Standard team</option>
+                <option value="free_agents">Free agent pool — excluded from standings</option>
+                <option value="placeholder">Placeholder / setup only</option>
+                <option value="exhibition">Exhibition team</option>
+              </select>
+              <p className="mt-1 text-xs text-neutral-500">
+                Use Free agent pool for spare players that should not count as a real standings team.
+              </p>
+            </div>
           </div>
         );
 

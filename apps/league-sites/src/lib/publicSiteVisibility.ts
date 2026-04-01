@@ -1,3 +1,5 @@
+import type { TeamType } from './types';
+
 const HIDDEN_DEFAULT_NAV_PAGE_KEYS = new Set(['venues', 'about', 'contact']);
 const HIDDEN_PUBLIC_TEAM_NAMES = new Set([
   'free agent',
@@ -30,10 +32,25 @@ export function isPublicFacingTeamName(teamName: string | null | undefined) {
   return !HIDDEN_PUBLIC_TEAM_NAMES.has(normalized);
 }
 
-export function filterPublicTeams<T extends { name: string | null | undefined }>(teams: T[]) {
-  return teams.filter((team) => isPublicFacingTeamName(team.name));
+
+export function isPublicFacingTeam(team: { name?: string | null; team_type?: TeamType | null }) {
+  if (team.team_type === 'free_agents' || team.team_type === 'placeholder') {
+    return false;
+  }
+
+  return isPublicFacingTeamName(team.name);
 }
 
-export function filterPublicStandings<T extends { team_name: string | null | undefined }>(standings: T[]) {
-  return standings.filter((team) => isPublicFacingTeamName(team.team_name));
+export function filterPublicTeams<T extends { name: string | null | undefined; team_type?: TeamType | null }>(teams: T[]) {
+  return teams.filter((team) => isPublicFacingTeam(team));
+}
+
+export function filterPublicStandings<T extends { team_name: string | null | undefined; team_type?: TeamType | null }>(standings: T[]) {
+  return standings.filter((team) => {
+    if (team.team_type === 'free_agents' || team.team_type === 'placeholder' || team.team_type === 'exhibition') {
+      return false;
+    }
+
+    return isPublicFacingTeamName(team.team_name);
+  });
 }

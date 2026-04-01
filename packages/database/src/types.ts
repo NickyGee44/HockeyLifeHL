@@ -4583,6 +4583,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           status: string | null
+          team_type: string | null
           updated_at: string | null
           user_id: string
         }
@@ -4595,6 +4596,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string | null
+          team_type?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -4607,6 +4609,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string | null
+          team_type?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -9691,6 +9694,7 @@ export type Database = {
           resolution_notes: string | null
           resolved_by: string | null
           status: string | null
+          team_type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -9704,6 +9708,7 @@ export type Database = {
           resolution_notes?: string | null
           resolved_by?: string | null
           status?: string | null
+          team_type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -9717,6 +9722,7 @@ export type Database = {
           resolution_notes?: string | null
           resolved_by?: string | null
           status?: string | null
+          team_type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -11381,6 +11387,7 @@ export type Database = {
           short_name: string
           slug: string | null
           status: string | null
+          team_type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -11401,6 +11408,7 @@ export type Database = {
           short_name: string
           slug?: string | null
           status?: string | null
+          team_type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -11421,6 +11429,7 @@ export type Database = {
           short_name?: string
           slug?: string | null
           status?: string | null
+          team_type?: string | null
           updated_at?: string | null
         }
         Relationships: [

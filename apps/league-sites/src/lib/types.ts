@@ -106,6 +106,8 @@ export interface Division {
   sort_order?: number;
 }
 
+export type TeamType = 'standard' | 'free_agents' | 'placeholder' | 'exhibition';
+
 export interface Team {
   id: string;
   name: string;
@@ -120,6 +122,7 @@ export interface Team {
   // Team info
   league_id: string;
   division_id: string | null;
+  team_type?: TeamType | null;
   created_at: string;
   // Contact info
   contact_email?: string | null;
@@ -135,6 +138,7 @@ export interface TeamStanding {
   team_logo: string | null;
   division_id: string | null;
   division_name: string | null;
+  team_type?: TeamType | null;
   games_played: number;
   wins: number;
   losses: number;

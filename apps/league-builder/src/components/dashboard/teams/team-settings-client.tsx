@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
 import { Input } from '@/components/ui/input';
 import { ColorPicker, LogoUploader } from '@/components/teams';
-import { updateTeam, deleteTeam, uploadTeamLogo, type TeamStatus } from '@/lib/actions/teams';
+import { updateTeam, deleteTeam, uploadTeamLogo, type TeamStatus, type TeamType } from '@/lib/actions/teams';
 import {
   Save,
   Loader2,
@@ -36,6 +36,7 @@ interface Team {
   primary_color: string | null;
   secondary_color: string | null;
   status: string | null;
+  team_type?: TeamType | null;
   max_roster_size: number | null;
   division_id: string | null;
   home_venue_id: string | null;
@@ -80,6 +81,7 @@ export default function TeamSettingsClient({
     primaryColor: team.primary_color || '#22D3EE',
     secondaryColor: team.secondary_color || '#000000',
     status: (team.status || 'active') as TeamStatus,
+    teamType: (team.team_type || 'standard') as TeamType,
     maxRosterSize: team.max_roster_size || 20,
     divisionId: team.division_id || '',
     homeVenueId: team.home_venue_id || '',
@@ -106,6 +108,7 @@ export default function TeamSettingsClient({
         primaryColor: formData.primaryColor,
         secondaryColor: formData.secondaryColor,
         status: formData.status,
+        teamType: formData.teamType,
         maxRosterSize: formData.maxRosterSize,
         divisionId: formData.divisionId || null,
         homeVenueId: formData.homeVenueId || null,
@@ -243,6 +246,28 @@ export default function TeamSettingsClient({
               <option value="pending">Pending</option>
               <option value="inactive">Inactive</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Team Type
+            </label>
+            <select
+              value={formData.teamType}
+              onChange={(e) => updateField('teamType', e.target.value)}
+              className={cn(
+                'w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3',
+                'text-sm text-white focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20'
+              )}
+            >
+              <option value="standard">Standard team</option>
+              <option value="free_agents">Free agent pool — excluded from standings</option>
+              <option value="placeholder">Placeholder / setup only</option>
+              <option value="exhibition">Exhibition team</option>
+            </select>
+            <p className="mt-2 text-xs text-neutral-500">
+              Only standard teams should appear in standings and playoff seeding by default.
+            </p>
           </div>
         </div>
       </section>

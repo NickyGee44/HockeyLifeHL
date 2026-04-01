@@ -15,6 +15,7 @@ function sanitizeFilterInput(input: string): string {
 
 // Types
 export type TeamStatus = 'active' | 'inactive' | 'pending';
+export type TeamType = 'standard' | 'free_agents' | 'placeholder' | 'exhibition';
 
 export interface Team {
   id: string;
@@ -28,6 +29,7 @@ export interface Team {
   division_id: string | null;
   home_venue_id: string | null;
   status: TeamStatus | null;
+  team_type: TeamType | null;
   max_roster_size: number | null;
   contact_email: string | null;
   contact_phone: string | null;
@@ -55,6 +57,7 @@ export interface CreateTeamParams {
   contactEmail?: string;
   contactPhone?: string;
   notes?: string;
+  teamType?: TeamType;
 }
 
 export interface UpdateTeamParams {
@@ -66,6 +69,7 @@ export interface UpdateTeamParams {
   divisionId?: string | null;
   homeVenueId?: string | null;
   status?: TeamStatus;
+  teamType?: TeamType;
   maxRosterSize?: number;
   contactEmail?: string | null;
   contactPhone?: string | null;
@@ -301,7 +305,8 @@ export async function createTeam(params: CreateTeamParams) {
     maxRosterSize = 20,
     contactEmail,
     contactPhone,
-    notes
+    notes,
+    teamType = 'standard',
   } = params;
 
   // Verify access (organization owner only for creating teams)
@@ -341,6 +346,7 @@ export async function createTeam(params: CreateTeamParams) {
         contact_phone: contactPhone || null,
         notes: notes || null,
         status: 'active',
+        team_type: teamType,
       })
       .select()
       .single();
@@ -389,6 +395,7 @@ export async function updateTeam(params: UpdateTeamParams) {
     if (updates.divisionId !== undefined) updateData.division_id = updates.divisionId;
     if (updates.homeVenueId !== undefined) updateData.home_venue_id = updates.homeVenueId;
     if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.teamType !== undefined) updateData.team_type = updates.teamType;
     if (updates.maxRosterSize !== undefined) updateData.max_roster_size = updates.maxRosterSize;
     if (updates.contactEmail !== undefined) updateData.contact_email = updates.contactEmail;
     if (updates.contactPhone !== undefined) updateData.contact_phone = updates.contactPhone;
