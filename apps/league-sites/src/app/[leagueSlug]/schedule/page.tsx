@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getSeasons, getCurrentSeason, getVenues, getTeams } from '@/lib/data';
+import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getCurrentSeason, getVenues, getTeams } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
@@ -89,10 +89,10 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   // Parse week or default to current week
   // Use parseDateString to avoid UTC midnight → local time day shift
   const weekStart = week ? parseDateString(week) : getStartOfWeek(new Date());
+  const normalizedTypeFilter = normalizeScheduleGameType(typeFilter);
 
-  // Fetch seasons + current season first to resolve default
-  const [seasons, defaultSeason, venues, teams] = await Promise.all([
-    getSeasons(league.id),
+  // Fetch current season first to resolve the default schedule scope.
+  const [defaultSeason, venues, teams] = await Promise.all([
     getCurrentSeason(league.id),
     getVenues(league.id),
     getTeams(league.id),
@@ -109,7 +109,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       seasonId: selectedSeasonId || undefined,
       divisionId: divisionFilter,
       teamId: teamFilter,
-      type: typeFilter,
+      type: normalizedTypeFilter,
       venue: venueFilter,
       status: statusFilter,
       timezone: leagueTimezone,
@@ -118,7 +118,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       seasonId: selectedSeasonId || undefined,
       divisionId: divisionFilter,
       teamId: teamFilter,
-      type: typeFilter,
+      type: normalizedTypeFilter,
       venue: venueFilter,
       status: statusFilter,
       timezone: leagueTimezone,
@@ -148,25 +148,19 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         {/* Schedule Header */}
         <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
           <div className="flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-[var(--league-primary)]" />
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                Current slate
-              </p>
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
-                Schedule
-              </h1>
-            </div>
+            <Calendar className="h-8 w-8 shrink-0 text-[var(--league-primary)] md:h-9 md:w-9" />
+            <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-5xl">
+              Schedule
+            </h1>
           </div>
         </div>
 
         {/* Filter Row */}
         <div className="px-6 md:px-8 pb-4">
           <ScheduleFilters
-            seasons={seasons}
             venues={venues}
             teams={teams}
-            currentFilters={{ season: selectedSeasonId || undefined, division: divisionFilter, team: teamFilter, type: typeFilter, venue: venueFilter, status: statusFilter }}
+            currentFilters={{ division: divisionFilter, team: teamFilter, type: normalizedTypeFilter, venue: venueFilter }}
             leagueSlug={leagueSlug}
             weekStart={weekStart}
           />
@@ -262,4 +256,8 @@ function buildWeekDays(weekStart: Date, counts: Record<string, number>): WeekPic
   }
 
   return days;
+}
+
+function normalizeScheduleGameType(type?: string) {
+  return type === 'playoffs' ? 'playoff' : type;
 }

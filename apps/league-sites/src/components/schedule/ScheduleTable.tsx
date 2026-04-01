@@ -164,13 +164,14 @@ function ScheduleTableRow({
     >
       {/* Match Up Column */}
       <td className="py-3 px-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {/* Away Team */}
           <TeamLogo
             logoUrl={game.away_team?.logo || null}
             teamName={game.away_team?.name || 'TBD'}
             teamColor={game.away_team?.colors}
-            size="sm"
+            size="md"
+            className="shrink-0"
           />
           <Link
             href={`/${leagueSlug}/teams/${game.away_team?.slug}`}
@@ -211,7 +212,8 @@ function ScheduleTableRow({
             logoUrl={game.home_team?.logo || null}
             teamName={game.home_team?.name || 'TBD'}
             teamColor={game.home_team?.colors}
-            size="sm"
+            size="md"
+            className="shrink-0"
           />
         </div>
         {game.game_type === 'playoff' && (
@@ -354,15 +356,16 @@ function ScheduleCard({
       {/* Match Up - Two rows for mobile */}
       <div className="space-y-1.5">
         {/* Away Team */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
             <TeamLogo
               logoUrl={game.away_team?.logo || null}
               teamName={game.away_team?.name || 'TBD'}
               teamColor={game.away_team?.colors}
-              size="sm"
+              size="md"
+              className="shrink-0"
             />
-            <span className={`text-base ${
+            <span className={`truncate text-base ${
               isCompleted && winner === 'away' ? 'font-bold text-[var(--league-primary)]' : 'font-medium text-[var(--color-text-primary)]'
             }`}>
               {game.away_team?.name || 'TBD'}
@@ -378,15 +381,16 @@ function ScheduleCard({
         </div>
 
         {/* Home Team */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
             <TeamLogo
               logoUrl={game.home_team?.logo || null}
               teamName={game.home_team?.name || 'TBD'}
               teamColor={game.home_team?.colors}
-              size="sm"
+              size="md"
+              className="shrink-0"
             />
-            <span className={`text-base ${
+            <span className={`truncate text-base ${
               isCompleted && winner === 'home' ? 'font-bold text-[var(--league-primary)]' : 'font-medium text-[var(--color-text-primary)]'
             }`}>
               {game.home_team?.name || 'TBD'}
