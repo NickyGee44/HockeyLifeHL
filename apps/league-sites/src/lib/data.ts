@@ -47,6 +47,8 @@ import type {
 import {
   buildHistoricalBaselineGoalieRows,
   buildHistoricalBaselineSkaterRows,
+  collectHistoricalCareerBaselineSeasonIds,
+  filterVisibleSiteSeasons,
   IMPORTED_ALL_TIME_TEAM_LABEL,
   isHistoricalCareerBaselineSeasonName,
   mergeAllTimeGoalieRows,
@@ -510,7 +512,31 @@ export async function getSeasons(leagueId: string): Promise<Season[]> {
     return [];
   }
 
-  return data as Season[];
+  return filterVisibleSiteSeasons(data as Season[]);
+}
+
+async function getHistoricalCareerBaselineSeasonIdsForLeague(
+  supabase: any,
+  leagueId: string,
+  seasonIds: Array<string | null | undefined>,
+): Promise<Set<string>> {
+  const normalizedSeasonIds = [...new Set(seasonIds.filter((seasonId): seasonId is string => Boolean(seasonId)))];
+
+  if (normalizedSeasonIds.length === 0) {
+    return new Set();
+  }
+
+  const { data, error } = await supabase
+    .from('seasons')
+    .select('id, name')
+    .eq('league_id', leagueId)
+    .in('id', normalizedSeasonIds);
+
+  if (error || !data) {
+    return new Set();
+  }
+
+  return collectHistoricalCareerBaselineSeasonIds(data as Array<{ id: string; name?: string | null }>);
 }
 
 /**
@@ -2350,9 +2376,21 @@ async function getNativeUnifiedSkaterStatsRows(
   }
 
   const rows = data as unknown as RawSkaterStatsRow[];
-  const playerIds = [...new Set(rows.map((row) => row.player_id))];
-  const teamIds = [...new Set(rows.map((row) => row.team_id).filter(Boolean))];
-  const seasonIds = [...new Set(rows.map((row) => row.season_id).filter(Boolean))];
+  const hiddenSeasonIds =
+    seasonId == null
+      ? await getHistoricalCareerBaselineSeasonIdsForLeague(supabase, leagueId, rows.map((row) => row.season_id))
+      : new Set<string>();
+  const visibleRows = hiddenSeasonIds.size > 0
+    ? rows.filter((row) => !hiddenSeasonIds.has(row.season_id ?? ''))
+    : rows;
+
+  if (visibleRows.length === 0) {
+    return [];
+  }
+
+  const playerIds = [...new Set(visibleRows.map((row) => row.player_id))];
+  const teamIds = [...new Set(visibleRows.map((row) => row.team_id).filter(Boolean))];
+  const seasonIds = [...new Set(visibleRows.map((row) => row.season_id).filter(Boolean))];
 
   let rosterQuery = supabase
     .from('team_rosters')
@@ -2371,7 +2409,7 @@ async function getNativeUnifiedSkaterStatsRows(
   }
 
   const playerMap = new Map<string, SkaterStatsAccumulator>();
-  for (const row of rows) {
+  for (const row of visibleRows) {
     const playerData = unwrapJoinedRecord(row.player);
     const teamData = unwrapJoinedRecord(row.team);
     const rosterKey = `${row.player_id}:${row.team_id}:${row.season_id ?? 'any'}`;
@@ -2558,8 +2596,20 @@ async function getNativeUnifiedGoalieStatsRows(
   }
 
   const rows = data as unknown as RawGoalieStatsRow[];
+  const hiddenSeasonIds =
+    seasonId == null
+      ? await getHistoricalCareerBaselineSeasonIdsForLeague(supabase, leagueId, rows.map((row) => row.season_id))
+      : new Set<string>();
+  const visibleRows = hiddenSeasonIds.size > 0
+    ? rows.filter((row) => !hiddenSeasonIds.has(row.season_id ?? ''))
+    : rows;
+
+  if (visibleRows.length === 0) {
+    return [];
+  }
+
   const goalieMap = new Map<string, GoalieStatsAccumulator>();
-  for (const row of rows) {
+  for (const row of visibleRows) {
     const playerData = unwrapJoinedRecord(row.player);
     const teamData = unwrapJoinedRecord(row.team);
     const gameData = unwrapJoinedRecord(row.game);

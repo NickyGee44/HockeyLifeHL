@@ -1,6 +1,8 @@
 import {
   buildHistoricalBaselineGoalieRows,
   buildHistoricalBaselineSkaterRows,
+  collectHistoricalCareerBaselineSeasonIds,
+  filterVisibleSiteSeasons,
   IMPORTED_ALL_TIME_TEAM_LABEL,
   isHistoricalCareerBaselineSeasonName,
   mergeAllTimeGoalieRows,
@@ -78,6 +80,20 @@ describe('all-time stats helpers', () => {
     expect(isHistoricalCareerBaselineSeasonName(' historical career baseline 2024 import ')).toBe(true);
     expect(isHistoricalCareerBaselineSeasonName('Winter 2025')).toBe(false);
     expect(isHistoricalCareerBaselineSeasonName(null)).toBe(false);
+  });
+
+  it('collects and filters hidden baseline seasons for public site selectors', () => {
+    const seasons = [
+      { id: 'season-current', name: 'Spring 2026' },
+      { id: 'season-hidden', name: 'Historical Career Baseline (Pre-BLH)' },
+      { id: 'season-completed', name: 'Winter 2026' },
+    ];
+
+    expect([...collectHistoricalCareerBaselineSeasonIds(seasons)]).toEqual(['season-hidden']);
+    expect(filterVisibleSiteSeasons(seasons)).toEqual([
+      { id: 'season-current', name: 'Spring 2026' },
+      { id: 'season-completed', name: 'Winter 2026' },
+    ]);
   });
 
   it('builds historical baseline skater rows directly from imported totals', () => {

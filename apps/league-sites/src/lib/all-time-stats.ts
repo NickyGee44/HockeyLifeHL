@@ -134,6 +134,20 @@ export function isHistoricalCareerBaselineSeasonName(name?: string | null): bool
   return name?.trim().toLowerCase().startsWith(HISTORICAL_CAREER_BASELINE_SEASON_PREFIX) ?? false;
 }
 
+export function collectHistoricalCareerBaselineSeasonIds<T extends { id: string; name?: string | null }>(
+  seasons: T[],
+): Set<string> {
+  return new Set(
+    seasons
+      .filter((season) => isHistoricalCareerBaselineSeasonName(season.name))
+      .map((season) => season.id),
+  );
+}
+
+export function filterVisibleSiteSeasons<T extends { name?: string | null }>(seasons: T[]): T[] {
+  return seasons.filter((season) => !isHistoricalCareerBaselineSeasonName(season.name));
+}
+
 function normalizeSavePercentageRatio(value: number | null | undefined): number | null {
   if (value == null || !Number.isFinite(value)) {
     return null;

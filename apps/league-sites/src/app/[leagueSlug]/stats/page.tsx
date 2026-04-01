@@ -50,7 +50,8 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   const mode: StatsMode = modeParam === 'goalies' ? 'goalies' : 'skaters';
   const isAllTime = view === 'all-time';
-  const selectedSeasonId = isAllTime ? null : (seasonParam || currentSeason?.id || seasons[0]?.id || null);
+  const requestedSeason = seasonParam ? seasons.find((season) => season.id === seasonParam) : null;
+  const selectedSeasonId = isAllTime ? null : (requestedSeason?.id || currentSeason?.id || seasons[0]?.id || null);
   const selectedSeason = seasons.find((season) => season.id === selectedSeasonId) || currentSeason || null;
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
