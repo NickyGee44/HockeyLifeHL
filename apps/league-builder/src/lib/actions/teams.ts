@@ -146,7 +146,7 @@ export async function getLeagueTeams(leagueId: string, options?: { status?: Team
 /**
  * Get a single team with full details
  */
-export async function getTeam(teamId: string) {
+export async function getTeam(teamId: string, seasonId?: string | null) {
   // Use service role client to bypass RLS for the join query, but verify
   // authorization explicitly: user must be org owner, league admin, or team captain.
   const userData = await getCurrentUser();
@@ -253,12 +253,20 @@ export async function getTeam(teamId: string) {
       }
     }
 
-    // Get roster count
-    const { count: rosterCount } = await supabase
+    // Get roster count. When a season is provided, scope the count to that season
+    // so roster limits and warnings reflect the active roster for the current season,
+    // not lingering active rows from prior seasons.
+    let rosterCountQuery = supabase
       .from('team_rosters')
       .select('*', { count: 'exact', head: true })
       .eq('team_id', teamId)
       .is('end_date', null);
+
+    if (seasonId) {
+      rosterCountQuery = rosterCountQuery.eq('season_id', seasonId);
+    }
+
+    const { count: rosterCount } = await rosterCountQuery;
 
     return {
       success: true,

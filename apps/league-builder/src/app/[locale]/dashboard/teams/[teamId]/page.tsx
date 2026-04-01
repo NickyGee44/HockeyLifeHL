@@ -43,26 +43,34 @@ export default async function TeamDetailPage({ params, searchParams }: Props) {
     return null; // TypeScript needs this after redirect
   }
 
-  const result = await getTeam(teamId);
+  const resolvedSearchParams = await searchParams;
+
+  const baseResult = await getTeam(teamId);
+
+  if (baseResult.error || !baseResult.data) {
+    notFound();
+  }
+
+  const baseTeam = baseResult.data;
+  const currentTab = resolvedSearchParams.tab || 'roster';
+  const sourceLeagueId =
+    resolvedSearchParams.leagueId === baseTeam.league_id ? resolvedSearchParams.leagueId : baseTeam.league_id;
+
+  const [validatedRequestedSeasonId, { data: activeSeason }] = await Promise.all([
+    resolvedSearchParams.seasonId
+      ? validateSeasonForLeague(baseTeam.league_id, resolvedSearchParams.seasonId)
+      : Promise.resolve(null),
+    getCurrentSeason(baseTeam.league_id),
+  ]);
+
+  const rosterSeasonId = validatedRequestedSeasonId || activeSeason?.id;
+  const result = await getTeam(teamId, rosterSeasonId);
 
   if (result.error || !result.data) {
     notFound();
   }
 
   const team = result.data;
-  const resolvedSearchParams = await searchParams;
-  const currentTab = resolvedSearchParams.tab || 'roster';
-  const sourceLeagueId =
-    resolvedSearchParams.leagueId === team.league_id ? resolvedSearchParams.leagueId : team.league_id;
-
-  const [validatedRequestedSeasonId, { data: activeSeason }] = await Promise.all([
-    resolvedSearchParams.seasonId
-      ? validateSeasonForLeague(team.league_id, resolvedSearchParams.seasonId)
-      : Promise.resolve(null),
-    getCurrentSeason(team.league_id),
-  ]);
-
-  const rosterSeasonId = validatedRequestedSeasonId || activeSeason?.id;
   const backHref = buildTeamDetailBackHref({
     leagueId: sourceLeagueId,
     from: resolvedSearchParams.from || null,
