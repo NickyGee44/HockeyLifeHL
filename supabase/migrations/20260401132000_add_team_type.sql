@@ -22,6 +22,7 @@ with free_agent_candidates as (
     'unassigned free agent',
     'unassigned free agents'
   )
+  or lower(name) like '%free agent%'
 )
 update public.teams
 set team_type = 'free_agents'

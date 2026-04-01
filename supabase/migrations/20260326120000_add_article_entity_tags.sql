@@ -13,6 +13,9 @@ CREATE INDEX IF NOT EXISTS idx_att_team ON article_team_tags(team_id);
 
 ALTER TABLE article_team_tags ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "att_public_read" ON article_team_tags;
+DROP POLICY IF EXISTS "att_service_write" ON article_team_tags;
+
 CREATE POLICY "att_public_read" ON article_team_tags
   FOR SELECT USING (
     EXISTS (
@@ -42,6 +45,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_agt_primary_per_article
   WHERE is_primary = true;
 
 ALTER TABLE article_game_tags ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "agt_public_read" ON article_game_tags;
+DROP POLICY IF EXISTS "agt_service_write" ON article_game_tags;
 
 CREATE POLICY "agt_public_read" ON article_game_tags
   FOR SELECT USING (

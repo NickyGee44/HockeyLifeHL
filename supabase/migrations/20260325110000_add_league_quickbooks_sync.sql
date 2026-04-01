@@ -108,6 +108,21 @@ ALTER TABLE public.league_quickbooks_mappings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.league_quickbooks_sync_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.league_quickbooks_sync_entries ENABLE ROW LEVEL SECURITY;
 
+
+DROP POLICY IF EXISTS "League members can view quickbooks connections" ON public.league_quickbooks_connections;
+DROP POLICY IF EXISTS "League owners can manage quickbooks connections" ON public.league_quickbooks_connections;
+DROP POLICY IF EXISTS "Platform admins can manage quickbooks connections" ON public.league_quickbooks_connections;
+DROP POLICY IF EXISTS "League members can view quickbooks mappings" ON public.league_quickbooks_mappings;
+DROP POLICY IF EXISTS "League owners can manage quickbooks mappings" ON public.league_quickbooks_mappings;
+DROP POLICY IF EXISTS "Platform admins can manage quickbooks mappings" ON public.league_quickbooks_mappings;
+DROP POLICY IF EXISTS "League members can view quickbooks sync runs" ON public.league_quickbooks_sync_runs;
+DROP POLICY IF EXISTS "League owners can manage quickbooks sync runs" ON public.league_quickbooks_sync_runs;
+DROP POLICY IF EXISTS "Platform admins can manage quickbooks sync runs" ON public.league_quickbooks_sync_runs;
+DROP POLICY IF EXISTS "League members can view quickbooks sync entries" ON public.league_quickbooks_sync_entries;
+DROP POLICY IF EXISTS "League owners can manage quickbooks sync entries" ON public.league_quickbooks_sync_entries;
+DROP POLICY IF EXISTS "Platform admins can manage quickbooks sync entries" ON public.league_quickbooks_sync_entries;
+
+
 CREATE POLICY "League members can view quickbooks connections"
   ON public.league_quickbooks_connections
   FOR SELECT
