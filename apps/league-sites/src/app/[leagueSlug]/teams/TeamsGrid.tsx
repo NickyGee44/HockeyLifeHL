@@ -132,7 +132,7 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
             alt={team.name}
             width={80}
             height={80}
-            className="rounded-xl group-hover:scale-105 transition-transform"
+            className="rounded-xl bg-white object-contain p-1 group-hover:scale-105 transition-transform"
           />
         </div>
 

@@ -73,7 +73,7 @@ export function TeamLogo({
       alt: `${teamName} logo`,
       width: pixelSize,
       height: pixelSize,
-      className: cn('rounded-lg object-cover', className),
+      className: cn('rounded-lg bg-white object-contain p-1', className),
     };
 
     if (renderImage) {
