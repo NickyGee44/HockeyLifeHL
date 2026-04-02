@@ -79,6 +79,7 @@ const DEFAULT_SECONDARY = '#1a1a1a';
 const DEFAULT_ACCENT = '#D4AF37';
 const DEFAULT_FONT_FAMILY = '"Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif';
 const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'hockeylifehl-original', 'pilot']);
+const AGGREGATE_STATS_GAME_LOCATION_PREFIX = '[aggregate-only]';
 const IMPORTED_CAREER_BASELINE_TABLE_CANDIDATES = [
   'league_player_career_baselines',
   'player_career_baselines',
@@ -1112,6 +1113,111 @@ export async function getStandings(
     }) || []
   );
 
+  const sortStandings = (left: TeamStanding, right: TeamStanding) => {
+    if (right.points !== left.points) return right.points - left.points;
+    if (right.wins !== left.wins) return right.wins - left.wins;
+    if (right.goal_differential !== left.goal_differential) return right.goal_differential - left.goal_differential;
+    if (right.goals_for !== left.goals_for) return right.goals_for - left.goals_for;
+    return left.team_name.localeCompare(right.team_name);
+  };
+
+  const buildSeededImportedAggregateStandings = async () => {
+    if (!seasonId || !isImportedAggregateSeasonId(seasonId)) {
+      return null;
+    }
+
+    const { data: completedGames, error: completedGamesError } = await supabase
+      .from('games')
+      .select('home_team_id, away_team_id, home_score, away_score, location, game_type')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'completed');
+
+    if (completedGamesError || !completedGames) {
+      return null;
+    }
+
+    const standingsMap = new Map<string, TeamStanding>();
+
+    for (const [teamId, teamInfo] of teamInfoMap.entries()) {
+      standingsMap.set(teamId, {
+        team_id: teamId,
+        team_name: teamInfo.name || 'Unknown Team',
+        team_logo: teamInfo.logo_url || null,
+        division_id: teamInfo.division_id || null,
+        division_name: teamInfo.division_name || null,
+        team_type: teamInfo.team_type || 'standard',
+        games_played: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        overtime_losses: 0,
+        points: 0,
+        goals_for: 0,
+        goals_against: 0,
+        goal_differential: 0,
+        streak: null,
+        last_10: null,
+      });
+    }
+
+    for (const game of completedGames) {
+      if ((game.location ?? '').startsWith(AGGREGATE_STATS_GAME_LOCATION_PREFIX)) {
+        continue;
+      }
+
+      if (game.game_type && game.game_type !== 'regular') {
+        continue;
+      }
+
+      const homeStanding = standingsMap.get(game.home_team_id);
+      const awayStanding = standingsMap.get(game.away_team_id);
+      if (!homeStanding || !awayStanding) {
+        continue;
+      }
+
+      const homeScore = Number(game.home_score) || 0;
+      const awayScore = Number(game.away_score) || 0;
+
+      homeStanding.games_played += 1;
+      awayStanding.games_played += 1;
+      homeStanding.goals_for += homeScore;
+      homeStanding.goals_against += awayScore;
+      awayStanding.goals_for += awayScore;
+      awayStanding.goals_against += homeScore;
+
+      if (homeScore > awayScore) {
+        homeStanding.wins += 1;
+        awayStanding.losses += 1;
+        homeStanding.points += 2;
+      } else if (awayScore > homeScore) {
+        awayStanding.wins += 1;
+        homeStanding.losses += 1;
+        awayStanding.points += 2;
+      } else {
+        homeStanding.ties += 1;
+        awayStanding.ties += 1;
+        homeStanding.points += 1;
+        awayStanding.points += 1;
+      }
+    }
+
+    const seededStandings = Array.from(standingsMap.values())
+      .map((standing) => ({
+        ...standing,
+        goal_differential: standing.goals_for - standing.goals_against,
+      }))
+      .filter((standing) => standing.games_played > 0)
+      .sort(sortStandings);
+
+    return filterPublicStandings(seededStandings);
+  };
+
+  const importedAggregateStandings = await buildSeededImportedAggregateStandings();
+  if (importedAggregateStandings) {
+    return importedAggregateStandings;
+  }
+
   // Try to use standings RPC if available (actual function name: get_team_standings)
   const { data: rpcData, error: rpcError } = await supabase.rpc(
     'get_team_standings',
@@ -1146,7 +1252,7 @@ export async function getStandings(
       };
     }) as TeamStanding[];
 
-    return filterPublicStandings(enrichedStandings);
+    return filterPublicStandings(enrichedStandings.sort(sortStandings));
   }
 
   // Fallback: Query team_standings table directly
@@ -1186,7 +1292,7 @@ export async function getStandings(
       streak: null,
       last_10: null,
     };
-  })) as TeamStanding[];
+  }).sort(sortStandings)) as TeamStanding[];
 }
 
 /**
