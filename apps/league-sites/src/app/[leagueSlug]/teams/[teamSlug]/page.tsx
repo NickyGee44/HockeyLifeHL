@@ -187,15 +187,15 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       height={288}
                       className="h-[180px] w-[180px] object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.55)] md:h-[220px] md:w-[220px] xl:h-[260px] xl:w-[260px]"
                     />
-                    <div className="absolute -bottom-3 -right-4 flex items-end gap-1.5 md:-bottom-2 md:-right-3">
+                    <div className="absolute -bottom-4 -right-[2.5rem] md:-bottom-5 md:-right-[3.125rem]">
                       <Image
                         src="/trophy.png"
                         alt="Championship trophy"
-                        width={96}
-                        height={96}
-                        className="h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] md:h-20 md:w-20"
+                        width={120}
+                        height={120}
+                        className="h-20 w-20 object-contain drop-shadow-[0_10px_28px_rgba(0,0,0,0.6)] md:h-[6.25rem] md:w-[6.25rem]"
                       />
-                      <div className="rounded-full border border-amber-400/35 bg-black/55 px-3 py-1.5 text-lg font-black tracking-tight text-amber-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                      <div className="absolute left-[68%] top-[56%] rounded-full border border-amber-400/35 bg-black/65 px-3 py-1.5 text-lg font-black tracking-tight text-amber-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
                         x{championshipSummary.count}
                       </div>
                     </div>
