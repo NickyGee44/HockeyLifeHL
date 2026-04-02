@@ -12,6 +12,7 @@ import {
   Phone,
   Shield,
   Swords,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
@@ -126,8 +127,6 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const captain = roster.find((player) => player.leadership_role === 'captain');
   const rivalCards = buildRivalCardInsights(rivals);
-  const skaterLeaders = buildSkaterLeaders(skaters, rosterStatsByPlayer);
-  const goalieLeaders = buildGoalieLeaders(goalies, rosterStatsByPlayer);
   const teamLeaders = buildTeamLeaders(skaters, rosterStatsByPlayer, leaderTab);
   const pointInsights = buildTeamPointInsights({
     teamName: team.name,
@@ -188,8 +187,14 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       height={288}
                       className="h-[180px] w-[180px] object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.55)] md:h-[220px] md:w-[220px] xl:h-[260px] xl:w-[260px]"
                     />
-                    <div className="absolute -bottom-5 -right-5 flex items-end gap-2">
-                      <TrophyIllustration className="h-20 w-20 md:h-24 md:w-24" />
+                    <div className="absolute -bottom-2 -right-2 flex items-end gap-2 md:-bottom-1 md:right-0">
+                      <Image
+                        src="/trophy.jpg"
+                        alt="Championship trophy"
+                        width={96}
+                        height={96}
+                        className="h-20 w-20 rounded-xl object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] md:h-24 md:w-24"
+                      />
                       <div className="rounded-full border border-amber-400/35 bg-black/55 px-3 py-1.5 text-lg font-black tracking-tight text-amber-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
                         x{championshipSummary.count}
                       </div>
@@ -228,118 +233,57 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       <HeroMetric label="Streak" value={teamStats?.streak || 'N/A'} />
                     </div>
                   </div>
-
-                  <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_12px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-                    <div className="mb-4 flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-[var(--league-primary)]" />
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
-                        Captain Contact
-                      </h2>
-                    </div>
-
-                    {captain ? (
-                      <div className="mb-4 flex items-center gap-3">
-                        <Image
-                          src={captain.profile?.avatar_url || '/blank_player.png'}
-                          alt={captain.profile?.full_name || 'Captain'}
-                          width={56}
-                          height={56}
-                          className="h-14 w-14 rounded-full border border-white/10 object-cover"
-                        />
-                        <div>
-                          <p className="text-base font-semibold text-[var(--color-text-primary)]">
-                            {captain.profile?.full_name || 'Unknown Captain'}
-                          </p>
-                          <p className="text-sm text-[var(--color-text-secondary)]">
-                            Captain{captain.jersey_number != null ? ` • #${captain.jersey_number}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
-                        Captain information is not listed yet.
-                      </p>
-                    )}
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {team.contact_email ? (
-                        <a
-                          href={`mailto:${team.contact_email}`}
-                          className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
-                        >
-                          <Mail className="h-4 w-4" />
-                          <span className="truncate">{team.contact_email}</span>
-                        </a>
-                      ) : null}
-                      {team.contact_phone ? (
-                        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                          <Phone className="h-4 w-4" />
-                          <span>{team.contact_phone}</span>
-                        </div>
-                      ) : null}
-                    </div>
-                    {!team.contact_email && !team.contact_phone && (
-                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                        Public contact details are not available for this team.
-                      </p>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           <div className="mt-6 space-y-6">
-            <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-              <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
-                <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <SectionHeader
-                    icon={BarChart3}
-                    title="Team Leaders"
-                    description="Top three current-season skaters by the selected category."
-                  />
-
-                  <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-                    {([
-                      ['points', 'P'],
-                      ['goals', 'G'],
-                      ['assists', 'A'],
-                      ['penalty_minutes', 'PM'],
-                    ] as const).map(([value, label]) => (
-                      <ScheduleToggleLink
-                        key={value}
-                        href={`/${leagueSlug}/teams/${teamSlug}?tab=${value}${scheduleView === 'past' ? '&schedule=past' : ''}`}
-                        active={leaderTab === value}
-                      >
-                        {label}
-                      </ScheduleToggleLink>
-                    ))}
-                  </div>
-                </div>
-
-                {teamLeaders.length > 0 ? (
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {teamLeaders.map((leader, index) => (
-                      <TeamLeaderPodiumCard key={`${leader.playerId}-${leader.metric}`} leader={leader} place={index + 1} leagueSlug={leagueSlug} />
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyPanel
-                    title="No team leaders yet"
-                    description="Leader cards will populate once current-season player stats are recorded."
-                  />
-                )}
-              </div>
-
-              <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
+            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
+              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <SectionHeader
                   icon={BarChart3}
-                  title="Points Insights"
-                  description="Real notes generated from public standings and team scoring data only."
+                  title="Team Leaders"
                 />
 
-                {pointInsights.length > 0 ? (
-                  <div className="mt-6 space-y-3">
+                <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+                  {([
+                    ['points', 'P'],
+                    ['goals', 'G'],
+                    ['assists', 'A'],
+                    ['penalty_minutes', 'PM'],
+                  ] as const).map(([value, label]) => (
+                    <ScheduleToggleLink
+                      key={value}
+                      href={`/${leagueSlug}/teams/${teamSlug}?tab=${value}${scheduleView === 'past' ? '&schedule=past' : ''}`}
+                      active={leaderTab === value}
+                    >
+                      {label}
+                    </ScheduleToggleLink>
+                  ))}
+                </div>
+              </div>
+
+              {teamLeaders.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-3">
+                  {teamLeaders.map((leader, index) => (
+                    <TeamLeaderPodiumCard key={`${leader.playerId}-${leader.metric}`} leader={leader} place={index + 1} leagueSlug={leagueSlug} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyPanel
+                  title="No team leaders yet"
+                  description="Leader cards will populate once current-season player stats are recorded."
+                />
+              )}
+
+              {pointInsights.length > 0 ? (
+                <div className="mt-8 border-t border-[var(--color-border)]/50 pt-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
+                    <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Points Insights</h3>
+                  </div>
+                  <div className="space-y-3">
                     {pointInsights.map((insight) => (
                       <div key={insight.key} className="rounded-[22px] border border-white/10 bg-[var(--color-surface)]/72 p-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
@@ -349,42 +293,18 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <EmptyPanel
-                    title="Not enough data yet"
-                    description="Insights will appear once the team has public standings and player scoring data."
-                  />
-                )}
-              </div>
+                </div>
+              ) : null}
             </section>
 
             <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
               <SectionHeader
-                icon={BarChart3}
-                title="Player Stats"
-                description="Current roster skater production for the selected season."
+                icon={Users}
+                title="Roster"
               />
 
-              <div className="mb-6 grid gap-3 md:grid-cols-3">
-                <LeaderCard
-                  label="Points Leader"
-                  playerName={skaterLeaders.points?.name || 'No stats yet'}
-                  statValue={skaterLeaders.points ? `${skaterLeaders.points.value} PTS` : 'Waiting for games'}
-                />
-                <LeaderCard
-                  label="Goals Leader"
-                  playerName={skaterLeaders.goals?.name || 'No stats yet'}
-                  statValue={skaterLeaders.goals ? `${skaterLeaders.goals.value} G` : 'Waiting for games'}
-                />
-                <LeaderCard
-                  label="Assist Leader"
-                  playerName={skaterLeaders.assists?.name || 'No stats yet'}
-                  statValue={skaterLeaders.assists ? `${skaterLeaders.assists.value} A` : 'Waiting for games'}
-                />
-              </div>
-
               <StatsTableCard
-                columns={['#', 'Player', 'Pos', 'GP', 'G', 'A', 'PTS', 'PIM']}
+                columns={['Player', 'GP', 'G', 'A', 'PTS', 'PIM', 'Pos']}
                 emptyTitle="No skater statistics yet"
                 emptyDescription="Skater stats will populate once official games are recorded."
               >
@@ -393,87 +313,69 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   const gp = stats?.games_played ?? 0;
                   return (
                     <tr key={player.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
-                      <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">{player.jersey_number ?? '-'}</td>
                       <td className="px-4 py-3">
-                        <PlayerCell
+                        <RosterPlayerCell
                           leagueSlug={leagueSlug}
                           playerId={player.player_id}
                           name={player.profile?.full_name || 'Unknown Player'}
                           avatarUrl={player.profile?.avatar_url || '/blank_player.png'}
                           leadershipRole={player.leadership_role}
+                          jerseyNumber={player.jersey_number}
                         />
-                      </td>
-                      <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">
-                        {getPositionShortLabel(player.position, false)}
                       </td>
                       <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
                       <td className="px-4 py-3 text-center">{gp > 0 ? stats?.goals ?? 0 : '-'}</td>
                       <td className="px-4 py-3 text-center">{gp > 0 ? stats?.assists ?? 0 : '-'}</td>
                       <td className="px-4 py-3 text-center font-semibold">{gp > 0 ? stats?.points ?? 0 : '-'}</td>
                       <td className="px-4 py-3 text-center">{gp > 0 ? stats?.penalty_minutes ?? 0 : '-'}</td>
+                      <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">
+                        {getPositionShortLabel(player.position, false)}
+                      </td>
                     </tr>
                   );
                 })}
               </StatsTableCard>
-            </section>
 
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Shield}
-                title="Goalie Stats"
-                description="Team goaltending totals using the same public season data."
-              />
-
-              <div className="mb-6 grid gap-3 md:grid-cols-3">
-                <LeaderCard
-                  label="Wins Leader"
-                  playerName={goalieLeaders.wins?.name || 'No goalie stats yet'}
-                  statValue={goalieLeaders.wins ? `${goalieLeaders.wins.value} W` : 'Waiting for games'}
-                />
-                <LeaderCard
-                  label="Best Save %"
-                  playerName={goalieLeaders.savePercentage?.name || 'No goalie stats yet'}
-                  statValue={goalieLeaders.savePercentage ? formatSavePercentage(goalieLeaders.savePercentage.value) : 'Waiting for games'}
-                />
-                <LeaderCard
-                  label="Shutout Leader"
-                  playerName={goalieLeaders.shutouts?.name || 'No goalie stats yet'}
-                  statValue={goalieLeaders.shutouts ? `${goalieLeaders.shutouts.value} SO` : 'Waiting for games'}
-                />
-              </div>
-
-              <StatsTableCard
-                columns={['#', 'Goalie', 'GP', 'W', 'L', 'GAA', 'SV%', 'SO']}
-                emptyTitle="No goalie statistics yet"
-                emptyDescription="Goalie stats will appear once this team has official goaltending entries."
-              >
-                {goalies.map((goalie) => {
-                  const stats = rosterStatsByPlayer[goalie.player_id];
-                  const gp = stats?.games_played ?? 0;
-                  return (
-                    <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
-                      <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">{goalie.jersey_number ?? '-'}</td>
-                      <td className="px-4 py-3">
-                        <PlayerCell
-                          leagueSlug={leagueSlug}
-                          playerId={goalie.player_id}
-                          name={goalie.profile?.full_name || 'Unknown Goalie'}
-                          avatarUrl={goalie.profile?.avatar_url || '/blank_player.png'}
-                          leadershipRole={goalie.leadership_role}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.wins ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.losses ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center">
-                        {gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage) : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.shutouts ?? 0 : '-'}</td>
-                    </tr>
-                  );
-                })}
-              </StatsTableCard>
+              {goalies.length > 0 && (
+                <div className="mt-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-[var(--league-primary)]" />
+                    <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Goalies</h3>
+                  </div>
+                  <StatsTableCard
+                    columns={['Goalie', 'GP', 'W', 'L', 'GAA', 'SV%', 'SO']}
+                    emptyTitle="No goalie statistics yet"
+                    emptyDescription="Goalie stats will appear once this team has official goaltending entries."
+                  >
+                    {goalies.map((goalie) => {
+                      const stats = rosterStatsByPlayer[goalie.player_id];
+                      const gp = stats?.games_played ?? 0;
+                      return (
+                        <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
+                          <td className="px-4 py-3">
+                            <RosterPlayerCell
+                              leagueSlug={leagueSlug}
+                              playerId={goalie.player_id}
+                              name={goalie.profile?.full_name || 'Unknown Goalie'}
+                              avatarUrl={goalie.profile?.avatar_url || '/blank_player.png'}
+                              leadershipRole={goalie.leadership_role}
+                              jerseyNumber={goalie.jersey_number}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
+                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.wins ?? 0 : '-'}</td>
+                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.losses ?? 0 : '-'}</td>
+                          <td className="px-4 py-3 text-center">
+                            {gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage) : '-'}</td>
+                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.shutouts ?? 0 : '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </StatsTableCard>
+                </div>
+              )}
             </section>
 
             <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
@@ -601,6 +503,60 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 />
               )}
             </section>
+
+            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
+              <SectionHeader
+                icon={Shield}
+                title="Captain Contact"
+              />
+
+              {captain ? (
+                <div className="mt-4 flex items-center gap-3">
+                  <Image
+                    src={captain.profile?.avatar_url || '/blank_player.png'}
+                    alt={captain.profile?.full_name || 'Captain'}
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 rounded-full border border-white/10 object-cover"
+                  />
+                  <div>
+                    <p className="text-base font-semibold text-[var(--color-text-primary)]">
+                      {captain.profile?.full_name || 'Unknown Captain'}
+                    </p>
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                      Captain{captain.jersey_number != null ? ` • #${captain.jersey_number}` : ''}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-[var(--color-text-secondary)]">
+                  Captain information is not listed yet.
+                </p>
+              )}
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {team.contact_email ? (
+                  <a
+                    href={`mailto:${team.contact_email}`}
+                    className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+                  >
+                    <Mail className="h-4 w-4" />
+                    <span className="truncate">{team.contact_email}</span>
+                  </a>
+                ) : null}
+                {team.contact_phone ? (
+                  <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                    <Phone className="h-4 w-4" />
+                    <span>{team.contact_phone}</span>
+                  </div>
+                ) : null}
+              </div>
+              {!team.contact_email && !team.contact_phone && !captain && (
+                <p className="mt-4 text-sm text-[var(--color-text-secondary)]">
+                  Public contact details are not available for this team.
+                </p>
+              )}
+            </section>
           </div>
         </div>
       </div>
@@ -615,7 +571,7 @@ function SectionHeader({
 }: {
   icon: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
 }) {
   return (
     <div>
@@ -623,7 +579,9 @@ function SectionHeader({
         <Icon className="h-5 w-5 text-[var(--league-primary)]" />
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">{title}</h2>
       </div>
-      <p className="max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
+      {description ? (
+        <p className="max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
+      ) : null}
     </div>
   );
 }
@@ -635,24 +593,6 @@ function HeroMetric({ label, value, accent }: { label: string; value: string | n
       <p className={`mt-2 text-2xl font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
         {value}
       </p>
-    </div>
-  );
-}
-
-function LeaderCard({
-  label,
-  playerName,
-  statValue,
-}: {
-  label: string;
-  playerName: string;
-  statValue: string;
-}) {
-  return (
-    <div className="rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
-      <p className="mt-2 truncate text-lg font-bold text-[var(--color-text-primary)]">{playerName}</p>
-      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{statValue}</p>
     </div>
   );
 }
@@ -760,28 +700,37 @@ function StatsTableCard({
   );
 }
 
-function PlayerCell({
+function RosterPlayerCell({
   leagueSlug,
   playerId,
   name,
   avatarUrl,
   leadershipRole,
+  jerseyNumber,
 }: {
   leagueSlug: string;
   playerId: string;
   name: string;
   avatarUrl: string;
   leadershipRole: 'captain' | 'alternate_captain' | null | undefined;
+  jerseyNumber: number | null | undefined;
 }) {
   return (
     <Link href={`/${leagueSlug}/players/${playerId}`} className="group flex items-center gap-3">
-      <Image
-        src={avatarUrl}
-        alt={name}
-        width={38}
-        height={38}
-        className="h-9 w-9 rounded-full object-cover"
-      />
+      <div className="relative flex-shrink-0">
+        <Image
+          src={avatarUrl}
+          alt={name}
+          width={38}
+          height={38}
+          className="h-9 w-9 rounded-full object-cover"
+        />
+        {jerseyNumber != null && (
+          <span className="absolute -bottom-1.5 -left-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold leading-none text-[var(--league-primary)] ring-1 ring-white/10">
+            {jerseyNumber}
+          </span>
+        )}
+      </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
@@ -938,67 +887,6 @@ function EmptyPanel({ title, description }: { title: string; description: string
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
     </div>
   );
-}
-
-function TrophyIllustration({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 128 128" fill="none" aria-hidden="true" className={className}>
-      <path d="M39 16h50v11c0 10-2 18-6 24-4 5-10 10-19 13v10h19c4 0 8 3 8 8v4H37v-4c0-5 4-8 8-8h19V64c-9-3-15-8-19-13-4-6-6-14-6-24V16Z" fill="rgba(212,175,55,0.24)" stroke="rgba(245,215,110,0.95)" strokeWidth="4"/>
-      <path d="M89 23h19c2 0 4 2 4 4 0 22-11 34-31 37" stroke="rgba(245,215,110,0.9)" strokeWidth="4" strokeLinecap="round"/>
-      <path d="M39 23H20c-2 0-4 2-4 4 0 22 11 34 31 37" stroke="rgba(245,215,110,0.9)" strokeWidth="4" strokeLinecap="round"/>
-      <path d="M50 91h28v9H50z" fill="rgba(212,175,55,0.28)" stroke="rgba(245,215,110,0.95)" strokeWidth="4"/>
-      <path d="M44 100h40v12H44z" fill="rgba(212,175,55,0.2)" stroke="rgba(245,215,110,0.95)" strokeWidth="4"/>
-    </svg>
-  );
-}
-
-function buildSkaterLeaders(
-  skaters: ReturnType<typeof splitRosterByRole>['skaters'],
-  rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
-) {
-  return {
-    points: pickLeader(skaters, rosterStatsByPlayer, (stats) => stats.points),
-    goals: pickLeader(skaters, rosterStatsByPlayer, (stats) => stats.goals),
-    assists: pickLeader(skaters, rosterStatsByPlayer, (stats) => stats.assists),
-  };
-}
-
-function buildGoalieLeaders(
-  goalies: ReturnType<typeof splitRosterByRole>['goalies'],
-  rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
-) {
-  return {
-    wins: pickLeader(goalies, rosterStatsByPlayer, (stats) => stats.wins),
-    savePercentage: pickLeader(goalies, rosterStatsByPlayer, (stats) => stats.save_percentage ?? -1),
-    shutouts: pickLeader(goalies, rosterStatsByPlayer, (stats) => stats.shutouts),
-  };
-}
-
-function pickLeader(
-  players: ReturnType<typeof splitRosterByRole>['skaters'],
-  rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
-  getValue: (stats: TeamPageRosterStatsByPlayer[string]) => number,
-) {
-  const leader = players.reduce<{ name: string; value: number } | null>((best, player) => {
-    const stats = rosterStatsByPlayer[player.player_id];
-    if (!stats || stats.games_played === 0) return best;
-
-    const value = getValue(stats);
-    if (best == null || value > best.value) {
-      return {
-        name: player.profile?.full_name || 'Unknown Player',
-        value,
-      };
-    }
-
-    return best;
-  }, null);
-
-  if (leader && leader.value >= 0) {
-    return leader;
-  }
-
-  return null;
 }
 
 function buildGameResult(game: ScheduleGame, teamId: string) {

@@ -432,6 +432,7 @@ body::after {
   inset: 0 0 auto 0;
   height: 1px;
   background: color-mix(in srgb, white 36%, transparent);
+  border-radius: inherit;
   pointer-events: none;
 }
 
