@@ -187,13 +187,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       height={288}
                       className="h-[180px] w-[180px] object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.55)] md:h-[220px] md:w-[220px] xl:h-[260px] xl:w-[260px]"
                     />
-                    <div className="absolute -bottom-2 -right-2 flex items-end gap-2 md:-bottom-1 md:right-0">
+                    <div className="absolute -bottom-3 -right-4 flex items-end gap-1.5 md:-bottom-2 md:-right-3">
                       <Image
-                        src="/trophy.jpg"
+                        src="/trophy.png"
                         alt="Championship trophy"
                         width={96}
                         height={96}
-                        className="h-20 w-20 rounded-xl object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] md:h-24 md:w-24"
+                        className="h-16 w-16 object-contain drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] md:h-20 md:w-20"
                       />
                       <div className="rounded-full border border-amber-400/35 bg-black/55 px-3 py-1.5 text-lg font-black tracking-tight text-amber-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
                         x{championshipSummary.count}
@@ -733,8 +733,13 @@ function RosterPlayerCell({
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
-            {name}
+          <span className="font-medium text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
+            <span className="block truncate leading-tight">{name.split(' ').slice(0, -1).join(' ') || name}</span>
+            {name.includes(' ') && (
+              <span className="block truncate text-xs font-semibold uppercase tracking-wide leading-tight text-[var(--color-text-secondary)]">
+                {name.split(' ').slice(-1)[0]}
+              </span>
+            )}
           </span>
           {leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
           {leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
