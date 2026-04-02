@@ -1,0 +1,131 @@
+{
+  "fetched_at": "2026-04-02T23:35:43.304Z",
+  "source_url": "https://hockeylifehl.com/league-posts/statscard/?seasonid=cup",
+  "player_rows_scraped": 539,
+  "positive_mcw_rows": 140,
+  "matched_updates": 140,
+  "applicable_updates": 140,
+  "unresolved_rows": 0,
+  "top_players": [
+    {
+      "full_name": "Stefan Kowlessar",
+      "legacy_player_id": "f84903d2-e411-4339-b02d-11af04f2e0e0",
+      "player_id": "6f4d8b0a-4d4c-4df6-9283-730cfa15d07c",
+      "moosehead_cup_wins": 11,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Cody Inglis",
+      "legacy_player_id": "779ff48a-b053-42ed-a3e0-fc74ce8d198e",
+      "player_id": "0f550099-953d-4881-8b73-c78f877bd3e0",
+      "moosehead_cup_wins": 10,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Eric Morston",
+      "legacy_player_id": "ff92704c-6b1c-4d9b-a06a-f212bbd274f0",
+      "player_id": "e69cb080-dcc8-45d9-ba2c-8780cbcfe9f0",
+      "moosehead_cup_wins": 10,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Jeff Baxter",
+      "legacy_player_id": "cb7f1b47-7dac-4d4e-89c9-d0bc7181800e",
+      "player_id": "cf455c07-8135-4587-9063-4f80c7cf7da8",
+      "moosehead_cup_wins": 9,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Bryce Poirier",
+      "legacy_player_id": "8dd4921c-4dd1-4037-bd6d-c1cc9d7d6f7e",
+      "player_id": "7e7f7c0d-acc5-43c4-9fb5-ca8dc7136ebf",
+      "moosehead_cup_wins": 8,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Cory Nott",
+      "legacy_player_id": "d977a499-2dac-413d-96bd-c0f8d2233635",
+      "player_id": "40037b70-142e-44f5-83ce-af44e460dfef",
+      "moosehead_cup_wins": 8,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "John Pilon",
+      "legacy_player_id": "5c3b92c2-8c62-4a3d-a3e1-33feafe72279",
+      "player_id": "f9c27325-6477-4a68-aba2-39f857b5a6fa",
+      "moosehead_cup_wins": 8,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Jonathan Brougham",
+      "legacy_player_id": "bd2b7ceb-310a-4c1f-b041-37c852a4d3b9",
+      "player_id": "736fb921-0ef4-41c5-9c65-d6100d33e312",
+      "moosehead_cup_wins": 8,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Adam Klimowicz",
+      "legacy_player_id": "88aeb7a1-7569-44a1-963c-edf22f05594b",
+      "player_id": "7d651566-f0be-4d81-a021-6fec9ae8e087",
+      "moosehead_cup_wins": 7,
+      "previous_legacy_mcw": 1
+    },
+    {
+      "full_name": "Marek Klimowicz",
+      "legacy_player_id": "9f0213cd-e1c1-46da-bcf7-56b4f90da148",
+      "player_id": "b0af60e8-bc0b-4255-8bb7-ee343540d816",
+      "moosehead_cup_wins": 7,
+      "previous_legacy_mcw": 1
+    },
+    {
+      "full_name": "Vince Carducci",
+      "legacy_player_id": "d2b0a147-eb31-4637-b999-a7da44c34661",
+      "player_id": "d248c3aa-a93e-4b94-acda-cdfee85ec3c4",
+      "moosehead_cup_wins": 7,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Adam Raphael",
+      "legacy_player_id": "fc7fc3ce-2d97-4293-9691-3701f7dfd425",
+      "player_id": "c058501d-10be-4d6b-9089-a99b41c09c88",
+      "moosehead_cup_wins": 6,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Chris Alpaugh",
+      "legacy_player_id": "f9fbbbe1-52df-4f6b-aec1-47c4c1bb03a5",
+      "player_id": "12f986f4-0c9c-475f-8532-ae7ba3c2c466",
+      "moosehead_cup_wins": 6,
+      "previous_legacy_mcw": 1
+    },
+    {
+      "full_name": "Hayden Reginier",
+      "legacy_player_id": "4a43d105-3cb8-4f34-9ada-f4dcf283af2b",
+      "player_id": "5fa2a402-3275-4d18-b247-e31c9aa302bb",
+      "moosehead_cup_wins": 6,
+      "previous_legacy_mcw": 0
+    },
+    {
+      "full_name": "Joe Snook",
+      "legacy_player_id": "01968764-f02a-4486-a20d-6d87051d45a6",
+      "player_id": "5fb5c6b0-a5d0-41f6-84d0-18c9a8266a39",
+      "moosehead_cup_wins": 6,
+      "previous_legacy_mcw": 1
+    }
+  ],
+  "unresolved_sample": [],
+  "dry_run": false,
+  "verification": {
+    "adam_and_marek_legacy_rows": [
+      {
+        "full_name": "Adam Klimowicz",
+        "moosehead_cup_wins": 7
+      },
+      {
+        "full_name": "Marek Klimowicz",
+        "moosehead_cup_wins": 7
+      }
+    ],
+    "baseline_rows_with_positive_mcw": 159
+  }
+}
