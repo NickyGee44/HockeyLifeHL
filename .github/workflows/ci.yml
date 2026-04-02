@@ -58,3 +58,44 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  ios-native:
+    name: Native iOS Build & Smoke Test
+    runs-on: macos-15
+    timeout-minutes: 20
+    needs: test
+    env:
+      XCODE_APP_PATH: /Applications/Xcode_26.3.app
+      IOS_SIMULATOR_DEVICE: iPhone 16
+      IOS_RUNTIME_NAME: iOS 26.2
+      IOS_ARTIFACTS_DIR: ${{ runner.temp }}/ios-smoke-artifacts
+      IOS_DERIVED_DATA_PATH: ${{ runner.temp }}/ios-derived-data
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Show selected Xcode
+        run: DEVELOPER_DIR="${XCODE_APP_PATH}/Contents/Developer" xcodebuild -version
+
+      - name: Prepare artifact directory
+        run: mkdir -p "$IOS_ARTIFACTS_DIR"
+
+      - name: Generate native iOS project
+        working-directory: apps/ios
+        run: bash scripts/generate_project.sh
+
+      - name: Run native iOS simulator smoke test
+        working-directory: apps/ios
+        run: bash scripts/smoke_test_sim.sh
+
+      - name: Upload iOS smoke artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-smoke-artifacts
+          path: ${{ runner.temp }}/ios-smoke-artifacts
+          if-no-files-found: ignore
