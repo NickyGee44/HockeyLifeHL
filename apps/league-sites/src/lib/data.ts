@@ -2462,6 +2462,28 @@ async function getImportedAggregateAllTimeGoalieRows(
   return rows.flat();
 }
 
+function alignBaselineRowsToImportedAggregateProfiles(
+  baselineRows: ImportedCareerBaselineRow[],
+  importedAggregateRows: Array<{ player_id: string; player_name: string }>,
+): ImportedCareerBaselineRow[] {
+  const importedProfileIdsByName = new Map(
+    importedAggregateRows.map((row) => [normalizeImportedAggregateKey(row.player_name), row.player_id]),
+  );
+
+  return baselineRows.map((row) => {
+    const importedProfileId = importedProfileIdsByName.get(normalizeImportedAggregateKey(row.player_name));
+    if (!importedProfileId || importedProfileId === row.player_id) {
+      return row;
+    }
+
+    return {
+      ...row,
+      player_id: importedProfileId,
+      profile_id: importedProfileId,
+    };
+  });
+}
+
 async function getNativeUnifiedSkaterStatsRows(
   leagueId: string,
   seasonId?: string | null,
@@ -2653,14 +2675,15 @@ async function buildAllTimeSkaterRows(
     getNativeUnifiedSkaterStatsRows(leagueId, undefined, divisionId),
     getImportedAggregateAllTimeSkaterRows(leagueId, divisionId),
   ]);
+  const alignedBaselineRows = alignBaselineRowsToImportedAggregateProfiles(baselineRows, importedAggregateRows);
 
   const profileIdsByPlayerId = new Map<string, string | null>();
-  for (const row of baselineRows) {
+  for (const row of alignedBaselineRows) {
     profileIdsByPlayerId.set(row.player_id, row.profile_id);
   }
 
   return {
-    rows: mergeAllTimeSkaterRows(baselineRows, [...nativeRows, ...importedAggregateRows]),
+    rows: mergeAllTimeSkaterRows(alignedBaselineRows, [...nativeRows, ...importedAggregateRows]),
     profileIdsByPlayerId,
   };
 }
@@ -2831,14 +2854,15 @@ async function buildAllTimeGoalieRows(
     getNativeUnifiedGoalieStatsRows(leagueId, undefined, divisionId),
     getImportedAggregateAllTimeGoalieRows(leagueId, divisionId),
   ]);
+  const alignedBaselineRows = alignBaselineRowsToImportedAggregateProfiles(baselineRows, importedAggregateRows);
 
   const profileIdsByPlayerId = new Map<string, string | null>();
-  for (const row of baselineRows) {
+  for (const row of alignedBaselineRows) {
     profileIdsByPlayerId.set(row.player_id, row.profile_id);
   }
 
   return {
-    rows: mergeAllTimeGoalieRows(baselineRows, [...nativeRows, ...importedAggregateRows]).map(({ shots_against: _shotsAgainst, ...row }) => row),
+    rows: mergeAllTimeGoalieRows(alignedBaselineRows, [...nativeRows, ...importedAggregateRows]).map(({ shots_against: _shotsAgainst, ...row }) => row),
     profileIdsByPlayerId,
   };
 }
