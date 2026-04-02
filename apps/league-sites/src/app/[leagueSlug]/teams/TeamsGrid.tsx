@@ -126,13 +126,13 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
       className="card group hover:border-[var(--league-primary)] transition-all"
     >
       <div className="p-6 text-center">
-        <div className="mb-4 flex justify-center">
+        <div className="mb-5 flex justify-center">
           <Image
             src={logoSrc || '/blank_team.png'}
             alt={team.name}
-            width={80}
-            height={80}
-            className="rounded-xl group-hover:scale-105 transition-transform"
+            width={160}
+            height={160}
+            className="h-40 w-40 rounded-xl object-contain transition-transform group-hover:scale-105"
           />
         </div>
 
