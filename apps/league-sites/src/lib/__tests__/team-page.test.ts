@@ -1,6 +1,9 @@
 import type { Player, ScheduleGame } from '../types';
 import {
   buildRivalCardInsights,
+  buildTeamLeaders,
+  buildTeamPointInsights,
+  getTeamStandingRank,
   normalizeTeamScheduleView,
   partitionTeamSchedule,
   summarizeTeamChampionships,
@@ -8,6 +11,61 @@ import {
 } from '../team-page';
 
 describe('team page helpers', () => {
+
+  it('computes standing rank from standings order', () => {
+    expect(getTeamStandingRank([
+      { team_id: 'team-2' },
+      { team_id: 'team-1' },
+      { team_id: 'team-3' },
+    ] as any, 'team-1')).toBe(2);
+    expect(getTeamStandingRank([] as any, 'team-1')).toBeNull();
+  });
+
+  it('builds top 3 leaders for the selected stat', () => {
+    const roster = [
+      buildPlayer({ id: 'a', player_id: 'a', fullName: 'Alpha', position: 'C' }),
+      buildPlayer({ id: 'b', player_id: 'b', fullName: 'Bravo', position: 'LW' }),
+      buildPlayer({ id: 'c', player_id: 'c', fullName: 'Charlie', position: 'RW' }),
+      buildPlayer({ id: 'd', player_id: 'd', fullName: 'Delta', position: 'D' }),
+    ] satisfies Player[];
+
+    const leaders = buildTeamLeaders(roster, {
+      a: { games_played: 8, goals: 6, assists: 5, points: 11, penalty_minutes: 4, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      b: { games_played: 8, goals: 3, assists: 7, points: 10, penalty_minutes: 10, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      c: { games_played: 8, goals: 5, assists: 3, points: 8, penalty_minutes: 2, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      d: { games_played: 8, goals: 1, assists: 1, points: 2, penalty_minutes: 20, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+    }, 'points');
+
+    expect(leaders.map((leader) => leader.playerId)).toEqual(['a', 'b', 'c']);
+    expect(buildTeamLeaders(roster, {
+      a: { games_played: 8, goals: 6, assists: 5, points: 11, penalty_minutes: 4, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      b: { games_played: 8, goals: 3, assists: 7, points: 10, penalty_minutes: 10, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      c: { games_played: 8, goals: 5, assists: 3, points: 8, penalty_minutes: 2, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      d: { games_played: 8, goals: 1, assists: 1, points: 2, penalty_minutes: 20, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+    }, 'penalty_minutes').map((leader) => leader.playerId)).toEqual(['d', 'b', 'a']);
+  });
+
+  it('builds stat-driven point insights without inventing data', () => {
+    const insights = buildTeamPointInsights({
+      teamName: 'Falcons',
+      teamId: 'team-1',
+      standings: [
+        { team_id: 'team-2', team_name: 'Blades', points: 18, games_played: 10, goals_for: 42, goals_against: 20, goal_differential: 22 },
+        { team_id: 'team-1', team_name: 'Falcons', points: 14, games_played: 10, goals_for: 36, goals_against: 24, goal_differential: 12 },
+        { team_id: 'team-3', team_name: 'Storm', points: 10, games_played: 10, goals_for: 28, goals_against: 33, goal_differential: -5 },
+      ] as any,
+      teamStats: { team_id: 'team-1', team_name: 'Falcons', points: 14, games_played: 10, goals_for: 36, goals_against: 24, goal_differential: 12 } as any,
+      rosterStatsByPlayer: {
+        a: { games_played: 10, goals: 8, assists: 6, points: 14, penalty_minutes: 4, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+        b: { games_played: 10, goals: 5, assists: 7, points: 12, penalty_minutes: 6, wins: 0, losses: 0, save_percentage: null, goals_against_average: null, shutouts: 0, is_goalie: false },
+      },
+    });
+
+    expect(insights).toHaveLength(5);
+    expect(insights[0].text).toContain('2nd out of 3');
+    expect(insights.some((insight) => insight.text.includes('4 points back of Blades'))).toBe(true);
+    expect(insights.some((insight) => insight.text.includes("14 of the club's scoring points"))).toBe(true);
+  });
   it('normalizes invalid schedule views back to upcoming', () => {
     expect(normalizeTeamScheduleView('past')).toBe('past');
     expect(normalizeTeamScheduleView('upcoming')).toBe('upcoming');

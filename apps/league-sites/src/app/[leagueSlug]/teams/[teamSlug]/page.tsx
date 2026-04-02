@@ -8,10 +8,10 @@ import {
   BarChart3,
   Calendar,
   Mail,
+  Medal,
   Phone,
   Shield,
   Swords,
-  Trophy,
   type LucideIcon,
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
@@ -26,18 +26,22 @@ import {
   getTeamRosterStats,
   getTeamRivals,
   getTeamSchedule,
-  getTeamStats,
   getTeamWithCaptain,
 } from '@/lib/data';
 import type { ScheduleGame } from '@/lib/types';
 import {
   buildRivalCardInsights,
+  buildTeamLeaders,
+  buildTeamPointInsights,
   formatSavePercentage,
   getPositionShortLabel,
+  getTeamStandingRank,
   normalizeTeamScheduleView,
   partitionTeamSchedule,
   splitRosterByRole,
   summarizeTeamChampionships,
+  type TeamLeaderCard,
+  type TeamLeaderMetric,
   type TeamPageRosterStatsByPlayer,
 } from '@/lib/team-page';
 
@@ -65,7 +69,7 @@ export const revalidate = 60;
 
 export default async function TeamPage({ params, searchParams }: TeamPageProps) {
   const { leagueSlug, teamSlug } = await params;
-  const { schedule: scheduleViewParam } = await searchParams;
+  const { schedule: scheduleViewParam, tab: leaderTabParam } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
@@ -75,20 +79,24 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const currentSeason = await getCurrentSeason(league.id);
 
-  const [roster, rosterStatsByPlayer, teamStats, schedule, rivals, seasons] = await Promise.all([
+  const [roster, rosterStatsByPlayer, standings, schedule, rivals, seasons] = await Promise.all([
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
-    getTeamStats(team.id, league.id),
+    getStandings(league.id, currentSeason?.id),
     getTeamSchedule(team.id, 24),
     getTeamRivals(team.id, 4),
     getSeasons(league.id),
   ]);
+
+  const teamStats = standings.find((standing) => standing.team_id === team.id) ?? null;
+  const teamRank = getTeamStandingRank(standings, team.id);
 
   const now = new Date();
   const { skaters, goalies } = splitRosterByRole(roster, rosterStatsByPlayer);
   const { upcomingGames, pastGames } = partitionTeamSchedule(schedule, now);
   const scheduleView = normalizeTeamScheduleView(scheduleViewParam);
   const visibleGames = (scheduleView === 'past' ? pastGames : upcomingGames).slice(0, 6);
+  const leaderTab = normalizeLeaderTab(leaderTabParam);
 
   const recapEntries = scheduleView === 'past'
     ? await Promise.all(
@@ -120,8 +128,17 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   const rivalCards = buildRivalCardInsights(rivals);
   const skaterLeaders = buildSkaterLeaders(skaters, rosterStatsByPlayer);
   const goalieLeaders = buildGoalieLeaders(goalies, rosterStatsByPlayer);
+  const teamLeaders = buildTeamLeaders(skaters, rosterStatsByPlayer, leaderTab);
+  const pointInsights = buildTeamPointInsights({
+    teamName: team.name,
+    teamId: team.id,
+    standings,
+    teamStats,
+    rosterStatsByPlayer,
+  });
   const teamScheduleHref = `/${leagueSlug}/schedule?team=${encodeURIComponent(team.id)}`;
   const logoSrc = team.logo_url || team.logo || '/blank_team.png';
+  const titleMeta = [team.division?.name ? `${team.division.name} Division` : null, currentSeason?.name ?? null].filter(Boolean);
 
   return (
     <SubscriptionWall>
@@ -135,97 +152,88 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
             Back to Teams
           </Link>
 
-          <section className="league-reading-panel overflow-hidden rounded-[32px]">
-            <div className="grid lg:grid-cols-[minmax(0,1.7fr)_360px]">
-              <div className="relative overflow-hidden px-6 py-8 md:px-8 md:py-10">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_42%)]" />
-                <div className="relative flex flex-col gap-6">
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                    <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/80 shadow-sm">
-                      <Image
-                        src={logoSrc}
-                        alt={team.name}
-                        width={96}
-                        height={96}
-                        className="h-full w-full"
-                      />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        {team.division?.name && (
-                          <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                            {team.division.name} Division
-                          </span>
-                        )}
-                        {currentSeason?.name && (
-                          <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/72 px-3 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
-                            {currentSeason.name}
-                          </span>
-                        )}
-                      </div>
-
-                      <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)] md:text-5xl">
-                        {team.name}
-                      </h1>
-                      <div className="mt-3 flex flex-wrap items-end gap-3">
-                        <div className="rounded-[20px] border border-[var(--league-primary)]/20 bg-[var(--league-primary)]/10 px-4 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                            Record
-                          </p>
-                          <p className="text-2xl font-black text-[var(--color-text-primary)]">
-                            {teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : 'No games yet'}
-                          </p>
-                        </div>
-                        {teamStats?.points != null && (
-                          <p className="pb-1 text-sm text-[var(--color-text-secondary)]">
-                            {teamStats.points} points in {teamStats.games_played} games
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    <HeroMetric label="Points" value={teamStats?.points ?? '-'} accent />
-                    <HeroMetric label="Goals For" value={teamStats?.goals_for ?? '-'} />
-                    <HeroMetric label="Goals Against" value={teamStats?.goals_against ?? '-'} />
-                    <HeroMetric
-                      label="Goal Diff"
-                      value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
-                      accent={Boolean(teamStats && teamStats.goal_differential > 0)}
-                    />
-                    <HeroMetric label="Streak" value={teamStats?.streak || 'N/A'} />
-                  </div>
-                </div>
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                {titleMeta.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center rounded-full border border-[var(--league-primary)]/20 bg-[var(--color-surface)]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]"
+                  >
+                    {item}
+                  </span>
+                ))}
               </div>
+              <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)] md:text-5xl">
+                {team.name}
+              </h1>
+            </div>
+            {teamStats?.points != null ? (
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                {teamStats.points} points in {teamStats.games_played} games
+              </p>
+            ) : null}
+          </div>
 
-              <aside className="border-t border-[var(--color-border)]/80 bg-[var(--color-surface)]/58 px-6 py-8 md:px-8 lg:border-l lg:border-t-0">
-                <div className="space-y-4">
-                  <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/88 p-5">
-                    <div className="mb-3 flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-[var(--league-primary)]" />
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
-                        Championship Count
-                      </h2>
+          <section className="league-reading-panel relative isolate overflow-hidden rounded-[34px]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_30%)]" />
+            <div className="relative p-6 md:p-8 lg:p-10">
+              <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+                <div className="flex flex-col items-center text-center xl:items-start xl:text-left">
+                  <div className="relative mb-4">
+                    <Image
+                      src={logoSrc}
+                      alt={team.name}
+                      width={288}
+                      height={288}
+                      className="h-[180px] w-[180px] object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.55)] md:h-[220px] md:w-[220px] xl:h-[260px] xl:w-[260px]"
+                    />
+                    <div className="absolute -bottom-5 -right-5 flex items-end gap-2">
+                      <TrophyIllustration className="h-20 w-20 md:h-24 md:w-24" />
+                      <div className="rounded-full border border-amber-400/35 bg-black/55 px-3 py-1.5 text-lg font-black tracking-tight text-amber-300 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                        x{championshipSummary.count}
+                      </div>
                     </div>
-                    <p className="text-4xl font-black text-[var(--color-text-primary)]">
-                      {championshipSummary.count}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                      Team Record
                     </p>
-                    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                    <p className="text-3xl font-black text-[var(--color-text-primary)] md:text-4xl">
+                      {teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : 'No games yet'}
+                    </p>
+                    <p className="max-w-sm text-sm leading-6 text-[var(--color-text-secondary)]">
                       {championshipSummary.count > 0
                         ? championshipSummary.latestTitleSeasonName
-                          ? `Latest recorded title: ${championshipSummary.latestTitleSeasonName}${championshipSummary.latestTitleLabel ? ` (${championshipSummary.latestTitleLabel})` : ''}.`
-                          : 'Recorded from historical season data.'
+                          ? `Latest championship: ${championshipSummary.latestTitleSeasonName}${championshipSummary.latestTitleLabel ? ` (${championshipSummary.latestTitleLabel})` : ''}.`
+                          : 'Championship history found in league records.'
                         : 'No recorded championships yet in league history data.'}
                     </p>
                   </div>
+                </div>
 
-                  <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/88 p-5">
-                    <div className="mb-3 flex items-center gap-2">
+                <div className="flex flex-col gap-5">
+                  <div className="overflow-hidden rounded-[26px] border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+                    <div className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-3 xl:grid-cols-6 xl:divide-y-0">
+                      <HeroMetric label="Points" value={teamStats?.points ?? '-'} accent />
+                      <HeroMetric label="Rank" value={teamRank ? `#${teamRank}` : '-'} accent />
+                      <HeroMetric label="GF" value={teamStats?.goals_for ?? '-'} />
+                      <HeroMetric label="GA" value={teamStats?.goals_against ?? '-'} />
+                      <HeroMetric
+                        label="Differential"
+                        value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
+                        accent={Boolean(teamStats && teamStats.goal_differential > 0)}
+                      />
+                      <HeroMetric label="Streak" value={teamStats?.streak || 'N/A'} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_12px_36px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+                    <div className="mb-4 flex items-center gap-2">
                       <Shield className="h-5 w-5 text-[var(--league-primary)]" />
                       <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
-                        Team Contact
+                        Captain Contact
                       </h2>
                     </div>
 
@@ -234,9 +242,9 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                         <Image
                           src={captain.profile?.avatar_url || '/blank_player.png'}
                           alt={captain.profile?.full_name || 'Captain'}
-                          width={52}
-                          height={52}
-                          className="h-[52px] w-[52px] rounded-full object-cover"
+                          width={56}
+                          height={56}
+                          className="h-14 w-14 rounded-full border border-white/10 object-cover"
                         />
                         <div>
                           <p className="text-base font-semibold text-[var(--color-text-primary)]">
@@ -253,35 +261,103 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       </p>
                     )}
 
-                    <div className="space-y-2 text-sm">
+                    <div className="grid gap-3 md:grid-cols-2">
                       {team.contact_email ? (
                         <a
                           href={`mailto:${team.contact_email}`}
-                          className="flex items-center gap-2 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+                          className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
                         >
                           <Mail className="h-4 w-4" />
                           <span className="truncate">{team.contact_email}</span>
                         </a>
                       ) : null}
                       {team.contact_phone ? (
-                        <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                           <Phone className="h-4 w-4" />
                           <span>{team.contact_phone}</span>
                         </div>
                       ) : null}
-                      {!team.contact_email && !team.contact_phone && (
-                        <p className="text-[var(--color-text-secondary)]">
-                          Public contact details are not available for this team.
-                        </p>
-                      )}
                     </div>
+                    {!team.contact_email && !team.contact_phone && (
+                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                        Public contact details are not available for this team.
+                      </p>
+                    )}
                   </div>
                 </div>
-              </aside>
+              </div>
             </div>
           </section>
 
           <div className="mt-6 space-y-6">
+            <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
+                <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <SectionHeader
+                    icon={BarChart3}
+                    title="Team Leaders"
+                    description="Top three current-season skaters by the selected category."
+                  />
+
+                  <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+                    {([
+                      ['points', 'P'],
+                      ['goals', 'G'],
+                      ['assists', 'A'],
+                      ['penalty_minutes', 'PM'],
+                    ] as const).map(([value, label]) => (
+                      <ScheduleToggleLink
+                        key={value}
+                        href={`/${leagueSlug}/teams/${teamSlug}?tab=${value}${scheduleView === 'past' ? '&schedule=past' : ''}`}
+                        active={leaderTab === value}
+                      >
+                        {label}
+                      </ScheduleToggleLink>
+                    ))}
+                  </div>
+                </div>
+
+                {teamLeaders.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {teamLeaders.map((leader, index) => (
+                      <TeamLeaderPodiumCard key={`${leader.playerId}-${leader.metric}`} leader={leader} place={index + 1} leagueSlug={leagueSlug} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyPanel
+                    title="No team leaders yet"
+                    description="Leader cards will populate once current-season player stats are recorded."
+                  />
+                )}
+              </div>
+
+              <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
+                <SectionHeader
+                  icon={BarChart3}
+                  title="Points Insights"
+                  description="Real notes generated from public standings and team scoring data only."
+                />
+
+                {pointInsights.length > 0 ? (
+                  <div className="mt-6 space-y-3">
+                    {pointInsights.map((insight) => (
+                      <div key={insight.key} className="rounded-[22px] border border-white/10 bg-[var(--color-surface)]/72 p-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                          {insight.label}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">{insight.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyPanel
+                    title="Not enough data yet"
+                    description="Insights will appear once the team has public standings and player scoring data."
+                  />
+                )}
+              </div>
+            </section>
+
             <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
               <SectionHeader
                 icon={BarChart3}
@@ -411,13 +487,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
                     <ScheduleToggleLink
-                      href={`/${leagueSlug}/teams/${teamSlug}?schedule=upcoming`}
+                      href={`/${leagueSlug}/teams/${teamSlug}?schedule=upcoming${leaderTab ? `&tab=${leaderTab}` : ''}`}
                       active={scheduleView === 'upcoming'}
                     >
                       Upcoming
                     </ScheduleToggleLink>
                     <ScheduleToggleLink
-                      href={`/${leagueSlug}/teams/${teamSlug}?schedule=past`}
+                      href={`/${leagueSlug}/teams/${teamSlug}?schedule=past${leaderTab ? `&tab=${leaderTab}` : ''}`}
                       active={scheduleView === 'past'}
                     >
                       Past
@@ -554,7 +630,7 @@ function SectionHeader({
 
 function HeroMetric({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
-    <div className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 px-4 py-4">
+    <div className="px-4 py-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
       <p className={`mt-2 text-2xl font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
         {value}
@@ -578,6 +654,67 @@ function LeaderCard({
       <p className="mt-2 truncate text-lg font-bold text-[var(--color-text-primary)]">{playerName}</p>
       <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{statValue}</p>
     </div>
+  );
+}
+
+function TeamLeaderPodiumCard({
+  leader,
+  place,
+  leagueSlug,
+}: {
+  leader: TeamLeaderCard;
+  place: number;
+  leagueSlug: string;
+}) {
+  const medalStyles = [
+    'from-amber-400/30 via-amber-300/18 to-transparent border-amber-300/35 text-amber-200',
+    'from-slate-200/25 via-slate-100/15 to-transparent border-slate-300/30 text-slate-100',
+    'from-orange-500/22 via-orange-300/14 to-transparent border-orange-300/25 text-orange-200',
+  ];
+  const labels: Record<TeamLeaderMetric, string> = {
+    goals: 'Goals',
+    assists: 'Assists',
+    points: 'Points',
+    penalty_minutes: 'PIM',
+  };
+
+  return (
+    <Link
+      href={`/${leagueSlug}/players/${leader.playerId}`}
+      className={`rounded-[24px] border bg-gradient-to-br p-5 transition-transform duration-200 hover:-translate-y-0.5 ${medalStyles[place - 1] || medalStyles[2]}`}
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-2 rounded-full border border-current/20 bg-black/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">
+          <Medal className="h-3.5 w-3.5" />
+          {place === 1 ? 'Gold' : place === 2 ? 'Silver' : 'Bronze'}
+        </div>
+        <span className="text-3xl font-black leading-none">{leader.value}</span>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Image
+          src={leader.avatarUrl || '/blank_player.png'}
+          alt={leader.name}
+          width={60}
+          height={60}
+          className="h-14 w-14 rounded-full border border-white/10 object-cover"
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-lg font-bold text-[var(--color-text-primary)]">{leader.name}</p>
+            {leader.leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
+            {leader.leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
+          </div>
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            {labels[leader.metric]} leader • {leader.positionLabel}
+            {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
+          </p>
+          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+            {leader.gamesPlayed} GP
+          </p>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -650,19 +787,19 @@ function PlayerCell({
           <span className="truncate font-medium text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
             {name}
           </span>
-          {leadershipRole === 'captain' ? (
-            <span className="rounded-full bg-amber-500/18 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-500">
-              C
-            </span>
-          ) : null}
-          {leadershipRole === 'alternate_captain' ? (
-            <span className="rounded-full bg-[var(--color-surface-hover)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
-              A
-            </span>
-          ) : null}
+          {leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
+          {leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
         </div>
       </div>
     </Link>
+  );
+}
+
+function CaptainBadge({ label, muted }: { label: string; muted?: boolean }) {
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${muted ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]' : 'bg-amber-500/18 text-amber-500'}`}>
+      {label}
+    </span>
   );
 }
 
@@ -803,6 +940,18 @@ function EmptyPanel({ title, description }: { title: string; description: string
   );
 }
 
+function TrophyIllustration({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 128 128" fill="none" aria-hidden="true" className={className}>
+      <path d="M39 16h50v11c0 10-2 18-6 24-4 5-10 10-19 13v10h19c4 0 8 3 8 8v4H37v-4c0-5 4-8 8-8h19V64c-9-3-15-8-19-13-4-6-6-14-6-24V16Z" fill="rgba(212,175,55,0.24)" stroke="rgba(245,215,110,0.95)" strokeWidth="4"/>
+      <path d="M89 23h19c2 0 4 2 4 4 0 22-11 34-31 37" stroke="rgba(245,215,110,0.9)" strokeWidth="4" strokeLinecap="round"/>
+      <path d="M39 23H20c-2 0-4 2-4 4 0 22 11 34 31 37" stroke="rgba(245,215,110,0.9)" strokeWidth="4" strokeLinecap="round"/>
+      <path d="M50 91h28v9H50z" fill="rgba(212,175,55,0.28)" stroke="rgba(245,215,110,0.95)" strokeWidth="4"/>
+      <path d="M44 100h40v12H44z" fill="rgba(212,175,55,0.2)" stroke="rgba(245,215,110,0.95)" strokeWidth="4"/>
+    </svg>
+  );
+}
+
 function buildSkaterLeaders(
   skaters: ReturnType<typeof splitRosterByRole>['skaters'],
   rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
@@ -864,6 +1013,14 @@ function buildGameResult(game: ScheduleGame, teamId: string) {
     return { label: 'L', outcome: 'L' as const, myScore, opponentScore };
   }
   return { label: 'T', outcome: 'T' as const, myScore, opponentScore };
+}
+
+function normalizeLeaderTab(value: string | undefined): TeamLeaderMetric {
+  if (value === 'goals' || value === 'assists' || value === 'points' || value === 'penalty_minutes') {
+    return value;
+  }
+
+  return 'points';
 }
 
 function formatRecord(wins: number, losses: number, ties: number) {
