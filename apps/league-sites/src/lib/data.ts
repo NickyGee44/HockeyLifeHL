@@ -65,6 +65,7 @@ import {
   getImportedAggregateSkaterSeed,
   getImportedAggregateSkaterSeeds,
   getImportedAggregateSkaterGamesPlayed,
+  HLHL_WINTER_2026_SEASON_ID,
   isAggregateOnlySeasonView,
   isImportedAggregateSeasonId,
 } from './imported-aggregate-season-overrides';
@@ -2433,6 +2434,34 @@ type AllTimeGoalieRowsResult = {
   profileIdsByPlayerId: Map<string, string | null>;
 };
 
+const IMPORTED_AGGREGATE_ALL_TIME_SEASON_IDS = [HLHL_WINTER_2026_SEASON_ID] as const;
+
+async function getImportedAggregateAllTimeSkaterRows(
+  leagueId: string,
+  divisionId?: string,
+): Promise<UnifiedSkaterStatsRow[]> {
+  const rows = await Promise.all(
+    IMPORTED_AGGREGATE_ALL_TIME_SEASON_IDS.map((seasonId) =>
+      buildImportedAggregateSkaterRows(leagueId, seasonId, divisionId),
+    ),
+  );
+
+  return rows.flat();
+}
+
+async function getImportedAggregateAllTimeGoalieRows(
+  leagueId: string,
+  divisionId?: string,
+): Promise<UnifiedGoalieStatsRow[]> {
+  const rows = await Promise.all(
+    IMPORTED_AGGREGATE_ALL_TIME_SEASON_IDS.map((seasonId) =>
+      buildImportedAggregateGoalieRows(leagueId, seasonId, divisionId),
+    ),
+  );
+
+  return rows.flat();
+}
+
 async function getNativeUnifiedSkaterStatsRows(
   leagueId: string,
   seasonId?: string | null,
@@ -2619,9 +2648,10 @@ async function buildAllTimeSkaterRows(
   divisionId?: string,
   leagueSlug?: string,
 ): Promise<AllTimeSkaterRowsResult> {
-  const [baselineRows, nativeRows] = await Promise.all([
+  const [baselineRows, nativeRows, importedAggregateRows] = await Promise.all([
     getImportedCareerBaselineRows(leagueId, leagueSlug),
     getNativeUnifiedSkaterStatsRows(leagueId, undefined, divisionId),
+    getImportedAggregateAllTimeSkaterRows(leagueId, divisionId),
   ]);
 
   const profileIdsByPlayerId = new Map<string, string | null>();
@@ -2630,7 +2660,7 @@ async function buildAllTimeSkaterRows(
   }
 
   return {
-    rows: mergeAllTimeSkaterRows(baselineRows, nativeRows),
+    rows: mergeAllTimeSkaterRows(baselineRows, [...nativeRows, ...importedAggregateRows]),
     profileIdsByPlayerId,
   };
 }
@@ -2796,9 +2826,10 @@ async function buildAllTimeGoalieRows(
   divisionId?: string,
   leagueSlug?: string,
 ): Promise<AllTimeGoalieRowsResult> {
-  const [baselineRows, nativeRows] = await Promise.all([
+  const [baselineRows, nativeRows, importedAggregateRows] = await Promise.all([
     getImportedCareerBaselineRows(leagueId, leagueSlug),
     getNativeUnifiedGoalieStatsRows(leagueId, undefined, divisionId),
+    getImportedAggregateAllTimeGoalieRows(leagueId, divisionId),
   ]);
 
   const profileIdsByPlayerId = new Map<string, string | null>();
@@ -2807,7 +2838,7 @@ async function buildAllTimeGoalieRows(
   }
 
   return {
-    rows: mergeAllTimeGoalieRows(baselineRows, nativeRows).map(({ shots_against: _shotsAgainst, ...row }) => row),
+    rows: mergeAllTimeGoalieRows(baselineRows, [...nativeRows, ...importedAggregateRows]).map(({ shots_against: _shotsAgainst, ...row }) => row),
     profileIdsByPlayerId,
   };
 }
