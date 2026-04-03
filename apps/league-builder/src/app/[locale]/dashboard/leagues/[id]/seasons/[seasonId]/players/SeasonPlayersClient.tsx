@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
+import { cn } from '@hockey-life/ui/lib/utils';
 import {
   Search,
   Users,
@@ -40,9 +42,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { markPaymentAsPaid } from '@/lib/payments/payment-actions';
-import { ImportPlayersButton } from '@/components/players/ImportPlayersButton';
-import { ImportPreviousSeasonPlayersButton } from '@/components/players/ImportPreviousSeasonPlayersButton';
 
 interface SeasonPlayer {
   id: string;
@@ -78,6 +80,7 @@ interface SeasonPlayersClientProps {
   seasonName: string;
   players: SeasonPlayer[];
   teams: Team[];
+  embedded?: boolean;
 }
 
 function formatCurrency(cents: number): string {
@@ -105,6 +108,7 @@ export function SeasonPlayersClient({
   seasonName,
   players,
   teams,
+  embedded = false,
 }: SeasonPlayersClientProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -172,8 +176,13 @@ export function SeasonPlayersClient({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className={embedded ? '' : 'min-h-screen bg-neutral-950'}>
+      <div
+        className={cn(
+          'space-y-6',
+          embedded ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'
+        )}
+      >
         {/* Header */}
         <div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -187,10 +196,6 @@ export function SeasonPlayersClient({
                   {seasonName} &middot; {leagueName}
                 </p>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ImportPreviousSeasonPlayersButton leagueId={leagueId} seasonId={seasonId} />
-              <ImportPlayersButton leagueId={leagueId} seasonId={seasonId} />
             </div>
           </div>
         </div>

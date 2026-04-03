@@ -3,16 +3,29 @@
 /**
  * AI Assistant Step
  *
- * Chat interface where league owners describe their scheduling constraints
- * in natural language. The AI translates their needs into ScheduleConfig
- * updates and constraint objects.
+ * Optional helper where league owners can describe scheduling needs in plain
+ * English, review the proposed changes, and explicitly apply them.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
-import { Send, Bot, User, Loader2, Sparkles, SkipForward, Settings2 } from 'lucide-react';
-import type { ScheduleConfig, ScheduleConstraint, ScheduleConstraintConfig } from '@/lib/schedule/types';
-import { extractConfigPatch, applyConfigPatch, normalizeConstraints, type ConfigPatch } from '@/lib/schedule/ai-config-parser';
+import {
+  Send,
+  Bot,
+  User,
+  Loader2,
+  Sparkles,
+  SkipForward,
+  CheckCircle2,
+} from 'lucide-react';
+import type {
+  ConfigPatch,
+  ScheduleAssistantResponse,
+  ScheduleConfig,
+  ScheduleConstraint,
+  ScheduleConstraintConfig,
+} from '@/lib/schedule/types';
+import { applyConfigPatch, normalizeConstraints } from '@/lib/schedule/ai-config-parser';
 import { formatScheduleAssistantError } from '@/lib/schedule/ai-chat-error';
 
 interface AIAssistantStepProps {
@@ -20,28 +33,35 @@ interface AIAssistantStepProps {
   seasonId: string;
   config: ScheduleConfig;
   setConfig: React.Dispatch<React.SetStateAction<ScheduleConfig>>;
-  onConstraintsFromAI: (constraints: ScheduleConstraint[], constraintConfig: Partial<ScheduleConstraintConfig>) => void;
-  onSkip: () => void;
-  onSwitchToAdvanced: () => void;
+  onConstraintsFromAI: (
+    constraints: ScheduleConstraint[],
+    constraintConfig: Partial<ScheduleConstraintConfig>
+  ) => void;
+  onSkip?: () => void;
+  showSkipButton?: boolean;
+  title?: string;
+  description?: string;
 }
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   patch?: ConfigPatch | null;
+  questions?: string[];
+  applied?: boolean;
 }
 
 const MAX_MESSAGES = 20;
 
-const INITIAL_GREETING = `Hey! I'm here to help fine-tune your schedule. You can tell me things like:
+const INITIAL_GREETING = `Describe the schedule in plain English if you want help tightening it up.
 
-• **"No games after 10pm"** — I'll set late night limits
-• **"Skip the week of March Break"** — I'll add a blackout
-• **"We play at Canlan Ice Sports"** — I'll set the venue
-• **"Add bye weeks"** — I'll configure rest weeks
-• **"Best of 3 playoffs with top 8 teams"** — I'll set up playoffs
+Examples:
+- "No games after 10pm"
+- "Use Tuesdays and Thursdays only"
+- "Skip March Break"
+- "Give each team one bye week"
 
-Or just say **"Looks good!"** if the basic setup is all you need.`;
+You can also skip this and keep going with the manual setup.`;
 
 export function AIAssistantStep({
   leagueId,
@@ -50,43 +70,41 @@ export function AIAssistantStep({
   setConfig,
   onConstraintsFromAI,
   onSkip,
-  onSwitchToAdvanced,
+  showSkipButton = true,
+  title = 'Optional schedule helper',
+  description = 'Describe your preferences in plain English and choose whether to apply the suggested changes.',
 }: AIAssistantStepProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: INITIAL_GREETING },
   ]);
   const [input, setInput] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [accumulatedConstraints, setAccumulatedConstraints] = useState<ScheduleConstraint[]>([]);
-  const [accumulatedConstraintConfig, setAccumulatedConstraintConfig] = useState<Partial<ScheduleConstraintConfig>>({});
+  const [accumulatedConstraintConfig, setAccumulatedConstraintConfig] = useState<
+    Partial<ScheduleConstraintConfig>
+  >({});
   const [changesSummary, setChangesSummary] = useState<string[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
-    if (!trimmed || isStreaming) return;
+    if (!trimmed || isLoading) return;
     if (messages.length >= MAX_MESSAGES) return;
 
     const userMessage: ChatMessage = { role: 'user', content: trimmed };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput('');
-    setIsStreaming(true);
-
-    // Build conversation history for API (skip the initial greeting)
-    const apiMessages = updatedMessages
-      .map((m) => ({ role: m.role, content: m.content }));
+    setIsLoading(true);
 
     try {
       const response = await fetch('/api/ai/schedule-chat', {
@@ -95,10 +113,14 @@ export function AIAssistantStep({
         body: JSON.stringify({
           leagueId,
           seasonId,
-          messages: apiMessages,
+          messages: updatedMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
           currentConfig: {
             ...config,
-            startDate: config.startDate instanceof Date ? config.startDate.toISOString() : config.startDate,
+            startDate:
+              config.startDate instanceof Date ? config.startDate.toISOString() : config.startDate,
             endDate: config.endDate instanceof Date ? config.endDate.toISOString() : config.endDate,
           },
         }),
@@ -109,85 +131,68 @@ export function AIAssistantStep({
         throw new Error(errorData.error || `Request failed (${response.status})`);
       }
 
-      // Stream the response
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error('No response body');
+      const data = (await response.json()) as ScheduleAssistantResponse;
 
-      const decoder = new TextDecoder();
-      let fullText = '';
-
-      // Add placeholder assistant message
-      const assistantMessage: ChatMessage = { role: 'assistant', content: '' };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
-
-        // Update the last message with streamed content
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...updated[updated.length - 1], content: fullText };
-          return updated;
-        });
-      }
-
-      // Parse config patch from the complete response
-      const patch = extractConfigPatch(fullText);
-      if (patch) {
-        // Apply config updates
-        if (patch.configUpdates && Object.keys(patch.configUpdates).length > 0) {
-          setConfig((prev) => applyConfigPatch(prev, patch));
-        }
-
-        // Accumulate constraints
-        if (patch.newConstraints && patch.newConstraints.length > 0) {
-          const normalized = normalizeConstraints(patch.newConstraints);
-          setAccumulatedConstraints((prev) => [...prev, ...normalized]);
-          onConstraintsFromAI(
-            [...accumulatedConstraints, ...normalized],
-            { ...accumulatedConstraintConfig, ...(patch.constraintConfig ?? {}) }
-          );
-        }
-
-        // Accumulate constraint config
-        if (patch.constraintConfig && Object.keys(patch.constraintConfig).length > 0) {
-          setAccumulatedConstraintConfig((prev) => ({ ...prev, ...patch.constraintConfig }));
-          onConstraintsFromAI(accumulatedConstraints, {
-            ...accumulatedConstraintConfig,
-            ...patch.constraintConfig,
-          });
-        }
-
-        // Track changes
-        if (patch.summary) {
-          setChangesSummary((prev) => [...prev, patch.summary]);
-        }
-
-        // Update the message with the patch
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = { ...updated[updated.length - 1], patch };
-          return updated;
-        });
-      }
-    } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: formatScheduleAssistantError(err) },
+        {
+          role: 'assistant',
+          content: data.reply,
+          patch: data.patch,
+          questions: data.questions,
+        },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: formatScheduleAssistantError(error) },
       ]);
     } finally {
-      setIsStreaming(false);
+      setIsLoading(false);
       inputRef.current?.focus();
     }
-  }, [input, isStreaming, messages, leagueId, seasonId, config, setConfig, onConstraintsFromAI, accumulatedConstraints, accumulatedConstraintConfig]);
+  }, [input, isLoading, messages, leagueId, seasonId, config]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const applySuggestion = useCallback(
+    (messageIndex: number, patch: ConfigPatch) => {
+      if (Object.keys(patch.configUpdates).length > 0) {
+        setConfig((prev) => applyConfigPatch(prev, patch));
+      }
+
+      const normalizedConstraints = normalizeConstraints(patch.newConstraints).map((constraint) => ({
+        ...constraint,
+        seasonId,
+        leagueId,
+      }));
+
+      setAccumulatedConstraints((prevConstraints) => {
+        const mergedConstraints = [...prevConstraints, ...normalizedConstraints];
+
+        setAccumulatedConstraintConfig((prevConfig) => {
+          const mergedConfig = { ...prevConfig, ...patch.constraintConfig };
+          onConstraintsFromAI(mergedConstraints, mergedConfig);
+          return mergedConfig;
+        });
+
+        return mergedConstraints;
+      });
+
+      if (patch.summary) {
+        setChangesSummary((prev) => [...prev, patch.summary]);
+      }
+
+      setMessages((prev) =>
+        prev.map((message, index) =>
+          index === messageIndex ? { ...message, applied: true } : message
+        )
+      );
+    },
+    [leagueId, seasonId, onConstraintsFromAI, setConfig]
+  );
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       sendMessage();
     }
   };
@@ -195,90 +200,106 @@ export function AIAssistantStep({
   const atMessageLimit = messages.length >= MAX_MESSAGES;
 
   return (
-    <div className="flex flex-col h-full min-h-[400px]">
-      <div className="flex items-center justify-between mb-3">
+    <div className="flex min-h-[400px] flex-col">
+      <div className="mb-3 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-rink-500" />
-            AI Schedule Assistant
+          <h3 className="flex items-center gap-2 text-lg font-medium text-white">
+            <Sparkles className="h-5 w-5 text-rink-500" />
+            {title}
           </h3>
-          <p className="text-sm text-neutral-400">
-            Describe your constraints or say &quot;Looks good!&quot; to continue.
-          </p>
+          <p className="text-sm text-neutral-400">{description}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onSwitchToAdvanced}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-400 border border-neutral-700 rounded-lg hover:text-white hover:border-neutral-600 transition-colors"
-          >
-            <Settings2 className="w-3.5 h-3.5" />
-            Advanced
-          </button>
+        {showSkipButton && onSkip && (
           <button
             onClick={onSkip}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-400 border border-neutral-700 rounded-lg hover:text-white hover:border-neutral-600 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-medium text-neutral-400 transition-colors hover:border-neutral-600 hover:text-white"
           >
-            <SkipForward className="w-3.5 h-3.5" />
+            <SkipForward className="h-3.5 w-3.5" />
             Skip
           </button>
-        </div>
+        )}
       </div>
 
-      {/* Changes summary bar */}
       {changesSummary.length > 0 && (
-        <div className="mb-3 px-3 py-2 bg-rink-500/10 border border-rink-500/20 rounded-lg">
-          <p className="text-xs font-medium text-rink-400 mb-1">Configuration updated:</p>
-          <ul className="text-xs text-rink-400/80 space-y-0.5">
-            {changesSummary.map((s, i) => (
-              <li key={i}>• {s}</li>
+        <div className="mb-3 rounded-lg border border-rink-500/20 bg-rink-500/10 px-3 py-2">
+          <p className="mb-1 text-xs font-medium text-rink-400">Applied changes:</p>
+          <ul className="space-y-0.5 text-xs text-rink-400/80">
+            {changesSummary.map((summary, index) => (
+              <li key={`${summary}-${index}`}>• {summary}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto space-y-3 mb-3 min-h-0">
-        {messages.map((msg, idx) => (
+      <div className="mb-3 min-h-0 flex-1 space-y-3 overflow-y-auto">
+        {messages.map((message, index) => (
           <div
-            key={idx}
+            key={`${message.role}-${index}`}
             className={cn(
               'flex gap-2.5',
-              msg.role === 'user' ? 'justify-end' : 'justify-start'
+              message.role === 'user' ? 'justify-end' : 'justify-start'
             )}
           >
-            {msg.role === 'assistant' && (
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-rink-500/20 flex items-center justify-center mt-0.5">
-                <Bot className="w-4 h-4 text-rink-500" />
+            {message.role === 'assistant' && (
+              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-rink-500/20">
+                <Bot className="h-4 w-4 text-rink-500" />
               </div>
             )}
+
             <div
               className={cn(
                 'max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm',
-                msg.role === 'user'
+                message.role === 'user'
                   ? 'bg-rink-500 text-black'
                   : 'bg-neutral-800 text-neutral-200'
               )}
             >
-              <div className="whitespace-pre-wrap break-words [&_strong]:font-semibold">
-                {/* Strip JSON code blocks from display */}
-                {msg.content.replace(/```json[\s\S]*?```/g, '').trim() || (
-                  isStreaming && idx === messages.length - 1 ? (
+              <div className="whitespace-pre-wrap break-words">
+                {message.content.trim() ||
+                  (isLoading && index === messages.length - 1 ? (
                     <span className="inline-flex items-center gap-1 text-neutral-400">
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <Loader2 className="h-3 w-3 animate-spin" />
                       Thinking...
                     </span>
-                  ) : null
-                )}
+                  ) : null)}
               </div>
-              {msg.patch && (
-                <div className="mt-1.5 pt-1.5 border-t border-white/10 text-xs text-rink-400">
-                  ✓ Config updated
+
+              {message.questions && message.questions.length > 0 && (
+                <div className="mt-3 space-y-1 border-t border-white/10 pt-2 text-xs text-neutral-300">
+                  {message.questions.map((question) => (
+                    <div key={question}>• {question}</div>
+                  ))}
+                </div>
+              )}
+
+              {message.patch && (
+                <div className="mt-3 space-y-2 border-t border-white/10 pt-2 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={cn(
+                        'text-rink-400',
+                        message.applied && 'text-emerald-400'
+                      )}
+                    >
+                      {message.applied ? 'Changes applied' : 'Suggested changes ready'}
+                    </span>
+                    {!message.applied && (
+                      <button
+                        onClick={() => applySuggestion(index, message.patch!)}
+                        className="inline-flex items-center gap-1 rounded-md border border-rink-500/40 bg-rink-500/10 px-2 py-1 font-medium text-rink-300 transition-colors hover:bg-rink-500/20"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Apply changes
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-            {msg.role === 'user' && (
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-neutral-700 flex items-center justify-center mt-0.5">
-                <User className="w-4 h-4 text-neutral-300" />
+
+            {message.role === 'user' && (
+              <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-neutral-700">
+                <User className="h-4 w-4 text-neutral-300" />
               </div>
             )}
           </div>
@@ -286,11 +307,10 @@ export function AIAssistantStep({
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input */}
       <div className="flex-shrink-0">
         {atMessageLimit ? (
-          <p className="text-center text-sm text-neutral-500 py-2">
-            Message limit reached. Click <strong>Next</strong> to proceed.
+          <p className="py-2 text-center text-sm text-neutral-500">
+            Message limit reached. Continue with the wizard when you’re ready.
           </p>
         ) : (
           <div className="flex items-center gap-2">
@@ -298,21 +318,21 @@ export function AIAssistantStep({
               ref={inputRef}
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="e.g., No games after 10pm, add 2 bye weeks..."
-              disabled={isStreaming}
-              className="flex-1 px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-white text-sm placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500 disabled:opacity-50"
+              disabled={isLoading}
+              className="flex-1 rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rink-500 disabled:opacity-50"
             />
             <button
               onClick={sendMessage}
-              disabled={isStreaming || !input.trim()}
-              className="p-2.5 bg-rink-500 text-black rounded-xl hover:bg-rink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !input.trim()}
+              className="rounded-xl bg-rink-500 p-2.5 text-black transition-colors hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isStreaming ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="w-4 h-4" />
+                <Send className="h-4 w-4" />
               )}
             </button>
           </div>

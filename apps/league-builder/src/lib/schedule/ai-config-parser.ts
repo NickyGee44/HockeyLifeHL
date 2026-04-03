@@ -7,21 +7,13 @@
  */
 
 import type {
+  ConfigPatch,
   ScheduleConfig,
   ScheduleConstraint,
   ScheduleConstraintConfig,
 } from './types';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface ConfigPatch {
-  configUpdates: Partial<ScheduleConfig>;
-  newConstraints: Partial<ScheduleConstraint>[];
-  constraintConfig: Partial<ScheduleConstraintConfig>;
-  summary: string;
-}
+export type { ConfigPatch } from './types';
 
 // ============================================================================
 // EXTRACT CONFIG PATCH

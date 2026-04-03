@@ -237,6 +237,34 @@ export interface ScheduleConstraint {
   appliesToWeekdays: boolean | null;
 }
 
+export interface ConfigPatch {
+  configUpdates: Partial<ScheduleConfig>;
+  newConstraints: Partial<ScheduleConstraint>[];
+  constraintConfig: Partial<ScheduleConstraintConfig>;
+  summary: string;
+}
+
+export interface ScheduleReadinessIssue {
+  code: string;
+  message: string;
+  recommendedFixHref?: string | null;
+}
+
+export interface ScheduleReadinessReport {
+  blockers: ScheduleReadinessIssue[];
+  warnings: ScheduleReadinessIssue[];
+  seasonTeamCount: number;
+  matchupCount: number;
+  slotCapacity: number;
+  recommendedFixHref: string | null;
+}
+
+export interface ScheduleAssistantResponse {
+  reply: string;
+  patch: ConfigPatch | null;
+  questions: string[];
+}
+
 export interface BlackoutPeriod {
   startDate: Date;
   endDate: Date;

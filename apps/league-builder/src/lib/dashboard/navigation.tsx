@@ -209,7 +209,6 @@ export function buildDashboardNavigation({
     const leagueEntries: Array<DashboardNavigationItem | DashboardNavigationGroup> = [
       createItem('league-home', t('leagueOverview') || 'League Hub', leagueHub, Home, 'league'),
       createItem('league-seasons', t('seasons') || 'Seasons', buildLeagueSeasonsHref(locale, leagueId), CalendarDays, 'league'),
-      createItem('league-staff', t('staff') || 'Staff', `${leagueHub}/staff`, Flag, 'league'),
       createItem('league-finance', t('financials') || 'Financials', `${leagueHub}/finance`, Wallet, 'league', {
         matchPrefixes: [`${leagueHub}/finance`, `${leagueHub}/payments`],
         locked: !isSubscribed,
@@ -241,8 +240,12 @@ export function buildDashboardNavigation({
         icon: Settings,
         scope: 'league',
         items: [
-          createItem('league-divisions', t('teamsAndDivisions') || 'Divisions', `${leagueHub}/divisions`, Users, 'league', { locked: !isSubscribed }),
           createItem('league-general', t('general') || 'General', `${leagueHub}/settings/general`, Settings, 'league', { locked: !isSubscribed }),
+          createItem('league-structure', 'League Structure', `${leagueHub}/divisions`, Users, 'league', {
+            matchPrefixes: [`${leagueHub}/divisions`, `${leagueHub}/teams-divisions`],
+            locked: !isSubscribed,
+          }),
+          createItem('league-staff', t('staff') || 'Staff', `${leagueHub}/staff`, Flag, 'league', { locked: !isSubscribed }),
           createItem('league-game-rules', t('gameRules') || 'Game Rules', `${leagueHub}/settings/game-rules`, ClipboardCheck, 'league', { locked: !isSubscribed }),
           createItem('league-registration', t('registration') || 'Registration', `${leagueHub}/settings/registration`, ClipboardCheck, 'league', { locked: !isSubscribed }),
           createItem('league-waiver', t('waiver') || 'Waiver', `${leagueHub}/settings/waiver`, FileText, 'league', { locked: !isSubscribed }),
@@ -278,18 +281,14 @@ export function buildDashboardNavigation({
       createItem('season-registrations', t('registration') || 'Registration', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'registrations'), ClipboardCheck, 'season', {
         locked: !isSubscribed,
       }),
-      {
-        kind: 'group',
-        id: 'season-teams',
-        label: 'Teams & Rosters',
-        icon: Users,
-        scope: 'season',
-        items: [
-          createItem('season-teams-item', t('teams') || 'Teams', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'teams'), Users, 'season', { locked: !isSubscribed }),
-          createItem('season-rosters', t('rosters') || 'Rosters', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'rosters'), Users, 'season', { locked: !isSubscribed }),
-          createItem('season-players', t('players') || 'Players', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'players'), UserCircle2, 'season', { locked: !isSubscribed }),
+      createItem('season-teams-item', t('teams') || 'Teams', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'teams'), Users, 'season', {
+        matchPrefixes: [
+          buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'teams'),
+          buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'players'),
+          buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'rosters'),
         ],
-      },
+        locked: !isSubscribed,
+      }),
       {
         kind: 'group',
         id: 'season-schedule',
