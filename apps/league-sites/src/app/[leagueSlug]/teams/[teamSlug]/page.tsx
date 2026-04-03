@@ -84,7 +84,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
-    getTeamSchedule(team.id, 24),
+    getTeamSchedule(team.id, { seasonId: currentSeason?.id }),
     getTeamRivals(team.id, 4),
     getSeasons(league.id),
   ]);
@@ -445,10 +445,10 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     <Link
                       key={rival.team.id}
                       href={`/${leagueSlug}/teams/${rival.team.slug}`}
-                      className="group rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--league-primary)]/35"
+                      className="group overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--league-primary)]/35"
                     >
                       <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
                           {rival.team.logo ? (
                             <Image
                               src={rival.team.logo}
@@ -879,7 +879,7 @@ function StatusChip({
         : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]';
 
   return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${className}`}>
+    <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${className}`}>
       {children}
     </span>
   );

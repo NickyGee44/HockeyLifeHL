@@ -72,7 +72,7 @@ import {
 import { getBalancedLeagueColors } from './theme-palette';
 import { pickOperationalSeason } from './seasons/operational';
 import { resolveSeasonParticipationTeamIds } from './season-team-participation';
-import { filterPublicStandings, filterPublicTeams } from './publicSiteVisibility';
+import { filterPublicStandings, filterPublicTeams, isPublicFacingTeam } from './publicSiteVisibility';
 
 // Default brand colors from BRAND-KIT.md
 const DEFAULT_PRIMARY = '#D4AF37';
@@ -960,10 +960,13 @@ export async function getTeamStats(teamId: string, leagueId: string): Promise<Te
 /**
  * Fetch team schedule (upcoming and recent games)
  */
-export async function getTeamSchedule(teamId: string, limit = 10): Promise<ScheduleGame[]> {
+export async function getTeamSchedule(
+  teamId: string,
+  options?: { seasonId?: string | null }
+): Promise<ScheduleGame[]> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('games')
     .select(`
       id,
@@ -978,8 +981,13 @@ export async function getTeamSchedule(teamId: string, limit = 10): Promise<Sched
       division:divisions(id, name)
     `)
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-    .order('scheduled_at', { ascending: true })
-    .limit(limit);
+    .order('scheduled_at', { ascending: true });
+
+  if (options?.seasonId) {
+    query = query.eq('season_id', options.seasonId);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     return [];
@@ -1018,8 +1026,8 @@ export async function getTeamRivals(teamId: string, limit = 3): Promise<{
       away_team_id,
       home_score,
       away_score,
-      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url),
-      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url)
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, team_type),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, team_type)
     `)
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .eq('status', 'completed');
@@ -1041,6 +1049,10 @@ export async function getTeamRivals(teamId: string, limit = 3): Promise<{
     const opponentData = isHome ? game.away_team : game.home_team;
     const opponent = Array.isArray(opponentData) ? opponentData[0] : opponentData;
     if (!opponent) continue;
+
+    if (!isPublicFacingTeam({ name: opponent.name, team_type: opponent.team_type ?? null })) {
+      continue;
+    }
 
     const opponentId = opponent.id;
     const myScore = isHome ? game.home_score : game.away_score;
