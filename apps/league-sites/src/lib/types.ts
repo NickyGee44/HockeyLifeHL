@@ -514,6 +514,9 @@ export interface UnifiedStatsRowBase {
   jersey_number?: string | null;
   team_id: string;
   team_name: string;
+  display_team_logo_url?: string | null;
+  display_team_name?: string | null;
+  display_team_is_free_agent?: boolean;
   division_name: string | null;
   position: string | null;
   championships: number;

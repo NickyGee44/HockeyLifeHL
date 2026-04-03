@@ -24,6 +24,7 @@ import type {
   GoalieStats,
   GoalieStatsWithDivision,
   UnifiedGoalieStatsRow,
+  UnifiedStatsRowBase,
   UnifiedSkaterStatsRow,
   PlayerGameLogEntry,
   SpecialTeamsLeader,
@@ -81,6 +82,8 @@ const DEFAULT_ACCENT = '#D4AF37';
 const DEFAULT_FONT_FAMILY = '"Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif';
 const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'hockeylifehl-original', 'pilot']);
 const AGGREGATE_STATS_GAME_LOCATION_PREFIX = '[aggregate-only]';
+const FREE_AGENT_DISPLAY_TEAM_NAME = 'Free Agent';
+const FREE_AGENT_DISPLAY_TEAM_LOGO_URL = '/fa-shield.svg';
 const IMPORTED_CAREER_BASELINE_TABLE_CANDIDATES = [
   'league_player_career_baselines',
   'player_career_baselines',
@@ -324,6 +327,18 @@ function transformTeamData(team: any): any {
 
 function roundStatValue(value: number, digits = 2) {
   return Number(value.toFixed(digits));
+}
+
+function toRecencyTimestamp(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    if (!value) continue;
+    const timestamp = Date.parse(value);
+    if (!Number.isNaN(timestamp)) {
+      return timestamp;
+    }
+  }
+
+  return 0;
 }
 
 function unwrapJoinedRecord<T>(value: T | T[] | null | undefined): T | null {
@@ -2170,6 +2185,19 @@ type RosterDisplayRow = {
   jersey_number: number | null;
 };
 
+type CurrentSeasonRosterDisplayRow = {
+  player_id: string;
+  joined_at: string | null;
+  start_date: string | null;
+  team?: {
+    name?: string | null;
+    logo_url?: string | null;
+  } | {
+    name?: string | null;
+    logo_url?: string | null;
+  }[] | null;
+};
+
 type SkaterStatsAccumulator = {
   player_id: string;
   player_name: string;
@@ -2220,6 +2248,100 @@ type ImportedAggregateProfileMetadata = {
   avatarUrl: string | null;
   position: string | null;
 };
+
+function enrichUnifiedStatsRowsWithCurrentDisplayTeam<T extends UnifiedStatsRowBase>(
+  rows: T[],
+  currentSeasonRosters: CurrentSeasonRosterDisplayRow[],
+): T[] {
+  if (rows.length === 0) {
+    return rows;
+  }
+
+  const currentTeamByPlayerId = new Map<string, {
+    display_team_logo_url: string | null;
+    display_team_name: string | null;
+    display_team_is_free_agent: boolean;
+    sort_value: number;
+  }>();
+
+  for (const roster of currentSeasonRosters) {
+    const team = unwrapJoinedRecord(roster.team);
+    const sortValue = toRecencyTimestamp(roster.joined_at, roster.start_date);
+    const existing = currentTeamByPlayerId.get(roster.player_id);
+
+    if (!existing || sortValue > existing.sort_value) {
+      currentTeamByPlayerId.set(roster.player_id, {
+        display_team_logo_url: team?.logo_url || null,
+        display_team_name: team?.name || null,
+        display_team_is_free_agent: false,
+        sort_value: sortValue,
+      });
+    }
+  }
+
+  return rows.map((row) => {
+    const displayTeam = currentTeamByPlayerId.get(row.player_id);
+
+    if (!displayTeam) {
+      return {
+        ...row,
+        display_team_logo_url: FREE_AGENT_DISPLAY_TEAM_LOGO_URL,
+        display_team_name: FREE_AGENT_DISPLAY_TEAM_NAME,
+        display_team_is_free_agent: true,
+      };
+    }
+
+    return {
+      ...row,
+      display_team_logo_url: displayTeam.display_team_logo_url,
+      display_team_name: displayTeam.display_team_name,
+      display_team_is_free_agent: displayTeam.display_team_is_free_agent,
+    };
+  });
+}
+
+async function appendCurrentDisplayTeamMetadata<T extends UnifiedStatsRowBase>(
+  leagueId: string,
+  rows: T[],
+): Promise<T[]> {
+  if (rows.length === 0) {
+    return rows;
+  }
+
+  const playerIds = [...new Set(rows.map((row) => row.player_id).filter(Boolean))];
+  if (playerIds.length === 0) {
+    return rows;
+  }
+
+  const currentSeason = await getCurrentSeason(leagueId);
+  if (!currentSeason) {
+    return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, []);
+  }
+
+  const supabase = await createClient();
+  const { data: currentSeasonRosters, error } = await supabase
+    .from('team_rosters')
+    .select(`
+      player_id,
+      joined_at,
+      start_date,
+      team:teams(name, logo_url)
+    `)
+    .eq('league_id', leagueId)
+    .eq('season_id', currentSeason.id)
+    .eq('status', 'active')
+    .is('end_date', null)
+    .in('player_id', playerIds);
+
+  if (error || !currentSeasonRosters) {
+    return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, []);
+  }
+
+  return enrichUnifiedStatsRowsWithCurrentDisplayTeam(
+    rows,
+    currentSeasonRosters as unknown as CurrentSeasonRosterDisplayRow[],
+  );
+}
 
 type ImportedAggregateTeamMetadata = {
   teamId: string;
@@ -2761,29 +2883,35 @@ export async function getUnifiedSkaterStatsRows(
   leagueSlug?: string,
   seasonName?: string | null,
 ): Promise<UnifiedSkaterStatsRow[]> {
+  let rows: UnifiedSkaterStatsRow[];
+
   if (seasonId === null) {
-    const { rows } = await buildAllTimeSkaterRows(leagueId, divisionId, leagueSlug);
-    return appendNativeChampionshipCounts(leagueId, rows, null);
+    const allTimeRows = await buildAllTimeSkaterRows(leagueId, divisionId, leagueSlug);
+    rows = await appendNativeChampionshipCounts(leagueId, allTimeRows.rows, null);
+    return appendCurrentDisplayTeamMetadata(leagueId, rows);
   }
 
   if (seasonId && isImportedAggregateSeasonId(seasonId)) {
-    return appendNativeChampionshipCounts(
+    rows = await appendNativeChampionshipCounts(
       leagueId,
       await buildImportedAggregateSkaterRows(leagueId, seasonId, divisionId),
       seasonId,
     );
+    return appendCurrentDisplayTeamMetadata(leagueId, rows);
   }
 
   if (isHistoricalCareerBaselineSeasonName(seasonName)) {
     const baselineRows = await getImportedCareerBaselineRows(leagueId, leagueSlug);
-    return buildHistoricalBaselineSkaterRows(baselineRows);
+    rows = buildHistoricalBaselineSkaterRows(baselineRows);
+    return appendCurrentDisplayTeamMetadata(leagueId, rows);
   }
 
-  return appendNativeChampionshipCounts(
+  rows = await appendNativeChampionshipCounts(
     leagueId,
     await getNativeUnifiedSkaterStatsRows(leagueId, seasonId, divisionId),
     seasonId,
   );
+  return appendCurrentDisplayTeamMetadata(leagueId, rows);
 }
 
 async function getNativeUnifiedGoalieStatsRows(
@@ -2955,29 +3083,35 @@ export async function getUnifiedGoalieStatsRows(
   leagueSlug?: string,
   seasonName?: string | null,
 ): Promise<UnifiedGoalieStatsRow[]> {
+  let rows: UnifiedGoalieStatsRow[];
+
   if (seasonId === null) {
-    const { rows } = await buildAllTimeGoalieRows(leagueId, divisionId, leagueSlug);
-    return appendNativeChampionshipCounts(leagueId, rows, null);
+    const allTimeRows = await buildAllTimeGoalieRows(leagueId, divisionId, leagueSlug);
+    rows = await appendNativeChampionshipCounts(leagueId, allTimeRows.rows, null);
+    return appendCurrentDisplayTeamMetadata(leagueId, rows);
   }
 
   if (seasonId && isImportedAggregateSeasonId(seasonId)) {
-    return appendNativeChampionshipCounts(
+    rows = await appendNativeChampionshipCounts(
       leagueId,
       await buildImportedAggregateGoalieRows(leagueId, seasonId, divisionId),
       seasonId,
     );
+    return appendCurrentDisplayTeamMetadata(leagueId, rows);
   }
 
   if (isHistoricalCareerBaselineSeasonName(seasonName)) {
     const baselineRows = await getImportedCareerBaselineRows(leagueId, leagueSlug);
-    return buildHistoricalBaselineGoalieRows(baselineRows);
+    rows = buildHistoricalBaselineGoalieRows(baselineRows);
+    return appendCurrentDisplayTeamMetadata(leagueId, rows);
   }
 
-  return appendNativeChampionshipCounts(
+  rows = await appendNativeChampionshipCounts(
     leagueId,
     await getNativeUnifiedGoalieStatsRows(leagueId, seasonId, divisionId),
     seasonId,
   );
+  return appendCurrentDisplayTeamMetadata(leagueId, rows);
 }
 
 /**

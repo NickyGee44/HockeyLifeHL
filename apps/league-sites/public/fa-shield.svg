@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-labelledby="title desc">
+  <title id="title">Free Agent Shield</title>
+  <desc id="desc">Black shield with white FA lettering.</desc>
+  <path
+    fill="#000"
+    d="M128 16 224 48v98c0 77.4-48.8 128.4-96 158-47.2-29.6-96-80.6-96-158V48l96-32Z"
+  />
+  <path
+    fill="#fff"
+    d="M80 102h104v28h-72v27h64v27h-64v54H80V102Zm104 0h-64v28h64v-28Zm-8 112v-26h-40v-27h40v-59h32v136h-32v-24Z"
+  />
+</svg>

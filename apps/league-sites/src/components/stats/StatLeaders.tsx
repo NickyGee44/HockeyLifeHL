@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Award, Shield, Sparkles, Target, Trophy } from 'lucide-react';
 import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 import type {
@@ -40,6 +40,10 @@ const GOALIE_METRICS: Array<{ id: GoalieLeaderMetric; icon: typeof Trophy; label
 
 function getActiveMetrics(mode: StatsMode) {
   return mode === 'skaters' ? SKATER_METRICS : GOALIE_METRICS;
+}
+
+function getDefaultMetric(mode: StatsMode): LeaderMetric {
+  return mode === 'skaters' ? 'goals' : 'wins';
 }
 
 function getMetricValue(row: StatsLeaderRow, metric: LeaderMetric) {
@@ -85,7 +89,12 @@ function splitPlayerName(name: string) {
 
 export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatLeadersProps) {
   const metrics = getActiveMetrics(mode);
-  const [selectedMetric, setSelectedMetric] = useState<LeaderMetric>('goals');
+  const [selectedMetric, setSelectedMetric] = useState<LeaderMetric>(() => getDefaultMetric(mode));
+
+  useEffect(() => {
+    setSelectedMetric(getDefaultMetric(mode));
+  }, [mode]);
+
   const activeMetric = metrics.find((metric) => metric.id === selectedMetric) ?? metrics[0];
   const ActiveIcon = activeMetric.icon;
   const leaders = [...rows]
@@ -125,7 +134,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
         </span>
       </div>
 
-      <div className="mt-5 rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-4 md:p-5">
+      <div className="mt-5 border-t border-[var(--color-border)] pt-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--league-primary)]/12 text-[var(--league-primary)]">
@@ -152,7 +161,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
                     isActive
                       ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -172,7 +181,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
               return (
                 <div
                   key={`${activeMetric.id}-${leader.player_id}`}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5"
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3 py-2.5"
                 >
                   <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
                     index === 0
@@ -219,7 +228,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
             })}
           </div>
         ) : (
-          <div className="mt-4 rounded-[18px] border border-dashed border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-6 text-center">
+          <div className="mt-4 rounded-[18px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/50 px-4 py-6 text-center">
             <p className="text-sm font-semibold text-[var(--color-text-primary)]">No leaders yet</p>
             <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{activeMetric.emptyLabel}</p>
           </div>
