@@ -110,8 +110,8 @@ const ULTRA_COMPACT_STAT_COLUMN_KEYS = new Set([
 
 function getStatColumnWidthClass(columnKey: string) {
   return ULTRA_COMPACT_STAT_COLUMN_KEYS.has(columnKey)
-    ? "w-[42px] min-w-[42px] px-0.5 md:w-[50px] md:min-w-[50px] md:px-1"
-    : "px-1 md:px-1.5";
+    ? "w-[38px] min-w-[38px] px-0 md:w-[44px] md:min-w-[44px] md:px-0.5"
+    : "px-0.5 md:px-1";
 }
 
 const SKATER_COLUMNS: StatsTableColumn<SkaterStatKey>[] = [
@@ -1057,20 +1057,6 @@ export function StatsWorkspace({
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsTableExpanded((current) => !current)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
-              aria-label={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
-              title={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
-            >
-              {isTableExpanded ? (
-                <Minimize2 className="h-4 w-4 text-[var(--league-primary)]" />
-              ) : (
-                <Maximize2 className="h-4 w-4 text-[var(--league-primary)]" />
-              )}
-            </button>
-
-            <button
-              type="button"
               onClick={openFilterPanel}
               className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
               aria-label="Open filters"
@@ -1103,14 +1089,16 @@ export function StatsWorkspace({
         />
 
         {filteredRows.length > 0 ? (
-          <div className={isTableExpanded ? "md:-mx-6 xl:-mx-10 2xl:-mx-14" : ""}>
+          <div className={isTableExpanded ? "relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 px-2 sm:px-4 lg:px-8 xl:px-12 2xl:px-16" : ""}>
             <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)]">
               <div className="overflow-x-auto">
                 <div>
                   <table
                     className={`w-full border-separate border-spacing-0 text-sm ${
                       isTableExpanded
-                        ? "min-w-full"
+                        ? mode === "skaters"
+                          ? "min-w-[980px] xl:min-w-full"
+                          : "min-w-[860px] xl:min-w-full"
                         : mode === "skaters"
                           ? "min-w-[820px] xl:min-w-[940px]"
                           : "min-w-[780px] xl:min-w-[820px]"
@@ -1118,7 +1106,7 @@ export function StatsWorkspace({
                   >
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-30 w-[148px] min-w-[148px] max-w-[148px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[172px] md:min-w-[172px] md:max-w-[172px]">
+                      <th className="sticky left-0 z-30 w-[178px] min-w-[178px] max-w-[178px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[206px] md:min-w-[206px] md:max-w-[206px]">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <span>
@@ -1177,11 +1165,12 @@ export function StatsWorkspace({
                               : "text-left";
 
                         const widthClass = getStatColumnWidthClass(String(column.key));
+                        const isSortedColumn = currentSort === column.key;
 
                         return (
                           <th
                             key={column.key}
-                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] ${widthClass} ${alignClass}`}
+                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] ${widthClass} ${alignClass} ${isSortedColumn ? "bg-[var(--league-primary)]/10 text-[var(--league-primary)]" : ""}`}
                           >
                             <button
                               type="button"
@@ -1224,7 +1213,7 @@ export function StatsWorkspace({
 
                       return (
                         <tr key={row.player_id} className="group">
-                          <td className="sticky left-0 z-20 w-[148px] min-w-[148px] max-w-[148px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] md:w-[172px] md:min-w-[172px] md:max-w-[172px]">
+                          <td className="sticky left-0 z-20 w-[178px] min-w-[178px] max-w-[178px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] md:w-[206px] md:min-w-[206px] md:max-w-[206px]">
                             <div className="flex items-center gap-2">
                               <div className="relative h-9 w-9 shrink-0">
                                 <img
@@ -1272,7 +1261,7 @@ export function StatsWorkspace({
                                   : "text-left";
                             const sortedClass =
                               currentSort === column.key
-                                ? "font-semibold text-[var(--league-primary)]"
+                                ? "font-black text-[var(--league-primary)]"
                                 : "text-[var(--color-text-primary)]";
                             const value =
                               mode === "skaters"
@@ -1286,11 +1275,12 @@ export function StatsWorkspace({
                                   );
 
                             const widthClass = getStatColumnWidthClass(String(column.key));
+                            const isSortedColumn = currentSort === column.key;
 
                             return (
                               <td
                                 key={column.key}
-                                className={`border-b border-[var(--color-border)] py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] ${widthClass} ${alignClass} ${sortedClass}`}
+                                className={`border-b border-[var(--color-border)] py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] ${widthClass} ${alignClass} ${sortedClass} ${isSortedColumn ? "bg-[var(--league-primary)]/8 group-hover:bg-[var(--league-primary)]/12" : ""}`}
                               >
                                 <span
                                   className={
@@ -1337,7 +1327,22 @@ export function StatsWorkspace({
         )}
 
         <div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsTableExpanded((current) => !current)}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-3.5 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+              aria-label={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
+              title={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
+            >
+              {isTableExpanded ? (
+                <Minimize2 className="h-4 w-4 text-[var(--league-primary)]" />
+              ) : (
+                <Maximize2 className="h-4 w-4 text-[var(--league-primary)]" />
+              )}
+              {isTableExpanded ? "Collapse Table" : "Expand Table"}
+            </button>
+
             <button
               type="button"
               onClick={() => setIsLegendOpen((current) => !current)}
