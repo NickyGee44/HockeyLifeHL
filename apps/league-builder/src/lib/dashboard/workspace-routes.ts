@@ -1,5 +1,4 @@
 export type DashboardWorkspaceScope = 'organization' | 'league' | 'season';
-export type TeamDetailSource = 'season-rosters';
 
 export type SeasonWorkspaceRouteKey =
   | 'home'
@@ -10,6 +9,7 @@ export type SeasonWorkspaceRouteKey =
   | 'schedule'
   | 'games'
   | 'standings'
+  | 'playoffs'
   | 'ratings'
   | 'eligibility'
   | 'draft'
@@ -25,6 +25,7 @@ const SEASON_ROUTE_SUFFIX: Record<SeasonWorkspaceRouteKey, string> = {
   schedule: '/schedule',
   games: '/games',
   standings: '/standings',
+  playoffs: '/playoffs',
   ratings: '/ratings',
   eligibility: '/eligibility',
   draft: '/draft',
@@ -36,12 +37,25 @@ function localePrefix(locale: string) {
   return locale ? `/${locale}` : '';
 }
 
+function appendSearchParams(pathname: string, params: Record<string, string | null | undefined>) {
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value) {
+      searchParams.set(key, value);
+    }
+  }
+
+  const query = searchParams.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}
+
 export function buildDashboardHomeHref(locale: string) {
   return `${localePrefix(locale)}/dashboard`;
 }
 
 export function buildLeagueHubHref(locale: string, leagueId: string) {
-  return `/${locale}/dashboard/leagues/${leagueId}`;
+  return `${localePrefix(locale)}/dashboard/leagues/${leagueId}`;
 }
 
 export function buildLeagueSeasonsHref(locale: string, leagueId: string) {
@@ -60,45 +74,30 @@ export function buildSeasonWorkspaceHref(
 export function buildTeamDetailHref(params: {
   locale: string;
   teamId: string;
-  tab?: string;
+  tab?: string | null;
   leagueId?: string | null;
   seasonId?: string | null;
-  from?: TeamDetailSource | string | null;
+  from?: string | null;
 }) {
-  const searchParams = new URLSearchParams();
-
-  if (params.tab) {
-    searchParams.set('tab', params.tab);
-  }
-
-  if (params.leagueId) {
-    searchParams.set('leagueId', params.leagueId);
-  }
-
-  if (params.seasonId) {
-    searchParams.set('seasonId', params.seasonId);
-  }
-
-  if (params.from) {
-    searchParams.set('from', params.from);
-  }
-
-  const basePath = `${localePrefix(params.locale)}/dashboard/teams/${params.teamId}`;
-  const query = searchParams.toString();
-
-  return query ? `${basePath}?${query}` : basePath;
+  return appendSearchParams(`${localePrefix(params.locale)}/dashboard/teams/${params.teamId}`, {
+    tab: params.tab,
+    leagueId: params.leagueId,
+    seasonId: params.seasonId,
+    from: params.from,
+  });
 }
 
 export function buildTeamDetailBackHref(params: {
   leagueId: string;
-  seasonId?: string | null;
   from?: string | null;
+  seasonId?: string | null;
+  locale?: string;
 }) {
   if (params.from === 'season-rosters' && params.seasonId) {
-    return `/dashboard/leagues/${params.leagueId}/seasons/${params.seasonId}/rosters`;
+    return buildSeasonWorkspaceHref(params.locale ?? '', params.leagueId, params.seasonId, 'rosters');
   }
 
-  return `/dashboard/leagues/${params.leagueId}/teams-divisions`;
+  return `${buildLeagueHubHref(params.locale ?? '', params.leagueId)}/teams-divisions`;
 }
 
 function normalizePathname(pathname: string, locale: string) {
@@ -124,6 +123,7 @@ export function resolveSeasonRouteKeyFromPathname(
     [`/dashboard/leagues/${leagueId}/teams`, 'teams'],
     [`/dashboard/leagues/${leagueId}/games`, 'games'],
     [`/dashboard/leagues/${leagueId}/standings`, 'standings'],
+    [`/dashboard/leagues/${leagueId}/playoffs`, 'playoffs'],
     [`/dashboard/leagues/${leagueId}/ratings`, 'ratings'],
     [`/dashboard/leagues/${leagueId}/eligibility`, 'eligibility'],
     [`/dashboard/leagues/${leagueId}/draft`, 'draft'],
@@ -152,6 +152,7 @@ export function resolveSeasonRouteKeyFromPathname(
     ['/schedule', 'schedule'],
     ['/games', 'games'],
     ['/standings', 'standings'],
+    ['/playoffs', 'playoffs'],
     ['/ratings', 'ratings'],
     ['/eligibility', 'eligibility'],
     ['/draft', 'draft'],

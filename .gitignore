@@ -79,3 +79,8 @@ apps/**/.claude/
 supabase/.temp/
 .tmp/
 apps/remotion/build/
+
+# Native iOS generated artifacts
+/apps/ios/*.xcodeproj
+/apps/ios/.derived-data/
+/apps/ios/.artifacts/

@@ -6,6 +6,11 @@ import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { cn } from '@hockey-life/ui';
 import { Lock } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import {
+  type DashboardNavigationItem,
+  isDashboardNavigationItemActive,
+} from '@/lib/dashboard/navigation';
 
 interface SidebarNavItemProps {
   href: string;
@@ -15,6 +20,8 @@ interface SidebarNavItemProps {
   badge?: number;
   indent?: boolean;
   onClick?: () => void;
+  active?: boolean;
+  matchPrefixes?: string[];
 }
 
 export function SidebarNavItem({
@@ -25,18 +32,30 @@ export function SidebarNavItem({
   badge,
   indent = false,
   onClick,
+  active,
+  matchPrefixes,
 }: SidebarNavItemProps) {
   const pathname = usePathname();
   const locale = useLocale();
+  const reduceMotion = useReducedMotion();
 
   const isActive = React.useMemo(() => {
-    const hrefPath = href.split('?')[0];
-    const localizedPath = `/${locale}${hrefPath}`;
-    if (hrefPath === '/dashboard') {
-      return pathname === localizedPath || pathname === `/${locale}/tableau-de-bord`;
+    if (typeof active === 'boolean') {
+      return active;
     }
-    return pathname.startsWith(localizedPath);
-  }, [href, pathname, locale]);
+
+    const item: DashboardNavigationItem = {
+      kind: 'item',
+      id: href,
+      label,
+      href,
+      icon: Icon,
+      scope: 'organization',
+      matchPrefixes: matchPrefixes ?? [href],
+    };
+
+    return isDashboardNavigationItemActive(item, pathname, locale);
+  }, [active, href, Icon, label, locale, matchPrefixes, pathname]);
 
   const resolvedHref = locked ? '/dashboard/settings/billing' : href;
 
@@ -45,32 +64,39 @@ export function SidebarNavItem({
       href={resolvedHref}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 group text-[13px]',
+        'group relative flex items-center gap-2.5 overflow-hidden rounded-xl px-3 py-2 text-[13px] transition-[color,border-color,background-color]',
         indent && 'ml-3',
         locked
-          ? 'text-neutral-600 hover:text-neutral-500 cursor-not-allowed'
+          ? 'cursor-not-allowed border border-transparent text-neutral-600 hover:text-neutral-500'
           : isActive
-          ? 'bg-rink-500/10 text-rink-400 font-medium'
-          : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04]'
+            ? 'border border-rink-400/15 text-rink-100'
+            : 'border border-transparent text-neutral-400 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-neutral-200'
       )}
     >
+      {isActive ? (
+        <motion.span
+          layoutId="sidebar-nav-indicator"
+          transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 420, damping: 36 }}
+          className="absolute inset-0 rounded-xl bg-[linear-gradient(90deg,rgba(34,211,238,0.16),rgba(59,130,246,0.08))]"
+        />
+      ) : null}
       <Icon
         className={cn(
-          'w-4 h-4 flex-shrink-0',
+          'relative h-4 w-4 shrink-0',
           locked
             ? 'text-neutral-600'
             : isActive
-            ? 'text-rink-400'
-            : 'text-neutral-500 group-hover:text-neutral-300'
+              ? 'text-rink-300'
+              : 'text-neutral-500 transition-colors group-hover:text-neutral-300'
         )}
       />
-      <span className="flex-1 truncate">{label}</span>
-      {locked && <Lock className="w-3 h-3 text-neutral-600 flex-shrink-0" />}
-      {badge !== undefined && badge > 0 && (
-        <span className="min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-rink-500/20 text-rink-400 text-[10px] font-bold px-1">
+      <span className="relative flex-1 truncate font-medium">{label}</span>
+      {locked ? <Lock className="relative h-3 w-3 shrink-0 text-neutral-600" /> : null}
+      {badge !== undefined && badge > 0 ? (
+        <span className="relative flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-rink-400/20 bg-rink-500/15 px-1 text-[10px] font-bold text-rink-200">
           {badge > 99 ? '99+' : badge}
         </span>
-      )}
+      ) : null}
     </Link>
   );
 }
