@@ -38,8 +38,11 @@ const GOALIE_METRICS: Array<{ id: GoalieLeaderMetric; icon: typeof Trophy; label
   { id: 'championships', icon: Award, label: 'Championships', emptyLabel: 'No championships recorded for this view yet.' },
 ];
 
-function getActiveMetrics(mode: StatsMode) {
-  return mode === 'skaters' ? SKATER_METRICS : GOALIE_METRICS;
+function getActiveMetrics(mode: StatsMode, isAllTime: boolean) {
+  const metrics = mode === 'skaters' ? SKATER_METRICS : GOALIE_METRICS;
+  return isAllTime
+    ? metrics
+    : metrics.filter((metric) => metric.id !== 'championships');
 }
 
 function getDefaultMetric(mode: StatsMode): LeaderMetric {
@@ -88,12 +91,12 @@ function splitPlayerName(name: string) {
 }
 
 export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatLeadersProps) {
-  const metrics = getActiveMetrics(mode);
+  const metrics = getActiveMetrics(mode, isAllTime);
   const [selectedMetric, setSelectedMetric] = useState<LeaderMetric>(() => getDefaultMetric(mode));
 
   useEffect(() => {
     setSelectedMetric(getDefaultMetric(mode));
-  }, [mode]);
+  }, [mode, isAllTime]);
 
   const activeMetric = metrics.find((metric) => metric.id === selectedMetric) ?? metrics[0];
   const ActiveIcon = activeMetric.icon;

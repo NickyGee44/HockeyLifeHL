@@ -16,11 +16,34 @@ import {
   ChevronUp,
   Filter,
   Search,
-  Shield,
   Sparkles,
-  TrendingUp,
   X,
 } from "lucide-react";
+
+function PlayerHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M12 4C7.6 4 4 7.6 4 12v4h16v-4c0-4.4-3.6-8-8-8Z" />
+      <path d="M4 16h16" />
+      <path d="M7 16v2h10v-2" />
+      <path d="M10 16v2" />
+      <path d="M14 16v2" />
+      <path d="M7 17.5h10" />
+    </svg>
+  );
+}
+
+function GoalieHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M12 3c4.5 0 8 2.9 8 6.5V13c0 4.7-3.4 8-8 8s-8-3.3-8-8V9.5C4 5.9 7.5 3 12 3Z" />
+      <path d="M8.5 13h7" />
+      <path d="M10 13v4" />
+      <path d="M14 13v4" />
+      <path d="M8.5 15.5h7" />
+    </svg>
+  );
+}
 import { useDivisionFilter } from "@/components/DivisionFilterProvider";
 import { PlayerBadgeGroup } from "@/components/shared/PlayerBadgeGroup";
 import { StatLeaders } from "./StatLeaders";
@@ -734,7 +757,10 @@ export function StatsWorkspace({
 
   const columns = mode === "skaters" ? SKATER_COLUMNS : GOALIE_COLUMNS;
   const visibleColumns = getDefaultVisibleColumns(mode, requestedPreset);
-  const visibleColumnSet = new Set(visibleColumns);
+  const effectiveVisibleColumns = isAllTime
+    ? visibleColumns
+    : visibleColumns.filter((key) => key !== 'championships');
+  const visibleColumnSet = new Set(effectiveVisibleColumns);
   const visibleColumnDefs = columns.filter((column) =>
     visibleColumnSet.has(column.key),
   );
@@ -917,7 +943,6 @@ export function StatsWorkspace({
     (isCustomSeasonSelection ? 1 : 0);
 
   const activeFilterTags = [
-    !isAllTime && seasonLabel ? `Season: ${seasonLabel}` : null,
     isAllTime ? "All Time" : null,
     selectedDivisionName ? `Division: ${selectedDivisionName}` : null,
     selectedTeam ? `Team: ${selectedTeam.name}` : null,
@@ -929,61 +954,66 @@ export function StatsWorkspace({
 
   return (
     <>
+      <div className="mb-5 flex items-start justify-between md:mb-6">
+        <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
+          Stats
+        </h1>
+        <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+          <button
+            type="button"
+            onClick={() => handleModeChange("skaters")}
+            aria-label="Players"
+            title="Players"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              mode === "skaters"
+                ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            }`}
+          >
+            <PlayerHelmetIcon className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange("goalies")}
+            aria-label="Goalies"
+            title="Goalies"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              mode === "goalies"
+                ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+            }`}
+          >
+            <GoalieHelmetIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
       <section className="space-y-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-col gap-3">
-            <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
-              <button
-                type="button"
-                onClick={() => handleViewChange(false)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  !isAllTime
-                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                }`}
-              >
-                <Sparkles className="h-4 w-4" />
-                Current Season
-              </button>
-              <button
-                type="button"
-                onClick={() => handleViewChange(true)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  isAllTime
-                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                }`}
-              >
-                All Time
-              </button>
-            </div>
-
-            <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
-              <button
-                type="button"
-                onClick={() => handleModeChange("skaters")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  mode === "skaters"
-                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                }`}
-              >
-                <TrendingUp className="h-4 w-4" />
-                Players
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange("goalies")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  mode === "goalies"
-                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                }`}
-              >
-                <Shield className="h-4 w-4" />
-                Goalies
-              </button>
-            </div>
+          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+            <button
+              type="button"
+              onClick={() => handleViewChange(false)}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                !isAllTime
+                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Current Season
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewChange(true)}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                isAllTime
+                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
+            >
+              All Time
+            </button>
           </div>
 
           <button
@@ -1026,7 +1056,7 @@ export function StatsWorkspace({
                 >
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-30 min-w-[280px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                      <th className="sticky left-0 z-30 min-w-[168px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <span>
