@@ -1,32 +1,39 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import StatsPage from '../page';
 
 export const dynamic = 'force-dynamic';
 
-interface GoalieStatsRedirectPageProps {
+export const metadata: Metadata = {
+  title: 'Goalie Stats',
+  description: 'League goalie statistics',
+};
+
+interface GoalieStatsPageProps {
   params: Promise<{ leagueSlug: string }>;
   searchParams: Promise<{
-    season?: string;
-    sort?: string;
-    dir?: string;
     division?: string;
     view?: string;
+    season?: string;
+    mode?: string;
+    sort?: string;
+    dir?: string;
+    team?: string;
+    position?: string;
+    statsType?: string;
   }>;
 }
 
-export default async function GoalieStatsRedirectPage({
+export default async function GoalieStatsPage({
   params,
   searchParams,
-}: GoalieStatsRedirectPageProps) {
-  const { leagueSlug } = await params;
+}: GoalieStatsPageProps) {
   const resolvedSearch = await searchParams;
-  const nextParams = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(resolvedSearch)) {
-    if (typeof value === 'string' && value.length > 0) {
-      nextParams.set(key, value);
-    }
-  }
-
-  nextParams.set('mode', 'goalies');
-  redirect(`/${leagueSlug}/stats?${nextParams.toString()}`);
+  return StatsPage({
+    params,
+    searchParams: Promise.resolve({
+      ...resolvedSearch,
+      mode: 'goalies',
+    }),
+  });
 }
