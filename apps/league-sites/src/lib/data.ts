@@ -2167,12 +2167,14 @@ type RosterDisplayRow = {
   season_id: string | null;
   position: string | null;
   is_goalie: boolean | null;
+  jersey_number: number | null;
 };
 
 type SkaterStatsAccumulator = {
   player_id: string;
   player_name: string;
   avatar_url: string | null;
+  jersey_number: string | null;
   team_id: string;
   team_name: string;
   division_name: string | null;
@@ -2198,6 +2200,7 @@ type GoalieStatsAccumulator = {
   player_id: string;
   player_name: string;
   avatar_url: string | null;
+  jersey_number: string | null;
   team_id: string;
   team_name: string;
   division_name: string | null;
@@ -2610,7 +2613,7 @@ async function getNativeUnifiedSkaterStatsRows(
 
   let rosterQuery = supabase
     .from('team_rosters')
-    .select('player_id, team_id, season_id, position, is_goalie')
+    .select('player_id, team_id, season_id, position, is_goalie, jersey_number')
     .in('player_id', playerIds)
     .in('team_id', teamIds);
 
@@ -2636,6 +2639,7 @@ async function getNativeUnifiedSkaterStatsRows(
       player_id: row.player_id,
       player_name: playerData?.full_name || 'Unknown Player',
       avatar_url: playerData?.avatar_url || null,
+      jersey_number: roster?.jersey_number != null ? String(roster.jersey_number) : null,
       team_id: row.team_id,
       team_name: teamData?.name || 'Unknown Team',
       division_name: getJoinedDivisionName(teamData?.divisions),
@@ -2680,6 +2684,7 @@ async function getNativeUnifiedSkaterStatsRows(
       entry.division_name = getJoinedDivisionName(teamData?.divisions);
       entry.position = roster?.position || null;
       entry.is_goalie = Boolean(roster?.is_goalie);
+      entry.jersey_number = roster?.jersey_number != null ? String(roster.jersey_number) : null;
     }
 
     if (!existing) {
@@ -2696,6 +2701,7 @@ async function getNativeUnifiedSkaterStatsRows(
           player_id: entry.player_id,
           player_name: entry.player_name,
           avatar_url: entry.avatar_url,
+          jersey_number: entry.jersey_number,
           team_id: entry.team_id,
           team_name: entry.team_name,
           division_name: entry.division_name,
@@ -2803,7 +2809,7 @@ async function getNativeUnifiedGoalieStatsRows(
       shutout,
       game_result,
       game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
-      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
+      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url, jersey_number),
       team:teams!goalie_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
@@ -2837,7 +2843,11 @@ async function getNativeUnifiedGoalieStatsRows(
 
   const goalieMap = new Map<string, GoalieStatsAccumulator>();
   for (const row of visibleRows) {
-    const playerData = unwrapJoinedRecord(row.player);
+    const playerData = unwrapJoinedRecord(row.player) as {
+      full_name?: string | null;
+      avatar_url?: string | null;
+      jersey_number?: number | string | null;
+    } | null;
     const teamData = unwrapJoinedRecord(row.team);
     const gameData = unwrapJoinedRecord(row.game);
 
@@ -2846,6 +2856,7 @@ async function getNativeUnifiedGoalieStatsRows(
       player_id: row.player_id,
       player_name: playerData?.full_name || 'Unknown Goalie',
       avatar_url: playerData?.avatar_url || null,
+      jersey_number: playerData?.jersey_number != null ? String(playerData.jersey_number) : null,
       team_id: row.team_id,
       team_name: teamData?.name || 'Unknown Team',
       division_name: getJoinedDivisionName(teamData?.divisions),
@@ -2894,6 +2905,7 @@ async function getNativeUnifiedGoalieStatsRows(
         player_id: entry.player_id,
         player_name: entry.player_name,
         avatar_url: entry.avatar_url,
+        jersey_number: entry.jersey_number,
         team_id: entry.team_id,
         team_name: entry.team_name,
         division_name: entry.division_name,

@@ -77,15 +77,9 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
       <div className="container mx-auto px-4 py-10 animate-fade-in md:py-12">
         <div className="mx-auto max-w-[1280px]">
           <div className="mb-5 md:mb-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-              BLH Public Stats
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
+            <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
               Stats
             </h1>
-            <p className="mt-2 max-w-3xl text-sm text-[var(--color-text-secondary)] md:text-base">
-              Explore skater and goalie leaders, filter the current scope, and drill into the full table without leaving the page.
-            </p>
           </div>
           <StatsWorkspace
             leagueSlug={leagueSlug}

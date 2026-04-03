@@ -511,6 +511,7 @@ export interface UnifiedStatsRowBase {
   player_id: string;
   player_name: string;
   avatar_url: string | null;
+  jersey_number?: string | null;
   team_id: string;
   team_name: string;
   division_name: string | null;
