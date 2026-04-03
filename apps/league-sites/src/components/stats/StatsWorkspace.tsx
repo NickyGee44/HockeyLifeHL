@@ -993,7 +993,7 @@ export function StatsWorkspace({
                 : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
             }`}
           >
-            <GoalieHelmetIcon className="h-5 w-5" />
+            <GoalieHelmetIcon className="h-[1.65rem] w-[1.65rem]" />
           </button>
         </div>
       </div>
@@ -1064,11 +1064,11 @@ export function StatsWorkspace({
             <div className="overflow-x-auto">
               <div>
                 <table
-                  className={`w-full min-w-[980px] border-separate border-spacing-0 text-sm ${mode === "skaters" ? "xl:min-w-[1160px]" : "xl:min-w-[980px]"}`}
+                  className={`w-full min-w-[900px] border-separate border-spacing-0 text-sm ${mode === "skaters" ? "xl:min-w-[1080px]" : "xl:min-w-[900px]"}`}
                 >
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-30 w-[124px] min-w-[124px] max-w-[124px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[136px] md:min-w-[136px] md:max-w-[136px]">
+                      <th className="sticky left-0 z-30 w-[136px] min-w-[136px] max-w-[136px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[152px] md:min-w-[152px] md:max-w-[152px]">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <span>
@@ -1129,7 +1129,7 @@ export function StatsWorkspace({
                         return (
                           <th
                             key={column.key}
-                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] ${alignClass}`}
+                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-2 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)] md:px-2.5 ${alignClass}`}
                           >
                             <button
                               type="button"
@@ -1165,14 +1165,14 @@ export function StatsWorkspace({
                       );
                       const displayTeamName = getDisplayTeamName(row);
                       const teamLogoSrc =
-                        row.display_team_logo_url || "/fa-shield.svg";
+                        row.display_team_logo_url || "/sponsors/beer-league-hockey.png";
                       const teamLogoAlt = row.display_team_is_free_agent
-                        ? `${row.player_name} free agent shield`
+                        ? 'Beer League Hockey logo'
                         : `${displayTeamName} logo`;
 
                       return (
                         <tr key={row.player_id} className="group">
-                          <td className="sticky left-0 z-20 w-[124px] min-w-[124px] max-w-[124px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)] md:w-[136px] md:min-w-[136px] md:max-w-[136px]">
+                          <td className="sticky left-0 z-20 w-[136px] min-w-[136px] max-w-[136px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] md:w-[152px] md:min-w-[152px] md:max-w-[152px]">
                             <div className="flex items-center gap-2">
                               <div className="relative h-9 w-9 shrink-0">
                                 <img
@@ -1236,7 +1236,7 @@ export function StatsWorkspace({
                             return (
                               <td
                                 key={column.key}
-                                className={`border-b border-[var(--color-border)] px-3 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)] ${alignClass} ${sortedClass}`}
+                                className={`border-b border-[var(--color-border)] px-2 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] md:px-2.5 ${alignClass} ${sortedClass}`}
                               >
                                 <span
                                   className={

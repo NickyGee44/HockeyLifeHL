@@ -83,7 +83,7 @@ const DEFAULT_FONT_FAMILY = '"Rajdhani", "Sora", "Inter", system-ui, -apple-syst
 const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'hockeylifehl-original', 'pilot']);
 const AGGREGATE_STATS_GAME_LOCATION_PREFIX = '[aggregate-only]';
 const FREE_AGENT_DISPLAY_TEAM_NAME = 'Free Agent';
-const FREE_AGENT_DISPLAY_TEAM_LOGO_URL = '/fa-shield.svg';
+const FREE_AGENT_DISPLAY_TEAM_LOGO_URL = '/sponsors/beer-league-hockey.png';
 const IMPORTED_CAREER_BASELINE_TABLE_CANDIDATES = [
   'league_player_career_baselines',
   'player_career_baselines',

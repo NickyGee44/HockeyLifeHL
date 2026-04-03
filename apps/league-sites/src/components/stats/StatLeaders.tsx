@@ -12,7 +12,7 @@ import type {
 } from '@/lib/types';
 
 type SkaterLeaderMetric = 'goals' | 'assists' | 'points' | 'championships';
-type GoalieLeaderMetric = 'wins' | 'save_percentage' | 'shutouts' | 'championships';
+type GoalieLeaderMetric = 'wins' | 'goals_against_average' | 'shutouts' | 'championships';
 type LeaderMetric = SkaterLeaderMetric | GoalieLeaderMetric;
 type StatsLeaderRow = UnifiedSkaterStatsRow | UnifiedGoalieStatsRow;
 
@@ -33,7 +33,7 @@ const SKATER_METRICS: Array<{ id: SkaterLeaderMetric; icon: typeof Trophy; label
 
 const GOALIE_METRICS: Array<{ id: GoalieLeaderMetric; icon: typeof Trophy; label: string; emptyLabel: string }> = [
   { id: 'wins', icon: Trophy, label: 'Wins', emptyLabel: 'No wins recorded for this view yet.' },
-  { id: 'save_percentage', icon: Shield, label: 'Save %', emptyLabel: 'No save percentage data recorded for this view yet.' },
+  { id: 'goals_against_average', icon: Shield, label: 'GAA', emptyLabel: 'No goals against average data recorded for this view yet.' },
   { id: 'shutouts', icon: Sparkles, label: 'Shutouts', emptyLabel: 'No shutouts recorded for this view yet.' },
   { id: 'championships', icon: Award, label: 'Championships', emptyLabel: 'No championships recorded for this view yet.' },
 ];
@@ -59,8 +59,8 @@ function getMetricValue(row: StatsLeaderRow, metric: LeaderMetric) {
       return (row as UnifiedSkaterStatsRow).points ?? 0;
     case 'wins':
       return (row as UnifiedGoalieStatsRow).wins ?? 0;
-    case 'save_percentage':
-      return (row as UnifiedGoalieStatsRow).save_percentage ?? 0;
+    case 'goals_against_average':
+      return (row as UnifiedGoalieStatsRow).goals_against_average ?? 0;
     case 'shutouts':
       return (row as UnifiedGoalieStatsRow).shutouts ?? 0;
     case 'championships':
@@ -71,11 +71,15 @@ function getMetricValue(row: StatsLeaderRow, metric: LeaderMetric) {
 }
 
 function formatMetricValue(metric: LeaderMetric, value: number) {
-  if (metric === 'save_percentage') {
-    return `${value.toFixed(1)}%`;
+  if (metric === 'goals_against_average') {
+    return value.toFixed(2);
   }
 
   return String(value);
+}
+
+function shouldIncludeMetricValue(metric: LeaderMetric, value: number) {
+  return metric === 'goals_against_average' ? value >= 0 : value > 0;
 }
 
 function splitPlayerName(name: string) {
@@ -99,7 +103,6 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
   }, [mode, isAllTime]);
 
   const activeMetric = metrics.find((metric) => metric.id === selectedMetric) ?? metrics[0];
-  const ActiveIcon = activeMetric.icon;
   const leaders = [...rows]
     .map((row) => ({
       player_id: row.player_id,
@@ -108,9 +111,12 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
       team_name: row.team_name,
       value: getMetricValue(row, activeMetric.id),
     }))
-    .filter((row) => row.value > 0)
+    .filter((row) => shouldIncludeMetricValue(activeMetric.id, row.value))
     .sort((left, right) => {
-      const primary = right.value - left.value;
+      const primary =
+        activeMetric.id === 'goals_against_average'
+          ? left.value - right.value
+          : right.value - left.value;
       if (primary !== 0) {
         return primary;
       }
@@ -128,41 +134,27 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
       </div>
 
       <div className="mt-5 border-t border-[var(--color-border)] pt-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--league-primary)]/12 text-[var(--league-primary)]">
-              <ActiveIcon className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-base font-bold text-[var(--color-text-primary)]">{activeMetric.label}</p>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                Top 5
-              </p>
-            </div>
-          </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {metrics.map((metric) => {
+            const Icon = metric.icon;
+            const isActive = metric.id === activeMetric.id;
 
-          <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {metrics.map((metric) => {
-              const Icon = metric.icon;
-              const isActive = metric.id === activeMetric.id;
-
-              return (
-                <button
-                  key={metric.id}
-                  type="button"
-                  onClick={() => setSelectedMetric(metric.id)}
-                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
-                    isActive
-                      ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {metric.label}
-                </button>
-              );
-            })}
-          </div>
+            return (
+              <button
+                key={metric.id}
+                type="button"
+                onClick={() => setSelectedMetric(metric.id)}
+                className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  isActive
+                    ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                <Icon className="h-3 w-3" />
+                {metric.label}
+              </button>
+            );
+          })}
         </div>
 
         {leaders.length > 0 ? (
