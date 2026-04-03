@@ -1,5 +1,6 @@
 import {
   buildDashboardNavigation,
+  flattenDashboardNavigation,
   getDashboardAutoExpandedGroups,
   getDashboardContextSwitchHref,
 } from '@/lib/dashboard/navigation';
@@ -68,5 +69,33 @@ describe('dashboard navigation', () => {
         preferredSeasonId: 'season-b',
       })
     ).toBe('/en/dashboard/leagues/league-b/seasons/season-b/teams');
+  });
+
+  it('keeps teams as the single season people destination in navigation', () => {
+    const navigation = buildDashboardNavigation({
+      locale: '',
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+      isSubscribed: true,
+      captainTeams: [],
+      isPlatformAdmin: false,
+      t,
+    });
+
+    const items = flattenDashboardNavigation(navigation);
+    const itemIds = items.map((item) => item.id);
+
+    expect(itemIds).toContain('season-teams-item');
+    expect(itemIds).not.toContain('season-players');
+    expect(itemIds).not.toContain('season-rosters');
+
+    const teamsItem = items.find((item) => item.id === 'season-teams-item');
+    expect(teamsItem?.matchPrefixes).toEqual(
+      expect.arrayContaining([
+        '/dashboard/leagues/league-1/seasons/season-1/teams',
+        '/dashboard/leagues/league-1/seasons/season-1/players',
+        '/dashboard/leagues/league-1/seasons/season-1/rosters',
+      ])
+    );
   });
 });

@@ -170,6 +170,67 @@ export default async function LeagueDetailPage({ params }: Props) {
       ? `Open ${currentSeason.name}`
       : leagueChecklist.nextActionLabel || (currentSeason ? `Open ${currentSeason.name}` : 'Create first season');
 
+  const readinessCards = [
+    {
+      eyebrow: 'Payments',
+      title:
+        paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted
+          ? 'Stripe is ready'
+          : 'Stripe still needs setup',
+      description:
+        paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted
+          ? 'Online payments can be enabled from the finance workspace.'
+          : 'Connect Stripe before registrations need to collect league fees online.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/integrations`,
+      cta:
+        paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted
+          ? 'Review integrations'
+          : 'Connect Stripe',
+    },
+    {
+      eyebrow: 'Email and Domain',
+      title:
+        domainSettings.customDomainName || websiteSettings.onboardingRequested
+          ? 'Branding is in progress'
+          : 'Domain and sender setup are still open',
+      description:
+        domainSettings.customDomainName
+          ? `Custom domain request: ${domainSettings.customDomainName}`
+          : 'Set a sender domain and website domain from one place when you are ready to publish outward.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/email-domain`,
+      cta: 'Open domain setup',
+    },
+    {
+      eyebrow: 'Waivers',
+      title: signedWaiversTotal > 0 ? 'Waivers are active' : 'Waiver setup still needs review',
+      description:
+        signedWaiversTotal > 0
+          ? `${signedWaiversTotal} signed waiver${signedWaiversTotal === 1 ? '' : 's'} already tracked for this league.`
+          : 'Configure the waiver template before player registrations go live.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/waiver`,
+      cta: signedWaiversTotal > 0 ? 'Review waivers' : 'Set waiver rules',
+    },
+    {
+      eyebrow: 'Staffing',
+      title: currentSeason ? 'Staffing belongs to the active season' : 'No active season for staffing yet',
+      description: currentSeason
+        ? 'Use the season workspace and More Tools when referees, scorekeepers, or other staff need assignment.'
+        : 'Create a season first, then assign game-day staff inside that workspace.',
+      href: currentSeason
+        ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'scorekeepers')
+        : buildLeagueSeasonsHref(locale, leagueId),
+      cta: currentSeason ? 'Open staffing tools' : 'Create season first',
+    },
+    {
+      eyebrow: 'Migration',
+      title: 'Migration center is ready',
+      description:
+        'Imports for teams, players, schedules, and historical cleanup now live in one guided destination.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/migration-center`,
+      cta: 'Open migration center',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -302,6 +363,24 @@ export default async function LeagueDetailPage({ params }: Props) {
           </div>
         </section>
 
+        <section className="mt-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              Critical Systems
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-white">League readiness</h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Each core system has one status, one next step, and one place to manage it.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {readinessCards.map((card) => (
+              <ReadinessCard key={card.eyebrow} {...card} />
+            ))}
+          </div>
+        </section>
+
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -389,6 +468,37 @@ function SummarySurface({
       </div>
       <h3 className="mt-4 text-lg font-bold text-white">{title}</h3>
       <p className="mt-2 text-sm leading-7 text-neutral-400">{description}</p>
+    </div>
+  );
+}
+
+function ReadinessCard({
+  eyebrow,
+  title,
+  description,
+  href,
+  cta,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  href: string;
+  cta: string;
+}) {
+  return (
+    <div className="surface-premium p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        {eyebrow}
+      </p>
+      <h3 className="mt-3 text-lg font-bold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-7 text-neutral-400">{description}</p>
+      <Link
+        href={href}
+        className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-rink-400/20 bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
+      >
+        {cta}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
     </div>
   );
 }

@@ -20,19 +20,19 @@ import {
   ScheduleGenerationOptions,
   ScheduleGenerationResult,
   ConstraintViolation,
-  BlackoutPeriod,
   VenueAvailability,
   VenueBlackoutDate,
   TeamSchedulePreference,
   ScheduleConstraintConfig,
   AdditionalIceSlot } from './types';
-import {
-  addDaysToDateKey,
-  createDateAtTimeInTimeZone,
-  getDateKeyInTimeZone,
-  getDayOfWeekForDateKey,
-  resolveScheduleTimeZone,
-} from './timezone';
+
+export interface ScheduleSlot {
+  scheduledAt: Date;
+  venueId: string | null;
+  location: string;
+  rinkIndex: number;
+  source: 'recurring' | 'additional';
+}
 
 // ============================================================================
 // ROUND ROBIN GENERATION
@@ -370,6 +370,96 @@ function generateCrossDivisionMatchups(
   return matchups;
 }
 
+function flipMatchupHomeAway(matchup: GameMatchup): GameMatchup {
+  return {
+    roundNumber: matchup.roundNumber,
+    homeTeamId: matchup.awayTeamId,
+    awayTeamId: matchup.homeTeamId,
+    homeTeam: matchup.awayTeam,
+    awayTeam: matchup.homeTeam,
+  };
+}
+
+function generateCustomMatchups(
+  teams: Team[],
+  config: ScheduleConfig,
+  useDivisionAware: boolean
+): GameMatchup[] {
+  const targetGamesPerTeam = Math.max(1, config.gamesPerTeam);
+  const targetTotalGames = Math.floor((teams.length * targetGamesPerTeam) / 2);
+
+  const baseMatchups = useDivisionAware
+    ? generateDivisionAwareMatchups(teams, { ...config, scheduleType: 'round_robin' })
+    : generateRoundRobinMatchups(teams, false);
+
+  if (baseMatchups.length === 0 || targetTotalGames === 0) {
+    return [];
+  }
+
+  const maxRound = baseMatchups.reduce((highest, matchup) => Math.max(highest, matchup.roundNumber), 0);
+  const gameCountByTeam = new Map(teams.map((team) => [team.id, 0]));
+  const customMatchups: GameMatchup[] = [];
+  let cycleIndex = 0;
+
+  while (customMatchups.length < targetTotalGames && cycleIndex < targetGamesPerTeam + 4) {
+    let addedThisCycle = 0;
+    for (const baseMatchup of baseMatchups) {
+      if (customMatchups.length >= targetTotalGames) {
+        break;
+      }
+
+      const adjustedMatchup = cycleIndex % 2 === 0 ? baseMatchup : flipMatchupHomeAway(baseMatchup);
+      const homeCount = gameCountByTeam.get(adjustedMatchup.homeTeamId) ?? 0;
+      const awayCount = gameCountByTeam.get(adjustedMatchup.awayTeamId) ?? 0;
+
+      if (homeCount >= targetGamesPerTeam || awayCount >= targetGamesPerTeam) {
+        continue;
+      }
+
+      customMatchups.push({
+        ...adjustedMatchup,
+        roundNumber: adjustedMatchup.roundNumber + cycleIndex * maxRound,
+      });
+
+      gameCountByTeam.set(adjustedMatchup.homeTeamId, homeCount + 1);
+      gameCountByTeam.set(adjustedMatchup.awayTeamId, awayCount + 1);
+      addedThisCycle += 1;
+    }
+
+    if (addedThisCycle === 0) {
+      break;
+    }
+
+    const allTeamsFilled = teams.every(
+      (team) => (gameCountByTeam.get(team.id) ?? 0) >= targetGamesPerTeam
+    );
+    if (allTeamsFilled) {
+      break;
+    }
+
+    cycleIndex += 1;
+  }
+
+  return customMatchups;
+}
+
+export function buildScheduleMatchups(
+  teams: Team[],
+  config: ScheduleConfig
+): GameMatchup[] {
+  const useDivisionAware = config.divisionAware && teams.some((team) => team.divisionId != null);
+
+  if (config.scheduleType === 'custom') {
+    return generateCustomMatchups(teams, config, useDivisionAware);
+  }
+
+  if (useDivisionAware) {
+    return generateDivisionAwareMatchups(teams, config);
+  }
+
+  return generateRoundRobinMatchups(teams, config.scheduleType === 'double_round_robin');
+}
+
 // ============================================================================
 // BYE WEEK COMPUTATION
 // ============================================================================
@@ -468,88 +558,190 @@ function isTeamOnBye(
 // TIME SLOT ASSIGNMENT
 // ============================================================================
 
-/**
- * Get available time slots between start and end dates.
- */
-function getAvailableTimeSlots(
+function getRelevantVenues(
   config: ScheduleConfig,
-  constraints: ScheduleConstraint[],
-  _venues?: Venue[],
-  additionalIceSlots?: AdditionalIceSlot[]
-): Date[] {
-  const slots: Date[] = [];
-  const timeZone = resolveScheduleTimeZone(undefined);
-  const startDate = new Date(config.startDate);
-  const endDate = new Date(config.endDate);
-  const startDateKey = getDateKeyInTimeZone(startDate, timeZone);
-  const endDateKey = getDateKeyInTimeZone(endDate, timeZone);
+  teams: Team[],
+  venues: Venue[]
+): Venue[] {
+  if (venues.length === 0) {
+    return [];
+  }
 
-  // Get blackout periods
-  const blackouts = getBlackoutPeriods(constraints);
+  if (!config.rotateHomeVenue) {
+    const defaultVenue = venues.find((venue) => venue.id === config.defaultVenueId) ?? venues[0];
+    return defaultVenue ? [defaultVenue] : [];
+  }
 
-  const holidaySet = new Set(config.holidayDates ?? []);
+  const relevantVenueIds = new Set<string>();
+  if (config.defaultVenueId) {
+    relevantVenueIds.add(config.defaultVenueId);
+  }
 
-  // Iterate through each day in the range using Eastern calendar days
-  let currentDateKey = startDateKey;
-  while (currentDateKey <= endDateKey) {
-    if (config.skipHolidays && holidaySet.has(currentDateKey)) {
-      currentDateKey = addDaysToDateKey(currentDateKey, 1);
-      continue;
+  for (const team of teams) {
+    if (team.homeVenueId) {
+      relevantVenueIds.add(team.homeVenueId);
+    }
+  }
+
+  const resolvedVenues = venues.filter((venue) => relevantVenueIds.has(venue.id));
+  return resolvedVenues.length > 0 ? resolvedVenues : venues;
+}
+
+function isSlotWithinConstraintVenueBlackout(
+  slot: Date,
+  venueId: string | null,
+  constraints: ScheduleConstraint[]
+): boolean {
+  return constraints.some((constraint) => {
+    if (constraint.constraintType !== 'venue_blackout') {
+      return false;
     }
 
-    const dayOfWeek = getDayOfWeekForDateKey(currentDateKey);
+    if (constraint.venueId && constraint.venueId !== venueId) {
+      return false;
+    }
 
+    if (!constraint.startDate || !constraint.endDate) {
+      return false;
+    }
+
+    return slot >= constraint.startDate && slot <= constraint.endDate;
+  });
+}
+
+function getPreferredVenueIdForMatchup(
+  matchup: GameMatchup,
+  options: Pick<ScheduleGenerationOptions, 'config' | 'venues'>
+) {
+  const defaultVenue = options.venues.find((venue) => venue.id === options.config.defaultVenueId) ?? options.venues[0];
+
+  if (options.config.rotateHomeVenue && matchup.homeTeam?.homeVenueId) {
+    return matchup.homeTeam.homeVenueId;
+  }
+
+  return defaultVenue?.id ?? null;
+}
+
+function doesSlotMatchVenuePreference(
+  slot: ScheduleSlot,
+  matchup: GameMatchup,
+  options: Pick<ScheduleGenerationOptions, 'config' | 'venues'>
+) {
+  const preferredVenueId = getPreferredVenueIdForMatchup(matchup, options);
+  if (!preferredVenueId) {
+    return true;
+  }
+
+  return slot.venueId === preferredVenueId;
+}
+
+/**
+ * Build venue-aware schedule slots between start and end dates.
+ */
+export function buildScheduleSlots(
+  options: Pick<
+    ScheduleGenerationOptions,
+    'config' | 'constraints' | 'teams' | 'venues' | 'additionalIceSlots' | 'venueAvailability' | 'venueBlackouts'
+  >
+): ScheduleSlot[] {
+  const {
+    config,
+    constraints,
+    teams,
+    venues,
+    additionalIceSlots,
+    venueAvailability = [],
+    venueBlackouts = [],
+  } = options;
+
+  const assignableSlots: ScheduleSlot[] = [];
+  const startDate = new Date(config.startDate);
+  const endDate = new Date(config.endDate);
+  const holidaySet = new Set(config.holidayDates ?? []);
+  const recurringVenues = getRelevantVenues(config, teams, venues);
+
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    if (config.skipHolidays && holidaySet.size > 0) {
+      const dateString = currentDate.toISOString().split('T')[0];
+      if (holidaySet.has(dateString)) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        continue;
+      }
+    }
+
+    const dayOfWeek = currentDate.getDay();
     if (config.gameDays.includes(dayOfWeek)) {
       for (const timeStr of config.gameTimes) {
-        const slotDate = createDateAtTimeInTimeZone(currentDateKey, timeStr, timeZone);
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const slotDate = new Date(currentDate);
+        slotDate.setHours(hours, minutes, 0, 0);
 
-        if (!isSlotBlackedOut(slotDate, blackouts)) {
-          slots.push(slotDate);
+        for (const venue of recurringVenues) {
+          if (isSlotWithinConstraintVenueBlackout(slotDate, venue.id, constraints)) {
+            continue;
+          }
+          if (venueBlackouts.length > 0 && isSlotOnVenueBlackout(slotDate, venue.id, venueBlackouts)) {
+            continue;
+          }
+          if (venueAvailability.length > 0 && !isSlotWithinVenueAvailability(slotDate, venue.id, venueAvailability)) {
+            continue;
+          }
+
+          const rinkCount = Math.max(1, venue.numberOfRinks || 1);
+          for (let rinkIndex = 0; rinkIndex < rinkCount; rinkIndex++) {
+            assignableSlots.push({
+              scheduledAt: new Date(slotDate),
+              venueId: venue.id,
+              location: venue.name,
+              rinkIndex,
+              source: 'recurring',
+            });
+          }
         }
       }
     }
 
-    currentDateKey = addDaysToDateKey(currentDateKey, 1);
+    currentDate.setDate(currentDate.getDate() + 1);
   }
 
   if (additionalIceSlots && additionalIceSlots.length > 0) {
     for (const iceSlot of additionalIceSlots) {
-      const slotDate = createDateAtTimeInTimeZone(iceSlot.date, iceSlot.startTime, timeZone);
+      const [hours, minutes] = iceSlot.startTime.split(':').map(Number);
+      const slotDate = new Date(iceSlot.date + 'T00:00:00');
+      slotDate.setHours(hours, minutes, 0, 0);
 
-      if (slotDate >= startDate && slotDate <= endDate && !isSlotBlackedOut(slotDate, blackouts)) {
-        slots.push(slotDate);
+      if (slotDate < startDate || slotDate > endDate) {
+        continue;
       }
-    }
+      if (isSlotWithinConstraintVenueBlackout(slotDate, iceSlot.venueId, constraints)) {
+        continue;
+      }
+      if (venueBlackouts.length > 0 && isSlotOnVenueBlackout(slotDate, iceSlot.venueId, venueBlackouts)) {
+        continue;
+      }
 
-    slots.sort((a, b) => a.getTime() - b.getTime());
-  }
-
-  return slots;
-}
-
-/**
- * Extract blackout periods from constraints.
- */
-function getBlackoutPeriods(constraints: ScheduleConstraint[]): BlackoutPeriod[] {
-  return constraints
-    .filter((c) => c.constraintType === 'venue_blackout' || c.constraintType === 'team_blackout')
-    .map((c) => ({
-      startDate: c.startDate ?? new Date(),
-      endDate: c.endDate ?? new Date(),
-      teamId: c.teamId ?? undefined,
-      venueId: c.venueId ?? undefined }));
-}
-
-/**
- * Check if a time slot is blacked out.
- */
-function isSlotBlackedOut(slot: Date, blackouts: BlackoutPeriod[]): boolean {
-  for (const blackout of blackouts) {
-    if (slot >= blackout.startDate && slot <= blackout.endDate) {
-      return true;
+      const venue = venues.find((item) => item.id === iceSlot.venueId);
+      assignableSlots.push({
+        scheduledAt: slotDate,
+        venueId: iceSlot.venueId,
+        location: venue?.name ?? 'Additional Ice',
+        rinkIndex: 0,
+        source: 'additional',
+      });
     }
   }
-  return false;
+
+  assignableSlots.sort((left, right) => {
+    const timeDiff = left.scheduledAt.getTime() - right.scheduledAt.getTime();
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+
+    return left.location.localeCompare(right.location) || left.rinkIndex - right.rinkIndex;
+  });
+
+  return assignableSlots;
 }
 
 /**
@@ -706,7 +898,7 @@ function hasGameOnSameCalendarDay(
  */
 function assignMatchupsToSlots(
   matchups: GameMatchup[],
-  slots: Date[],
+  slots: ScheduleSlot[],
   options: ScheduleGenerationOptions
 ): { games: ScheduledGame[]; violations: ConstraintViolation[] } {
   const games: ScheduledGame[] = [];
@@ -714,11 +906,10 @@ function assignMatchupsToSlots(
   const usedSlots = new Set<number>();
 
   const { config, constraints, venues, teams } = options;
-  const defaultVenue = venues.find((v) => v.id === config.defaultVenueId) ?? venues[0];
 
   // Compute bye weeks if enabled
   const byeWeekMap = config.allowByeWeeks
-    ? computeByeWeeks(teams, slots, config.byeWeeksPerTeam)
+    ? computeByeWeeks(teams, slots.map((slot) => slot.scheduledAt), config.byeWeeksPerTeam)
     : new Map<string, Set<string>>();
 
   let gameNumber = 1;
@@ -730,12 +921,13 @@ function assignMatchupsToSlots(
       if (usedSlots.has(slotIndex)) continue;
 
       const slot = slots[slotIndex];
+      const slotTime = slot.scheduledAt;
 
       // Check bye weeks
       if (byeWeekMap.size > 0) {
         if (
-          isTeamOnBye(matchup.homeTeamId, slot, byeWeekMap) ||
-          isTeamOnBye(matchup.awayTeamId, slot, byeWeekMap)
+          isTeamOnBye(matchup.homeTeamId, slotTime, byeWeekMap) ||
+          isTeamOnBye(matchup.awayTeamId, slotTime, byeWeekMap)
         ) {
           continue;
         }
@@ -744,8 +936,8 @@ function assignMatchupsToSlots(
       // Check back-to-back constraint
       if (!config.allowBackToBack) {
         if (
-          hasBackToBackGame(matchup.homeTeamId, slot, games, config.gameDurationMinutes) ||
-          hasBackToBackGame(matchup.awayTeamId, slot, games, config.gameDurationMinutes)
+          hasBackToBackGame(matchup.homeTeamId, slotTime, games, config.gameDurationMinutes) ||
+          hasBackToBackGame(matchup.awayTeamId, slotTime, games, config.gameDurationMinutes)
         ) {
           continue;
         }
@@ -753,39 +945,30 @@ function assignMatchupsToSlots(
 
       // Hard constraint: one game per team per calendar day
       if (
-        hasGameOnSameCalendarDay(matchup.homeTeamId, slot, games) ||
-        hasGameOnSameCalendarDay(matchup.awayTeamId, slot, games)
+        hasGameOnSameCalendarDay(matchup.homeTeamId, slotTime, games) ||
+        hasGameOnSameCalendarDay(matchup.awayTeamId, slotTime, games)
       ) {
         continue;
       }
 
       // Check team blackouts
       if (
-        isSlotBlackedOutForTeam(slot, matchup.homeTeamId, constraints) ||
-        isSlotBlackedOutForTeam(slot, matchup.awayTeamId, constraints)
+        isSlotBlackedOutForTeam(slotTime, matchup.homeTeamId, constraints) ||
+        isSlotBlackedOutForTeam(slotTime, matchup.awayTeamId, constraints)
       ) {
         continue;
       }
 
-      // Determine venue
-      let venueId = defaultVenue?.id ?? null;
-      let location = defaultVenue?.name ?? 'TBD';
-
-      // Check venue preference
-      if (config.rotateHomeVenue && matchup.homeTeam?.homeVenueId) {
-        const homeVenue = venues.find((v) => v.id === matchup.homeTeam?.homeVenueId);
-        if (homeVenue) {
-          venueId = homeVenue.id;
-          location = homeVenue.name;
-        }
+      if (!doesSlotMatchVenuePreference(slot, matchup, { config, venues })) {
+        continue;
       }
 
       // Create the game
       const game: ScheduledGame = {
         ...matchup,
-        scheduledAt: slot,
-        location,
-        venueId,
+        scheduledAt: slotTime,
+        location: slot.location,
+        venueId: slot.venueId,
         gameNumber };
 
       // Validate against constraints
@@ -923,19 +1106,20 @@ export async function generateSchedule(
     }
 
     // Generate matchups — use division-aware algorithm when enabled
-    const useDivisionAware = config.divisionAware &&
-      teams.some((t) => t.divisionId != null);
-    const isDoubleRoundRobin = config.scheduleType === 'double_round_robin';
-    const matchups = useDivisionAware
-      ? generateDivisionAwareMatchups(teams, config)
-      : generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+    const matchups = buildScheduleMatchups(teams, config);
 
     // Note: bye weeks are enforced at the slot-assignment level via
     // computeByeWeeks/isTeamOnBye — matchups stay intact so total
     // games per team are preserved; teams just skip certain weeks.
 
     // Get available time slots
-    const slots = getAvailableTimeSlots(config, constraints, venues, options.additionalIceSlots);
+    const slots = buildScheduleSlots({
+      config,
+      constraints,
+      teams,
+      venues,
+      additionalIceSlots: options.additionalIceSlots,
+    });
 
     if (slots.length < matchups.length) {
       return {
@@ -1248,7 +1432,7 @@ function countVenueGamesOnDay(
  */
 function assignMatchupsToSlotsEnhanced(
   matchups: GameMatchup[],
-  slots: Date[],
+  slots: ScheduleSlot[],
   options: ScheduleGenerationOptions
 ): { games: ScheduledGame[]; violations: ConstraintViolation[] } {
   const games: ScheduledGame[] = [];
@@ -1265,14 +1449,13 @@ function assignMatchupsToSlotsEnhanced(
     venueAvailability = [],
     venueBlackouts = [] } = options;
 
-  const defaultVenue = venues.find((v) => v.id === config.defaultVenueId) ?? venues[0];
   const maxGamesPerVenuePerDay = constraintConfig?.maxGamesPerVenuePerDay ?? 4;
   const enforceSeniority = constraintConfig?.enforceSeniorityPreferences ?? false;
   const seniorityWeight = constraintConfig?.seniorityWeight ?? 0.5;
 
   // Compute bye weeks if enabled
   const byeWeekMap = config.allowByeWeeks
-    ? computeByeWeeks(teams, slots, config.byeWeeksPerTeam)
+    ? computeByeWeeks(teams, slots.map((slot) => slot.scheduledAt), config.byeWeeksPerTeam)
     : new Map<string, Set<string>>();
 
   // Sort matchups by team seniority if enabled
@@ -1302,14 +1485,15 @@ function assignMatchupsToSlotsEnhanced(
       if (usedSlots.has(slotIndex)) continue;
 
       const slot = slots[slotIndex];
+      const slotTime = slot.scheduledAt;
       let slotScore = 0;
       const isValid = true;
 
       // Check bye weeks
       if (byeWeekMap.size > 0) {
         if (
-          isTeamOnBye(matchup.homeTeamId, slot, byeWeekMap) ||
-          isTeamOnBye(matchup.awayTeamId, slot, byeWeekMap)
+          isTeamOnBye(matchup.homeTeamId, slotTime, byeWeekMap) ||
+          isTeamOnBye(matchup.awayTeamId, slotTime, byeWeekMap)
         ) {
           continue;
         }
@@ -1318,8 +1502,8 @@ function assignMatchupsToSlotsEnhanced(
       // Check back-to-back constraint
       if (!config.allowBackToBack) {
         if (
-          hasBackToBackGame(matchup.homeTeamId, slot, games, config.gameDurationMinutes) ||
-          hasBackToBackGame(matchup.awayTeamId, slot, games, config.gameDurationMinutes)
+          hasBackToBackGame(matchup.homeTeamId, slotTime, games, config.gameDurationMinutes) ||
+          hasBackToBackGame(matchup.awayTeamId, slotTime, games, config.gameDurationMinutes)
         ) {
           continue;
         }
@@ -1327,53 +1511,48 @@ function assignMatchupsToSlotsEnhanced(
 
       // Hard constraint: one game per team per calendar day
       if (
-        hasGameOnSameCalendarDay(matchup.homeTeamId, slot, games) ||
-        hasGameOnSameCalendarDay(matchup.awayTeamId, slot, games)
+        hasGameOnSameCalendarDay(matchup.homeTeamId, slotTime, games) ||
+        hasGameOnSameCalendarDay(matchup.awayTeamId, slotTime, games)
       ) {
         continue;
       }
 
       // Check team blackouts
       if (
-        isSlotBlackedOutForTeam(slot, matchup.homeTeamId, constraints) ||
-        isSlotBlackedOutForTeam(slot, matchup.awayTeamId, constraints)
+        isSlotBlackedOutForTeam(slotTime, matchup.homeTeamId, constraints) ||
+        isSlotBlackedOutForTeam(slotTime, matchup.awayTeamId, constraints)
       ) {
         continue;
       }
 
-      // Determine venue
-      let venueId = defaultVenue?.id ?? null;
-      if (config.rotateHomeVenue && matchup.homeTeam?.homeVenueId) {
-        const homeVenue = venues.find((v) => v.id === matchup.homeTeam?.homeVenueId);
-        if (homeVenue) {
-          venueId = homeVenue.id;
-        }
+      if (!doesSlotMatchVenuePreference(slot, matchup, { config, venues })) {
+        continue;
       }
 
       // Check venue availability
-      if (venueId && venueAvailability.length > 0) {
-        if (!isSlotWithinVenueAvailability(slot, venueId, venueAvailability)) {
+      if (slot.venueId && venueAvailability.length > 0) {
+        if (!isSlotWithinVenueAvailability(slotTime, slot.venueId, venueAvailability)) {
           continue;
         }
       }
 
       // Check venue blackouts
-      if (venueId && venueBlackouts.length > 0) {
-        if (isSlotOnVenueBlackout(slot, venueId, venueBlackouts)) {
+      if (slot.venueId && venueBlackouts.length > 0) {
+        if (isSlotOnVenueBlackout(slotTime, slot.venueId, venueBlackouts)) {
           continue;
         }
       }
 
       // Check max games per venue per day
-      if (venueId) {
-        const venueGamesOnDay = countVenueGamesOnDay(venueId, slot, games);
+      if (slot.venueId) {
+        const venueGamesOnDay = countVenueGamesOnDay(slot.venueId, slotTime, games);
         if (venueGamesOnDay >= maxGamesPerVenuePerDay) {
           continue;
         }
       }
 
       // Check late night / early morning limits
-      const category = getSlotCategory(slot, constraintConfig);
+      const category = getSlotCategory(slotTime, constraintConfig);
 
       if (category === 'late_night') {
         const homeLimit = teamPreferences.find((p) => p.teamId === matchup.homeTeamId)?.maxLateNightGames
@@ -1417,8 +1596,8 @@ function assignMatchupsToSlotsEnhanced(
 
       // Score based on team preferences
       if (teamPreferences.length > 0) {
-        const homePrefs = isSlotPreferredForTeam(slot, matchup.homeTeamId, teamPreferences);
-        const awayPrefs = isSlotPreferredForTeam(slot, matchup.awayTeamId, teamPreferences);
+        const homePrefs = isSlotPreferredForTeam(slotTime, matchup.homeTeamId, teamPreferences);
+        const awayPrefs = isSlotPreferredForTeam(slotTime, matchup.awayTeamId, teamPreferences);
 
         // Weight by seniority if enabled
         if (enforceSeniority) {
@@ -1445,23 +1624,11 @@ function assignMatchupsToSlotsEnhanced(
     if (bestSlotIndex !== null) {
       const slot = slots[bestSlotIndex];
 
-      // Determine venue
-      let venueId = defaultVenue?.id ?? null;
-      let location = defaultVenue?.name ?? 'TBD';
-
-      if (config.rotateHomeVenue && matchup.homeTeam?.homeVenueId) {
-        const homeVenue = venues.find((v) => v.id === matchup.homeTeam?.homeVenueId);
-        if (homeVenue) {
-          venueId = homeVenue.id;
-          location = homeVenue.name;
-        }
-      }
-
       const game: ScheduledGame = {
         ...matchup,
-        scheduledAt: slot,
-        location,
-        venueId,
+        scheduledAt: slot.scheduledAt,
+        location: slot.location,
+        venueId: slot.venueId,
         gameNumber };
 
       games.push(game);
@@ -1508,19 +1675,22 @@ export async function generateScheduleEnhanced(
     }
 
     // Generate matchups — use division-aware algorithm when enabled
-    const useDivisionAware = config.divisionAware &&
-      teams.some((t) => t.divisionId != null);
-    const isDoubleRoundRobin = config.scheduleType === 'double_round_robin';
-    const matchups = useDivisionAware
-      ? generateDivisionAwareMatchups(teams, config)
-      : generateRoundRobinMatchups(teams, isDoubleRoundRobin);
+    const matchups = buildScheduleMatchups(teams, config);
 
     // Note: bye weeks are enforced at the slot-assignment level via
     // computeByeWeeks/isTeamOnBye — matchups stay intact so total
     // games per team are preserved; teams just skip certain weeks.
 
     // Get available time slots
-    const slots = getAvailableTimeSlots(config, constraints, venues, options.additionalIceSlots);
+    const slots = buildScheduleSlots({
+      config,
+      constraints,
+      teams,
+      venues,
+      additionalIceSlots: options.additionalIceSlots,
+      venueAvailability: options.venueAvailability,
+      venueBlackouts: options.venueBlackouts,
+    });
 
     if (slots.length < matchups.length) {
       return {

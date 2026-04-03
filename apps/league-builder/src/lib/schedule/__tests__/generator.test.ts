@@ -1,10 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  buildScheduleMatchups,
+  buildScheduleSlots,
   generateDivisionAwareMatchups,
   generateRoundRobinMatchups,
   generateSchedule,
 } from '@/lib/schedule/generator';
 import type {
+  ScheduleConstraint,
   ScheduleConfig,
   ScheduleGenerationOptions,
   Team,
@@ -124,5 +127,101 @@ describe('schedule generator', () => {
     const roundRobin = generateRoundRobinMatchups(teams, true);
     expect(roundRobin.length).toBeGreaterThan(divisional.length / 2);
   });
-});
 
+  it('uses gamesPerTeam when building custom schedules', () => {
+    const teams = makeTeams(6);
+    const config = makeConfig({
+      scheduleType: 'custom',
+      gamesPerTeam: 4,
+    });
+
+    const matchups = buildScheduleMatchups(teams, config);
+    expect(matchups).toHaveLength(12);
+
+    const countByTeamId = new Map<string, number>();
+    for (const matchup of matchups) {
+      countByTeamId.set(matchup.homeTeamId, (countByTeamId.get(matchup.homeTeamId) ?? 0) + 1);
+      countByTeamId.set(matchup.awayTeamId, (countByTeamId.get(matchup.awayTeamId) ?? 0) + 1);
+    }
+
+    for (const team of teams) {
+      expect(countByTeamId.get(team.id)).toBe(4);
+    }
+  });
+
+  it('expands slot capacity when a venue has multiple rinks', () => {
+    const teams = makeTeams(4);
+    const config = makeConfig({
+      gameDays: [1],
+      gameTimes: ['19:00'],
+      startDate: new Date('2026-01-05T12:00:00'),
+      endDate: new Date('2026-01-12T23:59:59'),
+    });
+
+    const slots = buildScheduleSlots({
+      config,
+      constraints: [],
+      teams,
+      venues: [
+        {
+          id: 'venue-1',
+          name: 'Twin Pad Arena',
+          address: '100 Hockey Way',
+          numberOfRinks: 2,
+        },
+      ],
+    });
+
+    expect(slots).toHaveLength(4);
+  });
+
+  it('does not treat team blackouts as global venue slot removals', () => {
+    const teams = makeTeams(4);
+    const config = makeConfig({
+      gameDays: [1],
+      gameTimes: ['19:00'],
+      startDate: new Date('2026-01-05T12:00:00'),
+      endDate: new Date('2026-01-05T23:59:59'),
+    });
+
+    const constraints: ScheduleConstraint[] = [
+      {
+        id: 'constraint-1',
+        seasonId: 'season-1',
+        leagueId: 'league-1',
+        constraintType: 'team_blackout',
+        teamId: 'team-1',
+        venueId: null,
+        opponentTeamId: null,
+        startDate: new Date('2026-01-05T00:00:00'),
+        endDate: new Date('2026-01-05T23:59:59'),
+        dayOfWeek: null,
+        startTime: null,
+        endTime: null,
+        priority: 10,
+        isHardConstraint: true,
+        notes: 'Team 1 is away',
+        maxOccurrences: null,
+        timeSlotCategory: null,
+        appliesToWeekends: null,
+        appliesToWeekdays: null,
+      },
+    ];
+
+    const slots = buildScheduleSlots({
+      config,
+      constraints,
+      teams,
+      venues: [
+        {
+          id: 'venue-1',
+          name: 'Main Arena',
+          address: '100 Hockey Way',
+          numberOfRinks: 1,
+        },
+      ],
+    });
+
+    expect(slots).toHaveLength(1);
+  });
+});

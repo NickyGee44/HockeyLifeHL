@@ -8,8 +8,18 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { generateSchedule, generateScheduleEnhanced } from './generator';
+import {
+  buildScheduleMatchups,
+  buildScheduleSlots,
+  generateSchedule,
+  generateScheduleEnhanced,
+} from './generator';
 import { getStandardHolidayDatesInRange } from './holidays';
+import { getSeasonParticipationTeams } from '@/lib/seasons/team-participation';
+import {
+  buildLeagueHubHref,
+  buildSeasonWorkspaceHref,
+} from '@/lib/dashboard/workspace-routes';
 import type {
   Team,
   Venue,
@@ -24,6 +34,8 @@ import type {
   TeamSchedulePreference,
   ScheduleConstraintConfig,
   AdditionalIceSlot,
+  ScheduleReadinessIssue,
+  ScheduleReadinessReport,
 } from './types';
 
 // ============================================================================
@@ -300,6 +312,221 @@ export async function deleteScheduleConstraint(
 // SCHEDULE GENERATION ACTIONS
 // ============================================================================
 
+function makeScheduleIssue(
+  code: string,
+  message: string,
+  recommendedFixHref?: string | null
+): ScheduleReadinessIssue {
+  return { code, message, recommendedFixHref: recommendedFixHref ?? null };
+}
+
+function mapSeasonTeam(team: Awaited<ReturnType<typeof getSeasonParticipationTeams>>[number]): Team {
+  return {
+    id: team.id,
+    name: team.name,
+    shortName: team.short_name,
+    divisionId: team.division_id,
+    homeVenueId: team.home_venue_id,
+  };
+}
+
+async function loadScheduleGenerationContext(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  seasonId: string,
+  leagueId: string,
+  config: ScheduleConfig,
+  additionalIceSlots?: AdditionalIceSlot[]
+) {
+  const [
+    seasonTeams,
+    venuesData,
+    constraints,
+    venueAvail,
+    venueBlackoutsList,
+    teamPrefs,
+    constraintCfg,
+    { count: existingGamesCount },
+  ] = await Promise.all([
+    getSeasonParticipationTeams(supabase as any, leagueId, seasonId),
+    supabase
+      .from('venues')
+      .select('id, name, address, number_of_rinks')
+      .eq('league_id', leagueId),
+    getScheduleConstraints(seasonId),
+    getVenueAvailability(leagueId, seasonId),
+    getVenueBlackoutDates(leagueId),
+    getTeamSchedulePreferences(leagueId, seasonId),
+    getScheduleConstraintConfig(seasonId),
+    supabase
+      .from('games')
+      .select('id', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+  ]);
+
+  const teams = seasonTeams.map(mapSeasonTeam);
+  const venues: Venue[] = (venuesData.data ?? []).map((venue) => ({
+    id: venue.id,
+    name: venue.name,
+    address: venue.address ?? '',
+    numberOfRinks: venue.number_of_rinks ?? 1,
+  }));
+
+  const matchups = buildScheduleMatchups(teams, config);
+  const slots = buildScheduleSlots({
+    config,
+    constraints,
+    teams,
+    venues,
+    additionalIceSlots,
+    venueAvailability: venueAvail,
+    venueBlackouts: venueBlackoutsList,
+  });
+
+  return {
+    teams,
+    venues,
+    constraints,
+    venueAvail,
+    venueBlackoutsList,
+    teamPrefs,
+    constraintCfg,
+    matchups,
+    slots,
+    existingGamesCount: existingGamesCount ?? 0,
+  };
+}
+
+export async function getScheduleReadinessReport(
+  seasonId: string,
+  leagueId: string,
+  config: ScheduleConfig,
+  additionalIceSlots?: AdditionalIceSlot[]
+): Promise<ScheduleReadinessReport> {
+  const supabase = await createClient();
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) {
+    return {
+      blockers: [makeScheduleIssue('not-authenticated', 'Sign in again before building the schedule.')],
+      warnings: [],
+      seasonTeamCount: 0,
+      matchupCount: 0,
+      slotCapacity: 0,
+      recommendedFixHref: buildSeasonWorkspaceHref('', leagueId, seasonId, 'schedule'),
+    };
+  }
+
+  const blockers: ScheduleReadinessIssue[] = [];
+  const warnings: ScheduleReadinessIssue[] = [];
+  const scheduleHref = buildSeasonWorkspaceHref('', leagueId, seasonId, 'schedule');
+  const teamsHref = buildSeasonWorkspaceHref('', leagueId, seasonId, 'teams');
+  const venuesHref = `${buildLeagueHubHref('', leagueId)}/settings/venues`;
+
+  const startDate = new Date(config.startDate);
+  const endDate = new Date(config.endDate);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || startDate > endDate) {
+    blockers.push(makeScheduleIssue('invalid-date-range', 'Choose a valid season date range before building the schedule.', scheduleHref));
+  }
+
+  if (config.gameDays.length === 0) {
+    blockers.push(makeScheduleIssue('missing-game-days', 'Select at least one game night before building the schedule.', scheduleHref));
+  }
+
+  if (config.gameTimes.length === 0) {
+    blockers.push(makeScheduleIssue('missing-game-times', 'Add at least one game time before building the schedule.', scheduleHref));
+  }
+
+  const context = await loadScheduleGenerationContext(supabase, seasonId, leagueId, config, additionalIceSlots);
+
+  if (context.teams.length < 4) {
+    blockers.push(
+      makeScheduleIssue(
+        'not-enough-teams',
+        `This season has ${context.teams.length} participating team${context.teams.length === 1 ? '' : 's'}. At least 4 are required to generate a schedule.`,
+        teamsHref
+      )
+    );
+  }
+
+  if (context.venues.length === 0) {
+    blockers.push(makeScheduleIssue('missing-venues', 'Add at least one venue before building the schedule.', venuesHref));
+  }
+
+  if (context.slots.length === 0 && blockers.length === 0) {
+    blockers.push(
+      makeScheduleIssue(
+        'no-usable-slots',
+        'No usable ice slots were found for the selected nights, times, venue setup, and blackout rules.',
+        scheduleHref
+      )
+    );
+  }
+
+  if (context.slots.length > 0 && context.slots.length < context.matchups.length) {
+    blockers.push(
+      makeScheduleIssue(
+        'insufficient-slot-capacity',
+        `This setup creates ${context.matchups.length} games but only ${context.slots.length} usable ice slots.`,
+        scheduleHref
+      )
+    );
+  }
+
+  const teamsMissingHomeVenue = context.teams.filter((team) => !team.homeVenueId).length;
+  if (config.rotateHomeVenue && teamsMissingHomeVenue > 0) {
+    warnings.push(
+      makeScheduleIssue(
+        'teams-missing-home-venues',
+        `${teamsMissingHomeVenue} participating team${teamsMissingHomeVenue === 1 ? '' : 's'} do not have a home venue, so the schedule will fall back to the default venue when needed.`,
+        venuesHref
+      )
+    );
+  }
+
+  if (!config.defaultVenueId && !config.rotateHomeVenue && context.venues.length > 0) {
+    warnings.push(
+      makeScheduleIssue(
+        'default-venue-fallback',
+        'No default venue is selected, so the first available venue will be used for recurring slots.',
+        scheduleHref
+      )
+    );
+  }
+
+  if (context.existingGamesCount > 0) {
+    warnings.push(
+      makeScheduleIssue(
+        'existing-schedule-present',
+        `This season already has ${context.existingGamesCount} scheduled game${context.existingGamesCount === 1 ? '' : 's'}. Publishing a new schedule will replace them.`,
+        scheduleHref
+      )
+    );
+  }
+
+  if (context.constraints.some((constraint) => constraint.constraintType === 'team_blackout')) {
+    warnings.push(
+      makeScheduleIssue(
+        'team-blackouts-active',
+        'Team-specific blackout rules are active and may reduce the number of matchups that can be placed cleanly.',
+        scheduleHref
+      )
+    );
+  }
+
+  return {
+    blockers,
+    warnings,
+    seasonTeamCount: context.teams.length,
+    matchupCount: context.matchups.length,
+    slotCapacity: context.slots.length,
+    recommendedFixHref:
+      blockers[0]?.recommendedFixHref ??
+      warnings[0]?.recommendedFixHref ??
+      scheduleHref,
+  };
+}
+
 /**
  * Generate a schedule for a season.
  */
@@ -330,13 +557,8 @@ export async function generateSeasonSchedule(
   }
 
   // Fetch teams for the season — only teams with active rosters in this season
-  const { data: seasonRosters, error: rostersError } = await supabase
-    .from('team_rosters')
-    .select('team_id')
-    .eq('season_id', seasonId)
-    .eq('status', 'active');
-
-  if (rostersError) {
+  const readiness = await getScheduleReadinessReport(seasonId, leagueId, config, additionalIceSlots);
+  if (readiness.blockers.length > 0) {
     return {
       success: false,
       games: [],
@@ -347,65 +569,20 @@ export async function generateSeasonSchedule(
       constraintViolations: [],
       hardConstraintFailures: [],
       durationMs: Date.now() - startTime,
-      error: rostersError.message,
+      error: readiness.blockers[0]?.message ?? 'Schedule is not ready to generate.',
+      errorDetails: { readiness },
     };
   }
 
-  const seasonTeamIds = [...new Set((seasonRosters ?? []).map((r) => r.team_id))];
-
-  const { data: teamsData, error: teamsError } = seasonTeamIds.length > 0
-    ? await supabase
-        .from('teams')
-        .select('id, name, short_name, division_id, home_venue_id')
-        .in('id', seasonTeamIds)
-    : { data: [], error: null };
-
-  if (teamsError || !teamsData) {
-    return {
-      success: false,
-      games: [],
-      totalGames: 0,
-      gamesPerTeam: {},
-      homeGamesPerTeam: {},
-      awayGamesPerTeam: {},
-      constraintViolations: [],
-      hardConstraintFailures: [],
-      durationMs: Date.now() - startTime,
-      error: teamsError?.message ?? 'Failed to fetch teams',
-    };
-  }
-
-  const teams: Team[] = teamsData.map((t) => ({
-    id: t.id,
-    name: t.name,
-    shortName: t.short_name,
-    divisionId: t.division_id,
-    homeVenueId: t.home_venue_id,
-  }));
-
-  // Fetch venues
-  const { data: venuesData } = await supabase
-    .from('venues')
-    .select('id, name, address, number_of_rinks')
-    .eq('league_id', leagueId);
-
-  const venues: Venue[] = (venuesData ?? []).map((v) => ({
-    id: v.id,
-    name: v.name,
-    address: v.address ?? '',
-    numberOfRinks: v.number_of_rinks ?? 1,
-  }));
-
-  // Fetch constraints
-  const constraints = await getScheduleConstraints(seasonId);
-
-  // Fetch enhanced constraints
-  const [venueAvail, venueBlackoutsList, teamPrefs, constraintCfg] = await Promise.all([
-    getVenueAvailability(leagueId, seasonId),
-    getVenueBlackoutDates(leagueId),
-    getTeamSchedulePreferences(leagueId, seasonId),
-    getScheduleConstraintConfig(seasonId),
-  ]);
+  const {
+    teams,
+    venues,
+    constraints,
+    venueAvail,
+    venueBlackoutsList,
+    teamPrefs,
+    constraintCfg,
+  } = await loadScheduleGenerationContext(supabase, seasonId, leagueId, config, additionalIceSlots);
 
   const hasEnhancedConstraints =
     venueAvail.length > 0 ||

@@ -3,29 +3,41 @@
 /**
  * Review & Generate Step
  *
- * Combined preview + result step. Shows config summary, feasibility check,
- * generate button, and after generation shows results inline.
+ * Uses the server-side readiness report before generation and keeps the
+ * generated schedule as a draft until the owner explicitly publishes it.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import {
-  Calendar,
-  Clock,
-  Users,
   AlertTriangle,
+  Calendar,
   CheckCircle,
+  Clock,
   Loader2,
   MapPin,
+  Users,
 } from 'lucide-react';
 import type {
+  AdditionalIceSlot,
   ScheduleConfig,
   ScheduleGenerationResult,
+  ScheduleReadinessIssue,
+  ScheduleReadinessReport,
   Team,
   Venue,
-  AdditionalIceSlot,
 } from '@/lib/schedule/types';
-import { generateSeasonSchedule } from '@/lib/schedule/actions';
+import { generateSeasonSchedule, getScheduleReadinessReport } from '@/lib/schedule/actions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/dialog';
 
 interface ReviewAndGenerateStepProps {
   seasonId: string;
@@ -38,9 +50,51 @@ interface ReviewAndGenerateStepProps {
   onResult: (result: ScheduleGenerationResult) => void;
   onSave: () => void;
   isSaving: boolean;
+  hasExistingSchedule?: boolean;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function IssueList({
+  issues,
+  tone,
+}: {
+  issues: ScheduleReadinessIssue[];
+  tone: 'warning' | 'error';
+}) {
+  if (issues.length === 0) return null;
+
+  const styles =
+    tone === 'error'
+      ? {
+          wrapper: 'border-red-500/30 bg-red-500/10',
+          icon: 'text-red-400',
+          title: 'text-red-300',
+          body: 'text-red-200/80',
+        }
+      : {
+          wrapper: 'border-amber-500/30 bg-amber-500/10',
+          icon: 'text-amber-400',
+          title: 'text-amber-300',
+          body: 'text-amber-200/80',
+        };
+
+  return (
+    <div className={cn('rounded-xl border p-4', styles.wrapper)}>
+      <div className="flex items-center gap-2">
+        <AlertTriangle className={cn('h-4 w-4', styles.icon)} />
+        <p className={cn('text-sm font-semibold', styles.title)}>
+          {tone === 'error' ? 'Fix before generating' : 'Heads up before publishing'}
+        </p>
+      </div>
+      <ul className={cn('mt-3 space-y-2 text-sm', styles.body)}>
+        {issues.map((issue) => (
+          <li key={`${issue.code}-${issue.message}`}>• {issue.message}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function ReviewAndGenerateStep({
   seasonId,
@@ -53,33 +107,55 @@ export function ReviewAndGenerateStep({
   onResult,
   onSave,
   isSaving,
+  hasExistingSchedule = false,
 }: ReviewAndGenerateStepProps) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCheckingReadiness, setIsCheckingReadiness] = useState(true);
+  const [readiness, setReadiness] = useState<ScheduleReadinessReport | null>(null);
   const [result, setResult] = useState<ScheduleGenerationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
 
-  const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
-  const venuesById = Object.fromEntries(venues.map((v) => [v.id, v]));
+  const teamsById = useMemo(() => Object.fromEntries(teams.map((team) => [team.id, team])), [teams]);
+  const venuesById = useMemo(() => Object.fromEntries(venues.map((venue) => [venue.id, venue])), [venues]);
 
-  // Calculate schedule info
-  const gamesPerRound = Math.floor(teams.length / 2);
-  const rounds = teams.length % 2 === 0 ? teams.length - 1 : teams.length;
-  const multiplier = config.scheduleType === 'double_round_robin' ? 2 : 1;
-  const totalGames =
-    config.divisionAware || config.scheduleType === 'custom'
-      ? Math.floor(teams.length * config.gamesPerTeam / 2)
-      : gamesPerRound * rounds * multiplier;
+  useEffect(() => {
+    let cancelled = false;
 
-  const concurrentGamesPerSlot = Math.max(1, Math.floor(teams.length / 2));
-  const startDate = new Date(config.startDate);
-  const endDate = new Date(config.endDate);
-  const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-  const gameDaysPerWeek = config.gameDays.length;
-  const slotsPerDay = config.gameTimes.length;
-  const totalWeeks = Math.ceil(daysDiff / 7);
-  const dateTimeSlots = totalWeeks * gameDaysPerWeek * slotsPerDay;
-  const availableSlots = dateTimeSlots * concurrentGamesPerSlot;
-  const hasEnoughSlots = availableSlots >= totalGames;
+    async function loadReadiness() {
+      setIsCheckingReadiness(true);
+      try {
+        const report = await getScheduleReadinessReport(
+          seasonId,
+          leagueId,
+          config,
+          additionalIceSlots.length > 0 ? additionalIceSlots : undefined
+        );
+
+        if (!cancelled) {
+          setReadiness(report);
+        }
+      } catch (readinessError) {
+        if (!cancelled) {
+          setError(
+            readinessError instanceof Error
+              ? readinessError.message
+              : 'Unable to validate the schedule setup.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCheckingReadiness(false);
+        }
+      }
+    }
+
+    loadReadiness();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [seasonId, leagueId, config, additionalIceSlots]);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
@@ -87,292 +163,307 @@ export function ReviewAndGenerateStep({
     setResult(null);
 
     try {
-      const genResult = await generateSeasonSchedule(
+      const generationResult = await generateSeasonSchedule(
         seasonId,
         leagueId,
         config,
         templateId ?? undefined,
         additionalIceSlots.length > 0 ? additionalIceSlots : undefined
       );
-      setResult(genResult);
-      onResult(genResult);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate schedule');
+
+      setResult(generationResult);
+      onResult(generationResult);
+    } catch (generationError) {
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : 'Failed to generate the schedule draft.'
+      );
     } finally {
       setIsGenerating(false);
     }
   }, [seasonId, leagueId, config, templateId, additionalIceSlots, onResult]);
 
-  // Balance data for result view
-  const balanceData = result
-    ? teams.map((team) => ({
-        team,
-        home: result.homeGamesPerTeam[team.id] ?? 0,
-        away: result.awayGamesPerTeam[team.id] ?? 0,
-        balance: (result.homeGamesPerTeam[team.id] ?? 0) - (result.awayGamesPerTeam[team.id] ?? 0),
-      }))
-    : [];
+  const sortedGames = useMemo(
+    () =>
+      result
+        ? [...result.games].sort((left, right) => left.scheduledAt.getTime() - right.scheduledAt.getTime())
+        : [],
+    [result]
+  );
 
-  const sortedGames = result
-    ? [...result.games].sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
-    : [];
   const firstGame = sortedGames[0];
   const lastGame = sortedGames[sortedGames.length - 1];
+
+  const canGenerate =
+    !isCheckingReadiness &&
+    !isGenerating &&
+    (readiness?.blockers.length ?? 0) === 0 &&
+    teams.length >= 4;
 
   return (
     <div className="space-y-5">
       <div>
         <h3 className="text-lg font-medium text-white">
-          {result?.success ? 'Schedule Generated!' : 'Review & Generate'}
+          {result?.success ? 'Draft ready to publish' : 'Review and build your draft'}
         </h3>
         <p className="text-sm text-neutral-400">
           {result?.success
-            ? `${result.totalGames} games ready to save.`
-            : 'Review your configuration and generate the schedule.'}
+            ? 'Look over the draft, then publish it when you are ready.'
+            : 'Check the real slot capacity, warnings, and conflicts before generating.'}
         </p>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-neutral-800/50 rounded-lg p-3 text-center">
-          <Users className="w-5 h-5 text-rink-500 mx-auto mb-1" />
-          <div className="text-xl font-bold text-white">{teams.length}</div>
-          <div className="text-xs text-neutral-400">Teams</div>
-        </div>
-        <div className="bg-neutral-800/50 rounded-lg p-3 text-center">
-          <Calendar className="w-5 h-5 text-rink-500 mx-auto mb-1" />
-          <div className="text-xl font-bold text-white">{result?.totalGames ?? totalGames}</div>
-          <div className="text-xs text-neutral-400">Games</div>
-        </div>
-        <div className="bg-neutral-800/50 rounded-lg p-3 text-center">
-          <Clock className="w-5 h-5 text-rink-500 mx-auto mb-1" />
-          <div className={cn('text-xl font-bold', hasEnoughSlots ? 'text-green-500' : 'text-red-500')}>
-            {availableSlots}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg bg-neutral-800/50 p-3 text-center">
+          <Users className="mx-auto mb-1 h-5 w-5 text-rink-500" />
+          <div className="text-xl font-bold text-white">
+            {readiness?.seasonTeamCount ?? teams.length}
           </div>
-          <div className="text-xs text-neutral-400">Slots</div>
+          <div className="text-xs text-neutral-400">Season teams</div>
         </div>
-        <div className="bg-neutral-800/50 rounded-lg p-3 text-center">
-          <Calendar className="w-5 h-5 text-neutral-500 mx-auto mb-1" />
-          <div className="text-sm font-bold text-white capitalize">
-            {config.scheduleType.replace('_', ' ')}
+        <div className="rounded-lg bg-neutral-800/50 p-3 text-center">
+          <Calendar className="mx-auto mb-1 h-5 w-5 text-rink-500" />
+          <div className="text-xl font-bold text-white">
+            {result?.totalGames ?? readiness?.matchupCount ?? 0}
           </div>
-          <div className="text-xs text-neutral-400">Format</div>
+          <div className="text-xs text-neutral-400">Games to place</div>
+        </div>
+        <div className="rounded-lg bg-neutral-800/50 p-3 text-center">
+          <Clock className="mx-auto mb-1 h-5 w-5 text-rink-500" />
+          <div
+            className={cn(
+              'text-xl font-bold',
+              readiness && readiness.blockers.length === 0 ? 'text-emerald-400' : 'text-amber-400'
+            )}
+          >
+            {isCheckingReadiness ? '...' : readiness?.slotCapacity ?? 0}
+          </div>
+          <div className="text-xs text-neutral-400">Usable slots</div>
+        </div>
+        <div className="rounded-lg bg-neutral-800/50 p-3 text-center">
+          <MapPin className="mx-auto mb-1 h-5 w-5 text-rink-500" />
+          <div className="text-xl font-bold text-white">{venues.length}</div>
+          <div className="text-xs text-neutral-400">Venues</div>
         </div>
       </div>
 
-      {/* Config Details */}
-      {!result && (
-        <div className="bg-neutral-800/50 rounded-lg p-4">
-          <dl className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <dt className="text-neutral-500">Date Range</dt>
-              <dd className="text-white">
-                {startDate.toLocaleDateString()} – {endDate.toLocaleDateString()}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Game Days</dt>
-              <dd className="text-white">{config.gameDays.map((d) => DAY_NAMES[d]).join(', ')}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Game Times</dt>
-              <dd className="text-white">{config.gameTimes.join(', ')}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Venue</dt>
-              <dd className="text-white">
-                {config.defaultVenueId ? venuesById[config.defaultVenueId]?.name ?? 'Unknown' : 'None set'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Holidays Skipped</dt>
-              <dd className="text-white">{config.holidayDates.length}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Bye Weeks</dt>
-              <dd className="text-white">
-                {config.allowByeWeeks ? `${config.byeWeeksPerTeam} per team` : 'None'}
-              </dd>
-            </div>
-          </dl>
-        </div>
-      )}
-
-      {/* Slot Warning */}
-      {!result && !hasEnoughSlots && (
-        <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg flex items-start gap-2.5">
-          <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+      <div className="rounded-xl border border-neutral-800 bg-neutral-800/40 p-4">
+        <dl className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-yellow-400 font-medium text-sm">Not enough time slots</p>
-            <p className="text-xs text-yellow-400/80 mt-0.5">
-              Need {totalGames} slots but only {availableSlots} available. Add more game days/times or extend dates.
-            </p>
+            <dt className="text-neutral-500">Who plays who</dt>
+            <dd className="text-white capitalize">{config.scheduleType.replaceAll('_', ' ')}</dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Games per team</dt>
+            <dd className="text-white">{config.gamesPerTeam}</dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Game nights</dt>
+            <dd className="text-white">{config.gameDays.map((day) => DAY_NAMES[day]).join(', ')}</dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Ice times</dt>
+            <dd className="text-white">{config.gameTimes.join(', ')}</dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Season range</dt>
+            <dd className="text-white">
+              {new Date(config.startDate).toLocaleDateString()} - {new Date(config.endDate).toLocaleDateString()}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-neutral-500">Default venue</dt>
+            <dd className="text-white">
+              {config.defaultVenueId ? venuesById[config.defaultVenueId]?.name ?? 'Unknown' : 'First available venue'}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      {isCheckingReadiness && (
+        <div className="rounded-xl border border-rink-500/20 bg-rink-500/10 p-4 text-sm text-rink-300">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Checking real venue capacity, blackout rules, and team participation...
           </div>
         </div>
       )}
 
-      {/* Generate Button */}
+      {readiness && <IssueList issues={readiness.blockers} tone="error" />}
+      {readiness && <IssueList issues={readiness.warnings} tone="warning" />}
+
       {!result && !isGenerating && (
-        <div className="text-center py-4">
+        <div className="py-2 text-center">
           <button
             onClick={handleGenerate}
-            disabled={!hasEnoughSlots || teams.length < 2}
-            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-black bg-rink-500 rounded-xl hover:bg-rink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canGenerate}
+            className="inline-flex items-center gap-2 rounded-xl bg-rink-500 px-6 py-3 text-sm font-bold text-black transition-colors hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Calendar className="w-5 h-5" />
-            Generate Schedule
+            <Calendar className="h-5 w-5" />
+            Build draft schedule
           </button>
-          {teams.length < 2 && (
-            <p className="text-xs text-red-400 mt-2">Need at least 2 teams to generate a schedule.</p>
-          )}
         </div>
       )}
 
-      {/* Generating */}
       {isGenerating && (
-        <div className="p-6 bg-rink-500/10 border border-rink-500/30 rounded-lg text-center">
-          <Loader2 className="w-8 h-8 text-rink-500 mx-auto mb-3 animate-spin" />
-          <p className="text-rink-400 font-medium">Generating Schedule...</p>
-          <p className="text-sm text-rink-400/80 mt-1">This may take a few seconds.</p>
+        <div className="rounded-xl border border-rink-500/30 bg-rink-500/10 p-6 text-center">
+          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-rink-500" />
+          <p className="font-medium text-rink-400">Building your draft schedule...</p>
+          <p className="mt-1 text-sm text-rink-400/80">This uses the same readiness and slot model you just reviewed.</p>
         </div>
       )}
 
-      {/* Error */}
       {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2.5">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-red-400 font-medium text-sm">Generation Failed</p>
-            <p className="text-xs text-red-400/80 mt-0.5">{error}</p>
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 text-red-400" />
+            <div>
+              <p className="text-sm font-semibold text-red-300">Draft generation failed</p>
+              <p className="mt-1 text-sm text-red-200/80">{error}</p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ═══ Result Section ═══ */}
       {result?.success && (
         <>
-          {/* Success Banner */}
-          <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
-            <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-            <h4 className="text-lg font-bold text-green-400">Schedule Generated!</h4>
-            <p className="text-sm text-green-400/80 mt-1">
-              {result.totalGames} games scheduled in {result.durationMs}ms
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+            <CheckCircle className="mx-auto mb-2 h-8 w-8 text-emerald-400" />
+            <h4 className="text-lg font-bold text-emerald-300">Draft ready</h4>
+            <p className="mt-1 text-sm text-emerald-200/80">
+              {result.totalGames} games placed in {result.durationMs}ms
             </p>
           </div>
 
-          {/* Schedule Period */}
           {firstGame && lastGame && (
-            <div className="bg-neutral-800/50 rounded-lg p-3 flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between rounded-xl bg-neutral-800/50 p-3 text-sm">
               <div>
                 <span className="text-neutral-500">First game: </span>
-                <span className="text-white">{firstGame.scheduledAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                <span className="text-white">
+                  {firstGame.scheduledAt.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
               </div>
-              <span className="text-neutral-600">→</span>
               <div>
                 <span className="text-neutral-500">Last game: </span>
-                <span className="text-white">{lastGame.scheduledAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                <span className="text-white">
+                  {lastGame.scheduledAt.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
               </div>
             </div>
           )}
 
-          {/* Home/Away Balance */}
-          <div className="bg-neutral-800/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-neutral-300 mb-3">Home/Away Balance</h4>
-            <div className="space-y-1.5">
-              {balanceData.map(({ team, home, away, balance }) => (
-                <div key={team.id} className="flex items-center gap-3 text-sm">
-                  <div className="w-28 truncate text-white">{team.name}</div>
-                  <div className="flex-1 h-1.5 bg-neutral-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-rink-500"
-                      style={{ width: `${home + away > 0 ? (home / (home + away)) * 100 : 50}%` }}
-                    />
+          <div className="rounded-xl border border-neutral-800 bg-neutral-800/40 p-4">
+            <h4 className="mb-3 text-sm font-medium text-neutral-300">First few games</h4>
+            <div className="space-y-2">
+              {sortedGames.slice(0, 5).map((game, index) => (
+                <div
+                  key={`${game.homeTeamId}-${game.awayTeamId}-${index}`}
+                  className="flex items-center justify-between rounded-lg bg-neutral-900/60 p-3 text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-28 text-neutral-400">
+                      {game.scheduledAt.toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <span className="w-16 text-neutral-500">
+                      {game.scheduledAt.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <span className="font-medium text-white">
+                      {teamsById[game.homeTeamId]?.name ?? 'Unknown'}
+                    </span>
+                    <span className="text-neutral-500">vs</span>
+                    <span className="font-medium text-white">
+                      {teamsById[game.awayTeamId]?.name ?? 'Unknown'}
+                    </span>
                   </div>
-                  <div className="w-16 text-right">
-                    <span className="text-green-400">{home}H</span>
-                    <span className="text-neutral-500">/</span>
-                    <span className="text-blue-400">{away}A</span>
-                  </div>
-                  <div className={cn('w-6 text-right text-xs font-medium', balance > 0 ? 'text-green-400' : balance < 0 ? 'text-red-400' : 'text-neutral-400')}>
-                    {balance > 0 ? '+' : ''}{balance}
-                  </div>
+                  <span className="text-xs text-neutral-500">{game.location}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Violations */}
           {result.constraintViolations.length > 0 && (
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-              <h4 className="text-sm font-medium text-yellow-400 flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                Soft Violations ({result.constraintViolations.length})
-              </h4>
-              <ul className="space-y-0.5 text-xs text-yellow-400/80">
-                {result.constraintViolations.slice(0, 5).map((v, i) => (
-                  <li key={i}>• Game #{v.gameIndex}: {v.message}</li>
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="text-sm font-semibold text-amber-300">
+                This draft still has {result.constraintViolations.length} soft warning
+                {result.constraintViolations.length === 1 ? '' : 's'}.
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-amber-200/80">
+                {result.constraintViolations.slice(0, 5).map((violation, index) => (
+                  <li key={`${violation.constraintId}-${index}`}>• {violation.message}</li>
                 ))}
-                {result.constraintViolations.length > 5 && (
-                  <li className="text-yellow-400/60">... and {result.constraintViolations.length - 5} more</li>
-                )}
               </ul>
             </div>
           )}
 
-          {/* Sample Games */}
-          <div className="bg-neutral-800/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-neutral-300 mb-3">First 5 Games</h4>
-            <div className="space-y-1.5">
-              {sortedGames.slice(0, 5).map((game, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 bg-neutral-900/50 rounded-lg text-sm">
-                  <span className="text-neutral-500 w-24">
-                    {game.scheduledAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </span>
-                  <span className="text-neutral-400 w-14">
-                    {game.scheduledAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span className="text-white font-medium">{teamsById[game.homeTeamId]?.name ?? '?'}</span>
-                  <span className="text-neutral-500">vs</span>
-                  <span className="text-white font-medium">{teamsById[game.awayTeamId]?.name ?? '?'}</span>
-                  <span className="text-neutral-500 text-xs w-20 text-right truncate">{game.location}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Save CTA */}
-          <div className="text-center py-2">
+          <div className="py-2 text-center">
             <button
-              onClick={onSave}
+              onClick={() => {
+                if (hasExistingSchedule) {
+                  setShowReplaceConfirm(true);
+                  return;
+                }
+                onSave();
+              }}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-black bg-rink-500 rounded-xl hover:bg-rink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-xl bg-rink-500 px-6 py-3 text-sm font-bold text-black transition-colors hover:bg-rink-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Publishing...
+                </>
               ) : (
-                <><CheckCircle className="w-5 h-5" /> Save Schedule</>
+                <>
+                  <CheckCircle className="h-5 w-5" />
+                  {hasExistingSchedule ? 'Replace existing schedule' : 'Publish schedule'}
+                </>
               )}
             </button>
           </div>
         </>
       )}
 
-      {/* Failed result */}
       {result && !result.success && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
-          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-          <h4 className="text-lg font-bold text-red-400">Generation Failed</h4>
-          <p className="text-sm text-red-400/80 mt-1">
-            {result.error ?? 'Unable to generate a valid schedule with these constraints.'}
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-center">
+          <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-red-400" />
+          <h4 className="text-lg font-bold text-red-300">Unable to build a draft</h4>
+          <p className="mt-1 text-sm text-red-200/80">
+            {result.error ?? 'The current setup could not produce a valid schedule.'}
           </p>
-          <button
-            onClick={() => { setResult(null); setError(null); }}
-            className="mt-3 px-4 py-2 text-sm font-medium text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors"
-          >
-            Try Again
-          </button>
         </div>
       )}
+
+      <AlertDialog open={showReplaceConfirm} onOpenChange={setShowReplaceConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace the current schedule?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Publishing this draft will replace the existing schedule for this season.
+              Make sure you are ready before continuing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current schedule</AlertDialogCancel>
+            <AlertDialogAction onClick={onSave}>Replace schedule</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

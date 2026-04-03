@@ -7,10 +7,10 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { Plus, RefreshCw, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Loader2, Upload } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Plus, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Upload } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
-import { SimpleScheduleWizard, ScheduleWizard } from '@/components/schedule-wizard';
+import { SimpleScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
 import { GameReschedulePanel } from '@/components/dashboard/seasons/GameReschedulePanel';
 import { BulkPostponeDateWizard } from '@/components/dashboard/seasons/BulkPostponeDateWizard';
@@ -18,16 +18,6 @@ import { BulkMoveVenueWizard } from '@/components/dashboard/seasons/BulkMoveVenu
 import { GameDetailSheet } from '@/components/dashboard/seasons/GameDetailSheet';
 import { saveScheduleGames } from '@/lib/schedule/actions';
 import { ImportScheduleModal } from '@/components/schedule/ImportScheduleModal';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/dialog';
 import type { Team, Venue, ScheduledGame, ScheduleTemplate, ScheduleGenerationResult } from '@/lib/schedule/types';
 
 // ============================================================================
@@ -107,14 +97,13 @@ export function SchedulePageClient({
   defaultImportOpen = false,
 }: SchedulePageClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [showWizard, setShowWizard] = useState(false);
-  const [useAdvancedWizard, setUseAdvancedWizard] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [games, setGames] = useState<ScheduledGame[]>(existingGames);
   const [showReschedulePanel, setShowReschedulePanel] = useState(false);
   const [showBulkPostponeDate, setShowBulkPostponeDate] = useState(false);
   const [showBulkMoveVenue, setShowBulkMoveVenue] = useState(false);
-  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [selectedGame, setSelectedGame] = useState<ScheduledGame | null>(null);
   const [showGameDetail, setShowGameDetail] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -177,7 +166,7 @@ export function SchedulePageClient({
           {teams.length !== 1 ? 's' : ''}.
         </p>
         <button
-          onClick={() => router.push(`/dashboard/teams`)}
+          onClick={() => router.push(`${pathname.replace(/\/schedule$/, '/teams')}?tab=teams`)}
           className="mt-4 px-4 py-2 bg-yellow-500 text-black rounded-lg font-medium hover:bg-yellow-400 transition-colors"
         >
           Add Teams
@@ -197,34 +186,22 @@ export function SchedulePageClient({
               <span>{saveError}</span>
             </div>
           )}
-          {useAdvancedWizard ? (
-            <ScheduleWizard
-              seasonId={seasonId}
-              leagueId={leagueId}
-              teams={teams}
-              venues={venues}
-              templates={templates}
-              startDate={startDate}
-              endDate={endDate}
-              onComplete={handleWizardComplete}
-              onCancel={() => { setShowWizard(false); setSaveError(null); setUseAdvancedWizard(false); }}
-              isSaving={isSaving}
-            />
-          ) : (
-            <SimpleScheduleWizard
-              seasonId={seasonId}
-              leagueId={leagueId}
-              teams={teams}
-              venues={venues}
-              templates={templates}
-              startDate={startDate}
-              endDate={endDate}
-              onComplete={handleWizardComplete}
-              onCancel={() => { setShowWizard(false); setSaveError(null); }}
-              onSwitchToAdvanced={() => setUseAdvancedWizard(true)}
-              isSaving={isSaving}
-            />
-          )}
+          <SimpleScheduleWizard
+            seasonId={seasonId}
+            leagueId={leagueId}
+            teams={teams}
+            venues={venues}
+            templates={templates}
+            startDate={startDate}
+            endDate={endDate}
+            onComplete={handleWizardComplete}
+            onCancel={() => {
+              setShowWizard(false);
+              setSaveError(null);
+            }}
+            isSaving={isSaving}
+            hasExistingSchedule={hasExistingSchedule}
+          />
         </div>
       </div>
     );
@@ -232,7 +209,40 @@ export function SchedulePageClient({
 
   return (
     <div className="space-y-6">
-      {/* Action Bar */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-neutral-500">
+              Schedule workspace
+            </p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-white">
+              {games.length > 0 ? 'Keep the season schedule moving' : 'Build the first season draft'}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-neutral-400">
+              {games.length > 0
+                ? 'Review the schedule, handle postponements, or build a fresh draft when the season setup changes.'
+                : 'Start with one guided draft. The builder checks real venue capacity before anything is published.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-300 transition-colors hover:bg-neutral-700"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </button>
+            <button
+              onClick={() => setShowWizard(true)}
+              className="flex items-center gap-2 rounded-lg bg-rink-500 px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-rink-600"
+            >
+              <Plus className="w-4 h-4" />
+              {hasExistingSchedule ? 'Build new draft' : 'Build schedule'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
           <button
@@ -262,18 +272,16 @@ export function SchedulePageClient({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Weather Cancellation (by date) */}
           {hasExistingSchedule && (
             <button
               onClick={() => setShowBulkPostponeDate(true)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-300 bg-blue-500/10 border border-blue-500/30 rounded-lg hover:bg-blue-500/20 transition-colors"
             >
               <Snowflake className="w-4 h-4" />
-              Weather Cancellation
+              Postpone a date
             </button>
           )}
 
-          {/* Move Venue */}
           {hasExistingSchedule && distinctLocations.length > 0 && (
             <button
               onClick={() => setShowBulkMoveVenue(true)}
@@ -284,7 +292,6 @@ export function SchedulePageClient({
             </button>
           )}
 
-          {/* Manage Cancellations */}
           {hasExistingSchedule && (
             <button
               onClick={() => setShowReschedulePanel(true)}
@@ -299,31 +306,6 @@ export function SchedulePageClient({
               )}
             </button>
           )}
-
-          {/* Regenerate All */}
-          {hasExistingSchedule && (
-            <button
-              onClick={() => setShowRegenerateConfirm(true)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Regenerate All
-            </button>
-          )}
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Import CSV
-          </button>
-          <button
-            onClick={() => setShowWizard(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-rink-500 rounded-lg hover:bg-rink-600 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {hasExistingSchedule ? 'New Schedule' : 'Generate Schedule'}
-          </button>
         </div>
       </div>
 
@@ -340,7 +322,7 @@ export function SchedulePageClient({
             onClick={() => setShowWizard(true)}
             className="mt-6 px-6 py-3 bg-rink-500 text-black rounded-lg font-medium hover:bg-rink-600 transition-colors"
           >
-            Generate Schedule
+            Build schedule draft
           </button>
         </div>
       ) : viewMode === 'calendar' ? (
@@ -442,36 +424,6 @@ export function SchedulePageClient({
           </div>
         </div>
       )}
-
-      {/* Regenerate All Confirmation Dialog */}
-      <AlertDialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
-        <AlertDialogContent className="bg-neutral-800 border-white/10">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-white">
-              <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              Regenerate Entire Schedule?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-neutral-400">
-              This will replace all unplayed games. Completed games will be preserved.
-              Use &apos;Manage Cancellations&apos; to reschedule individual games.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-neutral-600 text-neutral-300 hover:bg-neutral-700">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowRegenerateConfirm(false);
-                setShowWizard(true);
-              }}
-              className="bg-yellow-600 text-white hover:bg-yellow-700"
-            >
-              Yes, Regenerate All
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Bulk Postpone by Date Wizard */}
       <BulkPostponeDateWizard
