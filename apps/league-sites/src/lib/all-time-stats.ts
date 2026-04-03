@@ -33,6 +33,7 @@ export interface ImportedCareerBaselineRow {
   wins: number;
   losses: number;
   ties: number;
+  championships: number;
   saves: number;
   goals_against: number;
   shots_against: number;
@@ -226,6 +227,7 @@ export function normalizeImportedCareerBaselineRows(
     const points = toSafeNumber(pickNumber(row, ['points', 'pts'])) || goals + assists;
     const wins = toSafeNumber(pickNumber(row, ['wins', 'w']));
     const ties = toSafeNumber(pickNumber(row, ['ties', 't']));
+    const championships = toSafeNumber(pickNumber(row, ['moosehead_cup_wins', 'championships']));
     const losses =
       toSafeNumber(pickNumber(row, ['losses', 'l'])) ||
       Math.max(gamesPlayed - wins - ties, 0);
@@ -263,6 +265,7 @@ export function normalizeImportedCareerBaselineRows(
       wins,
       losses,
       ties,
+      championships,
       saves,
       goals_against: goalsAgainst,
       shots_against: shotsAgainst,
@@ -317,6 +320,7 @@ export function buildHistoricalBaselineSkaterRows(
       team_name: row.team_name,
       division_name: row.division_name,
       position: row.position,
+      championships: row.championships,
       games_played: row.games_played,
       goals: row.goals,
       assists: row.assists,
@@ -369,6 +373,7 @@ export function mergeAllTimeSkaterRows(
         team_name: row.team_name,
         division_name: row.division_name,
         position: row.position,
+        championships: 0,
         games_played: 0,
         goals: 0,
         assists: 0,
@@ -392,6 +397,7 @@ export function mergeAllTimeSkaterRows(
     );
 
     current.games_played += row.games_played;
+    current.championships += row.championships;
     current.goals += row.goals;
     current.assists += row.assists;
     current.penalty_minutes += row.penalty_minutes;
@@ -416,6 +422,7 @@ export function mergeAllTimeSkaterRows(
         team_name: row.team_name,
         division_name: row.division_name,
         position: row.position,
+        championships: 0,
         games_played: 0,
         goals: 0,
         assists: 0,
@@ -439,6 +446,7 @@ export function mergeAllTimeSkaterRows(
     );
 
     current.games_played += row.games_played;
+    current.championships += row.championships;
     current.goals += row.goals;
     current.assists += row.assists;
     current.penalty_minutes += row.penalty_minutes;
@@ -463,6 +471,7 @@ export function mergeAllTimeSkaterRows(
       team_name: row.team_name,
       division_name: row.division_name,
       position: row.position,
+      championships: row.championships,
       games_played: row.games_played,
       goals: row.goals,
       assists: row.assists,
@@ -493,6 +502,7 @@ type GoalieAccumulator = {
   team_name: string;
   division_name: string | null;
   position: string | null;
+  championships: number;
   games_played: number;
   wins: number;
   losses: number;
@@ -542,6 +552,7 @@ export function buildHistoricalBaselineGoalieRows(
       team_name: row.team_name,
       division_name: row.division_name,
       position: row.position || 'G',
+      championships: row.championships,
       games_played: row.games_played,
       wins: row.wins,
       losses: row.losses,
@@ -586,6 +597,7 @@ export function mergeAllTimeGoalieRows(
       team_name: row.team_name,
       division_name: row.division_name,
       position: row.position || 'G',
+      championships: 0,
       games_played: 0,
       wins: 0,
       losses: 0,
@@ -598,6 +610,7 @@ export function mergeAllTimeGoalieRows(
     });
 
     current.games_played += row.games_played;
+    current.championships += row.championships;
     current.wins += row.wins;
     current.losses += row.losses;
     current.saves += row.saves;
@@ -618,6 +631,7 @@ export function mergeAllTimeGoalieRows(
       team_name: row.team_name,
       division_name: row.division_name,
       position: row.position,
+      championships: 0,
       games_played: 0,
       wins: 0,
       losses: 0,
@@ -630,6 +644,7 @@ export function mergeAllTimeGoalieRows(
     });
 
     current.games_played += row.games_played;
+    current.championships += row.championships;
     current.wins += row.wins;
     current.losses += row.losses;
     current.saves += row.saves;
@@ -647,6 +662,7 @@ export function mergeAllTimeGoalieRows(
     team_name: row.team_name,
     division_name: row.division_name,
     position: row.position,
+    championships: row.championships,
     games_played: row.games_played,
     wins: row.wins,
     losses: row.losses,

@@ -5,6 +5,7 @@ import {
   getLeagueBySlug,
   getPlayerBadgesByIds,
   getSeasons,
+  getTeams,
   getUnifiedGoalieStatsRows,
   getUnifiedSkaterStatsRows,
 } from '@/lib/data';
@@ -55,16 +56,15 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   const selectedSeason = seasons.find((season) => season.id === selectedSeasonId) || currentSeason || null;
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
-  const [skaterRows, goalieRows] =
+  const [teams, skaterRows, goalieRows] = await Promise.all([
+    getTeams(league.id, selectedSeasonId || undefined),
     mode === 'skaters'
-      ? await Promise.all([
-          getUnifiedSkaterStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, leagueSlug, selectedSeason?.name),
-          Promise.resolve([]),
-        ])
-      : await Promise.all([
-          Promise.resolve([]),
-          getUnifiedGoalieStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, leagueSlug, selectedSeason?.name),
-        ]);
+      ? getUnifiedSkaterStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, leagueSlug, selectedSeason?.name)
+      : Promise.resolve([]),
+    mode === 'goalies'
+      ? getUnifiedGoalieStatsRows(league.id, selectedSeasonId, effectiveDivisionFilter, leagueSlug, selectedSeason?.name)
+      : Promise.resolve([]),
+  ]);
 
   const activePlayerIds = [...new Set((mode === 'skaters' ? skaterRows : goalieRows).map((row) => row.player_id))];
   const badges = await getPlayerBadgesByIds(activePlayerIds);
@@ -76,9 +76,21 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
     <SubscriptionWall>
       <div className="container mx-auto px-4 py-10 animate-fade-in md:py-12">
         <div className="mx-auto max-w-[1280px]">
+          <div className="mb-5 md:mb-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+              BLH Public Stats
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
+              Stats
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm text-[var(--color-text-secondary)] md:text-base">
+              Explore skater and goalie leaders, filter the current scope, and drill into the full table without leaving the page.
+            </p>
+          </div>
           <StatsWorkspace
             leagueSlug={leagueSlug}
             seasons={seasons}
+            teams={teams}
             currentSeasonId={currentSeason?.id || null}
             mode={mode}
             seasonLabel={seasonLabel}

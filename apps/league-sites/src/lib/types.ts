@@ -471,6 +471,7 @@ export type SkaterStatKey =
   | 'goals'
   | 'assists'
   | 'points'
+  | 'championships'
   | 'points_per_game'
   | 'goals_per_game'
   | 'assists_per_game'
@@ -490,6 +491,7 @@ export type GoalieStatKey =
   | 'games_played'
   | 'wins'
   | 'losses'
+  | 'championships'
   | 'save_percentage'
   | 'goals_against_average'
   | 'shutouts'
@@ -513,6 +515,7 @@ export interface UnifiedStatsRowBase {
   team_name: string;
   division_name: string | null;
   position: string | null;
+  championships: number;
 }
 
 export interface UnifiedSkaterStatsRow extends UnifiedStatsRowBase {

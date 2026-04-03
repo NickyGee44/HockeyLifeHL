@@ -2335,6 +2335,7 @@ async function buildImportedAggregateSkaterRows(
       team_name: seed.teamName ?? 'Free Agent',
       division_name: team?.divisionName ?? null,
       position: isGoaliePosition(profile.position) ? null : profile.position,
+      championships: 0,
       games_played: seed.gamesPlayed,
       goals: seed.goals,
       assists: seed.assists,
@@ -2395,6 +2396,7 @@ async function buildImportedAggregateGoalieRows(
       team_name: seed.teamName ?? 'Free Agent',
       division_name: team?.divisionName ?? null,
       position: 'Goalie',
+      championships: 0,
       games_played: seed.gamesPlayed,
       wins: seed.wins,
       losses: seed.losses,
@@ -2422,6 +2424,51 @@ async function getFilteredTeamIds(leagueId: string, divisionId?: string) {
     .eq('division_id', divisionId);
 
   return (teams || []).map((team) => team.id);
+}
+
+async function appendNativeChampionshipCounts<T extends { player_id: string; championships: number }>(
+  leagueId: string,
+  rows: T[],
+  seasonId?: string | null,
+): Promise<T[]> {
+  if (rows.length === 0) {
+    return rows;
+  }
+
+  const playerIds = [...new Set(rows.map((row) => row.player_id).filter(Boolean))];
+  if (playerIds.length === 0) {
+    return rows;
+  }
+
+  const supabase = await createClient();
+  let query = supabase
+    .from('player_badges')
+    .select('player_id')
+    .eq('league_id', leagueId)
+    .eq('badge_type', 'championship')
+    .in('player_id', playerIds);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) {
+    return rows;
+  }
+
+  const counts = new Map<string, number>();
+  for (const badge of data as Array<{ player_id: string | null }>) {
+    if (!badge.player_id) {
+      continue;
+    }
+    counts.set(badge.player_id, (counts.get(badge.player_id) || 0) + 1);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    championships: row.championships + (counts.get(row.player_id) || 0),
+  }));
 }
 
 type AllTimeSkaterRowsResult = {
@@ -2641,6 +2688,7 @@ async function getNativeUnifiedSkaterStatsRows(
           team_name: entry.team_name,
           division_name: entry.division_name,
           position: entry.position,
+          championships: 0,
           games_played: entry.games_played,
           goals: entry.goals,
           assists: entry.assists,
@@ -2697,11 +2745,15 @@ export async function getUnifiedSkaterStatsRows(
 ): Promise<UnifiedSkaterStatsRow[]> {
   if (seasonId === null) {
     const { rows } = await buildAllTimeSkaterRows(leagueId, divisionId, leagueSlug);
-    return rows;
+    return appendNativeChampionshipCounts(leagueId, rows, null);
   }
 
   if (seasonId && isImportedAggregateSeasonId(seasonId)) {
-    return buildImportedAggregateSkaterRows(leagueId, seasonId, divisionId);
+    return appendNativeChampionshipCounts(
+      leagueId,
+      await buildImportedAggregateSkaterRows(leagueId, seasonId, divisionId),
+      seasonId,
+    );
   }
 
   if (isHistoricalCareerBaselineSeasonName(seasonName)) {
@@ -2709,7 +2761,11 @@ export async function getUnifiedSkaterStatsRows(
     return buildHistoricalBaselineSkaterRows(baselineRows);
   }
 
-  return getNativeUnifiedSkaterStatsRows(leagueId, seasonId, divisionId);
+  return appendNativeChampionshipCounts(
+    leagueId,
+    await getNativeUnifiedSkaterStatsRows(leagueId, seasonId, divisionId),
+    seasonId,
+  );
 }
 
 async function getNativeUnifiedGoalieStatsRows(
@@ -2830,6 +2886,7 @@ async function getNativeUnifiedGoalieStatsRows(
         team_name: entry.team_name,
         division_name: entry.division_name,
         position: 'Goalie',
+        championships: 0,
         games_played: entry.games_played,
         wins: entry.wins,
         losses: entry.losses,
@@ -2876,11 +2933,15 @@ export async function getUnifiedGoalieStatsRows(
 ): Promise<UnifiedGoalieStatsRow[]> {
   if (seasonId === null) {
     const { rows } = await buildAllTimeGoalieRows(leagueId, divisionId, leagueSlug);
-    return rows;
+    return appendNativeChampionshipCounts(leagueId, rows, null);
   }
 
   if (seasonId && isImportedAggregateSeasonId(seasonId)) {
-    return buildImportedAggregateGoalieRows(leagueId, seasonId, divisionId);
+    return appendNativeChampionshipCounts(
+      leagueId,
+      await buildImportedAggregateGoalieRows(leagueId, seasonId, divisionId),
+      seasonId,
+    );
   }
 
   if (isHistoricalCareerBaselineSeasonName(seasonName)) {
@@ -2888,7 +2949,11 @@ export async function getUnifiedGoalieStatsRows(
     return buildHistoricalBaselineGoalieRows(baselineRows);
   }
 
-  return getNativeUnifiedGoalieStatsRows(leagueId, seasonId, divisionId);
+  return appendNativeChampionshipCounts(
+    leagueId,
+    await getNativeUnifiedGoalieStatsRows(leagueId, seasonId, divisionId),
+    seasonId,
+  );
 }
 
 /**
