@@ -251,14 +251,6 @@ export function getMobileVisibleColumns<T extends SkaterStatKey | GoalieStatKey>
   return [...prioritized, ...overflow].slice(0, 4);
 }
 
-function RankBadge({ rank }: { rank: number }) {
-  const shared = 'inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black';
-  if (rank === 1) return <span className={`${shared} bg-amber-400/20 text-amber-300`}>1</span>;
-  if (rank === 2) return <span className={`${shared} bg-slate-300/15 text-slate-200`}>2</span>;
-  if (rank === 3) return <span className={`${shared} bg-orange-500/20 text-orange-300`}>3</span>;
-  return <span className={`${shared} bg-[var(--color-surface)] text-[var(--color-text-secondary)]`}>{rank}</span>;
-}
-
 function FilterTag({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
@@ -485,7 +477,6 @@ export function StatsWorkspace({
     return left.player_name.localeCompare(right.player_name);
   });
 
-  const rankMap = new Map(sortedRows.map((row, index) => [row.player_id, index + 1]));
   const filteredRows = normalizedSearch
     ? sortedRows.filter((row) => {
         const divisionText = row.division_name ? row.division_name.toLowerCase() : '';
@@ -500,11 +491,6 @@ export function StatsWorkspace({
   const columns = mode === 'skaters' ? SKATER_COLUMNS : GOALIE_COLUMNS;
   const visibleColumnSet = new Set(visibleColumns);
   const visibleColumnDefs = columns.filter((column) => visibleColumnSet.has(column.key));
-  const mobileVisibleColumnKeys = getMobileVisibleColumns(
-    visibleColumns,
-    (mode === 'skaters' ? SKATER_PRESETS.balanced : GOALIE_PRESETS.balanced) as Array<SkaterStatKey | GoalieStatKey>,
-  );
-  const mobileVisibleColumnDefs = columns.filter((column) => mobileVisibleColumnKeys.includes(column.key));
   const presetOptions =
     mode === 'skaters'
       ? [
@@ -851,80 +837,10 @@ export function StatsWorkspace({
               </div>
         </div>
 
-        <div className="overflow-hidden">
+        <div className="overflow-x-auto">
             {filteredRows.length > 0 ? (
               <>
-                <div className="grid gap-3 p-3 md:hidden">
-                  {filteredRows.map((row) => {
-                    const rank = rankMap.get(row.player_id) || 0;
-
-                    return (
-                      <article
-                        key={row.player_id}
-                        className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-4"
-                      >
-                        <div className="flex items-start gap-3">
-                          <RankBadge rank={rank} />
-                          <img
-                            src={row.avatar_url || '/blank_player.png'}
-                            alt={row.player_name}
-                            className="h-12 w-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Link
-                                href={`/${leagueSlug}/players/${row.player_id}`}
-                                className="truncate font-semibold text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
-                              >
-                                {row.player_name}
-                              </Link>
-                              {badges[row.player_id] && badges[row.player_id].length > 0 && (
-                                <PlayerBadgeGroup badges={badges[row.player_id]} maxVisible={2} size="sm" />
-                              )}
-                            </div>
-                            <p className="mt-1 truncate text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                              {row.division_name ? `${row.division_name} | ` : ''}
-                              {row.team_name}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          {mobileVisibleColumnDefs.map((column) => {
-                            const value =
-                              mode === 'skaters'
-                                ? formatSkaterValue(row as UnifiedSkaterStatsRow, column.key as SkaterStatKey)
-                                : formatGoalieValue(row as UnifiedGoalieStatsRow, column.key as GoalieStatKey);
-                            const valueClass =
-                              mode === 'skaters' && column.key === 'plus_minus'
-                                ? (row as UnifiedSkaterStatsRow).plus_minus > 0
-                                  ? 'text-emerald-400'
-                                  : (row as UnifiedSkaterStatsRow).plus_minus < 0
-                                    ? 'text-rose-400'
-                                    : 'text-[var(--color-text-primary)]'
-                                : currentSort === column.key
-                                  ? 'text-[var(--league-primary)]'
-                                  : 'text-[var(--color-text-primary)]';
-
-                            return (
-                              <div
-                                key={column.key}
-                                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2"
-                              >
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                                  {column.label}
-                                </p>
-                                <p className={`mt-1 text-lg font-black ${valueClass}`}>{value}</p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-
-                <div className="hidden overflow-x-auto md:block">
+                <div>
                   <table className={`w-full min-w-[980px] border-separate border-spacing-0 text-sm ${mode === 'skaters' ? 'xl:min-w-[1160px]' : 'xl:min-w-[980px]'}`}>
                     <thead>
                       <tr>
