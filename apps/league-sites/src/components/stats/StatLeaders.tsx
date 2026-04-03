@@ -129,7 +129,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
     <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-4 md:p-6">
       <div>
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-          Top 5 Leaders
+          League Leaders
         </h2>
       </div>
 

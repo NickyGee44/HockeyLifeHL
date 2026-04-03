@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
+  Maximize2,
+  Minimize2,
   Search,
   Sparkles,
   X,
@@ -87,6 +89,29 @@ interface FilterDraft {
   seasonId: string;
   statsType: StatsPresetId;
   teamId: string;
+}
+
+const ULTRA_COMPACT_STAT_COLUMN_KEYS = new Set([
+  "games_played",
+  "goals",
+  "assists",
+  "points",
+  "points_per_game",
+  "goals_per_game",
+  "assists_per_game",
+  "wins",
+  "losses",
+  "shutouts",
+  "saves",
+  "save_percentage",
+  "goals_against",
+  "goals_against_average",
+]);
+
+function getStatColumnWidthClass(columnKey: string) {
+  return ULTRA_COMPACT_STAT_COLUMN_KEYS.has(columnKey)
+    ? "w-[42px] min-w-[42px] px-0.5 md:w-[50px] md:min-w-[50px] md:px-1"
+    : "px-1 md:px-1.5";
 }
 
 const SKATER_COLUMNS: StatsTableColumn<SkaterStatKey>[] = [
@@ -531,6 +556,7 @@ export function StatsWorkspace({
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
+  const [isTableExpanded, setIsTableExpanded] = useState(false);
   const [filterDraft, setFilterDraft] = useState<FilterDraft>({
     divisionId: selectedDivisionId || "",
     position: "",
@@ -999,8 +1025,8 @@ export function StatsWorkspace({
       </div>
 
       <section className="space-y-5">
-        <div className="flex justify-start">
-          <div className="flex flex-wrap items-center justify-start gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
               <button
                 type="button"
@@ -1026,16 +1052,33 @@ export function StatsWorkspace({
                 All Time
               </button>
             </div>
+          </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsTableExpanded((current) => !current)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+              aria-label={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
+              title={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
+            >
+              {isTableExpanded ? (
+                <Minimize2 className="h-4 w-4 text-[var(--league-primary)]" />
+              ) : (
+                <Maximize2 className="h-4 w-4 text-[var(--league-primary)]" />
+              )}
+            </button>
 
             <button
               type="button"
               onClick={openFilterPanel}
-              className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3.5 py-1.5 text-[13px] font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+              aria-label="Open filters"
+              title="Open filters"
             >
-              <Filter className="h-3.5 w-3.5 text-[var(--league-primary)]" />
-              Filter
+              <Filter className="h-4 w-4 text-[var(--league-primary)]" />
               {activeFilterCount > 0 ? (
-                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 text-[10px] font-black text-[var(--color-accent-text)]">
+                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 text-[10px] font-black text-[var(--color-accent-text)]">
                   {activeFilterCount}
                 </span>
               ) : null}
@@ -1060,12 +1103,19 @@ export function StatsWorkspace({
         />
 
         {filteredRows.length > 0 ? (
-          <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)]">
-            <div className="overflow-x-auto">
-              <div>
-                <table
-                  className={`w-full min-w-[860px] border-separate border-spacing-0 text-sm ${mode === "skaters" ? "xl:min-w-[1000px]" : "xl:min-w-[860px]"}`}
-                >
+          <div className={isTableExpanded ? "md:-mx-6 xl:-mx-10 2xl:-mx-14" : ""}>
+            <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)]">
+              <div className="overflow-x-auto">
+                <div>
+                  <table
+                    className={`w-full border-separate border-spacing-0 text-sm ${
+                      isTableExpanded
+                        ? "min-w-full"
+                        : mode === "skaters"
+                          ? "min-w-[820px] xl:min-w-[940px]"
+                          : "min-w-[780px] xl:min-w-[820px]"
+                    }`}
+                  >
                   <thead>
                     <tr>
                       <th className="sticky left-0 z-30 w-[148px] min-w-[148px] max-w-[148px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[172px] md:min-w-[172px] md:max-w-[172px]">
@@ -1126,10 +1176,12 @@ export function StatsWorkspace({
                               ? "text-center"
                               : "text-left";
 
+                        const widthClass = getStatColumnWidthClass(String(column.key));
+
                         return (
                           <th
                             key={column.key}
-                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-1 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] md:px-1.5 ${alignClass}`}
+                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] ${widthClass} ${alignClass}`}
                           >
                             <button
                               type="button"
@@ -1233,10 +1285,12 @@ export function StatsWorkspace({
                                     column.key as GoalieStatKey,
                                   );
 
+                            const widthClass = getStatColumnWidthClass(String(column.key));
+
                             return (
                               <td
                                 key={column.key}
-                                className={`border-b border-[var(--color-border)] px-1 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] md:px-1.5 ${alignClass} ${sortedClass}`}
+                                className={`border-b border-[var(--color-border)] py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] ${widthClass} ${alignClass} ${sortedClass}`}
                               >
                                 <span
                                   className={
@@ -1262,6 +1316,7 @@ export function StatsWorkspace({
                     })}
                   </tbody>
                 </table>
+              </div>
               </div>
             </div>
           </div>
