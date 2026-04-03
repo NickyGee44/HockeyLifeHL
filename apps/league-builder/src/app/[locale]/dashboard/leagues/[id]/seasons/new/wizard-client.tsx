@@ -1,21 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
-import {
-  Calendar,
-  Users,
-  ClipboardList,
-  CheckCircle2,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
-  Download,
-  Check,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import type { SeasonScheduleMode, SeasonSetup } from '@/lib/onboarding/types';
 
 interface Season {
   id: string;
@@ -32,12 +22,6 @@ interface Team {
   primary_color: string | null;
 }
 
-const REGISTRATION_TYPE_LABELS: Record<string, string> = {
-  open_registration: 'Open Registration',
-  draft: 'Draft',
-  captain_invite_only: 'Captain Invite Only',
-};
-
 interface NewSeasonWizardProps {
   leagueId: string;
   leagueName: string;
@@ -46,8 +30,29 @@ interface NewSeasonWizardProps {
   locale: string;
 }
 
-const STEPS = ['info', 'teams', 'rosters', 'review'] as const;
-type Step = typeof STEPS[number];
+const STEPS = [
+  { id: 'basics', label: 'Season basics' },
+  { id: 'teams', label: 'Teams' },
+  { id: 'rosters', label: 'Players' },
+  { id: 'schedule', label: 'Schedule' },
+  { id: 'review', label: 'Review' },
+] as const;
+
+type Step = (typeof STEPS)[number]['id'];
+
+const REGISTRATION_OPTIONS: Array<{ value: SeasonSetup['registrationType']; label: string; description: string }> = [
+  { value: 'open_registration', label: 'Open registration', description: 'Players self-register through the normal flow.' },
+  { value: 'draft', label: 'Draft', description: 'Collect players first and sort teams later.' },
+  { value: 'captain_invite_only', label: 'Captain invite only', description: 'Captains or staff control roster intake.' },
+];
+
+const SCHEDULE_OPTIONS: Array<{ value: SeasonScheduleMode; label: string; description: string }> = [
+  { value: 'wizard', label: 'Build in app', description: 'Use the workspace schedule builder after launch.' },
+  { value: 'import_csv', label: 'Import CSV', description: 'Upload a schedule file after the season is created.' },
+  { value: 'build_later', label: 'Do it later', description: 'Launch now and return when teams are ready.' },
+];
+
+const INPUT = 'w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-sm text-white placeholder:text-neutral-500 outline-none transition-colors focus:border-rink-400';
 
 export default function NewSeasonWizard({
   leagueId,
@@ -56,69 +61,68 @@ export default function NewSeasonWizard({
   teams,
   locale,
 }: NewSeasonWizardProps) {
-  const t = useTranslations('season.wizard');
   const router = useRouter();
-
-  const [currentStep, setCurrentStep] = useState<Step>('info');
-  const [creating, setCreating] = useState(false);
   const hasImportableTeams = teams.length > 0;
-
-  // Form state
+  const [currentStep, setCurrentStep] = useState<Step>('basics');
+  const [creating, setCreating] = useState(false);
   const [seasonName, setSeasonName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [registrationType, setRegistrationType] = useState<'open_registration' | 'draft' | 'captain_invite_only'>('open_registration');
+  const [registrationType, setRegistrationType] = useState<SeasonSetup['registrationType']>('open_registration');
   const [registrationOpensAt, setRegistrationOpensAt] = useState('');
   const [registrationClosesAt, setRegistrationClosesAt] = useState('');
   const [carryForwardTeams, setCarryForwardTeams] = useState(hasImportableTeams);
-  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(
-    new Set(teams.map((t) => t.id))
-  );
-  const [importRosters, setImportRosters] = useState(true);
+  const [selectedTeamIds, setSelectedTeamIds] = useState<Set<string>>(new Set(teams.map((team) => team.id)));
+  const [importRosters, setImportRosters] = useState(previousSeason !== null);
   const [teamRosterImport, setTeamRosterImport] = useState<Record<string, boolean>>(
-    Object.fromEntries(teams.map((t) => [t.id, true]))
+    Object.fromEntries(teams.map((team) => [team.id, true]))
   );
+  const [gamesPerCycle, setGamesPerCycle] = useState(1);
+  const [maxPlayersPerTeam, setMaxPlayersPerTeam] = useState(18);
+  const [allowTeamSelection, setAllowTeamSelection] = useState(false);
+  const [scheduleSetupMode, setScheduleSetupMode] = useState<SeasonScheduleMode>('wizard');
 
-  const currentStepIndex = STEPS.indexOf(currentStep);
+  const stepIndex = STEPS.findIndex((step) => step.id === currentStep);
+  const isLastStep = stepIndex === STEPS.length - 1;
 
-  const goToNextStep = () => {
-    const nextIndex = currentStepIndex + 1;
-    if (nextIndex < STEPS.length) {
-      setCurrentStep(STEPS[nextIndex]);
+  function canProceed() {
+    if (currentStep === 'basics') return seasonName.trim() !== '' && startDate !== '' && endDate !== '';
+    if (currentStep === 'teams') return !carryForwardTeams || !hasImportableTeams || selectedTeamIds.size > 0;
+    if (currentStep === 'schedule') return gamesPerCycle > 0 && maxPlayersPerTeam > 0;
+    return true;
+  }
+
+  function next() {
+    const nextStep = STEPS[stepIndex + 1];
+    if (nextStep) setCurrentStep(nextStep.id);
+  }
+
+  function back() {
+    const prevStep = STEPS[stepIndex - 1];
+    if (prevStep) {
+      setCurrentStep(prevStep.id);
+      return;
     }
-  };
+    router.push(`/${locale}/dashboard/leagues/${leagueId}`);
+  }
 
-  const goToPreviousStep = () => {
-    const prevIndex = currentStepIndex - 1;
-    if (prevIndex >= 0) {
-      setCurrentStep(STEPS[prevIndex]);
-    }
-  };
-
-  const toggleTeam = (teamId: string) => {
-    setSelectedTeamIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(teamId)) {
-        newSet.delete(teamId);
+  function toggleTeam(teamId: string) {
+    setSelectedTeamIds((current) => {
+      const next = new Set(current);
+      if (next.has(teamId)) {
+        next.delete(teamId);
       } else {
-        newSet.add(teamId);
+        next.add(teamId);
       }
-      return newSet;
+      return next;
     });
-  };
+  }
 
-  const toggleTeamRosterImport = (teamId: string) => {
-    setTeamRosterImport((prev) => ({
-      ...prev,
-      [teamId]: !prev[teamId],
-    }));
-  };
-
-  const handleCreate = async () => {
+  async function handleCreate() {
+    if (creating) return;
     setCreating(true);
 
     try {
-      // Create the season via API
       const response = await fetch(`/api/leagues/${leagueId}/seasons`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,7 +137,11 @@ export default function NewSeasonWizard({
           selected_team_ids: Array.from(selectedTeamIds),
           import_rosters: importRosters,
           team_roster_import: teamRosterImport,
-          previous_season_id: previousSeason?.id,
+          previous_season_id: previousSeason?.id ?? null,
+          games_per_cycle: gamesPerCycle,
+          max_players_per_team: maxPlayersPerTeam,
+          allow_team_selection: allowTeamSelection,
+          schedule_setup_mode: scheduleSetupMode,
         }),
       });
 
@@ -143,527 +151,242 @@ export default function NewSeasonWizard({
       }
 
       const data = await response.json();
-
-      toast.success('Season created successfully!');
-      router.push(`/${locale}/dashboard/leagues/${leagueId}/schedule?season=${data.id}`);
+      toast.success('Season created. Opening the workspace.');
+      router.push(`/${locale}/dashboard/leagues/${leagueId}/seasons/${data.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create season');
       setCreating(false);
     }
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 'info':
-        return seasonName.trim() !== '' && startDate !== '' && endDate !== '';
-      case 'teams':
-        return !carryForwardTeams || !hasImportableTeams || selectedTeamIds.size > 0;
-      case 'rosters':
-        return true;
-      case 'review':
-        return true;
-      default:
-        return false;
-    }
-  };
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white tracking-tight mb-2">
-          {t('step1')} for {leagueName}
-        </h1>
-        <p className="text-neutral-400">
-          Create a new season, bring teams forward without carrying players, and import rosters only when you want them.
-        </p>
-      </div>
-
-      {/* Progress Steps */}
-      <div className="flex items-center justify-between">
-        {STEPS.map((step, index) => {
-          const isActive = currentStepIndex === index;
-          const isCompleted = currentStepIndex > index;
-
-          return (
-            <div key={step} className="flex items-center">
-              <div
-                className={cn(
-                  'flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm',
-                  isActive && 'bg-rink-500 text-black',
-                  isCompleted && 'bg-green-500 text-black',
-                  !isActive && !isCompleted && 'bg-neutral-800 text-neutral-500'
-                )}
-              >
-                {isCompleted ? <Check className="w-5 h-5" /> : index + 1}
-              </div>
-              <span
-                className={cn(
-                  'ml-3 text-sm font-medium hidden sm:block',
-                  isActive && 'text-white',
-                  isCompleted && 'text-green-500',
-                  !isActive && !isCompleted && 'text-neutral-500'
-                )}
-              >
-                {t(`step${index + 1}`)}
-              </span>
-              {index < STEPS.length - 1 && (
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid gap-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 backdrop-blur-xl lg:grid-cols-[260px_minmax(0,1fr)] sm:p-7">
+        <aside className="rounded-[24px] border border-white/[0.08] bg-neutral-950/70 p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-rink-300/80">Phase 2</p>
+          <h1 className="mt-3 text-2xl font-black text-white">Create the first season.</h1>
+          <p className="mt-3 text-sm leading-6 text-neutral-400">
+            Keep this focused. Advanced modules stay available later inside the season workspace.
+          </p>
+          <div className="mt-6 space-y-3">
+            {STEPS.map((step, index) => {
+              const active = index === stepIndex;
+              const complete = index < stepIndex;
+              return (
                 <div
+                  key={step.id}
                   className={cn(
-                    'w-12 sm:w-24 h-0.5 mx-4',
-                    isCompleted ? 'bg-green-500' : 'bg-neutral-800'
+                    'rounded-2xl border px-4 py-3',
+                    active ? 'border-rink-400/40 bg-rink-500/10' : complete ? 'border-emerald-400/30 bg-emerald-500/10' : 'border-white/[0.06] bg-white/[0.02]'
                   )}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Step Content */}
-      <div className="bg-white/[0.04] border border-white/10 rounded-2xl p-6">
-        {/* Step 1: Season Info */}
-        {currentStep === 'info' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-rink-500/10">
-                <Calendar className="w-5 h-5 text-rink-500" />
-              </div>
-              <h2 className="text-lg font-bold text-white">{t('step1')}</h2>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                {t('seasonName')}
-              </label>
-              <input
-                type="text"
-                value={seasonName}
-                onChange={(e) => setSeasonName(e.target.value)}
-                placeholder="e.g., Winter 2025"
-                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  {t('startDate')}
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  {t('endDate')}
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Registration Type
-              </label>
-              <select
-                value={registrationType}
-                onChange={(e) =>
-                  setRegistrationType(
-                    e.target.value as 'open_registration' | 'draft' | 'captain_invite_only'
-                  )
-                }
-                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
-              >
-                <option value="open_registration">Open Registration</option>
-                <option value="draft">Draft</option>
-                <option value="captain_invite_only">Captain Invite Only</option>
-              </select>
-            </div>
-
-            <div className="rounded-xl border border-rink-500/20 bg-rink-500/5 p-4 text-sm text-neutral-300">
-              Leave the season in Pre-Season and set registration dates here if you want players
-              registering and paying before the first game is scheduled.
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Registration Opens
-                </label>
-                <input
-                  type="datetime-local"
-                  value={registrationOpensAt}
-                  onChange={(e) => setRegistrationOpensAt(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Registration Closes
-                </label>
-                <input
-                  type="datetime-local"
-                  value={registrationClosesAt}
-                  onChange={(e) => setRegistrationClosesAt(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:outline-none focus:border-rink-500 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Teams */}
-        {currentStep === 'teams' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-rink-500/10">
-                <Users className="w-5 h-5 text-rink-500" />
-              </div>
-              <h2 className="text-lg font-bold text-white">{t('step2')}</h2>
-            </div>
-
-            {/* Toggle for carry forward */}
-            <div className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-xl">
-              <div>
-                <h3 className="font-medium text-white">{t('carryForwardTeams')}</h3>
-                <p className="text-sm text-neutral-400">
-                  Bring previous-season teams into this season. Players still register again each season.
-                </p>
-              </div>
-              <button
-                onClick={() => hasImportableTeams && setCarryForwardTeams(!carryForwardTeams)}
-                disabled={!hasImportableTeams}
-                className={cn(
-                  'relative w-12 h-6 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                  carryForwardTeams ? 'bg-rink-500' : 'bg-neutral-700'
-                )}
-              >
-                <div
-                  className={cn(
-                    'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-                    carryForwardTeams ? 'translate-x-7' : 'translate-x-1'
-                  )}
-                />
-              </button>
-            </div>
-
-            {!hasImportableTeams && (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-                No previous-season teams were found to copy into this season. You can continue with an empty season and import teams later if they decide to join.
-              </div>
-            )}
-
-            {carryForwardTeams && hasImportableTeams && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-neutral-400">
-                    Select teams ({selectedTeamIds.size} / {teams.length})
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedTeamIds(new Set(teams.map((t) => t.id)))}
-                      className="text-xs text-rink-500 hover:text-rink-400"
-                    >
-                      Select All
-                    </button>
-                    <span className="text-neutral-600">|</span>
-                    <button
-                      onClick={() => setSelectedTeamIds(new Set())}
-                      className="text-xs text-neutral-400 hover:text-neutral-300"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid gap-2 md:grid-cols-2">
-                  {teams.map((team) => {
-                    const isSelected = selectedTeamIds.has(team.id);
-                    return (
-                      <button
-                        key={team.id}
-                        onClick={() => toggleTeam(team.id)}
-                        className={cn(
-                          'flex items-center gap-3 p-3 rounded-xl transition-colors text-left',
-                          isSelected
-                            ? 'bg-rink-500/10 border border-rink-500/30'
-                            : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'w-5 h-5 rounded flex items-center justify-center flex-shrink-0',
-                            isSelected ? 'bg-rink-500 text-white' : 'bg-neutral-700'
-                          )}
-                        >
-                          {isSelected && <CheckCircle2 className="w-4 h-4" />}
-                        </div>
-                        <span className="font-medium text-white">{team.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {!carryForwardTeams && (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-neutral-300">
-                You can create the season now and import teams later from the season dashboard. Importing teams does not carry forward players or fees.
-              </div>
-            )}
-
-            {!carryForwardTeams && (
-              <div className="text-center py-8 bg-neutral-800/50 rounded-xl">
-                <p className="text-neutral-400">{t('startFresh')}</p>
-                <p className="text-sm text-neutral-500 mt-2">
-                  You can import teams from the season dashboard or add them manually after the season is created.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 3: Rosters */}
-        {currentStep === 'rosters' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-rink-500/10">
-                <ClipboardList className="w-5 h-5 text-rink-500" />
-              </div>
-              <h2 className="text-lg font-bold text-white">{t('step3')}</h2>
-            </div>
-
-            {!previousSeason ? (
-              <div className="text-center py-8 bg-neutral-800/50 rounded-xl">
-                <p className="text-neutral-400">No previous season to import from.</p>
-                <p className="text-sm text-neutral-500 mt-2">
-                  Rosters will start empty. Players can join teams after the season is created.
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Toggle for import rosters */}
-                <div className="flex items-center justify-between p-4 bg-neutral-800/50 rounded-xl">
-                  <div>
-                    <h3 className="font-medium text-white">{t('importRosters')}</h3>
-                    <p className="text-sm text-neutral-400">
-                      Import player rosters from {previousSeason.name}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setImportRosters(!importRosters)}
-                    className={cn(
-                      'relative w-12 h-6 rounded-full transition-colors',
-                      importRosters ? 'bg-rink-500' : 'bg-neutral-700'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-                        importRosters ? 'translate-x-7' : 'translate-x-1'
-                      )}
-                    />
-                  </button>
-                </div>
-
-                {importRosters && selectedTeamIds.size > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm text-neutral-400">
-                        Per-team roster import
-                      </span>
-                      <button
-                        onClick={() =>
-                          setTeamRosterImport(
-                            Object.fromEntries(
-                              Array.from(selectedTeamIds).map((id) => [id, true])
-                            )
-                          )
-                        }
-                        className="text-xs text-rink-500 hover:text-rink-400"
-                      >
-                        {t('importAll')}
-                      </button>
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn('flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold', active ? 'bg-rink-400 text-black' : complete ? 'bg-emerald-400 text-black' : 'bg-neutral-800 text-neutral-400')}>
+                      {complete ? <Check className="h-4 w-4" /> : index + 1}
                     </div>
+                    <p className="text-sm font-semibold text-white">{step.label}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
 
-                    <div className="space-y-2">
-                      {teams
-                        .filter((team) => selectedTeamIds.has(team.id))
-                        .map((team) => {
+        <section className="flex flex-col">
+          <div className="mb-6 border-b border-white/[0.08] pb-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-neutral-500">{STEPS[stepIndex].label}</p>
+            <h2 className="mt-2 text-3xl font-black text-white">{leagueName}</h2>
+          </div>
+
+          <div className="min-h-[420px] space-y-6">
+            {currentStep === 'basics' ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Season name"><input value={seasonName} onChange={(e) => setSeasonName(e.target.value)} className={INPUT} placeholder="Winter 2026" /></Field>
+                  <Card title="Season launch">Create the operating shell first. Waivers, officials, playoffs, and stats stay in the follow-up checklist.</Card>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Start date"><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={INPUT} /></Field>
+                  <Field label="End date"><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={INPUT} /></Field>
+                </div>
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {REGISTRATION_OPTIONS.map((option) => (
+                    <ChoiceCard key={option.value} title={option.label} description={option.description} selected={registrationType === option.value} onClick={() => setRegistrationType(option.value)} />
+                  ))}
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Registration opens"><input type="datetime-local" value={registrationOpensAt} onChange={(e) => setRegistrationOpensAt(e.target.value)} className={INPUT} /></Field>
+                  <Field label="Registration closes"><input type="datetime-local" value={registrationClosesAt} onChange={(e) => setRegistrationClosesAt(e.target.value)} className={INPUT} /></Field>
+                </div>
+              </>
+            ) : null}
+
+            {currentStep === 'teams' ? (
+              <>
+                <ToggleRow title="Carry teams forward" description="Copy participating teams into this season without forcing player carry-forward." checked={carryForwardTeams} disabled={!hasImportableTeams} onClick={() => hasImportableTeams && setCarryForwardTeams((v) => !v)} />
+                {!hasImportableTeams ? <Notice tone="warn">No prior teams are available yet. You can create the season now and add teams later.</Notice> : null}
+                {carryForwardTeams && hasImportableTeams ? (
+                  <>
+                    <div className="flex items-center justify-between text-sm text-neutral-400">
+                      <span>{selectedTeamIds.size} of {teams.length} teams selected</span>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setSelectedTeamIds(new Set(teams.map((team) => team.id)))} className="text-rink-400 hover:text-rink-300">Select all</button>
+                        <button type="button" onClick={() => setSelectedTeamIds(new Set())} className="text-neutral-400 hover:text-white">Clear</button>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {teams.map((team) => {
+                        const selected = selectedTeamIds.has(team.id);
+                        return (
+                          <button key={team.id} type="button" onClick={() => toggleTeam(team.id)} className={cn('rounded-2xl border p-4 text-left', selected ? 'border-rink-400/30 bg-rink-500/10' : 'border-white/[0.08] bg-neutral-950/40 hover:border-white/20')}>
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-white">{team.name}</p>
+                                <p className="text-xs text-neutral-500">{team.short_name}</p>
+                              </div>
+                              <span className={cn('flex h-7 w-7 items-center justify-center rounded-full border', selected ? 'border-rink-400 bg-rink-500 text-black' : 'border-white/10 bg-neutral-900 text-neutral-600')}>{selected ? <Check className="h-4 w-4" /> : null}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : null}
+                {!carryForwardTeams ? <Card title="Start fresh">Launch the season first and import or create teams afterward from the workspace.</Card> : null}
+              </>
+            ) : null}
+
+            {currentStep === 'rosters' ? (
+              <>
+                {!previousSeason ? <Card title="No previous season">Rosters will start empty. Players can be imported or added later.</Card> : null}
+                {previousSeason ? (
+                  <>
+                    <ToggleRow title="Import player rosters" description={`Pull rosters forward from ${previousSeason.name}.`} checked={importRosters} onClick={() => setImportRosters((v) => !v)} />
+                    {importRosters && selectedTeamIds.size > 0 ? (
+                      <div className="space-y-2">
+                        {teams.filter((team) => selectedTeamIds.has(team.id)).map((team) => {
                           const willImport = teamRosterImport[team.id] ?? true;
                           return (
-                            <button
-                              key={team.id}
-                              onClick={() => toggleTeamRosterImport(team.id)}
-                              className={cn(
-                                'w-full flex items-center justify-between p-3 rounded-xl transition-colors',
-                                willImport
-                                  ? 'bg-rink-500/10 border border-rink-500/30'
-                                  : 'bg-neutral-800/50 border border-transparent hover:bg-neutral-800'
-                              )}
-                            >
-                              <span className="font-medium text-white">{team.name}</span>
-                              <div className="flex items-center gap-2">
-                                {willImport && (
-                                  <span className="text-xs text-green-500 flex items-center gap-1">
-                                    <Download className="w-3 h-3" />
-                                    Will import
-                                  </span>
-                                )}
-                                <div
-                                  className={cn(
-                                    'w-5 h-5 rounded flex items-center justify-center',
-                                    willImport ? 'bg-rink-500 text-white' : 'bg-neutral-700'
-                                  )}
-                                >
-                                  {willImport && <Check className="w-4 h-4" />}
-                                </div>
+                            <button key={team.id} type="button" onClick={() => setTeamRosterImport((current) => ({ ...current, [team.id]: !willImport }))} className={cn('flex w-full items-center justify-between rounded-2xl border p-4 text-left', willImport ? 'border-rink-400/30 bg-rink-500/10' : 'border-white/[0.08] bg-neutral-950/40 hover:border-white/20')}>
+                              <div>
+                                <p className="text-sm font-semibold text-white">{team.name}</p>
+                                <p className="text-xs text-neutral-500">{willImport ? 'Roster will be imported' : 'Roster will start empty'}</p>
                               </div>
+                              <span className="text-xs text-neutral-400">{willImport ? 'Import' : 'Skip'}</span>
                             </button>
                           );
                         })}
-                    </div>
-                  </div>
-                )}
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
               </>
-            )}
-          </div>
-        )}
+            ) : null}
 
-        {/* Step 4: Review */}
-        {currentStep === 'review' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-xl bg-rink-500/10">
-                <CheckCircle2 className="w-5 h-5 text-rink-500" />
-              </div>
-              <h2 className="text-lg font-bold text-white">{t('step4')}</h2>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-neutral-800/50 rounded-xl p-4">
-                <h3 className="text-sm text-neutral-400 mb-1">Season Name</h3>
-                <p className="font-medium text-white">{seasonName}</p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="bg-neutral-800/50 rounded-xl p-4">
-                  <h3 className="text-sm text-neutral-400 mb-1">Start Date</h3>
-                  <p className="font-medium text-white">
-                    {new Date(startDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="bg-neutral-800/50 rounded-xl p-4">
-                  <h3 className="text-sm text-neutral-400 mb-1">End Date</h3>
-                  <p className="font-medium text-white">
-                    {new Date(endDate).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-neutral-800/50 rounded-xl p-4">
-                <h3 className="text-sm text-neutral-400 mb-1">Teams</h3>
-                <p className="font-medium text-white">
-                  {carryForwardTeams
-                    ? `${selectedTeamIds.size} teams will be carried forward`
-                    : 'Starting fresh with no teams'}
-                </p>
-              </div>
-
-              <div className="bg-neutral-800/50 rounded-xl p-4">
-                <h3 className="text-sm text-neutral-400 mb-1">Registration</h3>
-                <p className="font-medium text-white">
-                  {REGISTRATION_TYPE_LABELS[registrationType] ?? registrationType}
-                </p>
-                <p className="mt-2 text-sm text-neutral-400">
-                  {registrationOpensAt
-                    ? `Opens ${new Date(registrationOpensAt).toLocaleString()}`
-                    : 'Opens when you are ready'}
-                  {registrationClosesAt
-                    ? ` • Closes ${new Date(registrationClosesAt).toLocaleString()}`
-                    : ''}
-                </p>
-              </div>
-
-              {previousSeason && (
-                <div className="bg-neutral-800/50 rounded-xl p-4">
-                  <h3 className="text-sm text-neutral-400 mb-1">Roster Import</h3>
-                  <p className="font-medium text-white">
-                    {importRosters
-                      ? `Rosters will be imported for ${Object.values(teamRosterImport).filter(Boolean).length} teams`
-                      : 'No rosters will be imported'}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={goToPreviousStep}
-          disabled={currentStepIndex === 0}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-colors',
-            currentStepIndex === 0
-              ? 'text-neutral-600 cursor-not-allowed'
-              : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-          )}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </button>
-
-        {currentStep === 'review' ? (
-          <button
-            onClick={handleCreate}
-            disabled={creating}
-            className={cn(
-              'flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all',
-              creating
-                ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20'
-            )}
-          >
-            {creating ? (
+            {currentStep === 'schedule' ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {t('creating')}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Games per cycle"><input type="number" min={1} value={gamesPerCycle} onChange={(e) => setGamesPerCycle(Number(e.target.value) || 1)} className={INPUT} /></Field>
+                  <Field label="Max players per team"><input type="number" min={1} value={maxPlayersPerTeam} onChange={(e) => setMaxPlayersPerTeam(Number(e.target.value) || 1)} className={INPUT} /></Field>
+                </div>
+                <ToggleRow title="Allow players to choose teams" description="Use this if players should select a team during registration." checked={allowTeamSelection} onClick={() => setAllowTeamSelection((v) => !v)} />
+                <div className="grid gap-3 lg:grid-cols-3">
+                  {SCHEDULE_OPTIONS.map((option) => (
+                    <ChoiceCard key={option.value} title={option.label} description={option.description} selected={scheduleSetupMode === option.value} onClick={() => setScheduleSetupMode(option.value)} />
+                  ))}
+                </div>
               </>
+            ) : null}
+
+            {currentStep === 'review' ? (
+              <div className="space-y-4">
+                <SummaryCard title="Season basics" rows={[['Name', seasonName], ['Dates', `${formatDate(startDate)} to ${formatDate(endDate)}`], ['Registration', REGISTRATION_OPTIONS.find((option) => option.value === registrationType)?.label ?? registrationType]]} />
+                <SummaryCard title="Teams and players" rows={[['Carry forward teams', carryForwardTeams ? `${selectedTeamIds.size} selected` : 'No'], ['Import rosters', importRosters ? `${Object.values(teamRosterImport).filter(Boolean).length} selected` : 'No']]} />
+                <SummaryCard title="Schedule baseline" rows={[['Games per cycle', String(gamesPerCycle)], ['Max players per team', String(maxPlayersPerTeam)], ['Team choice', allowTeamSelection ? 'Players choose teams' : 'Staff assign teams'], ['Schedule plan', SCHEDULE_OPTIONS.find((option) => option.value === scheduleSetupMode)?.label ?? scheduleSetupMode]]} />
+                <Card title="What happens next">You will land in the season workspace home with a checklist for teams, players, waivers, officials, schedule, playoffs, stats, website/content, and migration.</Card>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-8 flex items-center justify-between border-t border-white/[0.08] pt-5">
+            <button type="button" onClick={back} className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-neutral-400 hover:bg-white/[0.04] hover:text-white">
+              <ArrowLeft className="h-4 w-4" />
+              {stepIndex === 0 ? 'Back to league hub' : 'Back'}
+            </button>
+            {isLastStep ? (
+              <button type="button" disabled={creating} onClick={handleCreate} className={cn('inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold', creating ? 'cursor-not-allowed bg-neutral-800 text-neutral-500' : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20')}>
+                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Create season
+              </button>
             ) : (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                {t('reviewAndCreate')}
-              </>
+              <button type="button" disabled={!canProceed()} onClick={next} className={cn('inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold', !canProceed() ? 'cursor-not-allowed bg-neutral-800 text-neutral-500' : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20')}>
+                Continue
+                <ArrowRight className="h-4 w-4" />
+              </button>
             )}
-          </button>
-        ) : (
-          <button
-            onClick={goToNextStep}
-            disabled={!canProceed()}
-            className={cn(
-              'flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all',
-              !canProceed()
-                ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-rink-500 to-arena-500 text-black hover:shadow-lg hover:shadow-rink-500/20'
-            )}
-          >
-            Next
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        )}
+          </div>
+        </section>
       </div>
     </div>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-neutral-200">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="rounded-[24px] border border-white/[0.08] bg-neutral-950/40 p-5"><p className="text-sm font-semibold text-white">{title}</p><p className="mt-2 text-sm leading-6 text-neutral-400">{children}</p></div>;
+}
+
+function ToggleRow({ title, description, checked, onClick, disabled }: { title: string; description: string; checked: boolean; onClick: () => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded-[24px] border border-white/[0.08] bg-neutral-950/40 p-5">
+      <div><p className="text-sm font-semibold text-white">{title}</p><p className="mt-2 text-sm leading-6 text-neutral-400">{description}</p></div>
+      <button type="button" disabled={disabled} onClick={onClick} className={cn('relative h-7 w-14 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50', checked ? 'bg-rink-500' : 'bg-neutral-700')}>
+        <span className={cn('absolute top-1 h-5 w-5 rounded-full bg-white transition-transform', checked ? 'translate-x-8' : 'translate-x-1')} />
+      </button>
+    </div>
+  );
+}
+
+function ChoiceCard({ title, description, selected, onClick }: { title: string; description: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={cn('rounded-[24px] border p-5 text-left', selected ? 'border-rink-400/30 bg-rink-500/10' : 'border-white/[0.08] bg-neutral-950/40 hover:border-white/20')}>
+      <div className="flex items-start justify-between gap-3">
+        <div><p className="text-sm font-semibold text-white">{title}</p><p className="mt-2 text-sm leading-6 text-neutral-400">{description}</p></div>
+        <span className={cn('flex h-7 w-7 items-center justify-center rounded-full border', selected ? 'border-rink-400 bg-rink-500 text-black' : 'border-white/10 bg-neutral-900 text-neutral-600')}>{selected ? <Check className="h-4 w-4" /> : null}</span>
+      </div>
+    </button>
+  );
+}
+
+function Notice({ tone, children }: { tone: 'warn'; children: React.ReactNode }) {
+  return <div className={cn('rounded-2xl border p-4 text-sm', tone === 'warn' ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : '')}>{children}</div>;
+}
+
+function SummaryCard({ title, rows }: { title: string; rows: Array<[string, string]> }) {
+  return (
+    <div className="rounded-[24px] border border-white/[0.08] bg-neutral-950/40 p-5">
+      <p className="text-sm font-semibold text-white">{title}</p>
+      <div className="mt-4 space-y-3">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-start justify-between gap-4 border-b border-white/[0.06] pb-3 last:border-b-0 last:pb-0">
+            <span className="text-sm text-neutral-500">{label}</span>
+            <span className="text-right text-sm font-medium text-white">{value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function formatDate(value: string) {
+  if (!value) return 'Not set';
+  return new Date(value).toLocaleDateString();
 }

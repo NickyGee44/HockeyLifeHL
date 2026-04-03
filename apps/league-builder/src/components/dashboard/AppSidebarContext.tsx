@@ -2,6 +2,11 @@
 
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
+import {
+  buildDashboardNavigation,
+  getDashboardAutoExpandedGroups,
+} from '@/lib/dashboard/navigation';
 
 export type NavigationScope = 'org' | 'league' | 'season';
 
@@ -52,6 +57,8 @@ function deriveScope(leagueId: string | null, seasonId: string | null): Navigati
 
 export function AppSidebarProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations('navigation');
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
   const [isMobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
 
@@ -59,34 +66,23 @@ export function AppSidebarProvider({ children }: { children: React.ReactNode }) 
   const leagueId = React.useMemo(() => extractLeagueIdFromPath(pathname), [pathname]);
   const seasonId = React.useMemo(() => extractSeasonIdFromPath(pathname), [pathname]);
   const scope = React.useMemo(() => deriveScope(leagueId, seasonId), [leagueId, seasonId]);
+  const navigation = React.useMemo(
+    () =>
+      buildDashboardNavigation({
+        locale: '',
+        leagueId,
+        seasonId,
+        isSubscribed: true,
+        captainTeams: [],
+        isPlatformAdmin: false,
+        t,
+      }),
+    [leagueId, seasonId, t]
+  );
 
   // Auto-expand groups when navigating to a child page
   React.useEffect(() => {
-    const path = pathname.replace(/^\/[a-z]{2}/, ''); // strip locale
-    const autoExpand = new Set<string>();
-
-    if (path.includes('/news') || path.includes('/pages') || path.includes('/sponsors') ||
-        path.includes('/gallery') || path.includes('/events') || path.includes('/awards')) {
-      autoExpand.add('content');
-    }
-    if (path.includes('/payments') || path.includes('/billing') || path.includes('/finance')) {
-      autoExpand.add('financials');
-    }
-    if (path.includes('/registrations') || path.includes('/teams') || path.includes('/rosters') || path.includes('/players')) {
-      autoExpand.add('season-registrations');
-    }
-    if (path.includes('/schedule') || path.includes('/games') || path.includes('/scorekeeper-schedule') || path.includes('/scorekeepers')) {
-      autoExpand.add('season-game-ops');
-    }
-    if (path.includes('/standings') || path.includes('/ratings') || path.includes('/eligibility') || path.includes('/draft')) {
-      autoExpand.add('season-competition');
-    }
-    if (path.includes('/seasons/') && path.includes('/edit')) {
-      autoExpand.add('season-settings');
-    }
-    if (path.includes('/settings/')) {
-      autoExpand.add('league-settings');
-    }
+    const autoExpand = getDashboardAutoExpandedGroups(pathname, locale, navigation);
 
     if (autoExpand.size > 0) {
       setExpandedGroups((prev) => {
@@ -95,7 +91,7 @@ export function AppSidebarProvider({ children }: { children: React.ReactNode }) 
         return next;
       });
     }
-  }, [pathname]);
+  }, [locale, navigation, pathname]);
 
   // Close mobile sidebar on navigation
   React.useEffect(() => {

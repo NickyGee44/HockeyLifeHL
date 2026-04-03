@@ -3,9 +3,7 @@ import { redirect } from 'next/navigation';
 import { getLocale } from 'next-intl/server';
 import { getCaptainTeams } from '@/lib/actions/captain';
 import { getCachedDashboardData } from '@/lib/actions/dashboard';
-import { getSetupIssues } from '@/lib/actions/setup-status';
 import { getCurrentUser } from '@/lib/actions/auth';
-import { createClient } from '@/lib/supabase/server';
 import { hasPlatformSubscription } from '@/lib/utils/addon-helpers';
 import DashboardLayoutClient from '@/components/dashboard/DashboardLayoutClient';
 import { PostHogIdentifier } from '@/components/analytics/PostHogIdentifier';
@@ -28,11 +26,10 @@ export default async function DashboardLayout({
   // If user has no memberships at all and no org ownership, they might be new — allow dashboard
   // (the dashboard handles empty state with "Create your first league" CTA)
 
-  // Fetch captain teams, dashboard data, and setup issues in parallel
-  const [captainTeamsResult, dashboardData, setupIssues] = await Promise.all([
+  // Fetch captain teams and dashboard data in parallel
+  const [captainTeamsResult, dashboardData] = await Promise.all([
     getCaptainTeams(),
     getCachedDashboardData(),
-    getSetupIssues(),
   ]);
   const captainTeams = captainTeamsResult.data || [];
 
@@ -54,7 +51,6 @@ export default async function DashboardLayout({
       <DashboardLayoutClient
         captainTeams={captainTeams}
         dashboardData={dashboardData}
-        setupIssues={setupIssues}
         isSubscribed={isSubscribed}
         isPlatformAdmin={isPlatformAdmin}
         ownerViewLeagueId={ownerView?.leagueId ?? null}

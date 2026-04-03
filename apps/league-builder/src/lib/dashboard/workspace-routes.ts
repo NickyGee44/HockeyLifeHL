@@ -1,5 +1,4 @@
 export type DashboardWorkspaceScope = 'organization' | 'league' | 'season';
-export type TeamDetailSource = 'season-rosters';
 
 export type SeasonWorkspaceRouteKey =
   | 'home'
@@ -10,6 +9,7 @@ export type SeasonWorkspaceRouteKey =
   | 'schedule'
   | 'games'
   | 'standings'
+  | 'playoffs'
   | 'ratings'
   | 'eligibility'
   | 'draft'
@@ -25,6 +25,7 @@ const SEASON_ROUTE_SUFFIX: Record<SeasonWorkspaceRouteKey, string> = {
   schedule: '/schedule',
   games: '/games',
   standings: '/standings',
+  playoffs: '/playoffs',
   ratings: '/ratings',
   eligibility: '/eligibility',
   draft: '/draft',
@@ -41,7 +42,7 @@ export function buildDashboardHomeHref(locale: string) {
 }
 
 export function buildLeagueHubHref(locale: string, leagueId: string) {
-  return `/${locale}/dashboard/leagues/${leagueId}`;
+  return `${localePrefix(locale)}/dashboard/leagues/${leagueId}`;
 }
 
 export function buildLeagueSeasonsHref(locale: string, leagueId: string) {
@@ -55,50 +56,6 @@ export function buildSeasonWorkspaceHref(
   route: SeasonWorkspaceRouteKey = 'home'
 ) {
   return `${buildLeagueSeasonsHref(locale, leagueId)}/${seasonId}${SEASON_ROUTE_SUFFIX[route]}`;
-}
-
-export function buildTeamDetailHref(params: {
-  locale: string;
-  teamId: string;
-  tab?: string;
-  leagueId?: string | null;
-  seasonId?: string | null;
-  from?: TeamDetailSource | string | null;
-}) {
-  const searchParams = new URLSearchParams();
-
-  if (params.tab) {
-    searchParams.set('tab', params.tab);
-  }
-
-  if (params.leagueId) {
-    searchParams.set('leagueId', params.leagueId);
-  }
-
-  if (params.seasonId) {
-    searchParams.set('seasonId', params.seasonId);
-  }
-
-  if (params.from) {
-    searchParams.set('from', params.from);
-  }
-
-  const basePath = `${localePrefix(params.locale)}/dashboard/teams/${params.teamId}`;
-  const query = searchParams.toString();
-
-  return query ? `${basePath}?${query}` : basePath;
-}
-
-export function buildTeamDetailBackHref(params: {
-  leagueId: string;
-  seasonId?: string | null;
-  from?: string | null;
-}) {
-  if (params.from === 'season-rosters' && params.seasonId) {
-    return `/dashboard/leagues/${params.leagueId}/seasons/${params.seasonId}/rosters`;
-  }
-
-  return `/dashboard/leagues/${params.leagueId}/teams-divisions`;
 }
 
 function normalizePathname(pathname: string, locale: string) {
@@ -124,6 +81,7 @@ export function resolveSeasonRouteKeyFromPathname(
     [`/dashboard/leagues/${leagueId}/teams`, 'teams'],
     [`/dashboard/leagues/${leagueId}/games`, 'games'],
     [`/dashboard/leagues/${leagueId}/standings`, 'standings'],
+    [`/dashboard/leagues/${leagueId}/playoffs`, 'playoffs'],
     [`/dashboard/leagues/${leagueId}/ratings`, 'ratings'],
     [`/dashboard/leagues/${leagueId}/eligibility`, 'eligibility'],
     [`/dashboard/leagues/${leagueId}/draft`, 'draft'],
@@ -152,6 +110,7 @@ export function resolveSeasonRouteKeyFromPathname(
     ['/schedule', 'schedule'],
     ['/games', 'games'],
     ['/standings', 'standings'],
+    ['/playoffs', 'playoffs'],
     ['/ratings', 'ratings'],
     ['/eligibility', 'eligibility'],
     ['/draft', 'draft'],

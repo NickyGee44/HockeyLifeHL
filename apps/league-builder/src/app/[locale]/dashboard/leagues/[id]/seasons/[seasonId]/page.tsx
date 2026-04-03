@@ -1,28 +1,20 @@
-/**
- * Season Detail Page
- *
- * Dashboard hub for managing a specific season within a league.
- */
-
-import { setRequestLocale } from 'next-intl/server';
-import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import { cn } from '@hockey-life/ui';
 import {
   ArrowLeft,
-  Calendar,
-  Trophy,
-  Users,
-  ClipboardList,
+  ArrowRight,
   BarChart3,
-  Settings,
+  Calendar,
+  CheckCircle2,
+  Edit,
   Play,
+  Trophy,
   UserPlus,
-  Edit } from 'lucide-react';
-import { SeasonFeeManager } from '@/components/payments/SeasonFeeManager';
-import { getSeasonFees } from '@/lib/payments/fee-actions';
-import { PlayoffBracketClient } from '@/components/playoffs';
-import { getPlayoffBracket } from '@/lib/actions/playoff-bracket';
+  Users,
+} from 'lucide-react';
+import { SetupChecklistCard } from '@/components/onboarding/SetupChecklistCard';
 import { StatsExportButton } from '@/components/seasons/StatsExportButton';
 import { SeasonStatusTransitionButton } from '@/components/seasons/SeasonStatusTransitionButton';
 import { ImportSeasonTeamsButton } from '@/components/seasons/ImportSeasonTeamsButton';
@@ -37,21 +29,24 @@ import {
   buildLeagueHubHref,
   buildSeasonWorkspaceHref,
 } from '@/lib/dashboard/workspace-routes';
+import { buildSeasonWorkspaceChecklistState } from '@/lib/onboarding/routing';
+import { hasAdvancedStatsAddon } from '@/lib/utils/addon-helpers';
 
 type Props = {
   params: Promise<{ locale: string; id: string; seasonId: string }>;
-  searchParams?: Promise<{ [key: string]: string }>;
 };
 
+function localizeHref(locale: string, href: string) {
+  return href.startsWith(`/${locale}/`) ? href : `/${locale}${href}`;
+}
+
 export default async function SeasonDetailPage({ params }: Props) {
-  const awaited = await params;
-  const { locale, id: leagueId, seasonId } = awaited;
+  const { locale, id: leagueId, seasonId } = await params;
   setRequestLocale(locale);
 
   const { supabase, access, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
   const serviceClient = createServiceRoleClient();
 
-  // Get season with league info
   const { data: season, error: seasonError } = await supabase
     .from('seasons')
     .select(
@@ -76,7 +71,13 @@ export default async function SeasonDetailPage({ params }: Props) {
   const [
     seasonTeamIds,
     previousSeason,
-    venuesResult,
+    rosterCountResult,
+    waiverTemplateResult,
+    scorekeepersResult,
+    refereesResult,
+    advancedStatsEnabled,
+    { count: gamesCount },
+    { count: registrationsCount },
   ] = await Promise.all([
     getSeasonParticipationTeamIds(serviceClient, leagueId, seasonId),
     (async () => {
@@ -96,53 +97,57 @@ export default async function SeasonDetailPage({ params }: Props) {
       return data;
     })(),
     serviceClient
-      .from('venues')
-      .select('id, name, address, number_of_rinks')
+      .from('team_rosters')
+      .select('*', { count: 'exact', head: true })
       .eq('league_id', leagueId)
-      .order('name'),
+      .eq('season_id', seasonId),
+    serviceClient
+      .from('league_waiver_templates')
+      .select('id', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('is_active', true),
+    serviceClient
+      .from('league_scorekeepers')
+      .select('id', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('is_active', true),
+    (serviceClient as any)
+      .from('league_referees')
+      .select('id', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('is_active', true),
+    hasAdvancedStatsAddon(leagueId),
+    supabase.from('games').select('*', { count: 'exact', head: true }).eq('season_id', seasonId),
+    supabase
+      .from('registration_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'pending')
+      .not('submitted_at', 'is', null),
   ]);
 
   const previousSeasonTeams = previousSeason
     ? await getSeasonParticipationTeams(serviceClient, leagueId, previousSeason.id)
     : [];
-  const venues = (venuesResult.data ?? []).map((venue) => ({
-    id: venue.id,
-    name: venue.name,
-    address: venue.address ?? null,
-    numberOfRinks: venue.number_of_rinks ?? null,
-  }));
-  const importableTeams = previousSeasonTeams.filter(
-    (team) => !seasonTeamIds.includes(team.id)
-  );
+  const importableTeams = previousSeasonTeams.filter((team) => !seasonTeamIds.includes(team.id));
   const teamsCount = seasonTeamIds.length;
 
-  // Get games count for this season
-  const { count: gamesCount } = await supabase
-    .from('games')
-    .select('*', { count: 'exact', head: true })
-    .eq('season_id', seasonId);
+  const seasonChecklist = buildSeasonWorkspaceChecklistState({
+    leagueId,
+    seasonId,
+    teamCount: teamsCount,
+    registrationCount: registrationsCount ?? 0,
+    rosterCount: rosterCountResult.count ?? 0,
+    scheduleGenerated: season.schedule_generated === true,
+    waiverTemplateConfigured: (waiverTemplateResult.count ?? 0) > 0,
+    staffConfigured: (scorekeepersResult.count ?? 0) + (refereesResult.count ?? 0) > 0,
+    playoffConfigured:
+      season.status === 'playoffs' ||
+      Boolean((season as Record<string, unknown>).playoff_format),
+    advancedStatsEnabled,
+  });
 
-  // Get pending registration submissions count
-  const { count: registrationsCount } = await supabase
-    .from('registration_submissions')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId)
-    .eq('season_id', seasonId)
-    .eq('status', 'pending')
-    .not('submitted_at', 'is', null);
-
-  // Get season fees
-  const feesResult = await getSeasonFees(leagueId, { seasonId });
-  const seasonFees = feesResult.success ? feesResult.data : [];
-
-  // Get playoff bracket data
-  const bracketResult = await getPlayoffBracket(leagueId, seasonId);
-  const initialBracket = bracketResult.success ? bracketResult.data : null;
-  const initialFeeCollectionModel =
-    ((season as Record<string, unknown>).fee_collection_model as 'individual' | 'team' | 'hybrid' | undefined) ??
-    'individual';
-
-  // Check if user is owner/admin of this league
   const { data: membership } = await supabase
     .from('league_memberships')
     .select('role')
@@ -158,71 +163,68 @@ export default async function SeasonDetailPage({ params }: Props) {
     membership?.role === 'admin';
 
   const statusColors: Record<string, string> = {
-    active: 'bg-green-500/10 text-green-500 border-green-500/30',
-    draft: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
-    completed: 'bg-neutral-800 text-neutral-400 border-neutral-700',
-    playoffs: 'bg-purple-500/10 text-purple-500 border-purple-500/30' };
+    active: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300',
+    draft: 'border-amber-400/20 bg-amber-500/10 text-amber-200',
+    completed: 'border-white/[0.10] bg-white/[0.05] text-neutral-300',
+    playoffs: 'border-violet-400/20 bg-violet-500/10 text-violet-300',
+  };
+
+  const primaryActionHref = localizeHref(
+    locale,
+    seasonChecklist.nextActionHref || buildSeasonWorkspaceHref('', leagueId, seasonId, 'schedule')
+  );
+  const primaryActionLabel = seasonChecklist.nextActionLabel || 'Open schedule workspace';
 
   return (
     <div className="min-h-screen bg-neutral-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6">
           <Link
             href={buildLeagueHubHref(locale, leagueId)}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-rink-300"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="h-4 w-4" />
             Back to {season.league?.name || 'League'}
           </Link>
+        </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
+        <section className="relative overflow-hidden rounded-[30px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_32%),linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.48)] sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-start gap-4">
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{
-                  backgroundColor: season.league?.primary_color || '#22D3EE' }}
+                className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-[0_0_24px_rgba(34,211,238,0.2)]"
+                style={{ backgroundColor: season.league?.primary_color || '#22D3EE' }}
               >
-                <Calendar className="w-8 h-8 text-white" />
+                <Calendar className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-black text-white tracking-tight">
-                  {season.name}
-                </h1>
-                <p className="text-neutral-400 mt-1">
-                  {season.start_date
-                    ? new Date(season.start_date).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric' })
-                    : 'Start TBD'}{' '}
-                  -{' '}
-                  {season.end_date
-                    ? new Date(season.end_date).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric' })
-                    : 'End TBD'}
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rink-300/80">
+                  Season Workspace
+                </p>
+                <h1 className="mt-3 text-3xl font-black tracking-tight text-white">{season.name}</h1>
+                <p className="mt-2 text-sm leading-7 text-neutral-300">
+                  Season home now focuses on launch status, checklist progress, and one clear next
+                  step. Teams, registrations, schedules, games, and advanced tools live in the shell.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <span
                 className={cn(
-                  'px-3 py-1.5 text-sm font-semibold rounded-full border',
+                  'rounded-full border px-3 py-1.5 text-sm font-semibold',
                   statusColors[season.status ?? 'draft'] || statusColors.draft
                 )}
               >
                 {getSeasonStatusLabel(season.status ?? 'draft', season.registration_type)}
               </span>
-              {canEdit && (
+              {canEdit ? (
                 <SeasonStatusTransitionButton
                   seasonId={seasonId}
                   currentStatus={season.status ?? 'draft'}
                 />
-              )}
-              {canEdit && previousSeason && importableTeams.length > 0 && (
+              ) : null}
+              {canEdit && previousSeason && importableTeams.length > 0 ? (
                 <ImportSeasonTeamsButton
                   leagueId={leagueId}
                   seasonId={seasonId}
@@ -234,226 +236,188 @@ export default async function SeasonDetailPage({ params }: Props) {
                     short_name: team.short_name,
                   }))}
                 />
-              )}
+              ) : null}
               <Link
                 href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${seasonId}/edit`}
-                className={cn(
-                  'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
-                  'bg-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-700',
-                  'transition-colors'
-                )}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
               >
-                <Edit className="w-4 h-4" />
-                Edit Season
+                <Edit className="h-4 w-4" />
+                Edit season
               </Link>
             </div>
           </div>
-        </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <Users className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Teams</span>
-            </div>
-            <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
+            <SeasonMetricCard label="Teams" value={teamsCount || 0} icon={<Users className="h-4 w-4" />} />
+            <SeasonMetricCard label="Games" value={gamesCount || 0} icon={<Play className="h-4 w-4" />} />
+            <SeasonMetricCard label="Registrations" value={registrationsCount || 0} icon={<UserPlus className="h-4 w-4" />} />
+            <SeasonMetricCard
+              label="Schedule"
+              value={season.schedule_generated ? 'Generated' : 'Pending'}
+              icon={<BarChart3 className="h-4 w-4" />}
+            />
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <Play className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Games</span>
-            </div>
-            <p className="text-2xl font-bold text-white">{gamesCount || 0}</p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={primaryActionHref}
+              className="inline-flex items-center gap-2 rounded-2xl bg-rink-500 px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-rink-400"
+            >
+              {primaryActionLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={buildLeagueHubHref(locale, leagueId)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-5 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
+            >
+              Open league hub
+            </Link>
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <UserPlus className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Registrations</span>
+        </section>
+
+        {canEdit && previousSeason && importableTeams.length > 0 ? (
+          <section className="mt-6 rounded-2xl border border-rink-400/20 bg-rink-500/10 p-4">
+            <div className="flex items-center gap-2 text-rink-200">
+              <Users className="h-4 w-4" />
+              <p className="text-sm font-semibold">Season carry-forward available</p>
             </div>
-            <p className="text-2xl font-bold text-white">
-              {registrationsCount || 0}
+            <p className="mt-2 text-sm leading-7 text-neutral-300">
+              {importableTeams.length} team{importableTeams.length === 1 ? '' : 's'} can be brought
+              forward from {previousSeason.name}. Use the import action in the header when you are
+              ready.
             </p>
+          </section>
+        ) : null}
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <SetupChecklistCard checklist={seasonChecklist} locale={locale} />
+
+          <div className="space-y-6">
+            <SeasonSummarySurface
+              eyebrow="Launch progress"
+              title={teamsCount > 0 ? `${teamsCount} season team${teamsCount === 1 ? '' : 's'} ready` : 'Teams still need setup'}
+              description={
+                rosterCountResult.count
+                  ? `${rosterCountResult.count} roster assignment${rosterCountResult.count === 1 ? '' : 's'} are already in place.`
+                  : 'Bring teams forward or import rosters before registrations ramp up.'
+              }
+              icon={<Users className="h-4 w-4" />}
+              tone="primary"
+            />
+            <SeasonSummarySurface
+              eyebrow="Operations"
+              title={season.schedule_generated ? 'Schedule is active' : 'Schedule still needs build/import'}
+              description={
+                (scorekeepersResult.count ?? 0) + (refereesResult.count ?? 0) > 0
+                  ? 'Officials or scorekeepers are already configured for game operations.'
+                  : 'Staffing can stay deferred until the schedule is closer to live.'
+              }
+              icon={<CheckCircle2 className="h-4 w-4" />}
+            />
+            <SeasonSummarySurface
+              eyebrow="Deferred tools"
+              title={season.status === 'playoffs' ? 'Playoffs are active' : 'Playoffs and advanced stats stay secondary'}
+              description={
+                advancedStatsEnabled
+                  ? 'Advanced stats are enabled for this season. Use More Tools in the shell when needed.'
+                  : 'Leave playoffs and deeper stats for later unless this season needs them immediately.'
+              }
+              icon={<Trophy className="h-4 w-4" />}
+            />
           </div>
-          <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <BarChart3 className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">Schedule</span>
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-white/[0.10] bg-white/[0.04] p-6 backdrop-blur-xl">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                Season Details
+              </p>
+              <h2 className="mt-3 text-xl font-bold text-white">Operational configuration snapshot</h2>
+              <p className="mt-2 text-sm leading-7 text-neutral-400">
+                Core season settings remain editable from the season settings screen. Export stays
+                here because it is a task, not a navigation surface.
+              </p>
             </div>
-            <p className="text-lg font-bold text-white">
-              {season.schedule_generated ? (
-                <span className="text-green-400">Generated</span>
-              ) : (
-                <span className="text-yellow-400">Pending</span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Workspace Actions */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          <ActionCard
-            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'schedule')}
-            icon={<Calendar className="w-6 h-6" />}
-            title="Schedule Workspace"
-            description="Build the season schedule, manage changes, and control game operations"
-            badge={
-              season.schedule_generated ? (
-                <span className="text-xs text-green-400">Generated</span>
-              ) : (
-                <span className="text-xs text-yellow-400">Setup Required</span>
-              )
-            }
-          />
-          <ActionCard
-            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'games')}
-            icon={<Trophy className="w-6 h-6" />}
-            title="Games"
-            description="View this season&apos;s scheduled and completed games, notes, and results"
-          />
-          <ActionCard
-            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'registrations')}
-            icon={<UserPlus className="w-6 h-6" />}
-            title="Registrations"
-            description="Review player and team registrations for this season"
-            badge={
-              registrationsCount ? (
-                <span className="text-xs text-yellow-400">
-                  {registrationsCount} pending
-                </span>
-              ) : null
-            }
-          />
-          <ActionCard
-            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'teams')}
-            icon={<Users className="w-6 h-6" />}
-            title="Teams"
-            description="See the teams actively participating in this season and their roster depth"
-          />
-          <ActionCard
-            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'scorekeepers')}
-            icon={<ClipboardList className="w-6 h-6" />}
-            title="Scorekeeper Schedule"
-            description="Assign scorekeepers for this season and track open game coverage"
-          />
-          <ActionCard
-            href={buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'settings')}
-            icon={<Settings className="w-6 h-6" />}
-            title="Season Settings"
-            description="Edit rules, dates, and operating settings for this specific season"
-          />
-        </div>
-
-        {/* Registration Fees Section */}
-        <div className="mb-8">
-          <SeasonFeeManager
-            leagueId={leagueId}
-            seasonId={seasonId}
-            seasonName={season.name}
-            initialFees={seasonFees}
-            initialFeeCollectionModel={initialFeeCollectionModel}
-            billingHref={`/${locale}/dashboard/leagues/${leagueId}/billing`}
-          />
-        </div>
-
-        {/* Playoff Bracket Section */}
-        <div className="mb-8">
-            <PlayoffBracketClient
+            <StatsExportButton
               leagueId={leagueId}
               seasonId={seasonId}
-              initialBracket={initialBracket}
-              venues={venues}
-              canEdit={canEdit}
+              seasonName={season.name}
             />
-        </div>
+          </div>
 
-        {/* Season Details */}
-        <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">Season Details</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-neutral-500 font-medium">Export Stats</span>
-              <StatsExportButton
-                leagueId={leagueId}
-                seasonId={seasonId}
-                seasonName={season.name}
-              />
-            </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <DetailItem label="Registration Type" value={formatRegistrationType(season.registration_type)} />
+            <DetailItem label="Games per Cycle" value={season.games_per_cycle?.toString() || 'Not set'} />
+            <DetailItem label="Max Players per Team" value={season.max_players_per_team?.toString() || 'Unlimited'} />
+            <DetailItem label="Team Selection" value={season.allow_team_selection ? 'Players can choose' : 'Admin assigned'} />
+            <DetailItem label="Current Game Count" value={season.current_game_count?.toString() || '0'} />
+            <DetailItem label="Waiver Setup" value={(waiverTemplateResult.count ?? 0) > 0 ? 'Configured' : 'Not configured'} />
+            <DetailItem label="Officials + Staffing" value={(scorekeepersResult.count ?? 0) + (refereesResult.count ?? 0) > 0 ? 'Configured' : 'Pending'} />
+            <DetailItem label="Advanced Stats" value={advancedStatsEnabled ? 'Enabled' : 'Optional'} />
+            <DetailItem label="Created" value={season.created_at ? new Date(season.created_at).toLocaleDateString() : 'Unknown'} />
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <DetailItem
-              label="Registration Type"
-              value={formatRegistrationType(season.registration_type)}
-            />
-            <DetailItem
-              label="Games per Cycle"
-              value={season.games_per_cycle?.toString() || 'Not set'}
-            />
-            <DetailItem
-              label="Max Players per Team"
-              value={season.max_players_per_team?.toString() || 'Unlimited'}
-            />
-            <DetailItem
-              label="Team Selection"
-              value={season.allow_team_selection ? 'Players can choose' : 'Admin assigned'}
-            />
-            <DetailItem
-              label="Current Game Count"
-              value={season.current_game_count?.toString() || '0'}
-            />
-            <DetailItem
-              label="Created"
-              value={season.created_at ? new Date(season.created_at).toLocaleDateString() : 'Unknown'}
-            />
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
 
-function ActionCard({
-  href,
+function SeasonMetricCard({
+  label,
+  value,
   icon,
-  title,
-  description,
-  badge }: {
-  href: string;
+}: {
+  label: string;
+  value: string | number;
   icon: React.ReactNode;
-  title: string;
-  description: string;
-  badge?: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
+    <div className="rounded-2xl border border-white/[0.10] bg-black/20 p-4 backdrop-blur-xl">
+      <div className="flex items-center gap-2 text-neutral-400">
+        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-[0.14em]">{label}</span>
+      </div>
+      <p className="mt-4 truncate text-2xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function SeasonSummarySurface({
+  eyebrow,
+  title,
+  description,
+  icon,
+  tone = 'default',
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  tone?: 'default' | 'primary';
+}) {
+  return (
+    <div
       className={cn(
-        'flex items-start gap-4 p-5 rounded-2xl transition-all duration-200',
-        'bg-white/[0.04] border border-white/10 backdrop-blur-xl hover:border-white/20',
-        'group'
+        'surface-premium p-5',
+        tone === 'primary' && 'border-rink-400/15 bg-[linear-gradient(145deg,rgba(34,211,238,0.10),rgba(255,255,255,0.03))]'
       )}
     >
-      <div className="p-3 rounded-xl bg-rink-500/10 text-rink-500 group-hover:scale-110 transition-transform">
-        {icon}
+      <div className="flex items-center gap-2 text-neutral-400">
+        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{eyebrow}</span>
       </div>
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
-            {title}
-          </h3>
-          {badge}
-        </div>
-        <p className="text-sm text-neutral-400 mt-1">{description}</p>
-      </div>
-    </Link>
+      <h3 className="mt-4 text-lg font-bold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-7 text-neutral-400">{description}</p>
+    </div>
   );
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-neutral-800/50 rounded-lg p-3">
-      <div className="text-xs text-neutral-500 mb-1">{label}</div>
-      <div className="text-sm font-medium text-white">{value}</div>
+    <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-500">{label}</div>
+      <div className="mt-2 text-sm font-medium text-white">{value}</div>
     </div>
   );
 }
@@ -462,6 +426,8 @@ function formatRegistrationType(type: string | null): string {
   const types: Record<string, string> = {
     open_registration: 'Open Registration',
     draft: 'Draft',
-    captain_invite_only: 'Captain Invite Only' };
+    captain_invite_only: 'Captain Invite Only',
+  };
+
   return types[type || ''] || type || 'Not set';
 }

@@ -78,6 +78,10 @@ export async function POST(
       import_rosters,
       team_roster_import,
       previous_season_id,
+      games_per_cycle,
+      max_players_per_team,
+      allow_team_selection,
+      schedule_setup_mode: _schedule_setup_mode,
     } = body;
 
     // Validate required fields
@@ -108,6 +112,15 @@ export async function POST(
         registration_type: registration_type || 'open_registration',
         registration_opens_at: registration_opens_at || null,
         registration_closes_at: registration_closes_at || null,
+        games_per_cycle:
+          typeof games_per_cycle === 'number' && Number.isFinite(games_per_cycle)
+            ? games_per_cycle
+            : 1,
+        max_players_per_team:
+          typeof max_players_per_team === 'number' && Number.isFinite(max_players_per_team)
+            ? max_players_per_team
+            : 18,
+        allow_team_selection: allow_team_selection === true,
       })
       .select()
       .single();

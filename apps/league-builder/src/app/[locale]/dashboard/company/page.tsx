@@ -1,7 +1,7 @@
 /**
- * Company Profile Page
+ * Organization Profile Page
  *
- * Displays and manages company profile settings. A company can have
+ * Displays and manages organization profile settings. An organization can have
  * multiple leagues under it.
  */
 
@@ -64,16 +64,16 @@ export default async function CompanyProfilePage({ params }: Props) {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight">
-                {t('company.profile')}
+                Organization Profile
               </h1>
               <p className="text-neutral-400 text-sm">
-                {t('company.profileDescription')}
+                Manage your organization identity, portfolio, and billing context.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Company Info Card */}
+        {/* Organization Info Card */}
         <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div>
@@ -93,7 +93,7 @@ export default async function CompanyProfilePage({ params }: Props) {
             )}
           </div>
 
-          {/* Company Stats */}
+          {/* Organization Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/[0.06]">
             <div className="bg-neutral-800/50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -149,7 +149,7 @@ export default async function CompanyProfilePage({ params }: Props) {
         {/* Leagues Section */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">{t('company.yourLeagues')}</h2>
+            <h2 className="text-lg font-bold text-white">Organization Leagues</h2>
             <Link
               href="/dashboard/leagues/new"
               className={cn(
@@ -210,9 +210,9 @@ export default async function CompanyProfilePage({ params }: Props) {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-rink-500/10 flex items-center justify-center">
                 <Trophy className="w-8 h-8 text-rink-500" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">{t('company.noLeagues')}</h3>
+              <h3 className="text-xl font-bold text-white mb-2">No leagues yet</h3>
               <p className="text-neutral-400 mb-6">
-                {t('company.createFirstLeague')}
+                Create the first league shell for this organization.
               </p>
               <Link
                 href="/dashboard/leagues/new"
@@ -239,8 +239,8 @@ export default async function CompanyProfilePage({ params }: Props) {
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-medium text-white">{t('company.accountSettings')}</h3>
-              <p className="text-sm text-neutral-500">{t('company.accountSettingsDescription')}</p>
+              <h3 className="font-medium text-white">Organization Settings</h3>
+              <p className="text-sm text-neutral-500">Manage organization details and account-level preferences.</p>
             </div>
           </Link>
           <Link
@@ -251,8 +251,8 @@ export default async function CompanyProfilePage({ params }: Props) {
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-medium text-white">{t('navigation.billing')}</h3>
-              <p className="text-sm text-neutral-500">{t('company.billingDescription')}</p>
+              <h3 className="font-medium text-white">Billing</h3>
+              <p className="text-sm text-neutral-500">Review platform billing and organization-level charges.</p>
             </div>
           </Link>
           <Link
@@ -263,8 +263,8 @@ export default async function CompanyProfilePage({ params }: Props) {
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-medium text-white">{t('company.teamMembers')}</h3>
-              <p className="text-sm text-neutral-500">{t('company.teamMembersDescription')}</p>
+              <h3 className="font-medium text-white">Organization Members</h3>
+              <p className="text-sm text-neutral-500">Manage the people who help operate this organization.</p>
             </div>
           </Link>
         </div>

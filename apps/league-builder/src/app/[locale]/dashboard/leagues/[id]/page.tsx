@@ -1,28 +1,23 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { redirect as nextRedirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
 import { cn } from '@hockey-life/ui';
 import {
+  AlertTriangle,
   ArrowLeft,
-  Trophy,
-  Users,
+  ArrowRight,
   Calendar,
-  Settings,
-  CreditCard,
+  CheckCircle2,
   Globe,
-  BarChart3,
-  Plus,
-  Edit,
-  Play,
   LayoutGrid,
-  Newspaper,
-  Handshake,
-  Shuffle,
-  Database,
-  ClipboardCheck,
+  Play,
+  PlugZap,
+  Settings,
+  Users,
 } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import { AnnouncementComposerButton } from '@/components/news/AnnouncementComposerButton';
+import { SetupChecklistCard } from '@/components/onboarding/SetupChecklistCard';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { getSignedWaivers } from '@/lib/actions/waiver-management';
 import { getSeasonStatusLabel } from '@/lib/seasons/status-display';
@@ -31,21 +26,23 @@ import {
   buildSeasonWorkspaceHref,
 } from '@/lib/dashboard/workspace-routes';
 import { getPreferredSeasonWorkspace } from '@/lib/dashboard/server-workspace';
+import { buildLeagueHubChecklistState } from '@/lib/onboarding/routing';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
-  searchParams?: Promise<{ [key: string]: string }>;
 };
 
+function localizeHref(locale: string, href: string) {
+  return href.startsWith(`/${locale}/`) ? href : `/${locale}${href}`;
+}
+
 export default async function LeagueDetailPage({ params }: Props) {
-  const awaited = await params;
-  const { locale, id: leagueId } = awaited;
+  const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
 
   const t = await getTranslations('leagues');
   const { supabase, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
 
-  // Get league details
   const { data: league, error } = await supabase
     .from('leagues')
     .select(`
@@ -62,36 +59,27 @@ export default async function LeagueDetailPage({ params }: Props) {
     .eq('id', leagueId)
     .single();
 
-  if (error) {
-    console.error('[League Page] Error fetching league:', error.message, { leagueId, userId: userData?.user?.id });
-  }
-
   if (error || !league) {
+    console.error('[League Page] Error fetching league', error?.message, {
+      leagueId,
+      userId: userData?.user?.id,
+    });
     notFound();
   }
 
-  // Get teams count
-  const { count: teamsCount } = await supabase
-    .from('teams')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId);
-
-  // Get divisions count
-  const { count: divisionsCount } = await supabase
-    .from('divisions')
-    .select('*', { count: 'exact', head: true })
-    .eq('league_id', leagueId);
-
-  // Pending action counts — all run in parallel
   const currentSeason = await getPreferredSeasonWorkspace(leagueId, (league.seasons as any[]) ?? []);
 
   const [
+    { count: teamsCount },
+    { count: divisionsCount },
     { count: pendingRegistrations },
     { count: pendingGames },
     { count: activeSuspensions },
     { count: unreadMessages },
     signedWaiversResult,
   ] = await Promise.all([
+    supabase.from('teams').select('*', { count: 'exact', head: true }).eq('league_id', leagueId),
+    supabase.from('divisions').select('*', { count: 'exact', head: true }).eq('league_id', leagueId),
     (supabase.from('registration_submissions') as any)
       .select('*', { count: 'exact', head: true })
       .eq('league_id', leagueId)
@@ -118,8 +106,32 @@ export default async function LeagueDetailPage({ params }: Props) {
     getSignedWaivers(leagueId, { limit: 5 }),
   ]);
 
-  const signedWaivers = signedWaiversResult.success ? signedWaiversResult.data?.waivers || [] : [];
   const signedWaiversTotal = signedWaiversResult.success ? signedWaiversResult.data?.total || 0 : 0;
+  const leagueSettings = (league.settings as Record<string, any> | null) ?? {};
+  const onboardingSettings = (leagueSettings.onboarding as Record<string, any> | undefined) ?? {};
+  const paymentSettings = (leagueSettings.payment as Record<string, any> | undefined) ?? {};
+  const websiteSettings = (leagueSettings.website as Record<string, any> | undefined) ?? {};
+  const domainSettings = (leagueSettings.domain as Record<string, any> | undefined) ?? {};
+
+  const leagueChecklist = buildLeagueHubChecklistState({
+    leagueId,
+    hasSeason: ((league.seasons as any[]) ?? []).length > 0,
+    enableOnlinePayments:
+      onboardingSettings.enableOnlinePayments === true ||
+      paymentSettings.onboardingRequested === true,
+    stripeReady:
+      paymentSettings.stripeAccountStatus === 'connected' ||
+      paymentSettings.stripeAccountStatus === 'active' ||
+      paymentSettings.detailsSubmitted === true,
+    enablePublicWebsite:
+      onboardingSettings.enablePublicWebsite === true ||
+      websiteSettings.onboardingRequested === true ||
+      league.is_public === true,
+    wantCustomDomain:
+      onboardingSettings.wantCustomDomain === true ||
+      domainSettings.wantCustomDomain === true ||
+      !!domainSettings.customDomainName,
+  });
 
   const pendingActions = [
     pendingRegistrations && {
@@ -127,40 +139,53 @@ export default async function LeagueDetailPage({ params }: Props) {
       href: currentSeason
         ? `${buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'registrations')}?status=pending`
         : buildLeagueSeasonsHref(locale, leagueId),
-      color: 'yellow',
     },
     pendingGames && {
       label: `${pendingGames} game${pendingGames === 1 ? '' : 's'} awaiting verification`,
       href: currentSeason
         ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')
         : buildLeagueSeasonsHref(locale, leagueId),
-      color: 'blue',
     },
     activeSuspensions && {
       label: `${activeSuspensions} active suspension${activeSuspensions === 1 ? '' : 's'}`,
       href: currentSeason
         ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')
         : buildLeagueSeasonsHref(locale, leagueId),
-      color: 'red',
     },
-    unreadMessages && { label: `${unreadMessages} new contact message${unreadMessages === 1 ? '' : 's'}`, href: `/${locale}/dashboard/leagues/${leagueId}/contact-inbox`, color: 'purple' },
-  ].filter(Boolean) as Array<{ label: string; href: string; color: string }>;
+    unreadMessages && {
+      label: `${unreadMessages} unread contact message${unreadMessages === 1 ? '' : 's'}`,
+      href: `/${locale}/dashboard/leagues/${leagueId}/contact-inbox`,
+    },
+  ].filter(Boolean) as Array<{ label: string; href: string }>;
+
+  const primaryActionHref = localizeHref(
+    locale,
+    leagueChecklist.nextActionHref ||
+      (currentSeason
+        ? buildSeasonWorkspaceHref('', leagueId, currentSeason.id)
+        : `${buildLeagueSeasonsHref('', leagueId)}/new`)
+  );
+  const primaryActionLabel =
+    currentSeason && leagueChecklist.nextActionHref === buildLeagueSeasonsHref('', leagueId)
+      ? `Open ${currentSeason.name}`
+      : leagueChecklist.nextActionLabel || (currentSeason ? `Open ${currentSeason.name}` : 'Create first season');
 
   return (
     <div className="min-h-screen bg-neutral-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6">
           <Link
             href={`/${locale}/dashboard/leagues`}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-rink-500 transition-colors mb-4"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-rink-300"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="h-4 w-4" />
             {t('backToLeagues')}
           </Link>
+        </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
+        <section className="relative overflow-hidden rounded-[30px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_32%),linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.48)] sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-start gap-4">
               <LeagueLogo
                 logoUrl={league.logo_url}
                 leagueName={league.name}
@@ -170,391 +195,225 @@ export default async function LeagueDetailPage({ params }: Props) {
                 bordered
               />
               <div>
-                <h1 className="text-3xl font-black text-white tracking-tight">
-                  {league.name}
-                </h1>
-                <p className="text-neutral-400 mt-1">{league.description || t('noDescription')}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rink-300/80">
+                  League Hub
+                </p>
+                <h1 className="mt-3 text-3xl font-black tracking-tight text-white">{league.name}</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-neutral-300">
+                  This page is now the orientation surface for league setup, finance, content, and
+                  integrations. Day-to-day operations should happen from a season workspace.
+                </p>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <AnnouncementComposerButton leagueId={leagueId} leagueName={league.name} />
               <span
                 className={cn(
-                  'px-3 py-1.5 text-sm font-semibold rounded-full',
+                  'rounded-full border px-3 py-1.5 text-sm font-semibold',
                   league.status === 'active'
-                    ? 'bg-green-500/10 text-green-500 border border-green-500/30'
+                    ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300'
                     : league.status === 'draft'
-                    ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30'
-                    : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                      ? 'border-amber-400/20 bg-amber-500/10 text-amber-200'
+                      : 'border-white/[0.10] bg-white/[0.05] text-neutral-300'
                 )}
               >
                 {(league.status || 'active').charAt(0).toUpperCase() + (league.status || 'active').slice(1)}
               </span>
             </div>
           </div>
-        </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-5 mb-8">
-          <div className="surface-premium card-hover p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <Users className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">{t('teams')}</span>
-            </div>
-            <p className="text-2xl font-bold text-white">{teamsCount || 0}</p>
-          </div>
-          <div className="surface-premium card-hover p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <LayoutGrid className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">{t('divisions')}</span>
-            </div>
-            <p className="text-2xl font-bold text-white">{divisionsCount || 0}</p>
-          </div>
-          <div className="surface-premium card-hover p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">{t('seasons')}</span>
-            </div>
-            <p className="text-2xl font-bold text-white">{league.seasons?.length || 0}</p>
-          </div>
-          <div className="surface-premium card-hover p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <Globe className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">{t('location')}</span>
-            </div>
-            <p className="text-lg font-semibold text-white truncate">
-              {league.city || t('unknown')}{league.city && league.state_province ? ', ' : ''}{league.state_province || ''}
-            </p>
-          </div>
-          <div className="surface-premium card-hover p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <BarChart3 className="w-5 h-5 text-rink-500" />
-              <span className="text-sm text-neutral-400">{t('timezone')}</span>
-            </div>
-            <p className="text-lg font-semibold text-white truncate">{league.timezone || t('notSet')}</p>
-          </div>
-        </div>
-
-        {/* Pending Actions Banner */}
-        {pendingActions.length > 0 && (
-          <div className="mb-6 bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
-            <p className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-3">Needs Attention</p>
-            <div className="flex flex-wrap gap-2">
-              {pendingActions.map((action) => {
-                const colorMap: Record<string, string> = {
-                  yellow: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30 hover:bg-yellow-500/20',
-                  blue: 'bg-blue-500/10 text-blue-300 border-blue-500/30 hover:bg-blue-500/20',
-                  red: 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20',
-                  purple: 'bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20',
-                };
-                return (
-                  <Link
-                    key={action.label}
-                    href={action.href}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${colorMap[action.color] ?? colorMap.yellow}`}
-                  >
-                    {action.label} →
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {currentSeason && (
-          <div className="mb-8 rounded-2xl border border-rink-500/20 bg-gradient-to-br from-rink-500/8 to-white/[0.03] p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rink-300/80">
-                  Recommended Season Workspace
-                </p>
-                <h2 className="mt-2 text-xl font-bold text-white">{currentSeason.name}</h2>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Day-to-day operations now live inside a season workspace. Pick up where league staff actually work.
-                </p>
-              </div>
-              <Link
-                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id)}
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold',
-                  'bg-rink-500 text-black transition-colors hover:bg-rink-400'
-                )}
-              >
-                <Play className="w-4 h-4" />
-                Open {currentSeason.name}
-              </Link>
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <QuickActionButton
-                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'schedule')}
-                icon={<Calendar className="w-5 h-5" />}
-                title="Schedule Workspace"
-                description="Build, adjust, and manage this season&apos;s schedule"
-              />
-              <QuickActionButton
-                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'registrations')}
-                icon={<ClipboardCheck className="w-5 h-5" />}
-                title="Registrations"
-                description="Review submissions and roster intake for this season"
-              />
-              <QuickActionButton
-                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'teams')}
-                icon={<Users className="w-5 h-5" />}
-                title="Season Teams"
-                description="See the teams and carry-forward state for this season"
-              />
-              <QuickActionButton
-                href={buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')}
-                icon={<Trophy className="w-5 h-5" />}
-                title="Games"
-                description="Track scheduled and completed games for this season"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="mb-8">
-          <div className="mb-4">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-500">
-              League Setup & Content
-            </p>
-            <h2 className="mt-2 text-xl font-bold text-white">League hub tools</h2>
-            <p className="mt-1 text-sm text-neutral-400">
-              Keep configuration, content, and publishing here. Operational work should happen from a season workspace.
-            </p>
+          <div className="mt-6 grid gap-3 md:grid-cols-5">
+            <LeagueMetricCard label={t('teams')} value={teamsCount || 0} icon={<Users className="h-4 w-4" />} />
+            <LeagueMetricCard label={t('divisions')} value={divisionsCount || 0} icon={<LayoutGrid className="h-4 w-4" />} />
+            <LeagueMetricCard label={t('seasons')} value={league.seasons?.length || 0} icon={<Calendar className="h-4 w-4" />} />
+            <LeagueMetricCard label={t('location')} value={`${league.city || t('unknown')}${league.city && league.state_province ? ', ' : ''}${league.state_province || ''}`} icon={<Globe className="h-4 w-4" />} />
+            <LeagueMetricCard label={t('timezone')} value={league.timezone || t('notSet')} icon={<Settings className="h-4 w-4" />} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {(league.seasons as any[])?.some((s: any) => s.registration_type === 'draft') && (
-              <QuickActionButton
-                href={`/${locale}/dashboard/leagues/${leagueId}/draft`}
-                icon={<Shuffle className="w-5 h-5" />}
-                title={t('draftRoom')}
-                description={t('draftRoomDescription')}
-                highlight
-              />
-            )}
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/divisions`}
-              icon={<LayoutGrid className="w-5 h-5" />}
-              title={t('divisionsAction')}
-              description={t('divisionsDescription')}
-            />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/migration-center`}
-              icon={<Database className="w-5 h-5" />}
-              title="Migration Center"
-              description="Track legacy stats, records, news, and media migration."
-              highlight
-            />
-            <QuickActionButton
-              href={`/${locale}/website-editor?league=${leagueId}`}
-              icon={<Globe className="w-5 h-5" />}
-              title={t('websiteEditor')}
-              description={t('websiteEditorDescription')}
-              highlight
-            />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/finance`}
-              icon={<CreditCard className="w-5 h-5" />}
-              title={t('playerPayments')}
-              description={t('playerPaymentsDescription')}
-            />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/settings/waiver`}
-              icon={<ClipboardCheck className="w-5 h-5" />}
-              title="Waivers"
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={primaryActionHref}
+              className="inline-flex items-center gap-2 rounded-2xl bg-rink-500 px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-rink-400"
+            >
+              {primaryActionLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={buildLeagueSeasonsHref(locale, leagueId)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-5 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
+            >
+              View all seasons
+            </Link>
+          </div>
+        </section>
+
+        {pendingActions.length > 0 ? (
+          <section className="mt-6 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+            <div className="flex items-center gap-2 text-amber-200">
+              <AlertTriangle className="h-4 w-4" />
+              <p className="text-sm font-semibold">League alerts</p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {pendingActions.map((action) => (
+                <Link
+                  key={action.label}
+                  href={action.href}
+                  className="rounded-full border border-amber-400/20 bg-black/15 px-3 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-black/25"
+                >
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <SetupChecklistCard checklist={leagueChecklist} locale={locale} />
+
+          <div className="space-y-6">
+            <SummarySurface
+              eyebrow="Current workspace"
+              title={currentSeason ? currentSeason.name : 'No active season yet'}
               description={
-                signedWaiversTotal > 0
-                  ? `${signedWaiversTotal} signature${signedWaiversTotal === 1 ? '' : 's'} on file`
-                  : 'Manage the waiver and track signatures'
+                currentSeason
+                  ? `${getSeasonStatusLabel(currentSeason.status, currentSeason.registration_type)} status. Open this workspace for registrations, teams, schedules, and games.`
+                  : 'Create the first season to unlock the operating workspace.'
               }
+              icon={<Play className="h-4 w-4" />}
+              tone="primary"
             />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/settings`}
-              icon={<Settings className="w-5 h-5" />}
-              title={t('settings')}
-              description={t('settingsDescription')}
+            <SummarySurface
+              eyebrow="Connections"
+              title={paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted ? 'Stripe connected' : 'Stripe still needs review'}
+              description={
+                websiteSettings.onboardingRequested || league.is_public
+                  ? 'Website publishing is enabled for this league.'
+                  : 'Public website publishing is currently optional.'
+              }
+              icon={<PlugZap className="h-4 w-4" />}
             />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/news`}
-              icon={<Newspaper className="w-5 h-5" />}
-              title={t('newsArticles')}
-              description={t('newsArticlesDescription')}
-            />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/sponsors`}
-              icon={<Handshake className="w-5 h-5" />}
-              title={t('sponsors')}
-              description={t('sponsorsDescription')}
-            />
-            <QuickActionButton
-              href={`/${locale}/dashboard/leagues/${leagueId}/awards`}
-              icon={<Trophy className="w-5 h-5" />}
-              title={t('awards')}
-              description={t('awardsDescription')}
+            <SummarySurface
+              eyebrow="Compliance"
+              title={signedWaiversTotal > 0 ? `${signedWaiversTotal} signed waiver${signedWaiversTotal === 1 ? '' : 's'}` : 'No signed waivers yet'}
+              description="Waiver setup and signatures stay visible here, but the actual waiver tool now lives in league settings."
+              icon={<CheckCircle2 className="h-4 w-4" />}
             />
           </div>
-        </div>
+        </section>
 
-        <div className="mb-8">
-          <div className="surface-premium card-hover p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-neutral-500">
-                  Waiver Signatures
-                </p>
-                <h2 className="mt-2 text-lg font-bold text-white">
-                  {signedWaiversTotal > 0
-                    ? `${signedWaiversTotal} player${signedWaiversTotal === 1 ? '' : 's'} have signed`
-                    : 'No waiver signatures yet'}
-                </h2>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Signed waivers now surface here so you do not have to dig through settings to confirm them.
-                </p>
-              </div>
-              <Link
-                href={`/${locale}/dashboard/leagues/${leagueId}/settings/waiver`}
-                className="inline-flex items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition-colors hover:bg-cyan-400/20"
-              >
-                Open Waiver Manager
-              </Link>
+        <section className="mt-8">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                Seasons
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">Season workspaces</h2>
+              <p className="mt-1 text-sm text-neutral-400">
+                Open a season for operations, or create the next one without leaving the league scope.
+              </p>
             </div>
-
-            {signedWaivers.length > 0 && (
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {signedWaivers.map((waiver) => (
-                  <div
-                    key={waiver.id}
-                    className="surface-premium px-4 py-3"
-                  >
-                    <p className="font-semibold text-white">{waiver.player_name}</p>
-                    <p className="text-sm text-neutral-400">{waiver.player_email || 'Email unavailable'}</p>
-                    <p className="mt-2 text-xs text-neutral-500">
-                      {waiver.season_name || 'League-wide waiver'} •{' '}
-                      {waiver.agreed_at ? new Date(waiver.agreed_at).toLocaleString() : 'Signed recently'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Seasons Section */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">{t('seasons')}</h2>
             <Link
               href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
-              className={cn(
-                'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium',
-                'bg-rink-500/10 text-rink-500 border border-rink-500/30',
-                'hover:bg-rink-500/20 transition-colors'
-              )}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
             >
-              <Plus className="w-4 h-4" />
+              <Calendar className="h-4 w-4" />
               {t('newSeason')}
             </Link>
           </div>
 
           {league.seasons && league.seasons.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
               {league.seasons.map((season: any) => (
                 <SeasonCard key={season.id} season={season} leagueId={leagueId} locale={locale} t={t} />
               ))}
             </div>
           ) : (
-            <div className="surface-premium card-hover p-8 text-center">
-              <Calendar className="w-12 h-12 text-rink-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">{t('noSeasonsYet')}</h3>
-              <p className="text-neutral-400 mb-4">
-                {t('noSeasonsDescription')}
+            <div className="surface-premium mt-5 p-8 text-center">
+              <Calendar className="mx-auto h-12 w-12 text-rink-400" />
+              <h3 className="mt-4 text-xl font-bold text-white">{t('noSeasonsYet')}</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-neutral-400">
+                Create the first season to unlock the season workspace and checklist-driven launch flow.
               </p>
-              <Link
-                href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
-                className={cn(
-                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm relative overflow-hidden',
-                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
-                  'btn-glow shadow-glow hover:shadow-glow-hover transition-all hover:scale-105'
-                )}
-              >
-                <Plus className="w-4 h-4" />
-                {t('createSeason')}
-              </Link>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
 }
 
-function QuickActionButton({
-  href,
+function LeagueMetricCard({
+  label,
+  value,
   icon,
-  title,
-  description,
-  highlight,
 }: {
-  href: string;
+  label: string;
+  value: string | number;
   icon: React.ReactNode;
-  title: string;
-  description: string;
-  highlight?: boolean;
 }) {
   return (
-    <Link
-      href={href}
+    <div className="rounded-2xl border border-white/[0.10] bg-black/20 p-4 backdrop-blur-xl">
+      <div className="flex items-center gap-2 text-neutral-400">
+        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-[0.14em]">{label}</span>
+      </div>
+      <p className="mt-4 truncate text-2xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function SummarySurface({
+  eyebrow,
+  title,
+  description,
+  icon,
+  tone = 'default',
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  tone?: 'default' | 'primary';
+}) {
+  return (
+    <div
       className={cn(
-        'flex items-start gap-4 p-5 transition-all duration-200',
-        'group',
-        highlight
-          ? 'surface-premium border-glow card-hover bg-gradient-to-br from-rink-500/10 to-arena-500/10 shadow-glow'
-          : 'surface-premium card-hover'
+        'surface-premium p-5',
+        tone === 'primary' && 'border-rink-400/15 bg-[linear-gradient(145deg,rgba(34,211,238,0.10),rgba(255,255,255,0.03))]'
       )}
     >
-      <div className={cn(
-        "p-2 rounded-xl group-hover:scale-110 transition-transform",
-        highlight
-          ? "bg-gradient-to-r from-rink-500 to-arena-500 text-black"
-          : "bg-rink-500/10 text-rink-500"
-      )}>
-        {icon}
+      <div className="flex items-center gap-2 text-neutral-400">
+        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{eyebrow}</span>
       </div>
-      <div>
-        <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
-          {title}
-        </h3>
-        <p className="text-sm text-neutral-400">{description}</p>
-      </div>
-    </Link>
+      <h3 className="mt-4 text-lg font-bold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-7 text-neutral-400">{description}</p>
+    </div>
   );
 }
 
 function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: string; locale: string; t: any }) {
   const statusColors: Record<string, string> = {
-    active: 'bg-green-500/10 text-green-500 border-green-500/30',
-    draft: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30',
-    completed: 'bg-neutral-800 text-neutral-400 border-neutral-700',
-    playoffs: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
+    active: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300',
+    draft: 'border-amber-400/20 bg-amber-500/10 text-amber-200',
+    completed: 'border-white/[0.10] bg-white/[0.05] text-neutral-300',
+    playoffs: 'border-violet-400/20 bg-violet-500/10 text-violet-300',
   };
 
   return (
-    <div className="surface-premium card-hover p-5">
-      <div className="flex items-start justify-between mb-3">
+    <div className="surface-premium p-5">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="font-semibold text-white">{season.name}</h3>
-          <p className="text-sm text-neutral-500">
+          <h3 className="text-lg font-bold text-white">{season.name}</h3>
+          <p className="mt-1 text-sm text-neutral-500">
             {new Date(season.start_date).toLocaleDateString()} -{' '}
             {season.end_date ? new Date(season.end_date).toLocaleDateString() : t('ongoing')}
           </p>
         </div>
         <span
           className={cn(
-            'px-2.5 py-1 text-xs font-semibold rounded-full border',
+            'rounded-full border px-2.5 py-1 text-xs font-semibold',
             statusColors[season.status] || statusColors.draft
           )}
         >
@@ -562,27 +421,20 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
         </span>
       </div>
 
-      <div className="flex items-center gap-2 mt-4">
+      <div className="mt-5 flex flex-wrap gap-3">
         <Link
           href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}`}
-          className={cn(
-            'flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg',
-            'bg-rink-500/10 text-rink-500 border border-rink-500/30',
-            'hover:bg-rink-500/20 transition-colors text-sm font-medium'
-          )}
+          className="inline-flex items-center gap-2 rounded-2xl bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
         >
-          <Play className="w-4 h-4" />
+          <Play className="h-4 w-4" />
           Open workspace
         </Link>
         <Link
           href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}/edit`}
-          className={cn(
-            'inline-flex items-center justify-center p-2 rounded-lg',
-            'bg-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-700',
-            'transition-colors'
-          )}
+          className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
         >
-          <Edit className="w-4 h-4" />
+          <Settings className="h-4 w-4" />
+          Edit season
         </Link>
       </div>
     </div>
