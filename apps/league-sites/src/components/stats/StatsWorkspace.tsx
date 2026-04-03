@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   startTransition,
@@ -20,29 +21,32 @@ import {
   X,
 } from "lucide-react";
 
-function PlayerHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
+function HelmetToggleIcon({
+  src,
+  className = "h-5 w-5",
+}: {
+  src: string;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M12 4C7.6 4 4 7.6 4 12v4h16v-4c0-4.4-3.6-8-8-8Z" />
-      <path d="M4 16h16" />
-      <path d="M7 16v2h10v-2" />
-      <path d="M10 16v2" />
-      <path d="M14 16v2" />
-      <path d="M7 17.5h10" />
-    </svg>
+    <Image
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      width={20}
+      height={20}
+      className={`${className} select-none object-contain`}
+    />
   );
 }
 
+function PlayerHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return <HelmetToggleIcon src="/stats-icons/player-helmet-black.png" className={className} />;
+}
+
 function GoalieHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-      <path d="M12 3c4.5 0 8 2.9 8 6.5V13c0 4.7-3.4 8-8 8s-8-3.3-8-8V9.5C4 5.9 7.5 3 12 3Z" />
-      <path d="M8.5 13h7" />
-      <path d="M10 13v4" />
-      <path d="M14 13v4" />
-      <path d="M8.5 15.5h7" />
-    </svg>
-  );
+  return <HelmetToggleIcon src="/stats-icons/goalie-helmet-black.png" className={className} />;
 }
 import { useDivisionFilter } from "@/components/DivisionFilterProvider";
 import { PlayerBadgeGroup } from "@/components/shared/PlayerBadgeGroup";
@@ -952,6 +956,12 @@ export function StatsWorkspace({
       : null,
   ].filter((value): value is string => Boolean(value));
 
+  const currentSeasonLabel =
+    seasonLabel ||
+    seasons.find((season) => season.id === currentSeasonId)?.name ||
+    seasons[0]?.name ||
+    "Current Season";
+
   return (
     <>
       <div className="mb-5 flex items-start justify-between md:mb-6">
@@ -989,46 +999,48 @@ export function StatsWorkspace({
       </div>
 
       <section className="space-y-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+        <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+              <button
+                type="button"
+                onClick={() => handleViewChange(false)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                  !isAllTime
+                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="max-w-[11rem] truncate">{currentSeasonLabel}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleViewChange(true)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                  isAllTime
+                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                }`}
+              >
+                All Time
+              </button>
+            </div>
+
             <button
               type="button"
-              onClick={() => handleViewChange(false)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                !isAllTime
-                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-              }`}
+              onClick={openFilterPanel}
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3.5 py-1.5 text-[13px] font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
             >
-              <Sparkles className="h-4 w-4" />
-              Current Season
-            </button>
-            <button
-              type="button"
-              onClick={() => handleViewChange(true)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                isAllTime
-                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-              }`}
-            >
-              All Time
+              <Filter className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+              Filter
+              {activeFilterCount > 0 ? (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 text-[10px] font-black text-[var(--color-accent-text)]">
+                  {activeFilterCount}
+                </span>
+              ) : null}
             </button>
           </div>
-
-          <button
-            type="button"
-            onClick={openFilterPanel}
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
-          >
-            <Filter className="h-4 w-4 text-[var(--league-primary)]" />
-            Filter
-            {activeFilterCount > 0 ? (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 text-[10px] font-black text-[var(--color-accent-text)]">
-                {activeFilterCount}
-              </span>
-            ) : null}
-          </button>
         </div>
 
         {activeFilterTags.length > 0 ? (
@@ -1056,7 +1068,7 @@ export function StatsWorkspace({
                 >
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-30 min-w-[168px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                      <th className="sticky left-0 z-30 min-w-[148px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:min-w-[156px]">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <span>
@@ -1161,14 +1173,14 @@ export function StatsWorkspace({
                       return (
                         <tr key={row.player_id} className="group">
                           <td className="sticky left-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)]">
-                            <div className="flex items-center gap-3">
-                              <div className="relative h-11 w-11 shrink-0">
+                            <div className="flex items-center gap-2.5">
+                              <div className="relative h-10 w-10 shrink-0">
                                 <img
                                   src={teamLogoSrc}
                                   alt={teamLogoAlt}
-                                  className="h-11 w-11 rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] object-cover p-1"
+                                  className="h-10 w-10 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] object-cover p-1"
                                 />
-                                <span className="absolute -bottom-1 -right-1 inline-flex min-w-7 items-center justify-center rounded-[8px] border border-black/10 bg-[var(--color-background)]/95 px-1.5 py-0.5 text-[9px] font-black tabular-nums leading-none tracking-[0.08em] text-[var(--color-text-primary)] shadow-[0_10px_18px_-14px_rgba(0,0,0,0.85)] backdrop-blur">
+                                <span className="absolute -bottom-1 -right-1 inline-flex min-w-6 items-center justify-center rounded-[8px] border border-black/10 bg-[var(--color-background)]/95 px-1.5 py-0.5 text-[8px] font-black tabular-nums leading-none tracking-[0.08em] text-[var(--color-text-primary)] shadow-[0_10px_18px_-14px_rgba(0,0,0,0.85)] backdrop-blur">
                                   {formatJerseyDisplay(row.jersey_number)}
                                 </span>
                               </div>
@@ -1177,11 +1189,11 @@ export function StatsWorkspace({
                                   href={`/${leagueSlug}/players/${row.player_id}`}
                                   className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
                                 >
-                                  <span className="block truncate text-sm font-semibold">
+                                  <span className="block truncate text-[13px] font-semibold">
                                     {firstName}
                                   </span>
                                   {lastName ? (
-                                    <span className="block truncate text-sm font-semibold">
+                                    <span className="block truncate text-[13px] font-semibold">
                                       {lastName}
                                     </span>
                                   ) : null}
@@ -1269,29 +1281,24 @@ export function StatsWorkspace({
           </div>
         )}
 
-        <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65">
-          <button
-            type="button"
-            onClick={() => setIsLegendOpen((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-          >
-            <div>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Legend
-              </p>
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                Column shorthand and stat definitions
-              </p>
-            </div>
-            {isLegendOpen ? (
-              <ChevronUp className="h-4 w-4 text-[var(--league-primary)]" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-[var(--league-primary)]" />
-            )}
-          </button>
+        <div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setIsLegendOpen((current) => !current)}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-3.5 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+            >
+              Legend
+              {isLegendOpen ? (
+                <ChevronUp className="h-4 w-4 text-[var(--league-primary)]" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-[var(--league-primary)]" />
+              )}
+            </button>
+          </div>
 
           {isLegendOpen ? (
-            <div className="grid gap-3 border-t border-[var(--color-border)] px-4 py-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-3 grid gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4 sm:grid-cols-2 xl:grid-cols-4">
               {legendItems.map(([label, description]) => (
                 <div
                   key={label}
