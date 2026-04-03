@@ -121,20 +121,10 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
 
   return (
     <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-4 md:p-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-            Top 5 Leaders
-          </h2>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-            {mode === 'skaters' ? 'Players' : 'Goalies'}
-            <span className="mx-2 text-[var(--color-text-muted)]">•</span>
-            {isAllTime ? 'All Time' : 'Current View'}
-          </p>
-        </div>
-        <span className="inline-flex w-fit rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
-          Toggle metrics
-        </span>
+      <div>
+        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+          Top 5 Leaders
+        </h2>
       </div>
 
       <div className="mt-5 border-t border-[var(--color-border)] pt-5">
@@ -151,7 +141,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {metrics.map((metric) => {
               const Icon = metric.icon;
               const isActive = metric.id === activeMetric.id;
@@ -161,13 +151,13 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
                   key={metric.id}
                   type="button"
                   onClick={() => setSelectedMetric(metric.id)}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition-colors ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
                     isActive
                       ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                       : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-3.5 w-3.5" />
                   {metric.label}
                 </button>
               );

@@ -2243,6 +2243,256 @@ type GoalieStatsAccumulator = {
   team_games: Map<string, number>;
 };
 
+export function aggregateNativeGoalieStatsRows(
+  rows: RawGoalieStatsRow[],
+  rosterRows: Array<Pick<RosterDisplayRow, 'player_id' | 'team_id' | 'season_id' | 'jersey_number'>>,
+  seasonId?: string | null,
+): UnifiedGoalieStatsRow[] {
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const rosterMap = new Map<string, Pick<RosterDisplayRow, 'player_id' | 'team_id' | 'season_id' | 'jersey_number'>>();
+  for (const row of rosterRows) {
+    rosterMap.set(`${row.player_id}:${row.team_id}:${row.season_id ?? 'any'}`, row);
+  }
+
+  const goalieMap = new Map<string, GoalieStatsAccumulator>();
+  for (const row of rows) {
+    const playerData = unwrapJoinedRecord(row.player);
+    const teamData = unwrapJoinedRecord(row.team);
+    const gameData = unwrapJoinedRecord(row.game);
+    const roster = rosterMap.get(`${row.player_id}:${row.team_id}:${row.season_id ?? 'any'}`);
+
+    const existing = goalieMap.get(row.player_id);
+    const entry = existing ?? {
+      player_id: row.player_id,
+      player_name: playerData?.full_name || 'Unknown Goalie',
+      avatar_url: playerData?.avatar_url || null,
+      jersey_number: roster?.jersey_number != null ? String(roster.jersey_number) : null,
+      team_id: row.team_id,
+      team_name: teamData?.name || 'Unknown Team',
+      division_name: getJoinedDivisionName(teamData?.divisions),
+      games_played: 0,
+      wins: 0,
+      losses: 0,
+      saves: 0,
+      goals_against: 0,
+      shots_against: 0,
+      shutouts: 0,
+      best_team_games: 0,
+      team_games: new Map<string, number>(),
+    };
+
+    entry.games_played += 1;
+    entry.saves += row.saves || 0;
+    entry.goals_against += row.goals_against || 0;
+    entry.shots_against += row.shots_against || (row.saves || 0) + (row.goals_against || 0);
+    entry.shutouts += row.shutout ? 1 : 0;
+
+    const result = resolveGoalieGameResult(row.game_result, gameData, row.team_id);
+    if (result === 'W' || result === 'WIN') {
+      entry.wins += 1;
+    } else if (result === 'L' || result === 'LOSS' || result === 'OTL' || result === 'SOL') {
+      entry.losses += 1;
+    }
+
+    const teamKey = `${row.team_id}:${row.season_id ?? 'any'}`;
+    const teamGames = (entry.team_games.get(teamKey) || 0) + 1;
+    entry.team_games.set(teamKey, teamGames);
+    if (teamGames > entry.best_team_games) {
+      entry.best_team_games = teamGames;
+      entry.team_id = row.team_id;
+      entry.team_name = teamData?.name || 'Unknown Team';
+      entry.division_name = getJoinedDivisionName(teamData?.divisions);
+      entry.jersey_number = roster?.jersey_number != null ? String(roster.jersey_number) : entry.jersey_number;
+    }
+
+    if (!existing) {
+      goalieMap.set(row.player_id, entry);
+    }
+  }
+
+  return Array.from(goalieMap.values()).map((entry) =>
+    applyImportedAggregateGoalieOverride(
+      {
+        player_id: entry.player_id,
+        player_name: entry.player_name,
+        avatar_url: entry.avatar_url,
+        jersey_number: entry.jersey_number,
+        team_id: entry.team_id,
+        team_name: entry.team_name,
+        division_name: entry.division_name,
+        position: 'Goalie',
+        championships: 0,
+        games_played: entry.games_played,
+        wins: entry.wins,
+        losses: entry.losses,
+        saves: entry.saves,
+        goals_against: entry.goals_against,
+        save_percentage: entry.shots_against > 0 ? roundStatValue((entry.saves / entry.shots_against) * 100, 1) : null,
+        goals_against_average: entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null,
+        shutouts: entry.shutouts,
+      },
+      seasonId,
+    ),
+  );
+}
+
+type FallbackCurrentSeasonGoalieRosterRow = Pick<
+  RosterDisplayRow,
+  'player_id' | 'team_id' | 'season_id' | 'jersey_number' | 'is_goalie' | 'position'
+> & {
+  profiles?: {
+    full_name?: string | null;
+    avatar_url?: string | null;
+  } | null;
+  teams?: {
+    name?: string | null;
+    divisions?: { name?: string | null } | Array<{ name?: string | null }> | null;
+  } | null;
+};
+
+type FallbackCurrentSeasonGameRow = Pick<
+  Game,
+  'season_id' | 'home_team_id' | 'away_team_id' | 'home_score' | 'away_score'
+>;
+
+async function buildFallbackCurrentSeasonGoalieRows(
+  leagueId: string,
+  seasonId: string,
+  filteredTeamIds?: string[] | null,
+): Promise<UnifiedGoalieStatsRow[]> {
+  const supabase = await createClient();
+
+  let rosterQuery = supabase
+    .from('team_rosters')
+    .select(`
+      player_id,
+      team_id,
+      season_id,
+      jersey_number,
+      is_goalie,
+      position,
+      profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url),
+      teams:teams!team_rosters_team_id_fkey(name, divisions(name))
+    `)
+    .eq('season_id', seasonId)
+    .is('end_date', null);
+
+  if (filteredTeamIds && filteredTeamIds.length > 0) {
+    rosterQuery = rosterQuery.in('team_id', filteredTeamIds);
+  }
+
+  const { data: rosterData, error: rosterError } = await rosterQuery;
+  if (rosterError || !rosterData || rosterData.length === 0) {
+    return [];
+  }
+
+  const goaliesByTeam = new Map<string, FallbackCurrentSeasonGoalieRosterRow[]>();
+  for (const rawRow of rosterData as unknown as FallbackCurrentSeasonGoalieRosterRow[]) {
+    const isGoalie = rawRow.is_goalie === true || rawRow.position === 'Goalie';
+    if (!isGoalie || !rawRow.team_id || !rawRow.player_id) {
+      continue;
+    }
+
+    const rowsForTeam = goaliesByTeam.get(rawRow.team_id) || [];
+    rowsForTeam.push(rawRow);
+    goaliesByTeam.set(rawRow.team_id, rowsForTeam);
+  }
+
+  const singleGoalieTeams = new Map<string, FallbackCurrentSeasonGoalieRosterRow>();
+  for (const [teamId, goalieRows] of goaliesByTeam.entries()) {
+    if (goalieRows.length === 1) {
+      singleGoalieTeams.set(teamId, goalieRows[0]);
+    }
+  }
+
+  if (singleGoalieTeams.size === 0) {
+    return [];
+  }
+
+  const { data: gamesData, error: gamesError } = await supabase
+    .from('games')
+    .select('season_id, home_team_id, away_team_id, home_score, away_score')
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .eq('status', 'completed');
+
+  if (gamesError || !gamesData || gamesData.length === 0) {
+    return [];
+  }
+
+  const goalieMap = new Map<string, UnifiedGoalieStatsRow>();
+
+  const ensureEntry = (goalie: FallbackCurrentSeasonGoalieRosterRow) => {
+    const existing = goalieMap.get(goalie.player_id);
+    if (existing) {
+      return existing;
+    }
+
+    const entry: UnifiedGoalieStatsRow = {
+      player_id: goalie.player_id,
+      player_name: goalie.profiles?.full_name || 'Unknown Goalie',
+      avatar_url: goalie.profiles?.avatar_url || null,
+      jersey_number: goalie.jersey_number != null ? String(goalie.jersey_number) : null,
+      team_id: goalie.team_id,
+      team_name: goalie.teams?.name || 'Unknown Team',
+      division_name: getJoinedDivisionName(goalie.teams?.divisions),
+      position: 'Goalie',
+      championships: 0,
+      games_played: 0,
+      wins: 0,
+      losses: 0,
+      saves: 0,
+      goals_against: 0,
+      save_percentage: null,
+      goals_against_average: null,
+      shutouts: 0,
+    };
+
+    goalieMap.set(goalie.player_id, entry);
+    return entry;
+  };
+
+  const addGameToGoalie = (
+    goalie: FallbackCurrentSeasonGoalieRosterRow | undefined,
+    goalsFor: number,
+    goalsAgainst: number,
+  ) => {
+    if (!goalie) {
+      return;
+    }
+
+    const entry = ensureEntry(goalie);
+    entry.games_played += 1;
+    entry.goals_against += goalsAgainst;
+
+    if (goalsFor > goalsAgainst) {
+      entry.wins += 1;
+    } else if (goalsFor < goalsAgainst) {
+      entry.losses += 1;
+    }
+
+    if (goalsAgainst === 0) {
+      entry.shutouts += 1;
+    }
+
+    entry.goals_against_average =
+      entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null;
+  };
+
+  for (const rawGame of gamesData as FallbackCurrentSeasonGameRow[]) {
+    const homeScore = Number(rawGame.home_score ?? 0);
+    const awayScore = Number(rawGame.away_score ?? 0);
+
+    addGameToGoalie(singleGoalieTeams.get(rawGame.home_team_id || ''), homeScore, awayScore);
+    addGameToGoalie(singleGoalieTeams.get(rawGame.away_team_id || ''), awayScore, homeScore);
+  }
+
+  return Array.from(goalieMap.values()).map((row) => applyImportedAggregateGoalieOverride(row, seasonId));
+}
+
 type ImportedAggregateProfileMetadata = {
   playerId: string;
   avatarUrl: string | null;
@@ -2937,7 +3187,7 @@ async function getNativeUnifiedGoalieStatsRows(
       shutout,
       game_result,
       game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
-      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url, jersey_number),
+      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
       team:teams!goalie_stats_team_id_fkey(name, divisions(name))
     `)
     .eq('game.league_id', leagueId)
@@ -2952,8 +3202,14 @@ async function getNativeUnifiedGoalieStatsRows(
   }
 
   const { data, error } = await query;
-  if (error || !data || data.length === 0) {
+  if (error) {
     return [];
+  }
+
+  if (!data || data.length === 0) {
+    return seasonId
+      ? buildFallbackCurrentSeasonGoalieRows(leagueId, seasonId, filteredTeamIds)
+      : [];
   }
 
   const rows = data as unknown as RawGoalieStatsRow[];
@@ -2966,90 +3222,31 @@ async function getNativeUnifiedGoalieStatsRows(
     : rows;
 
   if (visibleRows.length === 0) {
-    return [];
+    return seasonId
+      ? buildFallbackCurrentSeasonGoalieRows(leagueId, seasonId, filteredTeamIds)
+      : [];
   }
 
-  const goalieMap = new Map<string, GoalieStatsAccumulator>();
-  for (const row of visibleRows) {
-    const playerData = unwrapJoinedRecord(row.player) as {
-      full_name?: string | null;
-      avatar_url?: string | null;
-      jersey_number?: number | string | null;
-    } | null;
-    const teamData = unwrapJoinedRecord(row.team);
-    const gameData = unwrapJoinedRecord(row.game);
+  const playerIds = [...new Set(visibleRows.map((row) => row.player_id))];
+  const teamIds = [...new Set(visibleRows.map((row) => row.team_id).filter(Boolean))];
+  const seasonIds = [...new Set(visibleRows.map((row) => row.season_id).filter(Boolean))];
 
-    const existing = goalieMap.get(row.player_id);
-    const entry = existing ?? {
-      player_id: row.player_id,
-      player_name: playerData?.full_name || 'Unknown Goalie',
-      avatar_url: playerData?.avatar_url || null,
-      jersey_number: playerData?.jersey_number != null ? String(playerData.jersey_number) : null,
-      team_id: row.team_id,
-      team_name: teamData?.name || 'Unknown Team',
-      division_name: getJoinedDivisionName(teamData?.divisions),
-      games_played: 0,
-      wins: 0,
-      losses: 0,
-      saves: 0,
-      goals_against: 0,
-      shots_against: 0,
-      shutouts: 0,
-      best_team_games: 0,
-      team_games: new Map<string, number>(),
-    };
+  let rosterQuery = supabase
+    .from('team_rosters')
+    .select('player_id, team_id, season_id, jersey_number')
+    .in('player_id', playerIds)
+    .in('team_id', teamIds);
 
-    entry.games_played += 1;
-    entry.saves += row.saves || 0;
-    entry.goals_against += row.goals_against || 0;
-    entry.shots_against += row.shots_against || (row.saves || 0) + (row.goals_against || 0);
-    entry.shutouts += row.shutout ? 1 : 0;
-
-    const result = resolveGoalieGameResult(row.game_result, gameData, row.team_id);
-    if (result === 'W' || result === 'WIN') {
-      entry.wins += 1;
-    } else if (result === 'L' || result === 'LOSS' || result === 'OTL' || result === 'SOL') {
-      entry.losses += 1;
-    }
-
-    const teamKey = `${row.team_id}:${row.season_id ?? 'any'}`;
-    const teamGames = (entry.team_games.get(teamKey) || 0) + 1;
-    entry.team_games.set(teamKey, teamGames);
-    if (teamGames > entry.best_team_games) {
-      entry.best_team_games = teamGames;
-      entry.team_id = row.team_id;
-      entry.team_name = teamData?.name || 'Unknown Team';
-      entry.division_name = getJoinedDivisionName(teamData?.divisions);
-    }
-
-    if (!existing) {
-      goalieMap.set(row.player_id, entry);
-    }
+  if (seasonIds.length > 0) {
+    rosterQuery = rosterQuery.in('season_id', seasonIds);
   }
 
-  return Array.from(goalieMap.values()).map((entry) =>
-    applyImportedAggregateGoalieOverride(
-      {
-        player_id: entry.player_id,
-        player_name: entry.player_name,
-        avatar_url: entry.avatar_url,
-        jersey_number: entry.jersey_number,
-        team_id: entry.team_id,
-        team_name: entry.team_name,
-        division_name: entry.division_name,
-        position: 'Goalie',
-        championships: 0,
-        games_played: entry.games_played,
-        wins: entry.wins,
-        losses: entry.losses,
-        saves: entry.saves,
-        goals_against: entry.goals_against,
-        save_percentage: entry.shots_against > 0 ? roundStatValue((entry.saves / entry.shots_against) * 100, 1) : null,
-        goals_against_average: entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null,
-        shutouts: entry.shutouts,
-      },
-      seasonId,
-    )
+  const { data: rosterRows } = await rosterQuery;
+
+  return aggregateNativeGoalieStatsRows(
+    visibleRows,
+    (rosterRows || []) as Array<Pick<RosterDisplayRow, 'player_id' | 'team_id' | 'season_id' | 'jersey_number'>>,
+    seasonId,
   );
 }
 

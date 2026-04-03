@@ -957,8 +957,8 @@ export function StatsWorkspace({
   ].filter((value): value is string => Boolean(value));
 
   const currentSeasonLabel =
-    seasonLabel ||
     seasons.find((season) => season.id === currentSeasonId)?.name ||
+    (!isAllTime ? seasonLabel : null) ||
     seasons[0]?.name ||
     "Current Season";
 
@@ -999,8 +999,8 @@ export function StatsWorkspace({
       </div>
 
       <section className="space-y-5">
-        <div className="flex justify-end">
-          <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex justify-start">
+          <div className="flex flex-wrap items-center justify-start gap-2">
             <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
               <button
                 type="button"
@@ -1068,7 +1068,7 @@ export function StatsWorkspace({
                 >
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-30 min-w-[148px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:min-w-[156px]">
+                      <th className="sticky left-0 z-30 w-[124px] min-w-[124px] max-w-[124px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[136px] md:min-w-[136px] md:max-w-[136px]">
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <span>
@@ -1172,13 +1172,13 @@ export function StatsWorkspace({
 
                       return (
                         <tr key={row.player_id} className="group">
-                          <td className="sticky left-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)]">
-                            <div className="flex items-center gap-2.5">
-                              <div className="relative h-10 w-10 shrink-0">
+                          <td className="sticky left-0 z-20 w-[124px] min-w-[124px] max-w-[124px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 transition-colors group-hover:bg-[var(--color-surface-hover)] md:w-[136px] md:min-w-[136px] md:max-w-[136px]">
+                            <div className="flex items-center gap-2">
+                              <div className="relative h-9 w-9 shrink-0">
                                 <img
                                   src={teamLogoSrc}
                                   alt={teamLogoAlt}
-                                  className="h-10 w-10 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] object-cover p-1"
+                                  className="h-9 w-9 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-surface)] object-cover p-1"
                                 />
                                 <span className="absolute -bottom-1 -right-1 inline-flex min-w-6 items-center justify-center rounded-[8px] border border-black/10 bg-[var(--color-background)]/95 px-1.5 py-0.5 text-[8px] font-black tabular-nums leading-none tracking-[0.08em] text-[var(--color-text-primary)] shadow-[0_10px_18px_-14px_rgba(0,0,0,0.85)] backdrop-blur">
                                   {formatJerseyDisplay(row.jersey_number)}
@@ -1189,11 +1189,11 @@ export function StatsWorkspace({
                                   href={`/${leagueSlug}/players/${row.player_id}`}
                                   className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
                                 >
-                                  <span className="block truncate text-[13px] font-semibold">
+                                  <span className="block truncate text-[12px] font-semibold">
                                     {firstName}
                                   </span>
                                   {lastName ? (
-                                    <span className="block truncate text-[13px] font-semibold">
+                                    <span className="block truncate text-[12px] font-semibold">
                                       {lastName}
                                     </span>
                                   ) : null}
