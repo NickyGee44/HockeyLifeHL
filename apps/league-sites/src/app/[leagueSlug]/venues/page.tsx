@@ -4,6 +4,7 @@ import { SubscriptionWall } from '@/components/shared';
 import { getLeagueBySlug, getVenues, getVenueObjects } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { MapPin, Calendar, Clock, ChevronRight, Building2 } from 'lucide-react';
+import { formatLeagueShortWeekdayDate, formatLeagueTime } from '@/lib/league-timezone';
 import type { Metadata } from 'next';
 
 interface VenuesPageProps {
@@ -127,6 +128,7 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
 
   if (!league) notFound();
 
+  const leagueTimezone = league.timezone || 'America/Toronto';
   const venues = await getVenuesWithGames(league.id);
 
   return (
@@ -164,6 +166,7 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
                 key={venue.name}
                 venue={venue}
                 leagueSlug={leagueSlug}
+                timezone={leagueTimezone}
               />
             ))}
           </div>
@@ -177,24 +180,15 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
 function VenueCard({
   venue,
   leagueSlug,
+  timezone,
 }: {
   venue: VenueWithGames;
   leagueSlug: string;
+  timezone?: string | null;
 }) {
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const formatDate = (dateStr: string) => formatLeagueShortWeekdayDate(dateStr, timezone);
 
-  const formatTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  };
+  const formatTime = (dateStr: string) => formatLeagueTime(dateStr, timezone);
 
   return (
     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">

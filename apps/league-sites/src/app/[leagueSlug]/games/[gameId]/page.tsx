@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { Calendar } from 'lucide-react';
 import {
   getLeagueBySlug,
@@ -28,6 +27,7 @@ import { TeamLogo } from '@/components/shared/TeamLogo';
 import { GameRecapSection } from '@/components/game/GameRecapSection';
 import { SubscriptionWall } from '@/components/shared';
 import { getPublicLiveGameState } from '@/lib/game/live-state-data';
+import { formatLeagueShortWeekdayDate, formatLeagueTime } from '@/lib/league-timezone';
 
 interface GamePageProps {
   params: Promise<{ leagueSlug: string; gameId: string }>;
@@ -215,7 +215,6 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                 </div>
                 <div className="p-4 space-y-2">
                   {futureMatchups.map((matchup) => {
-                    const matchupDate = new Date(matchup.scheduled_at);
                     const isHomeTeamHome = matchup.home_team_id === game.home_team.id;
                     const gameHome = isHomeTeamHome ? game.home_team : game.away_team;
                     const gameAway = isHomeTeamHome ? game.away_team : game.home_team;
@@ -231,10 +230,10 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                         {/* Date + time row on mobile */}
                         <div className="flex items-center justify-between sm:contents">
                           <span className="text-sm text-[var(--color-text-secondary)] shrink-0">
-                            {format(matchupDate, 'EEE, MMM d')}
+                            {formatLeagueShortWeekdayDate(matchup.scheduled_at, league.timezone)}
                           </span>
                           <span className="text-sm font-medium sm:hidden" style={{ color: 'var(--league-primary)' }}>
-                            {format(matchupDate, 'h:mm a')}
+                            {formatLeagueTime(matchup.scheduled_at, league.timezone)}
                           </span>
                         </div>
                         {/* Teams */}
@@ -251,7 +250,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
                         </div>
                         {/* Time — hidden on mobile (shown inline above) */}
                         <span className="hidden sm:inline text-sm font-medium shrink-0" style={{ color: 'var(--league-primary)' }}>
-                          {format(matchupDate, 'h:mm a')}
+                          {formatLeagueTime(matchup.scheduled_at, league.timezone)}
                         </span>
                       </Link>
                     );
@@ -269,6 +268,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
               homeTeam={game.home_team}
               awayTeam={game.away_team}
               leagueSlug={leagueSlug}
+              timezone={league.timezone}
             />
 
             {/* Team Stats Comparison (Advanced Stats addon) */}

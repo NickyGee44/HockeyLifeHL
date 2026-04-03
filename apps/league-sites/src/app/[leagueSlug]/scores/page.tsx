@@ -13,6 +13,7 @@ import {
   getCurrentSeason,
 } from '@/lib/data';
 import { GameCard } from '@/components/GameCard';
+import { getLeagueDateKey } from '@/lib/league-timezone';
 import { ScoresFilters } from '@/components/scores/ScoresFilters';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import type { RecentGame } from '@/lib/types';
@@ -43,10 +44,11 @@ export async function generateMetadata({
   };
 }
 
-function groupGamesByDate(games: RecentGame[]): Map<string, RecentGame[]> {
+function groupGamesByDate(games: RecentGame[], timezone?: string | null): Map<string, RecentGame[]> {
   const grouped = new Map<string, RecentGame[]>();
   for (const game of games) {
-    const dateKey = new Date(game.scheduled_at).toISOString().split('T')[0];
+    const dateKey = getLeagueDateKey(game.scheduled_at, timezone);
+    if (!dateKey) continue;
     if (!grouped.has(dateKey)) grouped.set(dateKey, []);
     grouped.get(dateKey)!.push(game);
   }
@@ -85,7 +87,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
     getCurrentSeason(league.id),
   ]);
 
-  const gamesByDate = groupGamesByDate(scores);
+  const gamesByDate = groupGamesByDate(scores, league.timezone);
 
   return (
     <SubscriptionWall>
@@ -157,6 +159,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
                     game={game}
                     leagueSlug={leagueSlug}
                     showScore
+                    timezone={league.timezone}
                   />
                 ))}
               </div>

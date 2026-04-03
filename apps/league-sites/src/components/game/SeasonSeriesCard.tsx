@@ -1,14 +1,15 @@
 import Link from 'next/link';
-import { format } from 'date-fns';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { TeamWithStats, SeasonSeriesGame } from '@/lib/types';
 import { History } from 'lucide-react';
+import { formatLeagueShortDate } from '@/lib/league-timezone';
 
 interface SeasonSeriesCardProps {
   games: SeasonSeriesGame[];
   homeTeam: TeamWithStats;
   awayTeam: TeamWithStats;
   leagueSlug: string;
+  timezone?: string | null;
 }
 
 /**
@@ -21,6 +22,7 @@ export function SeasonSeriesCard({
   homeTeam,
   awayTeam,
   leagueSlug,
+  timezone,
 }: SeasonSeriesCardProps) {
   // Calculate series record
   const { teamAWins, teamBWins, ties } = calculateSeriesRecord(
@@ -101,6 +103,7 @@ export function SeasonSeriesCard({
                 homePrimary={homePrimary}
                 awayPrimary={awayPrimary}
                 leagueSlug={leagueSlug}
+                timezone={timezone}
               />
             ))}
           </div>
@@ -121,6 +124,7 @@ interface GameResultRowProps {
   homePrimary: string;
   awayPrimary: string;
   leagueSlug: string;
+  timezone?: string | null;
 }
 
 function GameResultRow({
@@ -130,8 +134,8 @@ function GameResultRow({
   homePrimary,
   awayPrimary,
   leagueSlug,
+  timezone,
 }: GameResultRowProps) {
-  const gameDate = new Date(game.scheduled_at);
 
   // Determine which team was home/away in this specific game
   const wasHomeTeamHome = game.home_team_id === homeTeam.id;
@@ -153,7 +157,7 @@ function GameResultRow({
       className="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-border-muted)] transition-colors"
     >
       <div className="text-xs text-[var(--color-text-muted)]">
-        {format(gameDate, 'MMM d')}
+        {formatLeagueShortDate(game.scheduled_at, timezone)}
       </div>
       <div className="flex items-center gap-3">
         {/* Away team in this game */}

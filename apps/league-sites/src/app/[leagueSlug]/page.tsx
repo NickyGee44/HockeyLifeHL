@@ -650,6 +650,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
       <HomepageSeasonBand
         leagueSlug={leagueSlug}
+        timezone={league.timezone}
         leadersEyebrow={leadersEyebrow}
         leadersSeasonName={leadersSeasonName}
         leadersDescription={leadersDescription}
@@ -688,7 +689,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             {upcomingGames.length > 0 ? (
               <div className="mt-6 space-y-4">
                 {upcomingGames.map((game) => (
-                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} />
+                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} timezone={league.timezone} />
                 ))}
                 <div className="pt-2">
                   <Button
@@ -738,7 +739,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             {recentGames.length > 0 ? (
               <div className="mt-6 space-y-4">
                 {recentGames.map((game) => (
-                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore />
+                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore timezone={league.timezone} />
                 ))}
               </div>
             ) : (

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
+import { formatLeagueRelativeDateLabel, formatLeagueTime } from '@/lib/league-timezone';
 import type { TickerGame } from '@/lib/types';
 
 interface PremiumScoreTickerProps {
@@ -12,6 +12,7 @@ interface PremiumScoreTickerProps {
   leagueSlug: string;
   autoScroll?: boolean;
   scrollSpeed?: number;
+  timezone?: string | null;
 }
 
 function getTeamColor(colors: string | null): string | null {
@@ -26,11 +27,8 @@ function getTeamColor(colors: string | null): string | null {
   }
 }
 
-function formatGameDate(gameDate: Date) {
-  if (isToday(gameDate)) return 'Today';
-  if (isTomorrow(gameDate)) return 'Tomorrow';
-  if (isYesterday(gameDate)) return 'Yesterday';
-  return format(gameDate, 'MMM d');
+function formatGameDate(gameDate: Date, timezone?: string | null) {
+  return formatLeagueRelativeDateLabel(gameDate, timezone);
 }
 
 export function PremiumScoreTicker({
@@ -38,6 +36,7 @@ export function PremiumScoreTicker({
   leagueSlug,
   autoScroll = true,
   scrollSpeed = 36,
+  timezone,
 }: PremiumScoreTickerProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
@@ -224,6 +223,7 @@ export function PremiumScoreTicker({
               key={`${game.id}-${index}`}
               game={game}
               leagueSlug={leagueSlug}
+              timezone={timezone}
             />
           ))}
         </div>
@@ -277,9 +277,10 @@ export function PremiumScoreTicker({
 interface TickerGameCardProps {
   game: TickerGame;
   leagueSlug: string;
+  timezone?: string | null;
 }
 
-function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
+function TickerGameCard({ game, leagueSlug, timezone }: TickerGameCardProps) {
   const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const isScheduled = game.status === 'scheduled';
@@ -318,9 +319,9 @@ function TickerGameCard({ game, leagueSlug }: TickerGameCardProps) {
 
         <div className="flex items-center justify-between gap-1 pt-0.5">
           <span className="truncate text-[8px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {formatGameDate(gameDate)}
+            {formatGameDate(gameDate, timezone)}
           </span>
-          <GameStatusBadge status={game.status} gameDate={gameDate} />
+          <GameStatusBadge status={game.status} gameDate={gameDate} timezone={timezone} />
         </div>
 
         <div className="mt-1 space-y-0.5">
@@ -426,9 +427,10 @@ function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamR
 interface GameStatusBadgeProps {
   status: TickerGame['status'];
   gameDate: Date;
+  timezone?: string | null;
 }
 
-function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
+function GameStatusBadge({ status, gameDate, timezone }: GameStatusBadgeProps) {
   if (status === 'in_progress') {
     return (
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-500/12 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-red-400">
@@ -465,7 +467,7 @@ function GameStatusBadge({ status, gameDate }: GameStatusBadgeProps) {
   return (
     <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary-soft)] px-1.5 py-0.5 text-[8px] font-bold text-[var(--color-accent)]">
       <Clock className="h-2 w-2 text-[var(--color-text-secondary)]" />
-      {format(gameDate, 'h:mm a')}
+      {formatLeagueTime(gameDate, timezone)}
     </span>
   );
 }

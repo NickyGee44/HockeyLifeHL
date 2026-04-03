@@ -7,6 +7,7 @@ import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackA
 import { RichArticleContent } from '@/components/news/RichArticleContent';
 import { buildArticleMentions } from '@/lib/articles/linkify';
 import { getArticleLinkContext, getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
+import { formatLeagueLongCalendarDate } from '@/lib/league-timezone';
 
 interface ArticlePageProps {
   params: Promise<{ leagueSlug: string; slug: string }>;
@@ -193,11 +194,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                     <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-[var(--color-text-secondary)]">
                       <span className="inline-flex items-center gap-1.5">
                         <Clock3 className="h-4 w-4 text-[var(--league-primary)]" />
-                        {new Date(relatedGame.scheduled_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
+                        {formatLeagueLongCalendarDate(relatedGame.scheduled_at, league.timezone)}
                       </span>
                       <Link
                         href={`/${leagueSlug}/games/${relatedGame.id}`}

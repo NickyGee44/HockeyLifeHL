@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { formatLeagueShortDate, formatLeagueTime } from '@/lib/league-timezone';
 import { MapPin } from 'lucide-react';
 import { useRef, useCallback } from 'react';
 import type { UpcomingGame, RecentGame } from '@/lib/types';
@@ -12,11 +12,11 @@ interface GameCardProps {
   game: UpcomingGame | RecentGame;
   leagueSlug: string;
   showScore?: boolean;
+  timezone?: string | null;
 }
 
-export function GameCard({ game, leagueSlug, showScore = false }: GameCardProps) {
+export function GameCard({ game, leagueSlug, showScore = false, timezone }: GameCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const gameDate = new Date(game.scheduled_at);
   const isCompleted = game.status === 'completed';
   const isLive = game.status === 'in_progress';
   const statusLabel = isLive ? 'Live' : isCompleted ? 'Final' : 'Scheduled';
@@ -88,10 +88,10 @@ export function GameCard({ game, leagueSlug, showScore = false }: GameCardProps)
         ) : (
           <>
             <div className="text-sm font-medium text-[var(--color-text-secondary)] transition-colors duration-300 group-hover:text-[var(--color-text-primary)]">
-              {format(gameDate, 'MMM d')}
+              {formatLeagueShortDate(game.scheduled_at, timezone)}
             </div>
             <div className="text-lg font-bold text-[var(--league-primary)] transition-all duration-300 group-hover:scale-105">
-              {format(gameDate, 'h:mm a')}
+              {formatLeagueTime(game.scheduled_at, timezone)}
             </div>
           </>
         )}

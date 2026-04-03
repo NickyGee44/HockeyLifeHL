@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { format } from 'date-fns';
 import {
   ArrowLeft,
   BarChart3,
@@ -45,6 +44,7 @@ import {
   type TeamLeaderMetric,
   type TeamPageRosterStatsByPlayer,
 } from '@/lib/team-page';
+import { formatLeagueLongWeekdayDate, formatLeagueTime } from '@/lib/league-timezone';
 
 interface TeamPageProps {
   params: Promise<{ leagueSlug: string; teamSlug: string }>;
@@ -419,6 +419,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       leagueSlug={leagueSlug}
                       teamId={team.id}
                       recapSlug={recapByGameId.get(game.id)?.slug ?? null}
+                      timezone={league.timezone}
                     />
                   ))}
                 </div>
@@ -785,15 +786,16 @@ function ScheduleCard({
   leagueSlug,
   teamId,
   recapSlug,
+  timezone,
 }: {
   game: ScheduleGame;
   leagueSlug: string;
   teamId: string;
   recapSlug: string | null;
+  timezone?: string | null;
 }) {
   const isHome = game.home_team?.id === teamId;
   const opponent = isHome ? game.away_team : game.home_team;
-  const gameDate = new Date(game.scheduled_at);
   const result = buildGameResult(game, teamId);
 
   return (
@@ -801,9 +803,9 @@ function ScheduleCard({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            {format(gameDate, 'EEEE, MMM d')}
+            {formatLeagueLongWeekdayDate(game.scheduled_at, timezone)}
           </p>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{format(gameDate, 'h:mm a')}</p>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{formatLeagueTime(game.scheduled_at, timezone)}</p>
         </div>
         <StatusChip status={game.status === 'completed' ? result.outcome : 'level'}>
           {game.status === 'completed' ? result.label : formatScheduleStatus(game.status)}

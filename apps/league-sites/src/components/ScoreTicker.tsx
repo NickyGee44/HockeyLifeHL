@@ -2,14 +2,16 @@
 
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { format, isToday, isTomorrow, isYesterday, differenceInMinutes } from 'date-fns';
+import { differenceInMinutes } from 'date-fns';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
+import { formatLeagueRelativeDateLabel, formatLeagueTime } from '@/lib/league-timezone';
 import type { TickerGame } from '@/lib/types';
 
 interface ScoreTickerProps {
   games: TickerGame[];
   leagueSlug: string;
+  timezone?: string | null;
 }
 
 /**
@@ -42,7 +44,7 @@ function isGameLive(game: TickerGame): boolean {
  * - Non-sticky (scrolls away with page)
  * - Minimal animations - only hover states
  */
-export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
+export function ScoreTicker({ games, leagueSlug, timezone }: ScoreTickerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -127,7 +129,7 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
             }}
           >
             {orderedGames.map((game) => (
-              <GameTile key={game.id} game={game} leagueSlug={leagueSlug} />
+              <GameTile key={game.id} game={game} leagueSlug={leagueSlug} timezone={timezone} />
             ))}
           </div>
 
@@ -164,9 +166,10 @@ export function ScoreTicker({ games, leagueSlug }: ScoreTickerProps) {
 interface GameTileProps {
   game: TickerGame;
   leagueSlug: string;
+  timezone?: string | null;
 }
 
-function GameTile({ game, leagueSlug }: GameTileProps) {
+function GameTile({ game, leagueSlug, timezone }: GameTileProps) {
   const isCompleted = game.status === 'completed';
   const [mounted, setMounted] = useState(false);
 
@@ -204,11 +207,8 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
 
   // Hydration-safe date formatting — timezone-dependent calls only after mount
   const formatGameDate = () => {
-    if (!mounted) return '\u00A0'; // non-breaking space placeholder
-    if (isToday(gameDate)) return 'Today';
-    if (isTomorrow(gameDate)) return 'Tomorrow';
-    if (isYesterday(gameDate)) return 'Yesterday';
-    return format(gameDate, 'EEE, MMM d');
+    if (!mounted) return '\u00A0';
+    return formatLeagueRelativeDateLabel(game.scheduled_at, timezone);
   };
 
   const divisionName =
@@ -226,7 +226,7 @@ function GameTile({ game, leagueSlug }: GameTileProps) {
         <span className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wide">
           {formatGameDate()}
         </span>
-        <StatusBadge game={game} gameDate={gameDate} />
+        <StatusBadge game={game} gameDate={gameDate} timezone={timezone} />
       </div>
 
       {/* Teams and Scores - improved spacing for logos */}
@@ -353,9 +353,10 @@ function TeamRow({
 interface StatusBadgeProps {
   game: TickerGame;
   gameDate: Date;
+  timezone?: string | null;
 }
 
-function StatusBadge({ game, gameDate }: StatusBadgeProps) {
+function StatusBadge({ game, gameDate, timezone }: StatusBadgeProps) {
   const { status } = game;
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -404,7 +405,7 @@ function StatusBadge({ game, gameDate }: StatusBadgeProps) {
     <span
       className="text-[10px] font-semibold px-1.5 py-0.5 rounded text-[var(--league-primary)] bg-[color-mix(in_srgb,var(--league-primary)_12%,transparent)]"
     >
-      {mounted ? format(gameDate, 'h:mm a') : '\u00A0'}
+      {mounted ? formatLeagueTime(gameDate, timezone) : '\u00A0'}
     </span>
   );
 }

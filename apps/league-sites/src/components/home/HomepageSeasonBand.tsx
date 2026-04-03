@@ -6,6 +6,7 @@ import type {
   HomepageSeasonLeader,
   RecentGame,
 } from '@/lib/types';
+import { formatLeagueShortDate } from '@/lib/league-timezone';
 
 interface GallerySpotlight {
   title: string;
@@ -46,6 +47,7 @@ interface HomepageSeasonBandProps {
   scoringLeaders: HomepageSeasonLeader[];
   goalieLeaders: GoalieStatsWithDivision[];
   spotlight: HomepageSeasonSpotlight | null;
+  timezone?: string | null;
 }
 
 function formatShortDate(value?: string | null) {
@@ -158,7 +160,7 @@ function RegistrationCard({ spotlight }: { spotlight: RegistrationSpotlight }) {
   );
 }
 
-function ResultsCard({ leagueSlug, spotlight }: { leagueSlug: string; spotlight: ResultsSpotlight }) {
+function ResultsCard({ leagueSlug, spotlight, timezone }: { leagueSlug: string; spotlight: ResultsSpotlight; timezone?: string | null }) {
   return (
     <section className="league-shell-panel self-start rounded-[28px] border border-[var(--color-border)] px-4 py-4 md:px-5">
       <div className="flex items-start justify-between gap-3">
@@ -187,7 +189,7 @@ function ResultsCard({ leagueSlug, spotlight }: { leagueSlug: string; spotlight:
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{game.away_team?.name || 'Away'}</p>
                 <p className="truncate text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                  {new Date(game.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {formatLeagueShortDate(game.scheduled_at, timezone)}
                 </p>
               </div>
             </div>
@@ -259,6 +261,7 @@ export function HomepageSeasonBand({
   scoringLeaders,
   goalieLeaders,
   spotlight,
+  timezone,
 }: HomepageSeasonBandProps) {
   const hasLeaders = scoringLeaders.length > 0 || goalieLeaders.length > 0;
 
@@ -273,7 +276,7 @@ export function HomepageSeasonBand({
           (spotlight.type === 'registration' ? (
             <RegistrationCard spotlight={spotlight} />
           ) : spotlight.type === 'results' ? (
-            <ResultsCard leagueSlug={leagueSlug} spotlight={spotlight} />
+            <ResultsCard leagueSlug={leagueSlug} spotlight={spotlight} timezone={timezone} />
           ) : (
             <GalleryCard spotlight={spotlight} />
           ))}

@@ -134,7 +134,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   )}
                   {(league as any).settings?.website?.showGameTicker !== false && tickerGames.length > 0 && (
                     <div className="league-site-chrome">
-                      <PremiumScoreTicker games={tickerGames} leagueSlug={leagueSlug} />
+                      <PremiumScoreTicker games={tickerGames} leagueSlug={leagueSlug} timezone={league.timezone} />
                     </div>
                   )}
                   <div className="league-site-chrome">
