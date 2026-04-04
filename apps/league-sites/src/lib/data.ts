@@ -2962,41 +2962,44 @@ async function getNativeUnifiedSkaterStatsRows(
   }
 
   const { data, error } = await query;
-  if (error || !data || data.length === 0) {
+  const hasStatData = !error && data && data.length > 0;
+
+  let visibleRows: RawSkaterStatsRow[] = [];
+  if (hasStatData) {
+    const rows = data as unknown as RawSkaterStatsRow[];
+    const hiddenSeasonIds =
+      seasonId == null
+        ? await getHistoricalCareerBaselineSeasonIdsForLeague(supabase, leagueId, rows.map((row) => row.season_id))
+        : new Set<string>();
+    visibleRows = hiddenSeasonIds.size > 0
+      ? rows.filter((row) => !hiddenSeasonIds.has(row.season_id ?? ''))
+      : rows;
+  }
+
+  if (visibleRows.length === 0 && !seasonId) {
     return [];
   }
 
-  const rows = data as unknown as RawSkaterStatsRow[];
-  const hiddenSeasonIds =
-    seasonId == null
-      ? await getHistoricalCareerBaselineSeasonIdsForLeague(supabase, leagueId, rows.map((row) => row.season_id))
-      : new Set<string>();
-  const visibleRows = hiddenSeasonIds.size > 0
-    ? rows.filter((row) => !hiddenSeasonIds.has(row.season_id ?? ''))
-    : rows;
-
-  if (visibleRows.length === 0) {
-    return [];
-  }
-
-  const playerIds = [...new Set(visibleRows.map((row) => row.player_id))];
-  const teamIds = [...new Set(visibleRows.map((row) => row.team_id).filter(Boolean))];
-  const seasonIds = [...new Set(visibleRows.map((row) => row.season_id).filter(Boolean))];
-
-  let rosterQuery = supabase
-    .from('team_rosters')
-    .select('player_id, team_id, season_id, position, is_goalie, jersey_number')
-    .in('player_id', playerIds)
-    .in('team_id', teamIds);
-
-  if (seasonIds.length > 0) {
-    rosterQuery = rosterQuery.in('season_id', seasonIds);
-  }
-
-  const { data: rosterRows } = await rosterQuery;
   const rosterMap = new Map<string, RosterDisplayRow>();
-  for (const row of (rosterRows || []) as unknown as RosterDisplayRow[]) {
-    rosterMap.set(`${row.player_id}:${row.team_id}:${row.season_id ?? 'any'}`, row);
+  if (visibleRows.length > 0) {
+    const playerIds = [...new Set(visibleRows.map((row) => row.player_id))];
+    const teamIds = [...new Set(visibleRows.map((row) => row.team_id).filter(Boolean))];
+    const seasonIds = [...new Set(visibleRows.map((row) => row.season_id).filter(Boolean))];
+
+    let rosterQuery = supabase
+      .from('team_rosters')
+      .select('player_id, team_id, season_id, position, is_goalie, jersey_number')
+      .in('player_id', playerIds)
+      .in('team_id', teamIds);
+
+    if (seasonIds.length > 0) {
+      rosterQuery = rosterQuery.in('season_id', seasonIds);
+    }
+
+    const { data: rosterRows } = await rosterQuery;
+    for (const row of (rosterRows || []) as unknown as RosterDisplayRow[]) {
+      rosterMap.set(`${row.player_id}:${row.team_id}:${row.season_id ?? 'any'}`, row);
+    }
   }
 
   const playerMap = new Map<string, SkaterStatsAccumulator>();
@@ -3061,6 +3064,66 @@ async function getNativeUnifiedSkaterStatsRows(
 
     if (!existing) {
       playerMap.set(row.player_id, entry);
+    }
+  }
+
+  // Augment with rostered skaters who have zero stats (native seasons only)
+  if (seasonId) {
+    const rosterAugmentQuery = supabase
+      .from('team_rosters')
+      .select(`
+        player_id,
+        team_id,
+        season_id,
+        jersey_number,
+        is_goalie,
+        position,
+        profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url),
+        teams:teams!team_rosters_team_id_fkey(name, divisions(name))
+      `)
+      .eq('season_id', seasonId)
+      .eq('status', 'active')
+      .is('end_date', null);
+
+    if (filteredTeamIds) {
+      rosterAugmentQuery.in('team_id', filteredTeamIds);
+    }
+
+    const { data: allRoster } = await rosterAugmentQuery;
+    if (allRoster) {
+      for (const rawRow of allRoster as unknown as FallbackCurrentSeasonGoalieRosterRow[]) {
+        if (!rawRow.player_id || !rawRow.team_id) continue;
+        if (rawRow.is_goalie === true || isGoaliePosition(rawRow.position)) continue;
+        if (playerMap.has(rawRow.player_id)) continue;
+
+        const profileData = unwrapJoinedRecord(rawRow.profiles);
+        const teamData = unwrapJoinedRecord(rawRow.teams);
+        playerMap.set(rawRow.player_id, {
+          player_id: rawRow.player_id,
+          player_name: profileData?.full_name || 'Unknown Player',
+          avatar_url: profileData?.avatar_url || null,
+          jersey_number: rawRow.jersey_number != null ? String(rawRow.jersey_number) : null,
+          team_id: rawRow.team_id,
+          team_name: teamData?.name || 'Unknown Team',
+          division_name: getJoinedDivisionName(teamData?.divisions),
+          position: rawRow.position || null,
+          is_goalie: false,
+          games_played: 0,
+          goals: 0,
+          assists: 0,
+          penalty_minutes: 0,
+          plus_minus: 0,
+          power_play_goals: 0,
+          power_play_assists: 0,
+          short_handed_goals: 0,
+          short_handed_assists: 0,
+          game_winning_goals: 0,
+          empty_net_goals: 0,
+          shots: 0,
+          best_team_games: 0,
+          team_games: new Map<string, number>(),
+        });
+      }
     }
   }
 
@@ -3243,11 +3306,70 @@ async function getNativeUnifiedGoalieStatsRows(
 
   const { data: rosterRows } = await rosterQuery;
 
-  return aggregateNativeGoalieStatsRows(
+  const aggregated = aggregateNativeGoalieStatsRows(
     visibleRows,
     (rosterRows || []) as Array<Pick<RosterDisplayRow, 'player_id' | 'team_id' | 'season_id' | 'jersey_number'>>,
     seasonId,
   );
+
+  // Augment with rostered goalies who have zero stats (native seasons only)
+  if (seasonId) {
+    const existingPlayerIds = new Set(aggregated.map((row) => row.player_id));
+
+    const rosterAugmentQuery = supabase
+      .from('team_rosters')
+      .select(`
+        player_id,
+        team_id,
+        season_id,
+        jersey_number,
+        is_goalie,
+        position,
+        profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url),
+        teams:teams!team_rosters_team_id_fkey(name, divisions(name))
+      `)
+      .eq('season_id', seasonId)
+      .eq('status', 'active')
+      .is('end_date', null);
+
+    if (filteredTeamIds) {
+      rosterAugmentQuery.in('team_id', filteredTeamIds);
+    }
+
+    const { data: allRoster } = await rosterAugmentQuery;
+    if (allRoster) {
+      for (const rawRow of allRoster as unknown as FallbackCurrentSeasonGoalieRosterRow[]) {
+        if (!rawRow.player_id || !rawRow.team_id) continue;
+        if (rawRow.is_goalie !== true && !isGoaliePosition(rawRow.position)) continue;
+        if (existingPlayerIds.has(rawRow.player_id)) continue;
+
+        const profileData = unwrapJoinedRecord(rawRow.profiles);
+        const teamData = unwrapJoinedRecord(rawRow.teams);
+        aggregated.push({
+          player_id: rawRow.player_id,
+          player_name: profileData?.full_name || 'Unknown Goalie',
+          avatar_url: profileData?.avatar_url || null,
+          jersey_number: rawRow.jersey_number != null ? String(rawRow.jersey_number) : null,
+          team_id: rawRow.team_id,
+          team_name: teamData?.name || 'Unknown Team',
+          division_name: getJoinedDivisionName(teamData?.divisions),
+          position: 'Goalie',
+          championships: 0,
+          games_played: 0,
+          wins: 0,
+          losses: 0,
+          saves: 0,
+          goals_against: 0,
+          save_percentage: null,
+          goals_against_average: null,
+          shutouts: 0,
+        });
+        existingPlayerIds.add(rawRow.player_id);
+      }
+    }
+  }
+
+  return aggregated;
 }
 
 async function buildAllTimeGoalieRows(

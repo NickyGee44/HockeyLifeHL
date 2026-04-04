@@ -123,7 +123,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
 
       return left.player_name.localeCompare(right.player_name);
     })
-    .slice(0, 5);
+    .slice(0, 3);
 
   return (
     <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-4 md:p-6">
