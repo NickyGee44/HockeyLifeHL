@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -22,6 +22,11 @@ import type { ScheduleGame } from '@/lib/types';
 type WeeklyGamesView = 'cool' | 'compact';
 type TeamResult = 'W' | 'L' | null;
 type WeeklyGameTeam = ScheduleGame['home_team'] | undefined;
+type CarouselDirection = -1 | 1;
+type CarouselPhase = 'idle' | 'pre' | 'run';
+
+const COOL_CAROUSEL_DURATION_MS = 720;
+const COOL_CAROUSEL_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
@@ -72,6 +77,10 @@ function getStatusLabel(status: ScheduleGame['status']) {
   }
 }
 
+function getTeamName(team: WeeklyGameTeam) {
+  return team?.name || 'TBD';
+}
+
 function getTeamResult(
   game: ScheduleGame,
   side: 'home' | 'away',
@@ -106,6 +115,76 @@ function formatCenterDisplay(game: ScheduleGame, timezone?: string | null) {
   };
 }
 
+function getGameHref(game: ScheduleGame, leagueSlug: string) {
+  return `/${leagueSlug}/games/${game.id}`;
+}
+
+function getGameAriaLabel(game: ScheduleGame) {
+  return `Open matchup details for ${getTeamName(game.away_team)} at ${getTeamName(game.home_team)}`;
+}
+
+function getCoolSlideStyle({
+  phase,
+  direction,
+  role,
+}: {
+  phase: CarouselPhase;
+  direction: CarouselDirection;
+  role: 'current' | 'previous';
+}): CSSProperties {
+  const transition = [
+    `transform ${COOL_CAROUSEL_DURATION_MS}ms ${COOL_CAROUSEL_EASING}`,
+    `opacity ${COOL_CAROUSEL_DURATION_MS}ms ${COOL_CAROUSEL_EASING}`,
+    `filter ${COOL_CAROUSEL_DURATION_MS}ms ${COOL_CAROUSEL_EASING}`,
+  ].join(', ');
+  const enterOffset = direction > 0 ? '108%' : '-108%';
+  const exitOffset = direction > 0 ? '-108%' : '108%';
+
+  if (phase === 'idle') {
+    return {
+      transform: 'translate3d(0, 0, 0) scale(1)',
+      opacity: 1,
+      filter: 'blur(0px)',
+      transition,
+      willChange: 'transform, opacity, filter',
+    };
+  }
+
+  if (phase === 'pre') {
+    return role === 'current'
+      ? {
+          transform: `translate3d(${enterOffset}, 0, 0) scale(0.98)`,
+          opacity: 0.42,
+          filter: 'blur(10px)',
+          transition,
+          willChange: 'transform, opacity, filter',
+        }
+      : {
+          transform: 'translate3d(0, 0, 0) scale(1)',
+          opacity: 1,
+          filter: 'blur(0px)',
+          transition,
+          willChange: 'transform, opacity, filter',
+        };
+  }
+
+  return role === 'current'
+    ? {
+        transform: 'translate3d(0, 0, 0) scale(1)',
+        opacity: 1,
+        filter: 'blur(0px)',
+        transition,
+        willChange: 'transform, opacity, filter',
+      }
+    : {
+        transform: `translate3d(${exitOffset}, 0, 0) scale(0.98)`,
+        opacity: 0.18,
+        filter: 'blur(10px)',
+        transition,
+        willChange: 'transform, opacity, filter',
+      };
+}
+
 function TeamLink({
   team,
   leagueSlug,
@@ -115,7 +194,7 @@ function TeamLink({
   leagueSlug: string;
   className: string;
 }) {
-  const teamName = team?.name || 'TBD';
+  const teamName = getTeamName(team);
 
   if (!team?.slug) {
     return <span className={className}>{teamName}</span>;
@@ -163,15 +242,17 @@ function OutcomeBadge({
 }
 
 function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
+  void leagueSlug;
+
   const sidePositionClass =
     align === 'left' ? 'items-start text-left' : 'items-end text-right';
   const badgePositionClass =
     align === 'left'
-      ? 'bottom-1 right-1 sm:bottom-2 sm:right-2 md:bottom-4 md:right-4'
-      : 'bottom-1 left-1 sm:bottom-2 sm:left-2 md:bottom-4 md:left-4';
+      ? 'right-[18%] top-[56%] -translate-y-1/2 sm:right-[17%] md:right-[16%]'
+      : 'left-[18%] top-[56%] -translate-y-1/2 sm:left-[17%] md:left-[16%]';
 
   return (
-    <div className={`relative flex flex-col ${sidePositionClass} gap-4`}>
+    <div className={`relative flex flex-col ${sidePositionClass} gap-3`}>
       <div className="relative">
         <div className="relative flex h-40 w-40 items-center justify-center sm:h-56 sm:w-56 md:h-72 md:w-72">
           <Image
@@ -191,11 +272,9 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/74">
           {align === 'left' ? 'Away' : 'Home'}
         </p>
-        <TeamLink
-          team={team}
-          leagueSlug={leagueSlug}
-          className="mt-2 block text-balance text-2xl font-black tracking-tight text-white [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] transition-colors duration-200 hover:text-[var(--league-primary)] md:text-4xl"
-        />
+        <span className="mt-2 block text-balance text-2xl font-black tracking-tight text-white [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] md:text-4xl">
+          {getTeamName(team)}
+        </span>
       </div>
     </div>
   );
@@ -212,13 +291,10 @@ function CoolCardTeam({
 }) {
   return (
     <div className={align === 'left' ? 'text-left' : 'text-right'}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-        {align === 'left' ? 'Away' : 'Home'}
-      </p>
       <TeamLink
         team={team}
         leagueSlug={leagueSlug}
-        className="mt-1 block text-base font-black tracking-tight text-[var(--color-text-primary)] transition-colors duration-200 hover:text-[var(--league-primary)] sm:text-lg"
+        className="block text-balance text-base font-black tracking-tight text-[var(--color-text-primary)] transition-colors duration-200 hover:text-[var(--league-primary)] sm:text-lg"
       />
     </div>
   );
@@ -267,131 +343,230 @@ function CompactTeam({
 function CoolView({
   games,
   activeIndex,
+  previousIndex,
+  transitionDirection,
+  transitionPhase,
+  isTransitioning,
   onNavigate,
   leagueSlug,
   timezone,
 }: {
   games: ScheduleGame[];
   activeIndex: number;
+  previousIndex: number | null;
+  transitionDirection: CarouselDirection;
+  transitionPhase: CarouselPhase;
+  isTransitioning: boolean;
   onNavigate: (direction: number) => void;
   leagueSlug: string;
   timezone?: string | null;
 }) {
   const game = games[activeIndex];
-  const centerDisplay = formatCenterDisplay(game, timezone);
+  const previousGame = previousIndex !== null ? games[previousIndex] : null;
   const hasControls = games.length > 1;
+  const heroHref = getGameHref(game, leagueSlug);
 
-  return (
-    <div className="mt-6 animate-fade-in">
-      <div className="relative min-h-[360px] rounded-[30px] bg-[var(--color-surface)] sm:min-h-[440px] lg:min-h-[520px]">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
-            WebkitMaskImage:
-              'radial-gradient(ellipse 96% 88% at 50% 50%, rgba(0,0,0,1) 58%, rgba(0,0,0,0.88) 72%, rgba(0,0,0,0.52) 84%, transparent 100%)',
-            maskImage:
-              'radial-gradient(ellipse 96% 88% at 50% 50%, rgba(0,0,0,1) 58%, rgba(0,0,0,0.88) 72%, rgba(0,0,0,0.52) 84%, transparent 100%)',
-          }}
+  const renderHeroSlide = (
+    slideGame: ScheduleGame,
+    role: 'current' | 'previous',
+  ) => (
+    <div
+      aria-hidden={role === 'previous'}
+      className="pointer-events-none col-start-1 row-start-1"
+      style={getCoolSlideStyle({
+        phase: isTransitioning ? transitionPhase : 'idle',
+        direction: transitionDirection,
+        role,
+      })}
+    >
+      <div className="grid min-h-[360px] grid-cols-[1fr_1fr] items-end gap-4 px-5 pb-28 pt-16 sm:min-h-[440px] sm:px-8 sm:pb-32 md:px-10 lg:min-h-[520px] lg:pb-36">
+        <CoolViewTeam
+          team={slideGame.away_team}
+          leagueSlug={leagueSlug}
+          align="left"
+          result={getTeamResult(slideGame, 'away')}
         />
+        <CoolViewTeam
+          team={slideGame.home_team}
+          leagueSlug={leagueSlug}
+          align="right"
+          result={getTeamResult(slideGame, 'home')}
+        />
+      </div>
+    </div>
+  );
 
-        <div className="absolute left-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-          {activeIndex + 1} / {games.length}
+  const renderDetailsSlide = (
+    slideGame: ScheduleGame,
+    role: 'current' | 'previous',
+  ) => {
+    const centerDisplay = formatCenterDisplay(slideGame, timezone);
+
+    return (
+      <div
+        aria-hidden={role === 'previous'}
+        className="col-start-1 row-start-1"
+        style={getCoolSlideStyle({
+          phase: isTransitioning ? transitionPhase : 'idle',
+          direction: transitionDirection,
+          role,
+        })}
+      >
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+          <span className="inline-flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+            {formatLeagueShortWeekdayDate(slideGame.scheduled_at, timezone)}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Clock3 className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+            {formatLeagueTime(slideGame.scheduled_at, timezone)}
+          </span>
+          {slideGame.venue && (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+              {slideGame.venue}
+            </span>
+          )}
         </div>
-        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-          {getStatusLabel(game.status)}
-        </div>
 
-        {hasControls && (
-          <>
-            <button
-              type="button"
-              aria-label="Previous game"
-              onClick={() => onNavigate(-1)}
-              className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next game"
-              onClick={() => onNavigate(1)}
-              className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </>
-        )}
-
-        <div
-          key={game.id}
-          className="grid min-h-[360px] grid-cols-[1fr_1fr] items-center gap-4 px-5 py-16 sm:min-h-[440px] sm:px-8 md:px-10 lg:min-h-[520px]"
-        >
-          <CoolViewTeam
-            team={game.away_team}
+        <div className="mt-4 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+          <CoolCardTeam
+            team={slideGame.away_team}
             leagueSlug={leagueSlug}
             align="left"
-            result={getTeamResult(game, 'away')}
           />
-          <CoolViewTeam
-            team={game.home_team}
+          <div
+            className="rounded-[18px] border border-white/10 px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+            style={{
+              backgroundColor:
+                'color-mix(in srgb, var(--color-background-elevated) 76%, transparent)',
+            }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+              {centerDisplay.label}
+            </p>
+            <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
+              {centerDisplay.primary}
+            </p>
+          </div>
+          <CoolCardTeam
+            team={slideGame.home_team}
             leagueSlug={leagueSlug}
             align="right"
-            result={getTeamResult(game, 'home')}
           />
         </div>
       </div>
+    );
+  };
 
-      <div className="mt-4">
-        <div className="mx-auto max-w-xl rounded-[22px] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] p-3 shadow-[0_28px_60px_-42px_rgba(0,0,0,0.88)] sm:p-4">
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5" />
-              {formatLeagueShortWeekdayDate(game.scheduled_at, timezone)}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock3 className="h-3.5 w-3.5" />
-              {formatLeagueTime(game.scheduled_at, timezone)}
-            </span>
-            {game.venue && (
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" />
-                {game.venue}
-              </span>
-            )}
+  return (
+    <div className="mt-6 animate-fade-in">
+      <div className="relative">
+        <div className="relative overflow-hidden rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 18%, transparent), transparent 44%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 78%, transparent), var(--color-surface))',
+            }}
+          />
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-70"
+            style={{
+              backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
+              WebkitMaskImage:
+                'linear-gradient(180deg, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.98) 42%, rgba(0,0,0,0.74) 66%, rgba(0,0,0,0.2) 84%, transparent 100%)',
+              maskImage:
+                'linear-gradient(180deg, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.98) 42%, rgba(0,0,0,0.74) 66%, rgba(0,0,0,0.2) 84%, transparent 100%)',
+            }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-36"
+            style={{
+              backgroundImage:
+                'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 44%, transparent) 48%, var(--color-surface) 100%)',
+            }}
+          />
+
+          <Link
+            href={heroHref}
+            aria-label={getGameAriaLabel(game)}
+            className="absolute inset-0 z-10 block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-surface)]"
+          >
+            <span className="sr-only">{getGameAriaLabel(game)}</span>
+          </Link>
+
+          <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+            {activeIndex + 1} / {games.length}
+          </div>
+          <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+            {getStatusLabel(game.status)}
           </div>
 
-          <div className="mt-3 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-            <CoolCardTeam
-              team={game.away_team}
-              leagueSlug={leagueSlug}
-              align="left"
-            />
-            <div className="rounded-[18px] bg-[var(--color-surface)] px-3 py-2 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-                {centerDisplay.label}
-              </p>
-              <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
-                {centerDisplay.primary}
-              </p>
+          {hasControls && (
+            <>
+              <button
+                type="button"
+                aria-label="Previous game"
+                onClick={() => onNavigate(-1)}
+                disabled={isTransitioning}
+                className="absolute left-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next game"
+                onClick={() => onNavigate(1)}
+                disabled={isTransitioning}
+                className="absolute right-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          <div className="relative z-20 grid">
+            {previousGame ? renderHeroSlide(previousGame, 'previous') : null}
+            {renderHeroSlide(game, 'current')}
+          </div>
+        </div>
+
+        <div
+          className="relative z-30 -mt-[4.5rem] px-3 sm:-mt-20 sm:px-6 lg:-mt-24"
+          style={{
+            filter: 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
+          }}
+        >
+          <div
+            className="mx-auto max-w-2xl overflow-hidden rounded-[26px] border p-3 sm:p-4"
+            style={{
+              backgroundColor:
+                'color-mix(in srgb, var(--league-secondary) 18%, rgba(255,255,255,0.12))',
+              backgroundImage:
+                'linear-gradient(180deg, color-mix(in srgb, var(--league-secondary) 24%, rgba(255,255,255,0.26)) 0%, color-mix(in srgb, var(--color-background-elevated) 86%, transparent) 100%)',
+              borderColor:
+                'color-mix(in srgb, var(--league-primary) 12%, color-mix(in srgb, var(--league-secondary) 18%, rgba(255,255,255,0.18)))',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.16), 0 30px 70px -48px rgba(0,0,0,0.95)',
+              backdropFilter: 'blur(24px)',
+            }}
+          >
+            <div className="grid">
+              {previousGame ? renderDetailsSlide(previousGame, 'previous') : null}
+              {renderDetailsSlide(game, 'current')}
             </div>
-            <CoolCardTeam
-              team={game.home_team}
-              leagueSlug={leagueSlug}
-              align="right"
-            />
-          </div>
 
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="mt-4 flex items-center justify-center gap-2">
               {games.map((entry, index) => (
                 <button
                   key={entry.id}
                   type="button"
                   aria-label={`Show game ${index + 1}`}
                   aria-pressed={index === activeIndex}
+                  disabled={isTransitioning}
                   onClick={() => onNavigate(index - activeIndex)}
-                  className={`h-2.5 rounded-full transition-all duration-200 ${
+                  className={`h-2.5 rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
                     index === activeIndex
                       ? 'w-7 bg-[var(--league-primary)]'
                       : 'w-2.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]'
@@ -399,12 +574,6 @@ function CoolView({
                 />
               ))}
             </div>
-            <Link
-              href={`/${leagueSlug}/games/${game.id}`}
-              className="inline-flex items-center justify-center text-sm font-semibold text-[var(--league-primary)] transition-colors duration-200 hover:text-[var(--color-text-primary)]"
-            >
-              Matchup Details
-            </Link>
           </div>
         </div>
       </div>
@@ -483,11 +652,55 @@ export function HomepageWeeklyGames({
 }: HomepageWeeklyGamesProps) {
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [transitionDirection, setTransitionDirection] =
+    useState<CarouselDirection>(1);
+  const [transitionPhase, setTransitionPhase] =
+    useState<CarouselPhase>('idle');
   const isCompactView = view === 'compact';
+  const isTransitioning = previousIndex !== null;
+  const activeIndexRef = useRef(0);
+  const isTransitioningRef = useRef(false);
 
   useEffect(() => {
     setActiveIndex(0);
+    activeIndexRef.current = 0;
+    setPreviousIndex(null);
+    setTransitionPhase('idle');
   }, [games.length]);
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useEffect(() => {
+    isTransitioningRef.current = isTransitioning;
+  }, [isTransitioning]);
+
+  useEffect(() => {
+    if (transitionPhase !== 'pre') {
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      setTransitionPhase('run');
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [transitionPhase]);
+
+  useEffect(() => {
+    if (!isTransitioning || transitionPhase !== 'run') {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPreviousIndex(null);
+      setTransitionPhase('idle');
+    }, COOL_CAROUSEL_DURATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isTransitioning, transitionPhase]);
 
   useEffect(() => {
     if (view !== 'cool' || games.length < 2) {
@@ -495,21 +708,33 @@ export function HomepageWeeklyGames({
     }
 
     const timerId = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % games.length);
+      if (isTransitioningRef.current) {
+        return;
+      }
+
+      const currentIndex = activeIndexRef.current;
+
+      setPreviousIndex(currentIndex);
+      setTransitionDirection(1);
+      setTransitionPhase('pre');
+      setActiveIndex((currentIndex + 1) % games.length);
     }, 6500);
 
     return () => window.clearInterval(timerId);
   }, [view, games.length]);
 
   const handleNavigate = (direction: number) => {
-    if (games.length === 0 || direction === 0) {
+    if (games.length === 0 || direction === 0 || isTransitioningRef.current) {
       return;
     }
 
-    setActiveIndex((current) => {
-      const nextIndex = (current + direction) % games.length;
-      return nextIndex >= 0 ? nextIndex : games.length + nextIndex;
-    });
+    const currentIndex = activeIndexRef.current;
+    const nextIndex = (currentIndex + direction) % games.length;
+
+    setPreviousIndex(currentIndex);
+    setTransitionDirection(direction < 0 ? -1 : 1);
+    setTransitionPhase('pre');
+    setActiveIndex(nextIndex >= 0 ? nextIndex : games.length + nextIndex);
   };
 
   return (
@@ -544,6 +769,10 @@ export function HomepageWeeklyGames({
           <CoolView
             games={games}
             activeIndex={activeIndex}
+            previousIndex={previousIndex}
+            transitionDirection={transitionDirection}
+            transitionPhase={transitionPhase}
+            isTransitioning={isTransitioning}
             onNavigate={handleNavigate}
             leagueSlug={leagueSlug}
             timezone={timezone}
