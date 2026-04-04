@@ -3,7 +3,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Clock3, MapPin } from 'lucide-react';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Image as ImageIcon,
+  List,
+  MapPin,
+} from 'lucide-react';
 import { Card } from '@/components/ui';
 import {
   formatLeagueShortWeekdayDate,
@@ -132,7 +140,10 @@ function OutcomeBadge({
   }
 
   const isWin = result === 'W';
-  const sizeClass = size === 'sm' ? 'h-9 w-9 text-sm' : 'h-14 w-14 text-xl md:h-16 md:w-16 md:text-2xl';
+  const sizeClass =
+    size === 'sm'
+      ? 'h-9 w-9 text-sm'
+      : 'h-14 w-14 text-xl md:h-16 md:w-16 md:text-2xl';
 
   return (
     <span
@@ -148,27 +159,22 @@ function OutcomeBadge({
 }
 
 function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
-  const sidePositionClass = align === 'left' ? 'items-start text-left' : 'items-end text-right';
-  const badgePositionClass = align === 'left' ? '-right-3 md:-right-4' : '-left-3 md:-left-4';
-  const logoGlow =
-    align === 'left'
-      ? 'from-white/16 via-white/8 to-transparent'
-      : 'from-transparent via-white/8 to-white/16';
+  const sidePositionClass =
+    align === 'left' ? 'items-start text-left' : 'items-end text-right';
+  const badgePositionClass =
+    align === 'left' ? '-right-3 md:-right-4' : '-left-3 md:-left-4';
 
   return (
     <div className={`relative flex flex-col ${sidePositionClass} gap-4`}>
       <div className="relative">
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--league-primary)]/28 via-transparent to-white/10 blur-2xl" />
-        <div className={`relative overflow-visible rounded-full bg-gradient-to-br ${logoGlow} p-4`}>
-          <div className="relative flex h-28 w-28 items-center justify-center rounded-full border border-white/16 bg-black/20 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.95)] backdrop-blur-sm sm:h-36 sm:w-36 md:h-44 md:w-44">
-            <Image
-              src={team?.logo || '/blank_team.png'}
-              alt={team?.name || 'TBD'}
-              width={176}
-              height={176}
-              className="h-20 w-20 object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)] sm:h-28 sm:w-28 md:h-36 md:w-36"
-            />
-          </div>
+        <div className="relative flex h-28 w-28 items-center justify-center sm:h-36 sm:w-36 md:h-44 md:w-44">
+          <Image
+            src={team?.logo || '/blank_team.png'}
+            alt={team?.name || 'TBD'}
+            width={176}
+            height={176}
+            className="h-20 w-20 object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.6)] sm:h-28 sm:w-28 md:h-36 md:w-36"
+          />
           <span className={`absolute ${badgePositionClass}`}>
             <OutcomeBadge result={result} />
           </span>
@@ -176,13 +182,13 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
       </div>
 
       <div className="max-w-[220px]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
           {align === 'left' ? 'Away' : 'Home'}
         </p>
         <TeamLink
           team={team}
           leagueSlug={leagueSlug}
-          className="mt-2 block text-balance text-xl font-black tracking-tight text-white transition-colors duration-200 hover:text-[var(--league-primary)] md:text-3xl"
+          className="mt-2 block text-balance text-xl font-black tracking-tight text-white [text-shadow:0_8px_24px_rgba(0,0,0,0.9)] transition-colors duration-200 hover:text-[var(--league-primary)] md:text-3xl"
         />
       </div>
     </div>
@@ -200,13 +206,13 @@ function CoolCardTeam({
 }) {
   return (
     <div className={align === 'left' ? 'text-left' : 'text-right'}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
         {align === 'left' ? 'Away' : 'Home'}
       </p>
       <TeamLink
         team={team}
         leagueSlug={leagueSlug}
-        className="mt-1 block text-lg font-black tracking-tight text-white transition-colors duration-200 hover:text-[var(--league-primary)] sm:text-xl"
+        className="mt-1 block text-base font-black tracking-tight text-[var(--color-text-primary)] transition-colors duration-200 hover:text-[var(--league-primary)] sm:text-lg"
       />
     </div>
   );
@@ -269,68 +275,64 @@ function CoolView({
   const hasControls = games.length > 1;
 
   return (
-    <div className="mt-6 animate-fade-in">
-      <div className="relative isolate overflow-hidden rounded-[34px] border border-white/10 shadow-[0_34px_80px_-42px_rgba(0,0,0,0.92)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_56%)]" />
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "linear-gradient(135deg, rgba(5, 10, 18, 0.9), rgba(10, 16, 27, 0.62)), url('/homepage/weekly-games-bg.jpg')",
-          }}
-        />
-        <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-black/55 to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-black/55 to-transparent" />
-
-        <div className="absolute left-4 top-4 z-20 rounded-full border border-white/12 bg-black/28 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72 backdrop-blur-md">
-          {activeIndex + 1} / {games.length}
-        </div>
-        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/12 bg-black/28 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/72 backdrop-blur-md">
-          {getStatusLabel(game.status)}
-        </div>
-
-        {hasControls && (
-          <>
-            <button
-              type="button"
-              aria-label="Previous game"
-              onClick={() => onNavigate(-1)}
-              className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/14 bg-black/28 text-white/82 backdrop-blur-md transition-colors duration-200 hover:bg-black/44 hover:text-white"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next game"
-              onClick={() => onNavigate(1)}
-              className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/14 bg-black/28 text-white/82 backdrop-blur-md transition-colors duration-200 hover:bg-black/44 hover:text-white"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </>
-        )}
-
-        <div
-          key={game.id}
-          className="grid min-h-[390px] grid-cols-[1fr_1fr] items-start gap-6 px-5 pb-36 pt-20 sm:min-h-[430px] sm:px-8 sm:pb-32 md:px-10 lg:pb-36"
-        >
-          <CoolViewTeam
-            team={game.away_team}
-            leagueSlug={leagueSlug}
-            align="left"
-            result={getTeamResult(game, 'away')}
+    <div className="mt-6 animate-fade-in pb-16 sm:pb-20">
+      <div className="relative">
+        <div className="relative min-h-[320px] overflow-hidden rounded-[30px] sm:min-h-[360px] lg:min-h-[390px]">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url('/homepage/weekly-games-bg.jpg')" }}
           />
-          <CoolViewTeam
-            team={game.home_team}
-            leagueSlug={leagueSlug}
-            align="right"
-            result={getTeamResult(game, 'home')}
-          />
+
+          <div className="absolute left-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+            {activeIndex + 1} / {games.length}
+          </div>
+          <div className="absolute right-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+            {getStatusLabel(game.status)}
+          </div>
+
+          {hasControls && (
+            <>
+              <button
+                type="button"
+                aria-label="Previous game"
+                onClick={() => onNavigate(-1)}
+                className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Next game"
+                onClick={() => onNavigate(1)}
+                className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          <div
+            key={game.id}
+            className="grid min-h-[320px] grid-cols-[1fr_1fr] items-start gap-4 px-5 pb-12 pt-16 sm:min-h-[360px] sm:px-8 md:px-10 lg:min-h-[390px]"
+          >
+            <CoolViewTeam
+              team={game.away_team}
+              leagueSlug={leagueSlug}
+              align="left"
+              result={getTeamResult(game, 'away')}
+            />
+            <CoolViewTeam
+              team={game.home_team}
+              leagueSlug={leagueSlug}
+              align="right"
+              result={getTeamResult(game, 'home')}
+            />
+          </div>
         </div>
 
-        <div className="absolute inset-x-4 bottom-4 sm:inset-x-6">
-          <div className="mx-auto max-w-3xl rounded-[28px] border border-white/12 bg-[color-mix(in_srgb,#081019_86%,transparent)] p-4 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-xl sm:p-5">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/58">
+        <div className="pointer-events-none absolute inset-x-3 -bottom-12 sm:inset-x-6 sm:-bottom-14">
+          <div className="pointer-events-auto mx-auto max-w-xl rounded-[22px] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] p-3 shadow-[0_28px_60px_-42px_rgba(0,0,0,0.88)] sm:p-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
               <span className="inline-flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
                 {formatLeagueShortWeekdayDate(game.scheduled_at, timezone)}
@@ -347,20 +349,28 @@ function CoolView({
               )}
             </div>
 
-            <div className="mt-4 flex flex-col gap-4 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-              <CoolCardTeam team={game.away_team} leagueSlug={leagueSlug} align="left" />
-              <div className="rounded-[22px] border border-white/10 bg-black/28 px-4 py-3 text-center shadow-inner shadow-black/35">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/54">
+            <div className="mt-3 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <CoolCardTeam
+                team={game.away_team}
+                leagueSlug={leagueSlug}
+                align="left"
+              />
+              <div className="rounded-[18px] bg-[var(--color-surface)] px-3 py-2 text-center">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
                   {centerDisplay.label}
                 </p>
-                <p className="mt-1 text-2xl font-black tracking-tight text-white sm:text-3xl">
+                <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
                   {centerDisplay.primary}
                 </p>
               </div>
-              <CoolCardTeam team={game.home_team} leagueSlug={leagueSlug} align="right" />
+              <CoolCardTeam
+                team={game.home_team}
+                leagueSlug={leagueSlug}
+                align="right"
+              />
             </div>
 
-            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {games.map((entry, index) => (
                   <button
@@ -372,14 +382,14 @@ function CoolView({
                     className={`h-2.5 rounded-full transition-all duration-200 ${
                       index === activeIndex
                         ? 'w-7 bg-[var(--league-primary)]'
-                        : 'w-2.5 bg-white/24 hover:bg-white/42'
+                        : 'w-2.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]'
                     }`}
                   />
                 ))}
               </div>
               <Link
                 href={`/${leagueSlug}/games/${game.id}`}
-                className="inline-flex items-center justify-center rounded-full border border-white/14 bg-white/6 px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--league-primary)]"
+                className="inline-flex items-center justify-center text-sm font-semibold text-[var(--league-primary)] transition-colors duration-200 hover:text-[var(--color-text-primary)]"
               >
                 Matchup Details
               </Link>
@@ -462,6 +472,7 @@ export function HomepageWeeklyGames({
 }: HomepageWeeklyGamesProps) {
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
+  const isCompactView = view === 'compact';
 
   useEffect(() => {
     setActiveIndex(0);
@@ -492,7 +503,7 @@ export function HomepageWeeklyGames({
 
   return (
     <div>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
             <Calendar className="h-3.5 w-3.5" />
@@ -503,37 +514,18 @@ export function HomepageWeeklyGames({
           <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
             This Week’s Games
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Completed finals stay in view alongside the next puck drops, with a premium carousel by default and a full compact list when you want the whole week at once.
-          </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
-          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-1 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)]">
-            {(['cool', 'compact'] as WeeklyGamesView[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                aria-pressed={view === mode}
-                onClick={() => setView(mode)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition-all duration-200 ${
-                  view === mode
-                    ? 'bg-[var(--league-primary)] text-[var(--league-primary-contrast,#111)] shadow-[0_14px_28px_-16px_rgba(212,175,55,0.8)]'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-                }`}
-              >
-                {mode} view
-              </button>
-            ))}
-          </div>
-
-          <Link
-            href={`/${leagueSlug}/schedule`}
-            className="inline-flex items-center justify-center rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
-          >
-            View Full Schedule
-          </Link>
-        </div>
+        <button
+          type="button"
+          aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
+          aria-pressed={isCompactView}
+          onClick={() => setView((current) => (current === 'cool' ? 'compact' : 'cool'))}
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
+          title={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
+        >
+          {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
+        </button>
       </div>
 
       {games.length > 0 ? (
