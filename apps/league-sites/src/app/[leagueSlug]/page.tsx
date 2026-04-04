@@ -8,7 +8,6 @@ import {
   Users,
   TrendingUp,
   ChevronRight,
-  ArrowRight,
   Camera,
   BookOpen,
   Mail,
@@ -20,7 +19,7 @@ import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import {
   getLeagueBySlug,
   getLeagueStats,
-  getUpcomingGames,
+  getHomepageWeeklyGames,
   getRecentGames,
   getStandings,
   getDivisions,
@@ -53,12 +52,12 @@ import { SocialLinks } from '@/components/SocialLinks';
 import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail';
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
+import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import {
   HomepageEditorialRow,
   type HomepageRecognitionCard,
 } from '@/components/home/HomepageEditorialRow';
 import { Card } from '@/components/ui';
-import { Button } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
@@ -465,7 +464,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   const [
     stats,
-    upcomingGames,
+    weeklyGames,
     recentGames,
     standings,
     divisions,
@@ -479,7 +478,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     allEvents,
   ] = await Promise.all([
     getLeagueStats(league.id, currentSeason?.id),
-    getUpcomingGames(league.id, 5, divisionFilter, currentSeason?.id),
+    getHomepageWeeklyGames(league.id, {
+      divisionId: divisionFilter,
+      seasonId: currentSeason?.id,
+      timezone: league.timezone,
+    }),
     getRecentGames(league.id, 5, divisionFilter, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
     getDivisions(league.id),
@@ -679,35 +682,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       <div className="container mx-auto space-y-8 px-4 py-8 md:py-10">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
           <section className={panelClass}>
-            <SectionHeading
-              title="Upcoming Games"
-              icon={<Calendar className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/schedule`}
-              cta="View Full Schedule"
+            <HomepageWeeklyGames
+              games={weeklyGames}
+              leagueSlug={leagueSlug}
+              timezone={league.timezone}
             />
-
-            {upcomingGames.length > 0 ? (
-              <div className="mt-6 space-y-4">
-                {upcomingGames.map((game) => (
-                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} timezone={league.timezone} />
-                ))}
-                <div className="pt-2">
-                  <Button
-                    href={`/${leagueSlug}/schedule`}
-                    variant="primary"
-                    glow
-                    fullWidth
-                    iconRight={<ArrowRight className="w-4 h-4" />}
-                  >
-                    View Full Schedule
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Card variant="glass" padding="lg" hover={false} className="mt-6">
-                <p className="text-center text-[var(--color-text-secondary)]">No upcoming games scheduled</p>
-              </Card>
-            )}
           </section>
 
           <section className={`${panelClass} p-6 md:p-7`}>

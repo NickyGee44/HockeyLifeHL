@@ -71,6 +71,7 @@ import {
   isImportedAggregateSeasonId,
 } from './imported-aggregate-season-overrides';
 import { getBalancedLeagueColors } from './theme-palette';
+import { getLeagueDateKey, getLeagueWeekDateRange, resolveLeagueTimezone } from './league-timezone';
 import { pickOperationalSeason } from './seasons/operational';
 import { resolveSeasonParticipationTeamIds } from './season-team-participation';
 import { filterPublicStandings, filterPublicTeams, isPublicFacingTeam } from './publicSiteVisibility';
@@ -1369,6 +1370,85 @@ export async function getUpcomingGames(
 
   if (divisionId) {
     result = result.filter((game) => matchesDivisionFilter(game, divisionId)).slice(0, limit);
+  }
+
+  return result;
+}
+
+/**
+ * Fetch games from the current league week for the homepage module.
+ * Includes completed results and upcoming games, then filters the broader
+ * query window down using league-local date keys so the week boundaries stay
+ * aligned to the league timezone.
+ */
+export async function getHomepageWeeklyGames(
+  leagueId: string,
+  options?: {
+    divisionId?: string;
+    seasonId?: string | null;
+    timezone?: string | null;
+  },
+): Promise<ScheduleGame[]> {
+  const supabase = await createClient();
+  const leagueTimezone = resolveLeagueTimezone(options?.timezone);
+  const weekRange = getLeagueWeekDateRange(new Date(), leagueTimezone);
+
+  if (!weekRange) {
+    return [];
+  }
+
+  const now = Date.now();
+  const queryWindowStart = new Date(now - 8 * 24 * 60 * 60 * 1000);
+  const queryWindowEnd = new Date(now + 8 * 24 * 60 * 60 * 1000);
+
+  let query = supabase
+    .from('games')
+    .select(`
+      id,
+      league_id,
+      season_id,
+      scheduled_at,
+      location,
+      home_score,
+      away_score,
+      status,
+      game_type,
+      division_id,
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(id, name)),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(id, name)),
+      division:divisions(id, name)
+    `)
+    .eq('league_id', leagueId)
+    .in('status', ['scheduled', 'in_progress', 'completed', 'pending_verification', 'postponed', 'cancelled'])
+    .gte('scheduled_at', queryWindowStart.toISOString())
+    .lte('scheduled_at', queryWindowEnd.toISOString())
+    .order('scheduled_at', { ascending: true });
+
+  if (options?.seasonId) {
+    query = query.eq('season_id', options.seasonId);
+  }
+
+  const { data, error } = await query;
+
+  if (error || !data) {
+    return [];
+  }
+
+  let result = data
+    .map((game) => ({
+      ...game,
+      venue: (game as any).location || null,
+      home_team: transformTeamData(game.home_team),
+      away_team: transformTeamData(game.away_team),
+      division: Array.isArray(game.division) ? game.division[0] ?? null : game.division,
+    }))
+    .filter((game) => {
+      const dateKey = getLeagueDateKey(game.scheduled_at, leagueTimezone);
+      return Boolean(dateKey && dateKey >= weekRange.weekStartKey && dateKey <= weekRange.weekEndKey);
+    }) as ScheduleGame[];
+
+  if (options?.divisionId) {
+    result = result.filter((game) => matchesDivisionFilter(game, options.divisionId!));
   }
 
   return result;

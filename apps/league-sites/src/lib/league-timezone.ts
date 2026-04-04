@@ -52,6 +52,32 @@ function shiftDateKey(dateKey: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function parseDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+export function shiftLeagueDateKey(dateKey: string, days: number): string {
+  return shiftDateKey(dateKey, days);
+}
+
+export function getLeagueWeekDateRange(value: DateInput, timeZone?: string | null) {
+  const currentDateKey = getLeagueDateKey(value, timeZone);
+  if (!currentDateKey) {
+    return null;
+  }
+
+  const weekday = parseDateKey(currentDateKey).getUTCDay();
+  const daysFromMonday = weekday === 0 ? 6 : weekday - 1;
+  const weekStartKey = shiftDateKey(currentDateKey, -daysFromMonday);
+
+  return {
+    currentDateKey,
+    weekStartKey,
+    weekEndKey: shiftDateKey(weekStartKey, 6),
+  };
+}
+
 export function formatLeagueRelativeDateLabel(value: DateInput, timeZone?: string | null): string {
   const dateKey = getLeagueDateKey(value, timeZone);
   const todayKey = getLeagueDateKey(new Date(), timeZone);
