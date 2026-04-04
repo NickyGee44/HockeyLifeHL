@@ -27,6 +27,8 @@ type CarouselPhase = 'idle' | 'pre' | 'run';
 
 const COOL_CAROUSEL_DURATION_MS = 720;
 const COOL_CAROUSEL_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const COOL_HERO_IMAGE_MASK =
+  'radial-gradient(108% 92% at 50% 34%, rgba(0,0,0,0.98) 24%, rgba(0,0,0,0.94) 40%, rgba(0,0,0,0.74) 56%, rgba(0,0,0,0.34) 74%, rgba(0,0,0,0.08) 86%, transparent 100%)';
 
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
@@ -248,23 +250,25 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
     align === 'left' ? 'items-start text-left' : 'items-end text-right';
   const badgePositionClass =
     align === 'left'
-      ? 'right-[18%] top-[56%] -translate-y-1/2 sm:right-[17%] md:right-[16%]'
-      : 'left-[18%] top-[56%] -translate-y-1/2 sm:left-[17%] md:left-[16%]';
+      ? 'right-[12%] top-full -translate-y-1/2 sm:right-[11%] md:right-[10%]'
+      : 'left-[12%] top-full -translate-y-1/2 sm:left-[11%] md:left-[10%]';
 
   return (
     <div className={`relative flex flex-col ${sidePositionClass} gap-3`}>
       <div className="relative">
         <div className="relative flex h-40 w-40 items-center justify-center sm:h-56 sm:w-56 md:h-72 md:w-72">
-          <Image
-            src={team?.logo || '/blank_team.png'}
-            alt={team?.name || 'TBD'}
-            width={288}
-            height={288}
-            className="h-32 w-32 object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.6)] sm:h-44 sm:w-44 md:h-60 md:w-60"
-          />
-          <span className={`absolute ${badgePositionClass}`}>
-            <OutcomeBadge result={result} />
-          </span>
+          <div className="relative h-32 w-32 sm:h-44 sm:w-44 md:h-60 md:w-60">
+            <Image
+              src={team?.logo || '/blank_team.png'}
+              alt={team?.name || 'TBD'}
+              width={288}
+              height={288}
+              className="h-full w-full object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.6)]"
+            />
+            <span className={`absolute ${badgePositionClass}`}>
+              <OutcomeBadge result={result} />
+            </span>
+          </div>
         </div>
       </div>
 
@@ -474,17 +478,15 @@ function CoolView({
             className="absolute inset-0 bg-cover bg-center opacity-70"
             style={{
               backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
-              WebkitMaskImage:
-                'linear-gradient(180deg, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.98) 42%, rgba(0,0,0,0.74) 66%, rgba(0,0,0,0.2) 84%, transparent 100%)',
-              maskImage:
-                'linear-gradient(180deg, rgba(0,0,0,0.98) 0%, rgba(0,0,0,0.98) 42%, rgba(0,0,0,0.74) 66%, rgba(0,0,0,0.2) 84%, transparent 100%)',
+              WebkitMaskImage: COOL_HERO_IMAGE_MASK,
+              maskImage: COOL_HERO_IMAGE_MASK,
             }}
           />
           <div
-            className="absolute inset-x-0 bottom-0 h-36"
+            className="absolute inset-x-0 bottom-0 h-44 sm:h-48"
             style={{
               backgroundImage:
-                'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 44%, transparent) 48%, var(--color-surface) 100%)',
+                'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 58%, transparent) 34%, color-mix(in srgb, var(--color-surface) 88%, transparent) 68%, var(--color-surface) 100%)',
             }}
           />
 
@@ -533,7 +535,7 @@ function CoolView({
         </div>
 
         <div
-          className="relative z-30 -mt-[4.5rem] px-3 sm:-mt-20 sm:px-6 lg:-mt-24"
+          className="relative z-30 -mt-24 px-3 sm:-mt-28 sm:px-6 lg:-mt-32"
           style={{
             filter: 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
           }}
