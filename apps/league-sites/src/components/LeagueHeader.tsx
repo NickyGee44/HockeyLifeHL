@@ -62,11 +62,12 @@ const navItems: DefaultNavItem[] = [
   { href: '/teams', label: 'Teams', icon: Users },
   { href: '/stats', label: 'Stats', icon: BarChart3 },
   { href: '/news', label: 'News', icon: Newspaper },
+  { href: '/suspensions', label: 'Suspensions', icon: Shield },
+  { href: '/goalies/register', label: 'Register', icon: UserPlus },
   { href: '/history', label: 'History', icon: Crown },
   { href: '/gallery', label: 'Gallery', icon: Camera },
   { href: '/players', label: 'Players', icon: Users },
   { href: '/events', label: 'Events', icon: Calendar },
-  // Suspensions hidden from public nav — visible to captains/admins in their dashboards only
   { href: '/venues', label: 'Venues', icon: MapPin },
   { href: '/about', label: 'About', icon: Info },
   { href: '/contact', label: 'Contact', icon: Mail },

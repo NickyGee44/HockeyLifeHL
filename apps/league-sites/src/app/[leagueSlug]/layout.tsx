@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
-import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
 import { AuthProvider } from '@/components/auth';
@@ -9,9 +8,7 @@ import { PremiumScoreTicker } from '@/components/PremiumScoreTicker';
 import { DivisionFilterProvider } from '@/components/DivisionFilterProvider';
 import { SponsorFooterStrip } from '@/components/sponsors/SponsorFooterStrip';
 import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
-import { BugReportButton } from '@/components/bug-report/BugReportButton';
 import { SubscriptionProvider } from '@/components/shared';
-import { DemoTourPanel } from '@/components/demo/DemoTourPanel';
 import type { Metadata } from 'next';
 import { LeagueSiteAnalytics } from '@/components/LeagueSiteAnalytics';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
@@ -151,19 +148,6 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   <main className="league-site-main flex-1">{children}</main>
                   <div className="league-site-chrome">
                     <SponsorFooterStrip sponsors={sponsors} />
-                  </div>
-                  <div className="league-site-chrome">
-                    <LeagueFooter
-                      league={league}
-                      leagueSlug={leagueSlug}
-                      visiblePages={(league as any).settings?.website?.visiblePages}
-                    />
-                  </div>
-                  <div className="league-site-chrome">
-                    {!(league as any).settings?.website?.demoMode && <BugReportButton />}
-                    {(league as any).settings?.website?.demoMode && (
-                      <DemoTourPanel leagueSlug={leagueSlug} />
-                    )}
                   </div>
                 </div>
               </DivisionFilterProvider>
