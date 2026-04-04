@@ -91,7 +91,7 @@ interface FilterDraft {
 
 const DEFAULT_VISIBLE_STATS_ROWS = 10;
 const COMPACT_STATS_COLUMN_CLASS =
-  "w-[38px] min-w-[38px] max-w-[38px] px-0 md:w-[44px] md:min-w-[44px] md:max-w-[44px] md:px-0.5";
+  "w-[46px] min-w-[46px] max-w-[46px] px-1 md:w-[52px] md:min-w-[52px] md:max-w-[52px] md:px-1";
 const SKATER_PLAYER_COLUMN_CLASS =
   "w-[178px] min-w-[178px] max-w-[178px] md:w-[206px] md:min-w-[206px] md:max-w-[206px]";
 const GOALIE_PLAYER_COLUMN_CLASS =
