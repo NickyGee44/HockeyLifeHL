@@ -16,8 +16,6 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
-  Maximize2,
-  Minimize2,
   Search,
   Sparkles,
   X,
@@ -91,28 +89,18 @@ interface FilterDraft {
   teamId: string;
 }
 
-const ULTRA_COMPACT_STAT_COLUMN_KEYS = new Set([
-  "games_played",
-  "goals",
-  "assists",
-  "points",
-  "points_per_game",
-  "goals_per_game",
-  "assists_per_game",
-  "wins",
-  "losses",
-  "shutouts",
-  "saves",
-  "save_percentage",
-  "goals_against",
-  "goals_against_average",
-]);
-
-function getStatColumnWidthClass(columnKey: string) {
-  return ULTRA_COMPACT_STAT_COLUMN_KEYS.has(columnKey)
-    ? "w-[38px] min-w-[38px] px-0 md:w-[44px] md:min-w-[44px] md:px-0.5"
-    : "px-0.5 md:px-1";
-}
+const DEFAULT_VISIBLE_STATS_ROWS = 10;
+const COMPACT_STATS_COLUMN_CLASS =
+  "w-[38px] min-w-[38px] max-w-[38px] px-0 md:w-[44px] md:min-w-[44px] md:max-w-[44px] md:px-0.5";
+const SKATER_PLAYER_COLUMN_CLASS =
+  "w-[178px] min-w-[178px] max-w-[178px] md:w-[206px] md:min-w-[206px] md:max-w-[206px]";
+const GOALIE_PLAYER_COLUMN_CLASS =
+  "w-[114px] min-w-[114px] max-w-[114px] md:w-[132px] md:min-w-[132px] md:max-w-[132px]";
+const SORTED_COLUMN_HEADER_CLASS =
+  "bg-[var(--league-primary)]/18 text-[var(--league-primary)] shadow-[inset_0_-3px_0_0_var(--league-primary)]";
+const SORTED_COLUMN_CELL_CLASS =
+  "bg-[var(--league-primary)]/12 group-hover:bg-[var(--league-primary)]/18";
+const SORTED_COLUMN_VALUE_CLASS = "font-black text-[var(--league-primary)] drop-shadow-[0_0_1px_var(--league-primary)]";
 
 const SKATER_COLUMNS: StatsTableColumn<SkaterStatKey>[] = [
   {
@@ -493,6 +481,16 @@ function getDefaultVisibleColumns(mode: StatsMode, preset: StatsPresetId) {
     : [...GOALIE_PRESETS[preset as GoaliePresetId]];
 }
 
+function getPlayerColumnWidthClass(mode: StatsMode) {
+  return mode === "skaters"
+    ? SKATER_PLAYER_COLUMN_CLASS
+    : GOALIE_PLAYER_COLUMN_CLASS;
+}
+
+function getStatColumnWidthClass(_mode: StatsMode) {
+  return COMPACT_STATS_COLUMN_CLASS;
+}
+
 export function getMobileVisibleColumns<
   T extends SkaterStatKey | GoalieStatKey,
 >(visibleColumns: T[], defaultColumns: T[]): T[] {
@@ -556,7 +554,7 @@ export function StatsWorkspace({
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
-  const [isTableExpanded, setIsTableExpanded] = useState(false);
+  const [isShowingAllRows, setIsShowingAllRows] = useState(false);
   const [filterDraft, setFilterDraft] = useState<FilterDraft>({
     divisionId: selectedDivisionId || "",
     position: "",
@@ -987,89 +985,93 @@ export function StatsWorkspace({
     (!isAllTime ? seasonLabel : null) ||
     seasons[0]?.name ||
     "Current Season";
+  const playerColumnWidthClass = getPlayerColumnWidthClass(mode);
+  const statColumnWidthClass = getStatColumnWidthClass(mode);
+  const shouldShowRowToggle = filteredRows.length > DEFAULT_VISIBLE_STATS_ROWS;
+  const visibleRows =
+    shouldShowRowToggle && !isShowingAllRows
+      ? filteredRows.slice(0, DEFAULT_VISIBLE_STATS_ROWS)
+      : filteredRows;
 
   return (
     <>
-      <div className="mb-5 flex items-start justify-between md:mb-6">
+      <div className="mb-5 md:mb-6">
         <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
           Stats
         </h1>
-        <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
-          <button
-            type="button"
-            onClick={() => handleModeChange("skaters")}
-            aria-label="Players"
-            title="Players"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-              mode === "skaters"
-                ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            }`}
-          >
-            <PlayerHelmetIcon className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleModeChange("goalies")}
-            aria-label="Goalies"
-            title="Goalies"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-              mode === "goalies"
-                ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            }`}
-          >
-            <GoalieHelmetIcon className="h-[1.65rem] w-[1.65rem]" />
-          </button>
-        </div>
       </div>
 
       <section className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
-              <button
-                type="button"
-                onClick={() => handleViewChange(false)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
-                  !isAllTime
-                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                }`}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span className="max-w-[11rem] truncate">{currentSeasonLabel}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleViewChange(true)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
-                  isAllTime
-                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
-                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                }`}
-              >
-                All Time
-              </button>
-            </div>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
             <button
               type="button"
-              onClick={openFilterPanel}
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
-              aria-label="Open filters"
-              title="Open filters"
+              onClick={() => handleViewChange(false)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                !isAllTime
+                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
             >
-              <Filter className="h-4 w-4 text-[var(--league-primary)]" />
-              {activeFilterCount > 0 ? (
-                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 text-[10px] font-black text-[var(--color-accent-text)]">
-                  {activeFilterCount}
-                </span>
-              ) : null}
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="max-w-[11rem] truncate">{currentSeasonLabel}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewChange(true)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                isAllTime
+                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
+            >
+              All Time
             </button>
           </div>
+
+          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+            <button
+              type="button"
+              onClick={() => handleModeChange("skaters")}
+              aria-label="Players"
+              title="Players"
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                mode === "skaters"
+                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
+            >
+              <PlayerHelmetIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange("goalies")}
+              aria-label="Goalies"
+              title="Goalies"
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                mode === "goalies"
+                  ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
+            >
+              <GoalieHelmetIcon className="h-[1.65rem] w-[1.65rem]" />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={openFilterPanel}
+            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+            aria-label="Open filters"
+            title="Open filters"
+          >
+            <Filter className="h-4 w-4 text-[var(--league-primary)]" />
+            {activeFilterCount > 0 ? (
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 text-[10px] font-black text-[var(--color-accent-text)]">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </button>
         </div>
 
         {activeFilterTags.length > 0 ? (
@@ -1089,24 +1091,22 @@ export function StatsWorkspace({
         />
 
         {filteredRows.length > 0 ? (
-          <div className={isTableExpanded ? "relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 px-2 sm:px-4 lg:px-8 xl:px-12 2xl:px-16" : ""}>
+          <div>
             <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)]">
               <div className="overflow-x-auto">
                 <div>
-                  <table
-                    className={`w-full border-separate border-spacing-0 text-sm ${
-                      isTableExpanded
-                        ? mode === "skaters"
-                          ? "min-w-[980px] xl:min-w-full"
-                          : "min-w-[860px] xl:min-w-full"
-                        : mode === "skaters"
-                          ? "min-w-[820px] xl:min-w-[940px]"
-                          : "min-w-[780px] xl:min-w-[820px]"
-                    }`}
-                  >
+                  <table className="w-fit table-fixed border-separate border-spacing-0 text-sm">
+                  <colgroup>
+                    <col className={playerColumnWidthClass} />
+                    {visibleColumnDefs.map((column) => (
+                      <col key={column.key} className={statColumnWidthClass} />
+                    ))}
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th className="sticky left-0 z-30 w-[178px] min-w-[178px] max-w-[178px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] md:w-[206px] md:min-w-[206px] md:max-w-[206px]">
+                      <th
+                        className={`sticky left-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] ${playerColumnWidthClass}`}
+                      >
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <span>
@@ -1157,31 +1157,22 @@ export function StatsWorkspace({
                       </th>
                       {visibleColumnDefs.map((column) => {
                         const active = currentSort === column.key;
-                        const alignClass =
-                          column.align === "right"
-                            ? "text-right"
-                            : column.align === "center"
-                              ? "text-center"
-                              : "text-left";
-
-                        const widthClass = getStatColumnWidthClass(String(column.key));
-                        const isSortedColumn = currentSort === column.key;
 
                         return (
                           <th
                             key={column.key}
-                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] ${widthClass} ${alignClass} ${isSortedColumn ? "bg-[var(--league-primary)]/10 text-[var(--league-primary)]" : ""}`}
+                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] ${statColumnWidthClass} ${
+                              active ? SORTED_COLUMN_HEADER_CLASS : ""
+                            }`}
                           >
                             <button
                               type="button"
                               onClick={() => handleSortChange(column.key)}
-                              className={`inline-flex w-full items-center gap-1 ${
-                                column.align === "right"
-                                  ? "justify-end"
-                                  : column.align === "center"
-                                    ? "justify-center"
-                                    : "justify-start"
-                              } ${active ? "text-[var(--color-text-primary)]" : ""}`}
+                              className={`inline-flex w-full items-center justify-center gap-1 ${
+                                active
+                                  ? "font-black text-[var(--league-primary)]"
+                                  : "hover:text-[var(--color-text-primary)]"
+                              }`}
                             >
                               <span>{column.label}</span>
                               {active ? (
@@ -1200,7 +1191,7 @@ export function StatsWorkspace({
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRows.map((row) => {
+                    {visibleRows.map((row) => {
                       const { firstName, lastName } = splitPlayerName(
                         row.player_name,
                       );
@@ -1213,7 +1204,9 @@ export function StatsWorkspace({
 
                       return (
                         <tr key={row.player_id} className="group">
-                          <td className="sticky left-0 z-20 w-[178px] min-w-[178px] max-w-[178px] border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] md:w-[206px] md:min-w-[206px] md:max-w-[206px]">
+                          <td
+                            className={`sticky left-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] ${playerColumnWidthClass}`}
+                          >
                             <div className="flex items-center gap-2">
                               <div className="relative h-9 w-9 shrink-0">
                                 <img
@@ -1253,16 +1246,6 @@ export function StatsWorkspace({
                             </div>
                           </td>
                           {visibleColumnDefs.map((column) => {
-                            const alignClass =
-                              column.align === "right"
-                                ? "text-right"
-                                : column.align === "center"
-                                  ? "text-center"
-                                  : "text-left";
-                            const sortedClass =
-                              currentSort === column.key
-                                ? "font-black text-[var(--league-primary)]"
-                                : "text-[var(--color-text-primary)]";
                             const value =
                               mode === "skaters"
                                 ? formatSkaterValue(
@@ -1273,28 +1256,30 @@ export function StatsWorkspace({
                                     row as UnifiedGoalieStatsRow,
                                     column.key as GoalieStatKey,
                                   );
-
-                            const widthClass = getStatColumnWidthClass(String(column.key));
                             const isSortedColumn = currentSort === column.key;
+                            const isPlusMinusColumn =
+                              mode === "skaters" && column.key === "plus_minus";
+                            const valueToneClass = isPlusMinusColumn
+                              ? (row as UnifiedSkaterStatsRow).plus_minus > 0
+                                ? "text-emerald-400"
+                                : (row as UnifiedSkaterStatsRow).plus_minus < 0
+                                  ? "text-rose-400"
+                                  : "text-[var(--color-text-primary)]"
+                              : isSortedColumn
+                                ? SORTED_COLUMN_VALUE_CLASS
+                                : "text-[var(--color-text-primary)]";
 
                             return (
                               <td
                                 key={column.key}
-                                className={`border-b border-[var(--color-border)] py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] ${widthClass} ${alignClass} ${sortedClass} ${isSortedColumn ? "bg-[var(--league-primary)]/8 group-hover:bg-[var(--league-primary)]/12" : ""}`}
+                                className={`border-b border-[var(--color-border)] py-2.5 text-center transition-colors group-hover:bg-[var(--color-surface-hover)] ${statColumnWidthClass} ${
+                                  isSortedColumn ? SORTED_COLUMN_CELL_CLASS : ""
+                                }`}
                               >
                                 <span
-                                  className={
-                                    mode === "skaters" &&
-                                    column.key === "plus_minus"
-                                      ? (row as UnifiedSkaterStatsRow)
-                                          .plus_minus > 0
-                                        ? "text-emerald-400"
-                                        : (row as UnifiedSkaterStatsRow)
-                                              .plus_minus < 0
-                                          ? "text-rose-400"
-                                          : ""
-                                      : ""
-                                  }
+                                  className={`inline-flex items-center justify-center ${
+                                    isSortedColumn ? "rounded-full bg-black/5 px-1.5 py-0.5 font-black" : ""
+                                  } ${valueToneClass}`}
                                 >
                                   {value}
                                 </span>
@@ -1307,6 +1292,34 @@ export function StatsWorkspace({
                   </tbody>
                 </table>
               </div>
+              {shouldShowRowToggle ? (
+                <div className="flex justify-center border-t border-[var(--color-border)] bg-[var(--color-background-elevated)]/60 py-1.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsShowingAllRows((current) => !current)
+                    }
+                    aria-expanded={isShowingAllRows}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+                    aria-label={
+                      isShowingAllRows
+                        ? "Collapse stats rows"
+                        : "Expand stats rows"
+                    }
+                    title={
+                      isShowingAllRows
+                        ? "Show fewer rows"
+                        : `Show all ${filteredRows.length} rows`
+                    }
+                  >
+                    {isShowingAllRows ? (
+                      <ChevronUp className="h-5 w-5" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              ) : null}
               </div>
             </div>
           </div>
@@ -1327,22 +1340,7 @@ export function StatsWorkspace({
         )}
 
         <div>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsTableExpanded((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-3.5 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
-              aria-label={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
-              title={isTableExpanded ? "Collapse stats table" : "Expand stats table"}
-            >
-              {isTableExpanded ? (
-                <Minimize2 className="h-4 w-4 text-[var(--league-primary)]" />
-              ) : (
-                <Maximize2 className="h-4 w-4 text-[var(--league-primary)]" />
-              )}
-              {isTableExpanded ? "Collapse Table" : "Expand Table"}
-            </button>
-
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setIsLegendOpen((current) => !current)}
