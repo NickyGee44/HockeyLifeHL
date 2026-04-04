@@ -28,7 +28,7 @@ type CarouselPhase = 'idle' | 'pre' | 'run';
 const COOL_CAROUSEL_DURATION_MS = 720;
 const COOL_CAROUSEL_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const COOL_HERO_IMAGE_MASK =
-  'radial-gradient(ellipse at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.88) 28%, rgba(0,0,0,0.54) 56%, rgba(0,0,0,0.18) 78%, transparent 100%)';
+  'radial-gradient(138% 122% at 50% 40%, rgba(0,0,0,1) 16%, rgba(0,0,0,0.98) 32%, rgba(0,0,0,0.86) 50%, rgba(0,0,0,0.58) 68%, rgba(0,0,0,0.24) 84%, transparent 100%)';
 
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
@@ -250,14 +250,14 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
     align === 'left' ? 'items-start text-left' : 'items-end text-right';
   const badgePositionClass =
     align === 'left'
-      ? 'right-[12%] top-[92%] -translate-y-1/2 sm:right-[11%] md:right-[10%]'
-      : 'left-[12%] top-[92%] -translate-y-1/2 sm:left-[11%] md:left-[10%]';
+      ? 'right-[12%] top-[89%] -translate-y-1/2 sm:right-[11%] md:right-[10%]'
+      : 'left-[12%] top-[89%] -translate-y-1/2 sm:left-[11%] md:left-[10%]';
 
   return (
     <div className={`relative flex flex-col ${sidePositionClass} gap-3`}>
       <div className="relative">
-        <div className="relative flex h-[200px] w-[200px] items-center justify-center sm:h-[280px] sm:w-[280px] md:h-[360px] md:w-[360px]">
-          <div className="relative h-40 w-40 sm:h-56 sm:w-56 md:h-[300px] md:w-[300px]">
+        <div className="relative flex h-[232px] w-[232px] items-center justify-center sm:h-[336px] sm:w-[336px] md:h-[432px] md:w-[432px]">
+          <div className="relative h-[200px] w-[200px] sm:h-[280px] sm:w-[280px] md:h-[375px] md:w-[375px]">
             <Image
               src={team?.logo || '/blank_team.png'}
               alt={team?.name || 'TBD'}
@@ -383,7 +383,7 @@ function CoolView({
         role,
       })}
     >
-      <div className="grid min-h-[360px] grid-cols-[1fr_1fr] items-end gap-4 px-5 pb-28 pt-16 sm:min-h-[440px] sm:px-8 sm:pb-32 md:px-10 lg:min-h-[520px] lg:pb-36">
+      <div className="grid min-h-[400px] grid-cols-[1fr_1fr] items-end gap-4 px-5 pb-32 pt-16 sm:min-h-[520px] sm:px-8 sm:pb-36 md:px-10 lg:min-h-[620px] lg:pb-44">
         <CoolViewTeam
           team={slideGame.away_team}
           leagueSlug={leagueSlug}
@@ -471,11 +471,11 @@ function CoolView({
             className="absolute inset-0"
             style={{
               backgroundImage:
-                'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 18%, transparent), transparent 44%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 78%, transparent), var(--color-surface))',
+                'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 44%, transparent) 0%, color-mix(in srgb, var(--color-surface) 12%, transparent) 34%, color-mix(in srgb, var(--color-surface) 70%, transparent) 74%, var(--color-surface) 100%)',
             }}
           />
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
             style={{
               backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
               WebkitMaskImage: COOL_HERO_IMAGE_MASK,
@@ -483,10 +483,17 @@ function CoolView({
             }}
           />
           <div
-            className="absolute inset-x-0 bottom-0 h-44 sm:h-48"
+            className="absolute inset-0"
             style={{
               backgroundImage:
-                'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 58%, transparent) 34%, color-mix(in srgb, var(--color-surface) 88%, transparent) 68%, var(--color-surface) 100%)',
+                'radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, var(--color-surface) 18%, transparent) 52%, color-mix(in srgb, var(--color-surface) 62%, transparent) 76%, var(--color-surface) 100%)',
+            }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-56 sm:h-64"
+            style={{
+              backgroundImage:
+                'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 34%, transparent) 24%, color-mix(in srgb, var(--color-surface) 72%, transparent) 54%, var(--color-surface) 100%)',
             }}
           />
 

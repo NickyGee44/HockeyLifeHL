@@ -26,6 +26,7 @@ interface HomepageEditorialRowProps {
   recognitionSeasonLabel?: string | null;
   articles: NewsArticle[];
   events?: LeagueEvent[];
+  hideEditorialColumn?: boolean;
 }
 
 function getArticleLabel(type: string) {
@@ -119,8 +120,12 @@ export function HomepageEditorialRow({
   recognitionSeasonLabel,
   articles,
   events = [],
+  hideEditorialColumn = false,
 }: HomepageEditorialRowProps) {
-  if (recognitionCards.length === 0 && articles.length === 0 && events.length === 0) {
+  if (
+    recognitionCards.length === 0 &&
+    (hideEditorialColumn || (articles.length === 0 && events.length === 0))
+  ) {
     return null;
   }
 
@@ -129,7 +134,7 @@ export function HomepageEditorialRow({
 
   return (
     <section className="container mx-auto px-4 pt-4 md:pt-6">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+      <div className={hideEditorialColumn ? '' : 'grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]'}>
         <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -215,104 +220,106 @@ export function HomepageEditorialRow({
           </div>
         </section>
 
-        <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                Around the League
-              </p>
-              <h2 className="mt-2 text-[1.85rem] font-black tracking-tight text-[var(--color-text-primary)]">
-                A second news layer, not another hero.
-              </h2>
-            </div>
-            <Link
-              href={`/${leagueSlug}/news`}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary-border)] hover:text-[var(--color-accent)]"
-            >
-              All News
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {displayArticles.length > 0 ? (
-            <div className="mt-5 space-y-3">
-              {displayArticles.map((article) => (
-                <Link
-                  key={article.id}
-                  href={`/${leagueSlug}/news/${article.slug || article.id}`}
-                  className="group flex gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary-border)]"
-                >
-                  <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)]">
-                    {article.image_url ? (
-                      <img
-                        src={article.image_url}
-                        alt={article.title}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <LeagueNewsFallbackArtwork
-                        leagueName={leagueName}
-                        leagueLogoUrl={leagueLogoUrl}
-                        articleType={article.type}
-                        emphasis="compact"
-                      />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                      {getArticleLabel(article.type)} | {formatArticleDate(article.published_at || article.created_at)}
-                    </p>
-                    <h3 className="mt-1.5 line-clamp-2 text-base font-black leading-tight text-[var(--color-text-primary)]">
-                      {article.title}
-                    </h3>
-                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-[var(--color-text-secondary)]">
-                      {getArticleSnippet(article)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-5 text-sm text-[var(--color-text-secondary)]">
-              No published stories yet. Once news starts flowing, this rail becomes the second proof-of-activity block on the homepage.
-            </div>
-          )}
-
-          {displayEvents.length > 0 ? (
-            <div className="mt-5 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-4">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                <CalendarDays className="h-4 w-4" />
-                Next on the Calendar
+        {!hideEditorialColumn && (
+          <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                  Around the League
+                </p>
+                <h2 className="mt-2 text-[1.85rem] font-black tracking-tight text-[var(--color-text-primary)]">
+                  A second news layer, not another hero.
+                </h2>
               </div>
+              <Link
+                href={`/${leagueSlug}/news`}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary-border)] hover:text-[var(--color-accent)]"
+              >
+                All News
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
 
-              <div className="mt-3 space-y-2.5">
-                {displayEvents.map((event) => (
+            {displayArticles.length > 0 ? (
+              <div className="mt-5 space-y-3">
+                {displayArticles.map((article) => (
                   <Link
-                    key={event.id}
-                    href={`/${leagueSlug}/events`}
-                    className="flex items-start justify-between gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 px-3.5 py-3 transition-colors duration-200 hover:border-[var(--league-primary-border)]"
+                    key={article.id}
+                    href={`/${leagueSlug}/news/${article.slug || article.id}`}
+                    className="group flex gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary-border)]"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{event.title}</p>
-                      <p className="mt-1 truncate text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                        {event.location || event.event_type.replace(/_/g, ' ')}
-                      </p>
+                    <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+                      {article.image_url ? (
+                        <img
+                          src={article.image_url}
+                          alt={article.title}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <LeagueNewsFallbackArtwork
+                          leagueName={leagueName}
+                          leagueLogoUrl={leagueLogoUrl}
+                          articleType={article.type}
+                          emphasis="compact"
+                        />
+                      )}
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-xs font-semibold text-[var(--color-text-primary)]">{formatEventDate(event.start_time)}</p>
-                      {formatEventTime(event.start_time) ? (
-                        <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
-                          {formatEventTime(event.start_time)}
-                        </p>
-                      ) : null}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
+                        {getArticleLabel(article.type)} | {formatArticleDate(article.published_at || article.created_at)}
+                      </p>
+                      <h3 className="mt-1.5 line-clamp-2 text-base font-black leading-tight text-[var(--color-text-primary)]">
+                        {article.title}
+                      </h3>
+                      <p className="mt-2 line-clamp-2 text-sm leading-5 text-[var(--color-text-secondary)]">
+                        {getArticleSnippet(article)}
+                      </p>
                     </div>
                   </Link>
                 ))}
               </div>
-            </div>
-          ) : null}
-        </section>
+            ) : (
+              <div className="mt-5 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-5 text-sm text-[var(--color-text-secondary)]">
+                No published stories yet. Once news starts flowing, this rail becomes the second proof-of-activity block on the homepage.
+              </div>
+            )}
+
+            {displayEvents.length > 0 ? (
+              <div className="mt-5 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-4">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
+                  <CalendarDays className="h-4 w-4" />
+                  Next on the Calendar
+                </div>
+
+                <div className="mt-3 space-y-2.5">
+                  {displayEvents.map((event) => (
+                    <Link
+                      key={event.id}
+                      href={`/${leagueSlug}/events`}
+                      className="flex items-start justify-between gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 px-3.5 py-3 transition-colors duration-200 hover:border-[var(--league-primary-border)]"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{event.title}</p>
+                        <p className="mt-1 truncate text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+                          {event.location || event.event_type.replace(/_/g, ' ')}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-xs font-semibold text-[var(--color-text-primary)]">{formatEventDate(event.start_time)}</p>
+                        {formatEventTime(event.start_time) ? (
+                          <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                            {formatEventTime(event.start_time)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+        )}
       </div>
     </section>
   );

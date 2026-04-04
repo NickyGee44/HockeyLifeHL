@@ -45,7 +45,10 @@ import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
-import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
+import {
+  HomepageEditorialRow,
+  type HomepageRecognitionCard,
+} from '@/components/home/HomepageEditorialRow';
 import { Card } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
@@ -653,8 +656,19 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         />
       </div>
 
-      <div className="container mx-auto space-y-8 px-6 py-8 sm:px-8 md:py-10 lg:px-12">
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+      <HomepageEditorialRow
+        leagueSlug={leagueSlug}
+        leagueName={league.name}
+        leagueLogoUrl={league.logo_url}
+        recognitionCards={recognitionCards}
+        recognitionSeasonLabel={recognitionSeasonLabel}
+        articles={aroundLeagueArticles}
+        events={aroundLeagueEvents}
+        hideEditorialColumn
+      />
+
+      <div className="mx-auto max-w-[1180px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(300px,0.88fr)]">
           <section className={panelClass}>
             <HomepageWeeklyGames
               games={weeklyGames}
