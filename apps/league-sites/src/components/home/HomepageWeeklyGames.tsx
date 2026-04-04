@@ -142,16 +142,20 @@ function OutcomeBadge({
   const isWin = result === 'W';
   const sizeClass =
     size === 'sm'
-      ? 'h-9 w-9 text-sm'
-      : 'h-14 w-14 text-xl md:h-16 md:w-16 md:text-2xl';
+      ? 'text-[1.65rem] sm:text-[1.9rem]'
+      : 'text-[2.6rem] sm:text-[3.5rem] md:text-[4.75rem]';
 
   return (
     <span
-      className={`z-20 flex ${sizeClass} items-center justify-center rounded-full border font-black shadow-[0_18px_36px_-18px_rgba(0,0,0,0.9)] ${
-        isWin
-          ? 'border-emerald-300/45 bg-emerald-500 text-white'
-          : 'border-red-300/45 bg-red-500 text-white'
+      className={`z-20 ${sizeClass} select-none font-black uppercase leading-none drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)] ${
+        isWin ? 'text-emerald-400' : 'text-red-500'
       }`}
+      style={{
+        WebkitTextStroke:
+          size === 'sm'
+            ? '1.5px rgba(255,255,255,0.95)'
+            : '2.5px rgba(255,255,255,0.95)',
+      }}
     >
       {result}
     </span>
@@ -162,18 +166,20 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
   const sidePositionClass =
     align === 'left' ? 'items-start text-left' : 'items-end text-right';
   const badgePositionClass =
-    align === 'left' ? '-right-3 md:-right-4' : '-left-3 md:-left-4';
+    align === 'left'
+      ? 'bottom-1 right-1 sm:bottom-2 sm:right-2 md:bottom-4 md:right-4'
+      : 'bottom-1 left-1 sm:bottom-2 sm:left-2 md:bottom-4 md:left-4';
 
   return (
     <div className={`relative flex flex-col ${sidePositionClass} gap-4`}>
       <div className="relative">
-        <div className="relative flex h-28 w-28 items-center justify-center sm:h-36 sm:w-36 md:h-44 md:w-44">
+        <div className="relative flex h-40 w-40 items-center justify-center sm:h-56 sm:w-56 md:h-72 md:w-72">
           <Image
             src={team?.logo || '/blank_team.png'}
             alt={team?.name || 'TBD'}
-            width={176}
-            height={176}
-            className="h-20 w-20 object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.6)] sm:h-28 sm:w-28 md:h-36 md:w-36"
+            width={288}
+            height={288}
+            className="h-32 w-32 object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.6)] sm:h-44 sm:w-44 md:h-60 md:w-60"
           />
           <span className={`absolute ${badgePositionClass}`}>
             <OutcomeBadge result={result} />
@@ -181,14 +187,14 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
         </div>
       </div>
 
-      <div className="max-w-[220px]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
+      <div className="max-w-[280px]">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/74">
           {align === 'left' ? 'Away' : 'Home'}
         </p>
         <TeamLink
           team={team}
           leagueSlug={leagueSlug}
-          className="mt-2 block text-balance text-xl font-black tracking-tight text-white [text-shadow:0_8px_24px_rgba(0,0,0,0.9)] transition-colors duration-200 hover:text-[var(--league-primary)] md:text-3xl"
+          className="mt-2 block text-balance text-2xl font-black tracking-tight text-white [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] transition-colors duration-200 hover:text-[var(--league-primary)] md:text-4xl"
         />
       </div>
     </div>
@@ -228,7 +234,8 @@ function CompactTeam({
     align === 'left'
       ? 'items-start text-left'
       : 'flex-row-reverse items-end text-right';
-  const badgePositionClass = align === 'left' ? '-right-2' : '-left-2';
+  const badgePositionClass =
+    align === 'left' ? 'bottom-0 right-0' : 'bottom-0 left-0';
 
   return (
     <div className={`relative flex ${wrapperClass} gap-3`}>
@@ -242,7 +249,7 @@ function CompactTeam({
             className="h-11 w-11 object-contain"
           />
         </div>
-        <span className={`absolute ${badgePositionClass} -top-2`}>
+        <span className={`absolute ${badgePositionClass}`}>
           <OutcomeBadge result={result} size="sm" />
         </span>
       </div>
@@ -275,125 +282,129 @@ function CoolView({
   const hasControls = games.length > 1;
 
   return (
-    <div className="mt-6 animate-fade-in pb-16 sm:pb-20">
-      <div className="relative">
-        <div className="relative min-h-[320px] overflow-hidden rounded-[30px] sm:min-h-[360px] lg:min-h-[390px]">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: "url('/homepage/weekly-games-bg.jpg')" }}
+    <div className="mt-6 animate-fade-in">
+      <div className="relative min-h-[360px] rounded-[30px] bg-[var(--color-surface)] sm:min-h-[440px] lg:min-h-[520px]">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
+            WebkitMaskImage:
+              'radial-gradient(ellipse 96% 88% at 50% 50%, rgba(0,0,0,1) 58%, rgba(0,0,0,0.88) 72%, rgba(0,0,0,0.52) 84%, transparent 100%)',
+            maskImage:
+              'radial-gradient(ellipse 96% 88% at 50% 50%, rgba(0,0,0,1) 58%, rgba(0,0,0,0.88) 72%, rgba(0,0,0,0.52) 84%, transparent 100%)',
+          }}
+        />
+
+        <div className="absolute left-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+          {activeIndex + 1} / {games.length}
+        </div>
+        <div className="absolute right-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+          {getStatusLabel(game.status)}
+        </div>
+
+        {hasControls && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous game"
+              onClick={() => onNavigate(-1)}
+              className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next game"
+              onClick={() => onNavigate(1)}
+              className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </>
+        )}
+
+        <div
+          key={game.id}
+          className="grid min-h-[360px] grid-cols-[1fr_1fr] items-center gap-4 px-5 py-16 sm:min-h-[440px] sm:px-8 md:px-10 lg:min-h-[520px]"
+        >
+          <CoolViewTeam
+            team={game.away_team}
+            leagueSlug={leagueSlug}
+            align="left"
+            result={getTeamResult(game, 'away')}
           />
+          <CoolViewTeam
+            team={game.home_team}
+            leagueSlug={leagueSlug}
+            align="right"
+            result={getTeamResult(game, 'home')}
+          />
+        </div>
+      </div>
 
-          <div className="absolute left-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-            {activeIndex + 1} / {games.length}
+      <div className="mt-4">
+        <div className="mx-auto max-w-xl rounded-[22px] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] p-3 shadow-[0_28px_60px_-42px_rgba(0,0,0,0.88)] sm:p-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              {formatLeagueShortWeekdayDate(game.scheduled_at, timezone)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 className="h-3.5 w-3.5" />
+              {formatLeagueTime(game.scheduled_at, timezone)}
+            </span>
+            {game.venue && (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" />
+                {game.venue}
+              </span>
+            )}
           </div>
-          <div className="absolute right-4 top-4 z-20 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
-            {getStatusLabel(game.status)}
-          </div>
 
-          {hasControls && (
-            <>
-              <button
-                type="button"
-                aria-label="Previous game"
-                onClick={() => onNavigate(-1)}
-                className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Next game"
-                onClick={() => onNavigate(1)}
-                className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white transition-colors duration-200 hover:bg-black/52"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </>
-          )}
-
-          <div
-            key={game.id}
-            className="grid min-h-[320px] grid-cols-[1fr_1fr] items-start gap-4 px-5 pb-12 pt-16 sm:min-h-[360px] sm:px-8 md:px-10 lg:min-h-[390px]"
-          >
-            <CoolViewTeam
+          <div className="mt-3 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+            <CoolCardTeam
               team={game.away_team}
               leagueSlug={leagueSlug}
               align="left"
-              result={getTeamResult(game, 'away')}
             />
-            <CoolViewTeam
+            <div className="rounded-[18px] bg-[var(--color-surface)] px-3 py-2 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                {centerDisplay.label}
+              </p>
+              <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
+                {centerDisplay.primary}
+              </p>
+            </div>
+            <CoolCardTeam
               team={game.home_team}
               leagueSlug={leagueSlug}
               align="right"
-              result={getTeamResult(game, 'home')}
             />
           </div>
-        </div>
 
-        <div className="pointer-events-none absolute inset-x-3 -bottom-12 sm:inset-x-6 sm:-bottom-14">
-          <div className="pointer-events-auto mx-auto max-w-xl rounded-[22px] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] p-3 shadow-[0_28px_60px_-42px_rgba(0,0,0,0.88)] sm:p-4">
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatLeagueShortWeekdayDate(game.scheduled_at, timezone)}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <Clock3 className="h-3.5 w-3.5" />
-                {formatLeagueTime(game.scheduled_at, timezone)}
-              </span>
-              {game.venue && (
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {game.venue}
-                </span>
-              )}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {games.map((entry, index) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-label={`Show game ${index + 1}`}
+                  aria-pressed={index === activeIndex}
+                  onClick={() => onNavigate(index - activeIndex)}
+                  className={`h-2.5 rounded-full transition-all duration-200 ${
+                    index === activeIndex
+                      ? 'w-7 bg-[var(--league-primary)]'
+                      : 'w-2.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]'
+                  }`}
+                />
+              ))}
             </div>
-
-            <div className="mt-3 flex flex-col gap-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-              <CoolCardTeam
-                team={game.away_team}
-                leagueSlug={leagueSlug}
-                align="left"
-              />
-              <div className="rounded-[18px] bg-[var(--color-surface)] px-3 py-2 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-                  {centerDisplay.label}
-                </p>
-                <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
-                  {centerDisplay.primary}
-                </p>
-              </div>
-              <CoolCardTeam
-                team={game.home_team}
-                leagueSlug={leagueSlug}
-                align="right"
-              />
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                {games.map((entry, index) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    aria-label={`Show game ${index + 1}`}
-                    aria-pressed={index === activeIndex}
-                    onClick={() => onNavigate(index - activeIndex)}
-                    className={`h-2.5 rounded-full transition-all duration-200 ${
-                      index === activeIndex
-                        ? 'w-7 bg-[var(--league-primary)]'
-                        : 'w-2.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]'
-                    }`}
-                  />
-                ))}
-              </div>
-              <Link
-                href={`/${leagueSlug}/games/${game.id}`}
-                className="inline-flex items-center justify-center text-sm font-semibold text-[var(--league-primary)] transition-colors duration-200 hover:text-[var(--color-text-primary)]"
-              >
-                Matchup Details
-              </Link>
-            </div>
+            <Link
+              href={`/${leagueSlug}/games/${game.id}`}
+              className="inline-flex items-center justify-center text-sm font-semibold text-[var(--league-primary)] transition-colors duration-200 hover:text-[var(--color-text-primary)]"
+            >
+              Matchup Details
+            </Link>
           </div>
         </div>
       </div>
