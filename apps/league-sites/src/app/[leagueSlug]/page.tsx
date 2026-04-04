@@ -3,17 +3,9 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { SubscriptionWall } from '@/components/shared';
 import {
-  Calendar,
   Trophy,
-  Users,
-  TrendingUp,
   ChevronRight,
   Camera,
-  BookOpen,
-  Mail,
-  MapPin,
-  Phone,
-  UserPlus,
 } from 'lucide-react';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import {
@@ -53,10 +45,7 @@ import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
-import {
-  HomepageEditorialRow,
-  type HomepageRecognitionCard,
-} from '@/components/home/HomepageEditorialRow';
+import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
 import { Card } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
@@ -622,11 +611,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       : 'dark';
 
   const panelClass = 'league-shell-panel rounded-3xl border border-[var(--color-border)] p-6 md:p-8';
-  const rulesContent = typeof (league.settings as Record<string, unknown> | null | undefined)?.rules === 'string'
-    ? ((league.settings as Record<string, unknown>).rules as string)
-    : '';
-  const hasRulesContent = rulesContent.trim().length > 0;
-
   const jsonLd = buildSportsOrganizationJsonLd(league);
 
   return (
@@ -669,17 +653,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         />
       </div>
 
-      <HomepageEditorialRow
-        leagueSlug={leagueSlug}
-        leagueName={league.name}
-        leagueLogoUrl={league.logo_url}
-        recognitionCards={recognitionCards}
-        recognitionSeasonLabel={recognitionSeasonLabel}
-        articles={aroundLeagueArticles}
-        events={aroundLeagueEvents}
-      />
-
-      <div className="container mx-auto space-y-8 px-4 py-8 md:py-10">
+      <div className="container mx-auto space-y-8 px-6 py-8 sm:px-8 md:py-10 lg:px-12">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
           <section className={panelClass}>
             <HomepageWeeklyGames
@@ -706,155 +680,68 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           </section>
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
+        <section className={panelClass}>
+          <SectionHeading
+            title="Recent Results"
+            icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
+            href={`/${leagueSlug}/scores`}
+            cta="All Scores"
+          />
+
+          {recentGames.length > 0 ? (
+            <div className="mt-6 space-y-4">
+              {recentGames.map((game) => (
+                <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore timezone={league.timezone} />
+              ))}
+            </div>
+          ) : (
+            <Card variant="glass" padding="lg" hover={false} className="mt-6">
+              <p className="text-center text-[var(--color-text-secondary)]">No games played yet</p>
+            </Card>
+          )}
+        </section>
+
+        {hasAlbums && (
           <section className={panelClass}>
             <SectionHeading
-              title="Recent Results"
-              icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/scores`}
-              cta="All Scores"
+              title="Galleries"
+              icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
+              href={`/${leagueSlug}/gallery`}
+              cta="View All Albums"
             />
 
-            {recentGames.length > 0 ? (
-              <div className="mt-6 space-y-4">
-                {recentGames.map((game) => (
-                  <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore timezone={league.timezone} />
-                ))}
-              </div>
-            ) : (
-              <Card variant="glass" padding="lg" hover={false} className="mt-6">
-                <p className="text-center text-[var(--color-text-secondary)]">No games played yet</p>
-              </Card>
-            )}
-          </section>
-
-          <section className={`${panelClass} p-6 md:p-7`}>
-            <SectionHeading
-              title="Quick Links"
-              icon={<BookOpen className="w-5 h-5 text-[var(--league-primary)]" />}
-            />
-            <nav className="mt-5 grid gap-2 sm:grid-cols-2">
-              {hasRulesContent && (
-                <QuickLink href={`/${leagueSlug}/about`} icon={<BookOpen className="w-4 h-4" />} label="League Rules" />
-              )}
-              <QuickLink href={`/${leagueSlug}/teams`} icon={<Users className="w-4 h-4" />} label="View All Teams" />
-              <QuickLink href={`/${leagueSlug}/stats`} icon={<TrendingUp className="w-4 h-4" />} label="Stats Leaders" />
-              <QuickLink href={`/${leagueSlug}/schedule`} icon={<Calendar className="w-4 h-4" />} label="Schedule" />
-              {hasAlbums && (
-                <QuickLink href={`/${leagueSlug}/gallery`} icon={<Camera className="w-4 h-4" />} label="Photo Gallery" />
-              )}
-              <QuickLink href={`/${leagueSlug}/contact`} icon={<Mail className="w-4 h-4" />} label="Contact League" />
-              <QuickLink href={`/${leagueSlug}/goalies/register`} icon={<UserPlus className="w-4 h-4" />} label="Sub Goalie Signup" />
-            </nav>
-          </section>
-        </div>
-
-        <div className={`grid gap-8 ${hasAlbums ? 'xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]' : ''}`}>
-          {hasAlbums && (
-            <section className={panelClass}>
-              <SectionHeading
-                title="Galleries"
-                icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
-                href={`/${leagueSlug}/gallery`}
-                cta="View All Albums"
-              />
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                {albums.slice(0, 3).map((album) => (
-                  <Link
-                    key={album.id}
-                    href={`/${leagueSlug}/gallery/${album.id}`}
-                    className="group relative aspect-[4/3] overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
-                  >
-                    {album.cover_photo_url ? (
-                      <img
-                        src={album.cover_photo_url}
-                        alt={album.title}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-[var(--color-surface-hover)]">
-                        <Camera className="h-8 w-8 text-[var(--color-text-muted)]" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85 transition-opacity group-hover:opacity-95" />
-                    <div className="absolute inset-x-0 bottom-0 p-4">
-                      <h3 className="truncate text-sm font-semibold text-white">{album.title}</h3>
-                      {(album.photo_count ?? 0) > 0 && (
-                        <p className="mt-1 text-xs text-white/68">
-                          {album.photo_count} photo{album.photo_count !== 1 ? 's' : ''}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <section className={`${panelClass} p-6 md:p-7`}>
-            <SectionHeading
-              title="Contact Information"
-              icon={<Mail className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/contact`}
-              cta="Contact Page"
-            />
-
-            <div className="mt-6 space-y-4">
-              {league.contact_email && (
-                <a
-                  href={`mailto:${league.contact_email}`}
-                  className="flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-4 py-4 transition-colors duration-200 hover:border-[var(--league-primary)]"
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {albums.slice(0, 3).map((album) => (
+                <Link
+                  key={album.id}
+                  href={`/${leagueSlug}/gallery/${album.id}`}
+                  className="group relative aspect-[4/3] overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
                 >
-                  <span className="rounded-2xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
-                    <Mail className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Email</span>
-                    <span className="mt-1 block truncate text-sm font-semibold text-[var(--color-text-primary)]">{league.contact_email}</span>
-                  </span>
-                </a>
-              )}
-
-              {league.contact_phone && (
-                <div className="flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-4 py-4">
-                  <span className="rounded-2xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
-                    <Phone className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Phone</span>
-                    <span className="mt-1 block text-sm font-semibold text-[var(--color-text-primary)]">{league.contact_phone}</span>
-                  </span>
-                </div>
-              )}
-
-              {(league.address || league.city || league.state || league.zip_code) && (
-                <div className="flex items-start gap-3 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-4 py-4">
-                  <span className="rounded-2xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
-                    <MapPin className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">Location</span>
-                    {league.address && (
-                      <span className="mt-1 block text-sm font-semibold text-[var(--color-text-primary)]">{league.address}</span>
+                  {album.cover_photo_url ? (
+                    <img
+                      src={album.cover_photo_url}
+                      alt={album.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[var(--color-surface-hover)]">
+                      <Camera className="h-8 w-8 text-[var(--color-text-muted)]" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85 transition-opacity group-hover:opacity-95" />
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <h3 className="truncate text-sm font-semibold text-white">{album.title}</h3>
+                    {(album.photo_count ?? 0) > 0 && (
+                      <p className="mt-1 text-xs text-white/68">
+                        {album.photo_count} photo{album.photo_count !== 1 ? 's' : ''}
+                      </p>
                     )}
-                    <span className="mt-1 block text-sm text-[var(--color-text-secondary)]">
-                      {[league.city, league.state, league.zip_code].filter(Boolean).join(', ')}
-                    </span>
-                  </span>
-                </div>
-              )}
-
-              {!league.contact_email && !league.contact_phone && !league.address && !league.city && !league.state && !league.zip_code && (
-                <Card variant="glass" padding="lg" hover={false}>
-                  <p className="text-center text-[var(--color-text-secondary)]">
-                    Reach the league through the contact page for questions, registration help, and rink details.
-                  </p>
-                </Card>
-              )}
+                  </div>
+                </Link>
+              ))}
             </div>
           </section>
-        </div>
+        )}
 
         {socialSettings && (
           <section className={`${panelClass} p-6 md:p-8`}>
@@ -923,31 +810,6 @@ function SectionHeading({
         </Link>
       )}
     </div>
-  );
-}
-
-function QuickLink({
-  href,
-  icon,
-  label,
-}: {
-  href: string;
-  icon: ReactNode;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-xl p-3 transition-all duration-300 hover:bg-[var(--color-surface-hover)]"
-    >
-      <span className="text-[var(--league-primary)] transition-transform duration-300 group-hover:scale-110">
-        {icon}
-      </span>
-      <span className="flex-1 text-[var(--color-text-secondary)] transition-colors duration-300 group-hover:text-[var(--color-text-primary)]">
-        {label}
-      </span>
-      <ChevronRight className="h-4 w-4 text-[var(--color-text-muted)] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[var(--league-primary)]" />
-    </Link>
   );
 }
 

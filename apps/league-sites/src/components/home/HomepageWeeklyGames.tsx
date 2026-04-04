@@ -28,7 +28,7 @@ type CarouselPhase = 'idle' | 'pre' | 'run';
 const COOL_CAROUSEL_DURATION_MS = 720;
 const COOL_CAROUSEL_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const COOL_HERO_IMAGE_MASK =
-  'radial-gradient(108% 92% at 50% 34%, rgba(0,0,0,0.98) 24%, rgba(0,0,0,0.94) 40%, rgba(0,0,0,0.74) 56%, rgba(0,0,0,0.34) 74%, rgba(0,0,0,0.08) 86%, transparent 100%)';
+  'radial-gradient(ellipse at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.88) 28%, rgba(0,0,0,0.54) 56%, rgba(0,0,0,0.18) 78%, transparent 100%)';
 
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
@@ -250,14 +250,14 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
     align === 'left' ? 'items-start text-left' : 'items-end text-right';
   const badgePositionClass =
     align === 'left'
-      ? 'right-[12%] top-full -translate-y-1/2 sm:right-[11%] md:right-[10%]'
-      : 'left-[12%] top-full -translate-y-1/2 sm:left-[11%] md:left-[10%]';
+      ? 'right-[12%] top-[92%] -translate-y-1/2 sm:right-[11%] md:right-[10%]'
+      : 'left-[12%] top-[92%] -translate-y-1/2 sm:left-[11%] md:left-[10%]';
 
   return (
     <div className={`relative flex flex-col ${sidePositionClass} gap-3`}>
       <div className="relative">
-        <div className="relative flex h-40 w-40 items-center justify-center sm:h-56 sm:w-56 md:h-72 md:w-72">
-          <div className="relative h-32 w-32 sm:h-44 sm:w-44 md:h-60 md:w-60">
+        <div className="relative flex h-[200px] w-[200px] items-center justify-center sm:h-[280px] sm:w-[280px] md:h-[360px] md:w-[360px]">
+          <div className="relative h-40 w-40 sm:h-56 sm:w-56 md:h-[300px] md:w-[300px]">
             <Image
               src={team?.logo || '/blank_team.png'}
               alt={team?.name || 'TBD'}
@@ -475,7 +475,7 @@ function CoolView({
             }}
           />
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-70"
+            className="absolute inset-0 bg-cover bg-center"
             style={{
               backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
               WebkitMaskImage: COOL_HERO_IMAGE_MASK,
