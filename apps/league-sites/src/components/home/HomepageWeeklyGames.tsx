@@ -250,14 +250,14 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
     align === 'left' ? 'items-start text-left' : 'items-end text-right';
   const badgePositionClass =
     align === 'left'
-      ? 'right-[12%] top-[89%] -translate-y-1/2 sm:right-[11%] md:right-[10%]'
-      : 'left-[12%] top-[89%] -translate-y-1/2 sm:left-[11%] md:left-[10%]';
+      ? 'right-[12%] top-[88%] -translate-y-1/2 sm:right-[11%] md:right-[10%]'
+      : 'left-[12%] top-[88%] -translate-y-1/2 sm:left-[11%] md:left-[10%]';
 
   return (
-    <div className={`relative flex flex-col ${sidePositionClass} gap-3`}>
+    <div className={`relative flex min-w-0 flex-col ${sidePositionClass} gap-3`}>
       <div className="relative">
-        <div className="relative flex h-[232px] w-[232px] items-center justify-center sm:h-[336px] sm:w-[336px] md:h-[432px] md:w-[432px]">
-          <div className="relative h-[200px] w-[200px] sm:h-[280px] sm:w-[280px] md:h-[375px] md:w-[375px]">
+        <div className="relative flex h-[156px] w-[156px] items-center justify-center sm:h-[248px] sm:w-[248px] md:h-[360px] md:w-[360px]">
+          <div className="relative h-[132px] w-[132px] sm:h-[208px] sm:w-[208px] md:h-[300px] md:w-[300px]">
             <Image
               src={team?.logo || '/blank_team.png'}
               alt={team?.name || 'TBD'}
@@ -272,11 +272,11 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
         </div>
       </div>
 
-      <div className="max-w-[280px]">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/74">
+      <div className="max-w-full">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/74 sm:text-[11px]">
           {align === 'left' ? 'Away' : 'Home'}
         </p>
-        <span className="mt-2 block text-balance text-2xl font-black tracking-tight text-white [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] md:text-4xl">
+        <span className="mt-2 block text-balance text-[1.85rem] font-black leading-[0.98] tracking-tight text-white [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] sm:text-[2.4rem] md:text-4xl">
           {getTeamName(team)}
         </span>
       </div>
@@ -383,7 +383,7 @@ function CoolView({
         role,
       })}
     >
-      <div className="grid min-h-[400px] grid-cols-[1fr_1fr] items-end gap-4 px-5 pb-32 pt-16 sm:min-h-[520px] sm:px-8 sm:pb-36 md:px-10 lg:min-h-[620px] lg:pb-44">
+      <div className="grid min-h-[310px] grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end gap-3 px-4 pb-24 pt-14 sm:min-h-[420px] sm:gap-4 sm:px-7 sm:pb-28 md:px-10 lg:min-h-[520px] lg:pb-36">
         <CoolViewTeam
           team={slideGame.away_team}
           leagueSlug={leagueSlug}
