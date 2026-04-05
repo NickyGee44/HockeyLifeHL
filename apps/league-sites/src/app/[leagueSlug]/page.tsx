@@ -16,15 +16,12 @@ import {
   getStandings,
   getDivisions,
   getAllArticles,
-  getLeagueSponsors,
   getGalleryAlbums,
-  getPointsLeadersWithDivision,
-  getGoalieLeadersWithDivision,
   getCurrentSeason,
+  getPlayerBadgesByIds,
   getSeasons,
-  getLeagueAwards,
-  getLeagueEvents,
   getTeams,
+  getUnifiedSkaterStatsRows,
 } from '@/lib/data';
 import type {
   GalleryAlbum,
@@ -38,16 +35,13 @@ import type {
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
-import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import { SocialLinks } from '@/components/SocialLinks';
 import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail';
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
-import {
-  HomepageEditorialRow,
-  type HomepageRecognitionCard,
-} from '@/components/home/HomepageEditorialRow';
+import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
+import { StatLeaders } from '@/components/stats/StatLeaders';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
@@ -459,13 +453,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     standings,
     divisions,
     allNewsArticles,
-    sponsors,
     allAlbums,
     teams,
-    currentScoringLeadersRaw,
-    currentGoalieLeadersRaw,
     seasons,
-    allEvents,
   ] = await Promise.all([
     getLeagueStats(league.id, currentSeason?.id),
     getHomepageWeeklyGames(league.id, {
@@ -477,13 +467,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getStandings(league.id, currentSeason?.id),
     getDivisions(league.id),
     getAllArticles(league.id, 18),
-    getLeagueSponsors(league.id),
     getGalleryAlbums(league.id),
     getTeams(league.id),
-    getPointsLeadersWithDivision(league.id, currentSeason?.id, 24, divisionFilter),
-    getGoalieLeadersWithDivision(league.id, currentSeason?.id, 'wins', 10, divisionFilter),
     getSeasons(league.id),
-    getLeagueEvents(league.id),
   ]);
 
   const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
@@ -500,83 +486,27 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   );
   const socialSettings = hasSocialLinks ? websiteSettings : null;
 
+  const homepageLeaderRows = currentSeason?.id
+    ? await getUnifiedSkaterStatsRows(
+        league.id,
+        currentSeason.id,
+        divisionFilter,
+        leagueSlug,
+        currentSeason.name,
+      )
+    : [];
+  const homepageLeaderBadges = await getPlayerBadgesByIds(
+    [...new Set(homepageLeaderRows.map((row) => row.player_id))],
+  );
+
   // Check if registration is open for any season
   const now = new Date();
   const registrationSeason = pickRegistrationSeason(seasons as any[], now);
-  const previousCompletedSeason = getMostRecentlyFinishedSeason(
-    seasons,
-    now,
-    registrationSeason?.id,
-  );
-  const [previousScoringLeadersRaw, previousGoalieLeadersRaw, currentAwards, previousAwards] = previousCompletedSeason
-    ? await Promise.all([
-        getPointsLeadersWithDivision(league.id, previousCompletedSeason.id, 24, divisionFilter),
-        getGoalieLeadersWithDivision(league.id, previousCompletedSeason.id, 'wins', 10, divisionFilter),
-        currentSeason?.id ? getLeagueAwards(league.id, currentSeason.id) : Promise.resolve([]),
-        getLeagueAwards(league.id, previousCompletedSeason.id),
-      ])
-    : await Promise.all([
-        Promise.resolve([]),
-        Promise.resolve([]),
-        currentSeason?.id ? getLeagueAwards(league.id, currentSeason.id) : Promise.resolve([]),
-        Promise.resolve([]),
-      ]);
   const heroArticles = (newsArticles.length > 0 ? newsArticles : allNewsArticles).slice(0, 5);
   const homepagePhotoHighlight = buildHomepagePhotoHighlight({
     leagueSlug,
     albums,
     newsArticles,
-  });
-  const aroundLeagueArticles = (newsArticles.length > 0 ? newsArticles : allNewsArticles).slice(0, 3);
-  const previousScoringLeaders = filterCurrentSkaterLeaders(previousScoringLeadersRaw).slice(0, 5);
-  const previousGoalieLeaders = previousGoalieLeadersRaw.slice(0, 5);
-  const aroundLeagueEvents = filterUpcomingEvents(allEvents, currentSeason).slice(0, 2);
-  const teamLookup = new Map<string, TeamLookupEntry>(
-    teams.map((team) => [
-      team.id,
-      {
-        name: team.name,
-        logoUrl: team.logo || team.logo_url || null,
-        divisionName: team.division?.name || null,
-      },
-    ]),
-  );
-
-  const showPreviousLeaders = Boolean(
-    registrationSeason &&
-      previousCompletedSeason &&
-      (previousScoringLeaders.length > 0 || previousGoalieLeaders.length > 0)
-  );
-  const leadersEyebrow = showPreviousLeaders ? 'Previous Season' : 'Current Season';
-  const leadersSeasonName = showPreviousLeaders
-    ? previousCompletedSeason?.name ?? null
-    : currentSeason?.name ?? null;
-  const leadersDescription = showPreviousLeaders
-    ? 'Registration is open, so last season’s top skaters and goalies stay visible until the new race begins.'
-    : 'Top skaters and goalies update with the current season’s stat race.';
-
-  const usePreviousRecognitionSource = Boolean(
-    registrationSeason && currentAwards.length === 0 && previousAwards.length > 0
-  );
-  const recognitionAwards = usePreviousRecognitionSource ? previousAwards : currentAwards;
-  const recognitionSkaterPool =
-    usePreviousRecognitionSource || (!currentAwards.length && showPreviousLeaders)
-      ? filterCurrentSkaterLeaders(previousScoringLeadersRaw)
-      : filterCurrentSkaterLeaders(currentScoringLeadersRaw);
-  const recognitionGoaliePool =
-    usePreviousRecognitionSource || (!currentAwards.length && showPreviousLeaders)
-      ? previousGoalieLeadersRaw
-      : currentGoalieLeadersRaw;
-  const recognitionSeasonLabel = usePreviousRecognitionSource
-    ? previousCompletedSeason?.name || 'Previous Season'
-    : currentSeason?.name || leadersSeasonName;
-  const recognitionCards = buildRecognitionCards({
-    leagueSlug,
-    awards: recognitionAwards,
-    skaterPool: recognitionSkaterPool,
-    goaliePool: recognitionGoaliePool,
-    teamLookup,
-    sourceLabel: recognitionSeasonLabel,
   });
 
   const seasonSpotlight = registrationSeason
@@ -630,46 +560,41 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         registrationSeason={registrationSeason}
         stats={stats}
         photoFallback={homepagePhotoHighlight}
+        showInfoCard={false}
       />
 
       <HomepageSeasonBand
         leagueSlug={leagueSlug}
         timezone={league.timezone}
-        leadersEyebrow={leadersEyebrow}
-        leadersSeasonName={leadersSeasonName}
-        leadersDescription={leadersDescription}
+        leadersEyebrow=""
+        leadersSeasonName={null}
+        leadersDescription=""
         scoringLeaders={[]}
         goalieLeaders={[]}
         spotlight={seasonSpotlight?.type === 'registration' ? null : seasonSpotlight}
       />
 
-      <div className="pt-6">
-        <SponsorBanner
-          sponsors={sponsors}
-          compact
-        />
-      </div>
-
-      <HomepageEditorialRow
-        leagueSlug={leagueSlug}
-        leagueName={league.name}
-        leagueLogoUrl={league.logo_url}
-        recognitionCards={recognitionCards}
-        recognitionSeasonLabel={recognitionSeasonLabel}
-        articles={aroundLeagueArticles}
-        events={aroundLeagueEvents}
-        hideEditorialColumn
-      />
-
       <div className="mx-auto max-w-[1180px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(300px,0.88fr)]">
-          <section className={panelClass}>
-            <HomepageWeeklyGames
-              games={weeklyGames}
-              leagueSlug={leagueSlug}
-              timezone={league.timezone}
-            />
-          </section>
+          <div className="space-y-6">
+            <section>
+              <HomepageWeeklyGames
+                games={weeklyGames}
+                leagueSlug={leagueSlug}
+                timezone={league.timezone}
+              />
+            </section>
+
+            <section>
+              <StatLeaders
+                badges={homepageLeaderBadges}
+                isAllTime={false}
+                leagueSlug={leagueSlug}
+                mode="skaters"
+                rows={homepageLeaderRows}
+              />
+            </section>
+          </div>
 
           <section className={`${panelClass} p-6 md:p-7`}>
             <SectionHeading

@@ -65,6 +65,7 @@ interface HomepageStoryHeroProps {
   } | null;
   stats: LeagueStats;
   photoFallback?: HomepageStoryFallback | null;
+  showInfoCard?: boolean;
 }
 
 function getArticleLabel(articleType?: string | null) {
@@ -143,6 +144,7 @@ export function HomepageStoryHero({
   registrationSeason,
   stats,
   photoFallback,
+  showInfoCard = true,
 }: HomepageStoryHeroProps) {
   const storySlides = useMemo(
     () =>
@@ -359,9 +361,11 @@ export function HomepageStoryHero({
       >
         <div
           className={`grid w-full gap-5 ${
-            hasEditorialStage
-              ? 'items-end lg:grid-cols-[minmax(0,1.45fr)_340px] xl:grid-cols-[minmax(0,1.55fr)_360px]'
-              : 'items-center lg:grid-cols-[minmax(0,1.5fr)_340px] xl:grid-cols-[minmax(0,1.65fr)_360px]'
+            showInfoCard
+              ? hasEditorialStage
+                ? 'items-end lg:grid-cols-[minmax(0,1.45fr)_340px] xl:grid-cols-[minmax(0,1.55fr)_360px]'
+                : 'items-center lg:grid-cols-[minmax(0,1.5fr)_340px] xl:grid-cols-[minmax(0,1.65fr)_360px]'
+              : 'items-end'
           }`}
         >
           {hasEditorialStage ? (
@@ -479,77 +483,79 @@ export function HomepageStoryHero({
             </div>
           )}
 
-          <div className={`relative z-20 ${hasEditorialStage ? 'lg:self-center lg:-translate-y-6 xl:-translate-y-8' : ''}`}>
-            <motion.div
-              className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(8,15,27,0.78)_0%,rgba(8,15,27,0.9)_100%)] p-5 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.72)] backdrop-blur-xl md:p-6"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.12 }}
-            >
-              <div className="flex items-start gap-4">
-                {hasEditorialStage && (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-white/12 bg-black/18 p-3">
-                    {league.logo_url ? (
-                      <img src={league.logo_url} alt={`${league.name} logo`} className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="text-xl font-black text-white">{league.name.charAt(0)}</span>
-                    )}
+          {showInfoCard ? (
+            <div className={`relative z-20 ${hasEditorialStage ? 'lg:self-center lg:-translate-y-6 xl:-translate-y-8' : ''}`}>
+              <motion.div
+                className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(8,15,27,0.78)_0%,rgba(8,15,27,0.9)_100%)] p-5 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.72)] backdrop-blur-xl md:p-6"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.12 }}
+              >
+                <div className="flex items-start gap-4">
+                  {hasEditorialStage && (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-white/12 bg-black/18 p-3">
+                      {league.logo_url ? (
+                        <img src={league.logo_url} alt={`${league.name} logo`} className="h-full w-full object-contain" />
+                      ) : (
+                        <span className="text-xl font-black text-white">{league.name.charAt(0)}</span>
+                      )}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                      {hasEditorialStage ? 'League Central' : 'League Hub'}
+                    </p>
+                    <h2 className="mt-2 text-3xl font-black leading-none tracking-tight text-white">
+                      {league.name}
+                    </h2>
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-white/72">
+                      <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                      {locationLine}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-5 text-sm leading-6 text-white/76">{seasonNote}</p>
+
+                {registrationSeason && (
+                  <div className="mt-5 rounded-2xl border border-[var(--league-primary-border)] bg-[var(--league-primary-muted)] px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
+                      Registration Open
+                    </p>
+                    <p className="mt-2 text-sm text-white/82">
+                      {registrationSeason.name || 'Upcoming season'}
+                      {registrationLabel ? ` closes ${registrationLabel}.` : ' is open now.'}
+                    </p>
                   </div>
                 )}
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                    {hasEditorialStage ? 'League Central' : 'League Hub'}
-                  </p>
-                  <h2 className="mt-2 text-3xl font-black leading-none tracking-tight text-white">
-                    {league.name}
-                  </h2>
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-white/72">
-                    <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                    {locationLine}
-                  </p>
-                </div>
-              </div>
 
-              <p className="mt-5 text-sm leading-6 text-white/76">{seasonNote}</p>
-
-              {registrationSeason && (
-                <div className="mt-5 rounded-2xl border border-[var(--league-primary-border)] bg-[var(--league-primary-muted)] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                    Registration Open
-                  </p>
-                  <p className="mt-2 text-sm text-white/82">
-                    {registrationSeason.name || 'Upcoming season'}
-                    {registrationLabel ? ` closes ${registrationLabel}.` : ' is open now.'}
-                  </p>
+                <div className="mt-6 grid gap-3">
+                  <Link
+                    href={registrationSeason ? dockTertiaryCta : dockPrimaryCta}
+                    className="inline-flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      {registrationSeason ? <UserPlus className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
+                      {dockPrimaryLabel}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <div className="grid grid-cols-2 gap-3">
+                    {secondaryActions.map((action) => (
+                      <Link
+                        key={action.label}
+                        href={action.href}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/14 bg-white/6 px-4 py-3 text-sm font-semibold text-white/84 transition-colors duration-200 hover:border-white/28 hover:text-white"
+                      >
+                        {action.icon}
+                        {action.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              )}
-
-              <div className="mt-6 grid gap-3">
-                <Link
-                  href={registrationSeason ? dockTertiaryCta : dockPrimaryCta}
-                  className="inline-flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    {registrationSeason ? <UserPlus className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
-                    {dockPrimaryLabel}
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <div className="grid grid-cols-2 gap-3">
-                  {secondaryActions.map((action) => (
-                    <Link
-                      key={action.label}
-                      href={action.href}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/14 bg-white/6 px-4 py-3 text-sm font-semibold text-white/84 transition-colors duration-200 hover:border-white/28 hover:text-white"
-                    >
-                      {action.icon}
-                      {action.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
