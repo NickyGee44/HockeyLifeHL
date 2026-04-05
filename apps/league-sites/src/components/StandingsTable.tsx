@@ -39,7 +39,7 @@ function TeamLogo({ team }: { team: StandingsTeam }) {
         height={40}
         className="rounded"
       />
-      <span className="absolute -bottom-1 -right-1 bg-[var(--color-background)] px-1 py-0.5 text-[10px] font-black leading-none text-[var(--color-text-primary)] shadow-sm">
+      <span className="absolute -bottom-1.5 -right-1.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-[var(--color-background)] bg-[var(--league-primary)] px-1.5 text-[10px] font-black leading-none text-[var(--color-accent-text)] shadow-[0_8px_20px_rgba(15,23,42,0.28)]">
         {team.rank}
       </span>
     </span>

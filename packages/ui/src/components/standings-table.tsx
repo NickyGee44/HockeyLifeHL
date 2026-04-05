@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { cn } from '../utils';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trophy } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trophy } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -76,7 +76,6 @@ function buildColumns(opts: {
   variant: 'admin' | 'public';
   showHomeAway: boolean;
   showOtl: boolean;
-  showExpandedPublicStats: boolean;
 }): ColumnDef[] {
   const isPublic = opts.variant === 'public';
   const cols: ColumnDef[] = [
@@ -99,13 +98,11 @@ function buildColumns(opts: {
     { key: 'pts', label: 'Points', shortLabel: 'PTS', sortable: true, align: 'center', width: '52px' },
   );
 
-  if (!isPublic || opts.showExpandedPublicStats) {
-    cols.push(
-      { key: 'gf', label: 'Goals For', shortLabel: 'GF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
-      { key: 'ga', label: 'Goals Against', shortLabel: 'GA', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
-      { key: 'diff', label: 'Goal Diff', shortLabel: 'DIFF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
-    );
-  }
+  cols.push(
+    { key: 'gf', label: 'Goals For', shortLabel: 'GF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
+    { key: 'ga', label: 'Goals Against', shortLabel: 'GA', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
+    { key: 'diff', label: 'Goal Diff', shortLabel: 'DIFF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
+  );
 
   if (opts.showHomeAway) {
     cols.push(
@@ -135,7 +132,6 @@ export function StandingsTable({
 }: StandingsTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('pts');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [showExpandedPublicStats, setShowExpandedPublicStats] = useState(false);
 
   const isAdmin = variant === 'admin';
   const isPublic = variant === 'public';
@@ -145,9 +141,8 @@ export function StandingsTable({
       variant,
       showHomeAway,
       showOtl: showOvertimeLosses,
-      showExpandedPublicStats,
     }),
-    [variant, showHomeAway, showOvertimeLosses, showExpandedPublicStats],
+    [variant, showHomeAway, showOvertimeLosses],
   );
 
   // Filter by search
@@ -336,19 +331,6 @@ export function StandingsTable({
                   )}
                 </th>
               ))}
-              {isPublic && (
-                <th className="w-11 px-2 py-3 text-right">
-                  <button
-                    type="button"
-                    onClick={() => setShowExpandedPublicStats((current) => !current)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)] hover:text-[var(--league-primary)]"
-                    aria-label={showExpandedPublicStats ? 'Hide additional standings stats' : 'Show additional standings stats'}
-                    aria-expanded={showExpandedPublicStats}
-                  >
-                    {showExpandedPublicStats ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </button>
-                </th>
-              )}
             </tr>
           </thead>
           <tbody>
@@ -381,7 +363,6 @@ export function StandingsTable({
                       {getCellValue(team, col.key)}
                     </td>
                   ))}
-                  {isPublic && <td className="w-11 px-2 py-3" />}
                 </tr>
               );
             })}
