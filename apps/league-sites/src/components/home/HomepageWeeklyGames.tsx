@@ -181,6 +181,42 @@ function OutcomeBadge({
   );
 }
 
+function WeeklyTeamLogo({
+  team,
+  size,
+}: {
+  team: WeeklyGameTeam;
+  size: 'cool' | 'compact';
+}) {
+  if (size === 'cool') {
+    return (
+      <div className="relative flex h-[132px] w-[132px] items-center justify-center rounded-[32px] border border-white/12 bg-[linear-gradient(180deg,rgba(7,12,21,0.42)_0%,rgba(7,12,21,0.18)_100%)] shadow-[0_28px_48px_-28px_rgba(0,0,0,0.82)] backdrop-blur-[2px] sm:h-[208px] sm:w-[208px] sm:rounded-[42px] md:h-[300px] md:w-[300px] md:rounded-[56px]">
+        <div className="absolute inset-[12px] flex items-center justify-center sm:inset-[18px] md:inset-[26px]">
+          <Image
+            src={team?.logo || '/blank_team.png'}
+            alt={team?.name || 'TBD'}
+            width={288}
+            height={288}
+            className="h-full w-full object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.6)]"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)]/72 shadow-[0_18px_32px_-24px_rgba(0,0,0,0.8)]">
+      <Image
+        src={team?.logo || '/blank_team.png'}
+        alt={team?.name || 'TBD'}
+        width={56}
+        height={56}
+        className="h-11 w-11 object-contain"
+      />
+    </div>
+  );
+}
+
 function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
   void leagueSlug;
 
@@ -195,14 +231,8 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
     <div className={`relative flex min-w-0 flex-col ${sidePositionClass} gap-3`}>
       <div className="relative">
         <div className="relative flex h-[156px] w-[156px] items-center justify-center sm:h-[248px] sm:w-[248px] md:h-[360px] md:w-[360px]">
-          <div className="relative h-[132px] w-[132px] sm:h-[208px] sm:w-[208px] md:h-[300px] md:w-[300px]">
-            <Image
-              src={team?.logo || '/blank_team.png'}
-              alt={team?.name || 'TBD'}
-              width={288}
-              height={288}
-              className="h-full w-full object-contain drop-shadow-[0_24px_36px_rgba(0,0,0,0.6)]"
-            />
+          <div className="relative">
+            <WeeklyTeamLogo team={team} size="cool" />
             <span className={`absolute ${badgePositionClass}`}>
               <OutcomeBadge result={result} />
             </span>
@@ -258,15 +288,7 @@ function CompactTeam({
   return (
     <div className={`relative flex ${wrapperClass} gap-3`}>
       <div className="relative shrink-0">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)]/72 shadow-[0_18px_32px_-24px_rgba(0,0,0,0.8)]">
-          <Image
-            src={team?.logo || '/blank_team.png'}
-            alt={team?.name || 'TBD'}
-            width={56}
-            height={56}
-            className="h-11 w-11 object-contain"
-          />
-        </div>
+        <WeeklyTeamLogo team={team} size="compact" />
         <span className={`absolute ${badgePositionClass}`}>
           <OutcomeBadge result={result} size="sm" />
         </span>
