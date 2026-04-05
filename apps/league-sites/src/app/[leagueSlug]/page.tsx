@@ -35,7 +35,6 @@ import type {
   NewsArticle,
   Season,
 } from '@/lib/types';
-import { GameCard } from '@/components/GameCard';
 import { StandingsWidget } from '@/components/StandingsWidget';
 import { DivisionStandingsWidget } from '@/components/DivisionStandingsWidget';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
@@ -49,7 +48,6 @@ import {
   HomepageEditorialRow,
   type HomepageRecognitionCard,
 } from '@/components/home/HomepageEditorialRow';
-import { Card } from '@/components/ui';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
@@ -490,8 +488,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
   const albums = filterAlbumsForSeason(allAlbums, currentSeason);
-  const currentScoringLeaders = filterCurrentSkaterLeaders(currentScoringLeadersRaw).slice(0, 5);
-  const currentGoalieLeaders = currentGoalieLeadersRaw.slice(0, 5);
 
   const hasAlbums = albums.length > 0;
   const websiteSettings = league.settings?.website;
@@ -551,8 +547,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       previousCompletedSeason &&
       (previousScoringLeaders.length > 0 || previousGoalieLeaders.length > 0)
   );
-  const displayScoringLeaders = showPreviousLeaders ? previousScoringLeaders : currentScoringLeaders;
-  const displayGoalieLeaders = showPreviousLeaders ? previousGoalieLeaders : currentGoalieLeaders;
   const leadersEyebrow = showPreviousLeaders ? 'Previous Season' : 'Current Season';
   const leadersSeasonName = showPreviousLeaders
     ? previousCompletedSeason?.name ?? null
@@ -644,9 +638,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         leadersEyebrow={leadersEyebrow}
         leadersSeasonName={leadersSeasonName}
         leadersDescription={leadersDescription}
-        scoringLeaders={displayScoringLeaders}
-        goalieLeaders={displayGoalieLeaders}
-        spotlight={seasonSpotlight}
+        scoringLeaders={[]}
+        goalieLeaders={[]}
+        spotlight={seasonSpotlight?.type === 'registration' ? null : seasonSpotlight}
       />
 
       <div className="pt-6">
@@ -693,27 +687,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </div>
           </section>
         </div>
-
-        <section className={panelClass}>
-          <SectionHeading
-            title="Recent Results"
-            icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
-            href={`/${leagueSlug}/scores`}
-            cta="All Scores"
-          />
-
-          {recentGames.length > 0 ? (
-            <div className="mt-6 space-y-4">
-              {recentGames.map((game) => (
-                <GameCard key={game.id} game={game} leagueSlug={leagueSlug} showScore timezone={league.timezone} />
-              ))}
-            </div>
-          ) : (
-            <Card variant="glass" padding="lg" hover={false} className="mt-6">
-              <p className="text-center text-[var(--color-text-secondary)]">No games played yet</p>
-            </Card>
-          )}
-        </section>
 
         {hasAlbums && (
           <section className={panelClass}>

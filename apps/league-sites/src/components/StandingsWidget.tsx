@@ -124,7 +124,7 @@ export function StandingsWidget({
                       {/* Subtle shine on hover */}
                       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover/team:opacity-100 transition-opacity duration-300" />
                     </div>
-                    <span className="font-medium truncate max-w-[120px] transition-colors duration-300 group-hover/team:text-[var(--color-accent)]">
+                    <span className="block max-w-[132px] overflow-hidden text-sm font-medium leading-tight transition-colors duration-300 group-hover/team:text-[var(--color-accent)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] min-h-[2.4rem]">
                       {team.team_name || 'Unknown Team'}
                     </span>
                   </div>

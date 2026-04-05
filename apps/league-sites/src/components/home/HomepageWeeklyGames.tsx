@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -22,13 +22,13 @@ import type { ScheduleGame } from '@/lib/types';
 type WeeklyGamesView = 'cool' | 'compact';
 type TeamResult = 'W' | 'L' | null;
 type WeeklyGameTeam = ScheduleGame['home_team'] | undefined;
-type CarouselDirection = -1 | 1;
-type CarouselPhase = 'idle' | 'pre' | 'run';
 
-const COOL_CAROUSEL_DURATION_MS = 720;
-const COOL_CAROUSEL_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
 const COOL_HERO_IMAGE_MASK =
-  'radial-gradient(138% 122% at 50% 40%, rgba(0,0,0,1) 16%, rgba(0,0,0,0.98) 32%, rgba(0,0,0,0.86) 50%, rgba(0,0,0,0.58) 68%, rgba(0,0,0,0.24) 84%, transparent 100%)';
+  [
+    'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.72) 14%, rgba(0,0,0,1) 28%, rgba(0,0,0,1) 100%)',
+    'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.78) 12%, rgba(0,0,0,1) 24%, rgba(0,0,0,1) 76%, rgba(0,0,0,0.78) 88%, transparent 100%)',
+    'radial-gradient(138% 124% at 50% 42%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.97) 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.48) 72%, rgba(0,0,0,0.18) 86%, transparent 100%)',
+  ].join(',');
 
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
@@ -125,68 +125,6 @@ function getGameAriaLabel(game: ScheduleGame) {
   return `Open matchup details for ${getTeamName(game.away_team)} at ${getTeamName(game.home_team)}`;
 }
 
-function getCoolSlideStyle({
-  phase,
-  direction,
-  role,
-}: {
-  phase: CarouselPhase;
-  direction: CarouselDirection;
-  role: 'current' | 'previous';
-}): CSSProperties {
-  const transition = [
-    `transform ${COOL_CAROUSEL_DURATION_MS}ms ${COOL_CAROUSEL_EASING}`,
-    `opacity ${COOL_CAROUSEL_DURATION_MS}ms ${COOL_CAROUSEL_EASING}`,
-    `filter ${COOL_CAROUSEL_DURATION_MS}ms ${COOL_CAROUSEL_EASING}`,
-  ].join(', ');
-  const enterOffset = direction > 0 ? '108%' : '-108%';
-  const exitOffset = direction > 0 ? '-108%' : '108%';
-
-  if (phase === 'idle') {
-    return {
-      transform: 'translate3d(0, 0, 0) scale(1)',
-      opacity: 1,
-      filter: 'blur(0px)',
-      transition,
-      willChange: 'transform, opacity, filter',
-    };
-  }
-
-  if (phase === 'pre') {
-    return role === 'current'
-      ? {
-          transform: `translate3d(${enterOffset}, 0, 0) scale(0.98)`,
-          opacity: 0.42,
-          filter: 'blur(10px)',
-          transition,
-          willChange: 'transform, opacity, filter',
-        }
-      : {
-          transform: 'translate3d(0, 0, 0) scale(1)',
-          opacity: 1,
-          filter: 'blur(0px)',
-          transition,
-          willChange: 'transform, opacity, filter',
-        };
-  }
-
-  return role === 'current'
-    ? {
-        transform: 'translate3d(0, 0, 0) scale(1)',
-        opacity: 1,
-        filter: 'blur(0px)',
-        transition,
-        willChange: 'transform, opacity, filter',
-      }
-    : {
-        transform: `translate3d(${exitOffset}, 0, 0) scale(0.98)`,
-        opacity: 0.18,
-        filter: 'blur(10px)',
-        transition,
-        willChange: 'transform, opacity, filter',
-      };
-}
-
 function TeamLink({
   team,
   leagueSlug,
@@ -276,7 +214,7 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/74 sm:text-[11px]">
           {align === 'left' ? 'Away' : 'Home'}
         </p>
-        <span className="mt-2 block text-balance text-[1.85rem] font-black leading-[0.98] tracking-tight text-white [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] sm:text-[2.4rem] md:text-4xl">
+        <span className="mt-2 block min-h-[5rem] overflow-hidden text-[1.85rem] font-black leading-[0.98] tracking-tight text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] sm:min-h-[6.8rem] sm:text-[2.4rem] md:min-h-[8.6rem] md:text-4xl">
           {getTeamName(team)}
         </span>
       </div>
@@ -347,42 +285,22 @@ function CompactTeam({
 function CoolView({
   games,
   activeIndex,
-  previousIndex,
-  transitionDirection,
-  transitionPhase,
-  isTransitioning,
   onNavigate,
   leagueSlug,
   timezone,
 }: {
   games: ScheduleGame[];
   activeIndex: number;
-  previousIndex: number | null;
-  transitionDirection: CarouselDirection;
-  transitionPhase: CarouselPhase;
-  isTransitioning: boolean;
   onNavigate: (direction: number) => void;
   leagueSlug: string;
   timezone?: string | null;
 }) {
   const game = games[activeIndex];
-  const previousGame = previousIndex !== null ? games[previousIndex] : null;
   const hasControls = games.length > 1;
   const heroHref = getGameHref(game, leagueSlug);
 
-  const renderHeroSlide = (
-    slideGame: ScheduleGame,
-    role: 'current' | 'previous',
-  ) => (
-    <div
-      aria-hidden={role === 'previous'}
-      className="pointer-events-none col-start-1 row-start-1"
-      style={getCoolSlideStyle({
-        phase: isTransitioning ? transitionPhase : 'idle',
-        direction: transitionDirection,
-        role,
-      })}
-    >
+  const renderHeroSlide = (slideGame: ScheduleGame) => (
+    <div className="pointer-events-none col-start-1 row-start-1">
       <div className="grid min-h-[310px] grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-end gap-3 px-4 pb-24 pt-14 sm:min-h-[420px] sm:gap-4 sm:px-7 sm:pb-28 md:px-10 lg:min-h-[520px] lg:pb-36">
         <CoolViewTeam
           team={slideGame.away_team}
@@ -400,22 +318,11 @@ function CoolView({
     </div>
   );
 
-  const renderDetailsSlide = (
-    slideGame: ScheduleGame,
-    role: 'current' | 'previous',
-  ) => {
+  const renderDetailsSlide = (slideGame: ScheduleGame) => {
     const centerDisplay = formatCenterDisplay(slideGame, timezone);
 
     return (
-      <div
-        aria-hidden={role === 'previous'}
-        className="col-start-1 row-start-1"
-        style={getCoolSlideStyle({
-          phase: isTransitioning ? transitionPhase : 'idle',
-          direction: transitionDirection,
-          role,
-        })}
-      >
+      <div className="col-start-1 row-start-1">
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
           <span className="inline-flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 text-[var(--league-primary)]" />
@@ -482,6 +389,9 @@ function CoolView({
               maskImage: COOL_HERO_IMAGE_MASK,
             }}
           />
+          <div className="absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
+          <div className="absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
+          <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_68%,transparent)_42%,transparent_100%)] sm:h-24" />
           <div
             className="absolute inset-0"
             style={{
@@ -518,8 +428,7 @@ function CoolView({
                 type="button"
                 aria-label="Previous game"
                 onClick={() => onNavigate(-1)}
-                disabled={isTransitioning}
-                className="absolute left-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52 disabled:cursor-not-allowed disabled:opacity-60"
+                className="absolute left-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -527,8 +436,7 @@ function CoolView({
                 type="button"
                 aria-label="Next game"
                 onClick={() => onNavigate(1)}
-                disabled={isTransitioning}
-                className="absolute right-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52 disabled:cursor-not-allowed disabled:opacity-60"
+                className="absolute right-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -536,13 +444,12 @@ function CoolView({
           )}
 
           <div className="relative z-20 grid">
-            {previousGame ? renderHeroSlide(previousGame, 'previous') : null}
-            {renderHeroSlide(game, 'current')}
+            {renderHeroSlide(game)}
           </div>
         </div>
 
         <div
-          className="relative z-30 -mt-24 px-3 sm:-mt-28 sm:px-6 lg:-mt-32"
+          className="relative z-30 -mt-20 px-3 sm:-mt-24 sm:px-6 lg:-mt-28"
           style={{
             filter: 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
           }}
@@ -562,8 +469,7 @@ function CoolView({
             }}
           >
             <div className="grid">
-              {previousGame ? renderDetailsSlide(previousGame, 'previous') : null}
-              {renderDetailsSlide(game, 'current')}
+              {renderDetailsSlide(game)}
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2">
@@ -573,9 +479,8 @@ function CoolView({
                   type="button"
                   aria-label={`Show game ${index + 1}`}
                   aria-pressed={index === activeIndex}
-                  disabled={isTransitioning}
                   onClick={() => onNavigate(index - activeIndex)}
-                  className={`h-2.5 rounded-full transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  className={`h-2.5 rounded-full transition-all duration-200 ${
                     index === activeIndex
                       ? 'w-7 bg-[var(--league-primary)]'
                       : 'w-2.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]'
@@ -661,88 +566,19 @@ export function HomepageWeeklyGames({
 }: HomepageWeeklyGamesProps) {
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
-  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
-  const [transitionDirection, setTransitionDirection] =
-    useState<CarouselDirection>(1);
-  const [transitionPhase, setTransitionPhase] =
-    useState<CarouselPhase>('idle');
   const isCompactView = view === 'compact';
-  const isTransitioning = previousIndex !== null;
-  const activeIndexRef = useRef(0);
-  const isTransitioningRef = useRef(false);
 
   useEffect(() => {
     setActiveIndex(0);
-    activeIndexRef.current = 0;
-    setPreviousIndex(null);
-    setTransitionPhase('idle');
   }, [games.length]);
 
-  useEffect(() => {
-    activeIndexRef.current = activeIndex;
-  }, [activeIndex]);
-
-  useEffect(() => {
-    isTransitioningRef.current = isTransitioning;
-  }, [isTransitioning]);
-
-  useEffect(() => {
-    if (transitionPhase !== 'pre') {
-      return undefined;
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      setTransitionPhase('run');
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [transitionPhase]);
-
-  useEffect(() => {
-    if (!isTransitioning || transitionPhase !== 'run') {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setPreviousIndex(null);
-      setTransitionPhase('idle');
-    }, COOL_CAROUSEL_DURATION_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [isTransitioning, transitionPhase]);
-
-  useEffect(() => {
-    if (view !== 'cool' || games.length < 2) {
-      return undefined;
-    }
-
-    const timerId = window.setInterval(() => {
-      if (isTransitioningRef.current) {
-        return;
-      }
-
-      const currentIndex = activeIndexRef.current;
-
-      setPreviousIndex(currentIndex);
-      setTransitionDirection(1);
-      setTransitionPhase('pre');
-      setActiveIndex((currentIndex + 1) % games.length);
-    }, 6500);
-
-    return () => window.clearInterval(timerId);
-  }, [view, games.length]);
-
   const handleNavigate = (direction: number) => {
-    if (games.length === 0 || direction === 0 || isTransitioningRef.current) {
+    if (games.length === 0 || direction === 0) {
       return;
     }
 
-    const currentIndex = activeIndexRef.current;
+    const currentIndex = activeIndex;
     const nextIndex = (currentIndex + direction) % games.length;
-
-    setPreviousIndex(currentIndex);
-    setTransitionDirection(direction < 0 ? -1 : 1);
-    setTransitionPhase('pre');
     setActiveIndex(nextIndex >= 0 ? nextIndex : games.length + nextIndex);
   };
 
@@ -778,10 +614,6 @@ export function HomepageWeeklyGames({
           <CoolView
             games={games}
             activeIndex={activeIndex}
-            previousIndex={previousIndex}
-            transitionDirection={transitionDirection}
-            transitionPhase={transitionPhase}
-            isTransitioning={isTransitioning}
             onNavigate={handleNavigate}
             leagueSlug={leagueSlug}
             timezone={timezone}
