@@ -8,7 +8,6 @@ import type { TeamStanding } from '@/lib/types';
 
 interface StandingsTableProps {
   standings: TeamStanding[];
-  searchTerm?: string;
   leagueSlug?: string;
 }
 
@@ -32,17 +31,22 @@ function toStandingsTeam(team: TeamStanding, index: number): StandingsTeam {
 
 function TeamLogo({ team }: { team: StandingsTeam }) {
   return (
-    <Image
-      src={team.logoUrl || '/blank_team.png'}
-      alt={team.name}
-      width={40}
-      height={40}
-      className="rounded"
-    />
+    <span className="relative block h-10 w-10 shrink-0">
+      <Image
+        src={team.logoUrl || '/blank_team.png'}
+        alt={team.name}
+        width={40}
+        height={40}
+        className="rounded"
+      />
+      <span className="absolute -bottom-1 -right-1 bg-[var(--color-background)] px-1 py-0.5 text-[10px] font-black leading-none text-[var(--color-text-primary)] shadow-sm">
+        {team.rank}
+      </span>
+    </span>
   );
 }
 
-export function StandingsTable({ standings, searchTerm = '', leagueSlug }: StandingsTableProps) {
+export function StandingsTable({ standings, leagueSlug }: StandingsTableProps) {
   const mapped = useMemo(
     () => standings.map((t, i) => toStandingsTeam(t, i)),
     [standings],
@@ -53,7 +57,6 @@ export function StandingsTable({ standings, searchTerm = '', leagueSlug }: Stand
       standings={mapped}
       variant="public"
       showOvertimeLosses
-      searchTerm={searchTerm}
       renderLogo={(team) => <TeamLogo team={team} />}
       getTeamHref={(team) => leagueSlug ? `/${leagueSlug}/teams/id/${team.id}` : undefined}
     />

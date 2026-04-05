@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, useMemo } from 'react';
 import { cn } from '../utils';
-import { ChevronUp, ChevronDown, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trophy } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -73,28 +73,39 @@ export interface StandingsTableProps {
 // ============================================================================
 
 function buildColumns(opts: {
+  variant: 'admin' | 'public';
   showHomeAway: boolean;
   showOtl: boolean;
+  showExpandedPublicStats: boolean;
 }): ColumnDef[] {
+  const isPublic = opts.variant === 'public';
   const cols: ColumnDef[] = [
-    { key: 'rank', label: 'Rank', shortLabel: '#', sortable: false, align: 'center', width: '40px' },
     { key: 'team', label: 'Team', shortLabel: 'Team', sortable: true, align: 'left' },
     { key: 'gp', label: 'Games Played', shortLabel: 'GP', sortable: true, align: 'center', width: '52px' },
     { key: 'w', label: 'Wins', shortLabel: 'W', sortable: true, align: 'center', width: '44px' },
     { key: 'l', label: 'Losses', shortLabel: 'L', sortable: true, align: 'center', width: '44px' },
-    { key: 't', label: 'Ties', shortLabel: 'T', sortable: true, align: 'center', width: '44px', hiddenOnMobile: true },
   ];
 
-  if (opts.showOtl) {
-    cols.push({ key: 'otl', label: 'OT Losses', shortLabel: 'OTL', sortable: true, align: 'center', width: '48px', hiddenOnMobile: true });
+  if (!isPublic) {
+    cols.unshift({ key: 'rank', label: 'Rank', shortLabel: '#', sortable: false, align: 'center', width: '40px' });
   }
 
+  if (opts.showOtl) {
+    cols.push({ key: 'otl', label: 'OT Losses', shortLabel: 'OTL', sortable: true, align: 'center', width: '48px', hiddenOnMobile: isPublic });
+  }
+
+  cols.push({ key: 't', label: 'Ties', shortLabel: 'T', sortable: true, align: 'center', width: '44px' });
   cols.push(
     { key: 'pts', label: 'Points', shortLabel: 'PTS', sortable: true, align: 'center', width: '52px' },
-    { key: 'gf', label: 'Goals For', shortLabel: 'GF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: true },
-    { key: 'ga', label: 'Goals Against', shortLabel: 'GA', sortable: true, align: 'center', width: '64px', hiddenOnMobile: true },
-    { key: 'diff', label: 'Goal Diff', shortLabel: 'DIFF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: true },
   );
+
+  if (!isPublic || opts.showExpandedPublicStats) {
+    cols.push(
+      { key: 'gf', label: 'Goals For', shortLabel: 'GF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
+      { key: 'ga', label: 'Goals Against', shortLabel: 'GA', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
+      { key: 'diff', label: 'Goal Diff', shortLabel: 'DIFF', sortable: true, align: 'center', width: '64px', hiddenOnMobile: !isPublic },
+    );
+  }
 
   if (opts.showHomeAway) {
     cols.push(
@@ -124,13 +135,19 @@ export function StandingsTable({
 }: StandingsTableProps) {
   const [sortColumn, setSortColumn] = useState<SortColumn>('pts');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [showExpandedPublicStats, setShowExpandedPublicStats] = useState(false);
 
   const isAdmin = variant === 'admin';
   const isPublic = variant === 'public';
 
   const columns = useMemo(
-    () => buildColumns({ showHomeAway, showOtl: showOvertimeLosses }),
-    [showHomeAway, showOvertimeLosses],
+    () => buildColumns({
+      variant,
+      showHomeAway,
+      showOtl: showOvertimeLosses,
+      showExpandedPublicStats,
+    }),
+    [variant, showHomeAway, showOvertimeLosses, showExpandedPublicStats],
   );
 
   // Filter by search
@@ -220,7 +237,12 @@ export function StandingsTable({
         const content = (
           <div className="flex items-center gap-2 min-w-0">
             {logo}
-            <span className="font-medium truncate">{team.name}</span>
+            <span className={cn(
+              'font-medium leading-tight text-[var(--color-text-primary)]',
+              isPublic && 'max-w-[10rem] whitespace-normal break-words',
+            )}>
+              {team.name}
+            </span>
           </div>
         );
 
@@ -294,6 +316,7 @@ export function StandingsTable({
                     col.align === 'left' ? 'text-left' : 'text-center',
                     col.sortable && isAdmin && 'cursor-pointer hover:text-white transition-colors',
                     col.hiddenOnMobile && isPublic && 'hidden md:table-cell',
+                    isPublic && col.key === 'pts' && 'bg-[var(--league-primary)]/10 text-[var(--league-primary)]',
                   )}
                   style={{ width: col.width }}
                   onClick={() => col.sortable && handleSort(col.key)}
@@ -313,6 +336,19 @@ export function StandingsTable({
                   )}
                 </th>
               ))}
+              {isPublic && (
+                <th className="w-11 px-2 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowExpandedPublicStats((current) => !current)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)] hover:text-[var(--league-primary)]"
+                    aria-label={showExpandedPublicStats ? 'Hide additional standings stats' : 'Show additional standings stats'}
+                    aria-expanded={showExpandedPublicStats}
+                  >
+                    {showExpandedPublicStats ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </button>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -339,11 +375,13 @@ export function StandingsTable({
                         isAdmin && col.key === 'rank' && 'text-center',
                         col.hiddenOnMobile && isPublic && 'hidden md:table-cell',
                         isPublic && col.key === 'rank' && 'font-medium text-[var(--color-text-muted)]',
+                        isPublic && col.key === 'pts' && 'bg-[var(--league-primary)]/10 font-extrabold text-[var(--league-primary)]',
                       )}
                     >
                       {getCellValue(team, col.key)}
                     </td>
                   ))}
+                  {isPublic && <td className="w-11 px-2 py-3" />}
                 </tr>
               );
             })}

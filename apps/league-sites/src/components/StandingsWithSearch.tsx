@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { StandingsTable } from './StandingsTable';
-import { StandingsSearch } from './StandingsSearch';
 import { useDivisionFilter } from './DivisionFilterProvider';
 import type { TeamStanding, Division } from '@/lib/types';
 
@@ -19,7 +19,7 @@ export function StandingsWithSearch({
   standingsByDivision,
   leagueSlug,
 }: StandingsWithSearchProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [showLegend, setShowLegend] = useState(false);
   const { selectedDivisionId, setDivision } = useDivisionFilter();
 
   // For multi-division leagues: default to first division (no "All" overall standings)
@@ -39,14 +39,6 @@ export function StandingsWithSearch({
 
   return (
     <div>
-      {/* Search Bar */}
-      <div className="mb-6 max-w-sm">
-        <StandingsSearch
-          onSearch={setSearchTerm}
-          placeholder="Find a team..."
-        />
-      </div>
-
       {/* Division Tabs (for multi-division leagues, hidden when global filter is active) */}
       {hasMultipleDivisions && !selectedDivisionId && (
         <div className="flex flex-wrap gap-2 mb-4">
@@ -63,13 +55,35 @@ export function StandingsWithSearch({
 
       {/* Standings Table */}
       <div className="card overflow-hidden">
-        <StandingsTable standings={currentStandings} searchTerm={searchTerm} leagueSlug={leagueSlug} />
+        <StandingsTable standings={currentStandings} leagueSlug={leagueSlug} />
       </div>
 
-      {/* No results message */}
-      {searchTerm && currentStandings.filter((t) => (t.team_name || '').toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-        <div className="mt-4 text-center text-[var(--color-text-secondary)]">
-          No teams found matching &quot;{searchTerm}&quot;
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowLegend((current) => !current)}
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+          aria-expanded={showLegend}
+          aria-controls="standings-legend"
+        >
+          Legend
+          {showLegend ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {showLegend && (
+        <div id="standings-legend" className="mt-4 card p-4">
+          <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--color-text-secondary)]">
+            <span><strong>GP</strong> - Games Played</span>
+            <span><strong>W</strong> - Wins</span>
+            <span><strong>L</strong> - Losses</span>
+            <span><strong>OTL</strong> - Overtime Losses</span>
+            <span><strong>T</strong> - Ties</span>
+            <span><strong>PTS</strong> - Points</span>
+            <span><strong>GF</strong> - Goals For</span>
+            <span><strong>GA</strong> - Goals Against</span>
+            <span><strong>DIFF</strong> - Goal Differential</span>
+          </div>
         </div>
       )}
     </div>

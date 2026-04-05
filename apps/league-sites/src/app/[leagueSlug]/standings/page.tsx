@@ -2,16 +2,14 @@ import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason, getSeasons } from '@/lib/data';
+import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
 import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
-import { SeasonSelector } from '@/components/SeasonSelector';
 import type { TeamStanding, Division } from '@/lib/types';
 import { filterPublicStandings } from '@/lib/publicSiteVisibility';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
-  searchParams: Promise<{ division?: string; season?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -19,27 +17,20 @@ export const metadata: Metadata = {
   description: 'League standings and team rankings',
 };
 
-export default async function StandingsPage({ params, searchParams }: StandingsPageProps) {
+export default async function StandingsPage({ params }: StandingsPageProps) {
   const { leagueSlug } = await params;
-  const { season: seasonParam } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
 
-  const [seasons, defaultSeason] = await Promise.all([
-    getSeasons(league.id),
-    getCurrentSeason(league.id),
-  ]);
-
-  const selectedSeasonId = seasonParam || defaultSeason?.id || null;
+  const currentSeason = await getCurrentSeason(league.id);
+  const selectedSeasonId = currentSeason?.id || null;
 
   const [rawStandings, divisions] = await Promise.all([
     getStandings(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
   ]);
   const standings = filterPublicStandings(rawStandings);
-
-  const selectedSeason = seasons.find(s => s.id === selectedSeasonId) || defaultSeason;
 
   // Group standings by division
   const standingsByDivision = groupByDivision(standings, divisions);
@@ -49,21 +40,15 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
     <div className="container mx-auto px-4 py-12 animate-fade-in">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="mb-4">
           <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
             <Trophy className="w-8 h-8 text-[var(--league-primary)]" />
             Standings
           </h1>
-          <SeasonSelector
-            seasons={seasons}
-            currentSeasonId={selectedSeasonId}
-            leagueSlug={leagueSlug}
-            basePath="standings"
-          />
         </div>
-        {selectedSeason && (
+        {currentSeason && (
           <p className="text-[var(--color-text-secondary)]">
-            {selectedSeason.name} Season
+            {currentSeason.name} Season
           </p>
         )}
       </div>
@@ -89,23 +74,6 @@ export default async function StandingsPage({ params, searchParams }: StandingsP
         </div>
       )}
 
-      {/* Standings Legend */}
-      {standings.length > 0 && (
-        <div className="mt-8 card p-4">
-          <h3 className="font-semibold mb-3 text-sm">Legend</h3>
-          <div className="flex flex-wrap gap-6 text-sm text-[var(--color-text-secondary)]">
-            <span><strong>GP</strong> - Games Played</span>
-            <span><strong>W</strong> - Wins</span>
-            <span><strong>L</strong> - Losses</span>
-            <span><strong>T</strong> - Ties</span>
-            <span><strong>OTL</strong> - Overtime Losses</span>
-            <span><strong>PTS</strong> - Points</span>
-            <span><strong>GF</strong> - Goals For</span>
-            <span><strong>GA</strong> - Goals Against</span>
-            <span><strong>DIFF</strong> - Goal Differential</span>
-          </div>
-        </div>
-      )}
     </div>
     </SubscriptionWall>
   );
