@@ -1755,6 +1755,49 @@ export async function getWeekGames(
 }
 
 /**
+ * Get ALL games for a season (for the full-season table below weekly view).
+ */
+export async function getSeasonGames(
+  leagueId: string,
+  seasonId: string,
+): Promise<ScheduleGame[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('games')
+    .select(`
+      id,
+      league_id,
+      season_id,
+      scheduled_at,
+      location,
+      home_score,
+      away_score,
+      status,
+      game_type,
+      division_id,
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(id, name)),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color, division_id, divisions(id, name)),
+      division:divisions(id, name)
+    `)
+    .eq('league_id', leagueId)
+    .eq('season_id', seasonId)
+    .order('scheduled_at', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data.map((game) => ({
+    ...game,
+    venue: (game as any).location || null,
+    home_team: transformTeamData(game.home_team),
+    away_team: transformTeamData(game.away_team),
+    division: Array.isArray(game.division) ? game.division[0] ?? null : game.division,
+  })) as ScheduleGame[];
+}
+
+/**
  * Get game counts per day for a week (for the week picker badges)
  */
 export async function getWeekGameCounts(

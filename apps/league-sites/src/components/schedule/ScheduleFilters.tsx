@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
-import { addDays, format, subDays } from 'date-fns';
+import { Filter, X } from 'lucide-react';
 import { useDivisionFilter } from '@/components/DivisionFilterProvider';
 import type { Team } from '@/lib/types';
 
@@ -17,7 +16,6 @@ interface ScheduleFiltersProps {
     venue?: string;
   };
   leagueSlug: string;
-  weekStart: Date;
 }
 
 type FilterDraft = {
@@ -75,7 +73,6 @@ export function ScheduleFilters({
   teams = [],
   currentFilters,
   leagueSlug,
-  weekStart,
 }: ScheduleFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -136,12 +133,6 @@ export function ScheduleFilters({
     router.replace(buildScheduleHref(leagueSlug, params));
   }, [selectedDivisionId, searchParams, router, leagueSlug]);
 
-  const weekEnd = addDays(weekStart, 6);
-  const sameMonth = weekStart.getMonth() === weekEnd.getMonth();
-  const weekRangeDisplay = sameMonth
-    ? `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'd, yyyy')}`
-    : `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
-
   const activeFilters = useMemo(() => {
     const items: Array<{ key: keyof FilterDraft; label: string; value: string }> = [];
 
@@ -172,22 +163,6 @@ export function ScheduleFilters({
   const openFilters = () => {
     setDraftFilters(buildDraftFilters(selectedDivisionId, currentFilters));
     setIsModalOpen(true);
-  };
-
-  const handlePrevWeek = () => {
-    const prevWeek = subDays(weekStart, 7);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('week', format(prevWeek, 'yyyy-MM-dd'));
-    params.delete('day');
-    router.push(buildScheduleHref(leagueSlug, params));
-  };
-
-  const handleNextWeek = () => {
-    const nextWeek = addDays(weekStart, 7);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('week', format(nextWeek, 'yyyy-MM-dd'));
-    params.delete('day');
-    router.push(buildScheduleHref(leagueSlug, params));
   };
 
   const handleDraftDivisionChange = (divisionId: string) => {
@@ -268,55 +243,27 @@ export function ScheduleFilters({
   return (
     <>
       <div className="space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center justify-between gap-2 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/85 p-1.5 shadow-sm">
-            <button
-              onClick={handlePrevWeek}
-              className="inline-flex items-center gap-1 rounded-[16px] px-3 py-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--league-primary)]"
-              aria-label="Previous week"
+        <button
+          type="button"
+          onClick={openFilters}
+          className="relative inline-flex items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+          aria-expanded={isModalOpen}
+          aria-haspopup="dialog"
+          aria-label="Filter schedule"
+        >
+          <Filter className="h-4 w-4 text-[var(--league-primary)]" />
+          {activeFilterCount > 0 && (
+            <span
+              className="absolute -right-1.5 -top-1.5 inline-flex min-w-5 items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold"
+              style={{
+                background: 'var(--league-primary)',
+                color: 'var(--color-accent-text)',
+              }}
             >
-              <ChevronLeft className="h-5 w-5" />
-              <span className="hidden text-sm font-medium sm:inline">Prev</span>
-            </button>
-
-            <h2 className="min-w-0 px-2 text-center text-base font-bold text-[var(--color-text-primary)] sm:text-lg">
-              {weekRangeDisplay}
-            </h2>
-
-            <button
-              onClick={handleNextWeek}
-              className="inline-flex items-center gap-1 rounded-[16px] px-3 py-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--league-primary)]"
-              aria-label="Next week"
-            >
-              <span className="hidden text-sm font-medium sm:inline">Next</span>
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={openFilters}
-              className="inline-flex items-center gap-2 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
-              aria-expanded={isModalOpen}
-              aria-haspopup="dialog"
-            >
-              <Filter className="h-4 w-4 text-[var(--league-primary)]" />
-              Filter
-              {activeFilterCount > 0 && (
-                <span
-                  className="inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold"
-                  style={{
-                    background: 'color-mix(in srgb, var(--league-primary) 14%, transparent)',
-                    color: 'var(--league-primary)',
-                  }}
-                >
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
 
         {activeFilters.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">

@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getCurrentSeason, getVenues, getTeams } from '@/lib/data';
+import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getCurrentSeason, getVenues, getTeams, getSeasonGames } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
 import { ScheduleTable } from '@/components/schedule/ScheduleTable';
+import { SeasonGamesTable } from '@/components/schedule/SeasonGamesTable';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WeekPickerDay, ScheduleGame } from '@/lib/types';
@@ -103,7 +104,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const leagueTimezone = league.timezone || 'America/Toronto';
 
   // Fetch games with resolved season filter
-  const [games, gameCounts] = await Promise.all([
+  const [games, gameCounts, seasonGames] = await Promise.all([
     getWeekGames(league.id, weekStart, {
       day,
       seasonId: selectedSeasonId || undefined,
@@ -123,6 +124,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       status: statusFilter,
       timezone: leagueTimezone,
     }),
+    selectedSeasonId ? getSeasonGames(league.id, selectedSeasonId) : Promise.resolve([]),
   ]);
 
   // Build days array for WeekPicker
@@ -145,25 +147,22 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       )}
 
       <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
-        {/* Schedule Header */}
+        {/* Schedule Header + Filter */}
         <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
-          <div className="flex items-center gap-3">
-            <Calendar className="h-8 w-8 shrink-0 text-[var(--league-primary)] md:h-9 md:w-9" />
-            <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-5xl">
-              Schedule
-            </h1>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Calendar className="h-8 w-8 shrink-0 text-[var(--league-primary)] md:h-9 md:w-9" />
+              <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-5xl">
+                Schedule
+              </h1>
+            </div>
+            <ScheduleFilters
+              venues={venues}
+              teams={teams}
+              currentFilters={{ division: divisionFilter, team: teamFilter, type: normalizedTypeFilter, venue: venueFilter }}
+              leagueSlug={leagueSlug}
+            />
           </div>
-        </div>
-
-        {/* Filter Row */}
-        <div className="px-6 md:px-8 pb-4">
-          <ScheduleFilters
-            venues={venues}
-            teams={teams}
-            currentFilters={{ division: divisionFilter, team: teamFilter, type: normalizedTypeFilter, venue: venueFilter }}
-            leagueSlug={leagueSlug}
-            weekStart={weekStart}
-          />
         </div>
 
         {/* Weekday Summary Strip */}
@@ -213,6 +212,19 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
             </div>
           )}
         </div>
+
+        {/* Season Games */}
+        {seasonGames.length > 0 && (
+          <div className="px-6 md:px-8 pb-6 md:pb-8">
+            <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">Season Games</h2>
+            <SeasonGamesTable
+              games={seasonGames as ScheduleGame[]}
+              teams={teams}
+              leagueSlug={leagueSlug}
+              timezone={leagueTimezone}
+            />
+          </div>
+        )}
       </div>
     </div>
     </SubscriptionWall>
