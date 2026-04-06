@@ -574,8 +574,8 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         spotlight={seasonSpotlight?.type === 'registration' ? null : seasonSpotlight}
       />
 
-      <div className="mx-auto max-w-[1180px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.12fr)_minmax(300px,0.88fr)]">
+      <div className="mx-auto max-w-[1400px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
           <div className="space-y-6">
             <section>
               <HomepageWeeklyGames
