@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { addDays, format, startOfWeek } from 'date-fns';
+import { addDays, format, startOfWeek, subDays } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { WeekPickerDay } from '@/lib/types';
 
 interface WeekPickerProps {
@@ -48,8 +49,32 @@ export function WeekPicker({
     router.push(buildScheduleHref(leagueSlug, params));
   };
 
+  const handlePrevWeek = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    const prevWeek = subDays(weekStart, 7);
+    params.set('week', format(prevWeek, 'yyyy-MM-dd'));
+    params.delete('day');
+    router.push(buildScheduleHref(leagueSlug, params));
+  };
+
+  const handleNextWeek = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    const nextWeek = addDays(weekStart, 7);
+    params.set('week', format(nextWeek, 'yyyy-MM-dd'));
+    params.delete('day');
+    router.push(buildScheduleHref(leagueSlug, params));
+  };
+
   return (
-    <div className="grid grid-cols-7 gap-1.5">
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={handlePrevWeek}
+        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] transition-all"
+        aria-label="Previous week"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <div className="grid flex-1 grid-cols-7 gap-1.5">
       {days.map((day) => {
         const isSelected = selectedDay === day.date;
         const hasGames = day.gameCount > 0;
@@ -92,6 +117,14 @@ export function WeekPicker({
           </button>
         );
       })}
+    </div>
+      <button
+        onClick={handleNextWeek}
+        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] transition-all"
+        aria-label="Next week"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { SubscriptionWall } from '@/components/shared';
+import { TeamLogo } from '@/components/shared/TeamLogo';
 import { getLeagueBySlug, getWeekGames, getWeekGameCounts, getCurrentSeason, getVenues, getTeams, getSeasonGames } from '@/lib/data';
 import { WeekPicker } from '@/components/schedule/WeekPicker';
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters';
-import { ScheduleTable } from '@/components/schedule/ScheduleTable';
 import { SeasonGamesTable } from '@/components/schedule/SeasonGamesTable';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
@@ -146,24 +147,25 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         />
       )}
 
-      <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
-        {/* Schedule Header + Filter */}
-        <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-8 w-8 shrink-0 text-[var(--league-primary)] md:h-9 md:w-9" />
-              <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-5xl">
-                Schedule
-              </h1>
-            </div>
-            <ScheduleFilters
-              venues={venues}
-              teams={teams}
-              currentFilters={{ division: divisionFilter, team: teamFilter, type: normalizedTypeFilter, venue: venueFilter }}
-              leagueSlug={leagueSlug}
-            />
+      {/* Schedule Header + Filter — outside card */}
+      <div className="max-w-[1200px] mx-auto px-6 md:px-8 mb-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-8 w-8 shrink-0 text-[var(--league-primary)] md:h-9 md:w-9" />
+            <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-5xl">
+              Schedule
+            </h1>
           </div>
+          <ScheduleFilters
+            venues={venues}
+            teams={teams}
+            currentFilters={{ division: divisionFilter, team: teamFilter, type: normalizedTypeFilter, venue: venueFilter }}
+            leagueSlug={leagueSlug}
+          />
         </div>
+      </div>
+
+      <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
 
         {/* Weekday Summary Strip */}
         <div className="px-6 md:px-8 pb-4">
@@ -175,32 +177,53 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
           />
         </div>
 
-        {/* Date-Grouped Game List */}
+        {/* Date-Grouped Game List — no container */}
         <div className="px-6 md:px-8 pb-6 md:pb-8">
           {games.length > 0 ? (
-            <div className="space-y-6">
-              {Array.from(gamesByDate.entries()).map(([dateKey, dateGames]) => (
-                <div key={dateKey}>
-                  {/* Date Divider Header - uses league secondary color */}
-                  <div
-                    className="flex items-center justify-between px-4 py-2.5 rounded-t-lg"
-                    style={{
-                      background: 'var(--league-secondary)',
-                      color: 'var(--league-secondary-contrast)',
-                    }}
-                  >
-                    <h2 className="text-sm font-bold uppercase tracking-wider">
-                      {formatDateDivider(dateKey)}
-                    </h2>
-                    <span className="text-xs font-medium opacity-80">
-                      {dateGames.length} {dateGames.length === 1 ? 'game' : 'games'}
-                    </span>
-                  </div>
-
-                  {/* Games for this date */}
-                  <ScheduleTable games={dateGames} leagueSlug={leagueSlug} showDivision timezone={leagueTimezone} />
-                </div>
-              ))}
+            <div className="space-y-4">
+              {(games as ScheduleGame[]).map((game) => {
+                const gameDate = new Date(game.scheduled_at);
+                const dateStr = new Intl.DateTimeFormat('en-US', { timeZone: leagueTimezone, weekday: 'short', month: 'short', day: 'numeric' }).format(gameDate);
+                const timeStr = new Intl.DateTimeFormat('en-US', { timeZone: leagueTimezone, hour: 'numeric', minute: '2-digit', hour12: true }).format(gameDate);
+                const isCompleted = game.status === 'completed' || game.status === 'pending_verification';
+                const isLive = game.status === 'in_progress';
+                return (
+                  <Link key={game.id} href={`/${leagueSlug}/games/${game.id}`} className="block group">
+                    {/* Date / Time / Location header */}
+                    <div className="flex items-center gap-2 mb-1 text-xs text-[var(--color-text-muted)]">
+                      <span className="font-semibold">{dateStr}</span>
+                      <span>·</span>
+                      {isLive ? (
+                        <span className="font-bold text-red-400 uppercase animate-pulse">LIVE</span>
+                      ) : isCompleted ? (
+                        <span className="font-semibold uppercase">Final</span>
+                      ) : (
+                        <span>{timeStr}</span>
+                      )}
+                      {game.venue && (
+                        <>
+                          <span>·</span>
+                          <span className="truncate max-w-[200px]">{game.venue}</span>
+                        </>
+                      )}
+                    </div>
+                    {/* Teams */}
+                    <div className="flex items-center gap-3">
+                      <TeamLogo logoUrl={game.away_team?.logo || null} teamName={game.away_team?.name || 'TBD'} teamColor={game.away_team?.colors} size="md" className="shrink-0" />
+                      <span className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">{game.away_team?.name || 'TBD'}</span>
+                      {(isCompleted || isLive) && (
+                        <span className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">{game.away_score ?? 0}</span>
+                      )}
+                      <span className="text-xs text-[var(--color-text-muted)] font-bold">vs</span>
+                      {(isCompleted || isLive) && (
+                        <span className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">{game.home_score ?? 0}</span>
+                      )}
+                      <span className="text-sm font-medium text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">{game.home_team?.name || 'TBD'}</span>
+                      <TeamLogo logoUrl={game.home_team?.logo || null} teamName={game.home_team?.name || 'TBD'} teamColor={game.home_team?.colors} size="md" className="shrink-0" />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <div className="py-16 text-center">
