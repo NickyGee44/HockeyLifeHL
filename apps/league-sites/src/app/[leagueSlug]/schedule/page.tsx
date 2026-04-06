@@ -94,14 +94,16 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
   const normalizedTypeFilter = normalizeScheduleGameType(typeFilter);
 
   // Fetch current season first to resolve the default schedule scope.
-  const [defaultSeason, venues, teams] = await Promise.all([
+  const [defaultSeason, venues] = await Promise.all([
     getCurrentSeason(league.id),
     getVenues(league.id),
-    getTeams(league.id),
   ]);
 
   // Default to current season when no season filter is specified
   const selectedSeasonId = seasonFilter || defaultSeason?.id || null;
+
+  // Fetch teams scoped to the active season so pickers only show participating teams
+  const teams = await getTeams(league.id, selectedSeasonId || undefined);
   const leagueTimezone = league.timezone || 'America/Toronto';
 
   // Fetch games with resolved season filter
@@ -168,7 +170,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
       <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
 
         {/* Weekday Summary Strip */}
-        <div className="px-6 md:px-8 pb-4">
+        <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
           <WeekPicker
             weekStart={weekStart}
             days={days}
@@ -236,19 +238,22 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
           )}
         </div>
 
-        {/* Season Games */}
+      </div>
+
+        {/* Season Games — own card */}
         {seasonGames.length > 0 && (
-          <div className="px-6 md:px-8 pb-6 md:pb-8">
-            <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">Season Games</h2>
-            <SeasonGamesTable
-              games={seasonGames as ScheduleGame[]}
-              teams={teams}
-              leagueSlug={leagueSlug}
-              timezone={leagueTimezone}
-            />
+          <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px] mt-6">
+            <div className="px-6 md:px-8 py-6 md:py-8">
+              <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">Season Games</h2>
+              <SeasonGamesTable
+                games={seasonGames as ScheduleGame[]}
+                teams={teams}
+                leagueSlug={leagueSlug}
+                timezone={leagueTimezone}
+              />
+            </div>
           </div>
         )}
-      </div>
     </div>
     </SubscriptionWall>
   );
