@@ -211,12 +211,12 @@ function CoolViewTeam({ team, leagueSlug, align, result }: TeamSideProps) {
       </div>
 
       <div className="max-w-full">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/74 sm:text-[11px]">
-          {align === 'left' ? 'Away' : 'Home'}
-        </p>
-        <span className="mt-2 block min-h-[5rem] overflow-hidden text-[1.85rem] font-black leading-[0.98] tracking-tight text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] sm:min-h-[6.8rem] sm:text-[2.4rem] md:min-h-[8.6rem] md:text-4xl">
+        <span className="block min-h-[5rem] overflow-hidden text-[1.85rem] font-black leading-[0.98] tracking-tight text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [text-shadow:0_10px_26px_rgba(0,0,0,0.92)] sm:min-h-[6.8rem] sm:text-[2.4rem] md:min-h-[8.6rem] md:text-4xl">
           {getTeamName(team)}
         </span>
+        <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/74 sm:text-[11px]">
+          {align === 'left' ? 'Away' : 'Home'}
+        </p>
       </div>
     </div>
   );
