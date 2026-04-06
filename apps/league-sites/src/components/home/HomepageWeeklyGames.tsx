@@ -428,7 +428,7 @@ function CoolView({
                 type="button"
                 aria-label="Previous game"
                 onClick={() => onNavigate(-1)}
-                className="absolute left-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52"
+                className="absolute -left-2 top-[38%] z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52 sm:-left-4"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -436,7 +436,7 @@ function CoolView({
                 type="button"
                 aria-label="Next game"
                 onClick={() => onNavigate(1)}
-                className="absolute right-4 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52"
+                className="absolute -right-2 top-[38%] z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/16 bg-black/34 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/52 sm:-right-4"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
