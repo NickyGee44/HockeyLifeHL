@@ -22,6 +22,7 @@ import {
   getSeasons,
   getTeams,
   getUnifiedSkaterStatsRows,
+  getLeagueSponsors,
 } from '@/lib/data';
 import type {
   GalleryAlbum,
@@ -40,6 +41,8 @@ import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
+import { AuthRedirect } from '@/components/home/AuthRedirect';
+import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
@@ -456,6 +459,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     allAlbums,
     teams,
     seasons,
+    sponsors,
   ] = await Promise.all([
     getLeagueStats(league.id, currentSeason?.id),
     getHomepageWeeklyGames(league.id, {
@@ -470,6 +474,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getGalleryAlbums(league.id),
     getTeams(league.id),
     getSeasons(league.id),
+    getLeagueSponsors(league.id),
   ]);
 
   const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
@@ -543,6 +548,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   return (
     <SubscriptionWall>
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
+      {/* Redirect authenticated users to their player dashboard */}
+      <AuthRedirect />
+
       {/* JSON-LD Structured Data for SEO */}
       <script
         type="application/ld+json"
@@ -686,6 +694,10 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           </section>
         )}
       </div>
+
+      {sponsors.length > 0 && (
+        <SponsorBanner sponsors={sponsors} />
+      )}
 
     </div>
     </SubscriptionWall>
