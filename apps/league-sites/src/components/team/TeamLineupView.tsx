@@ -55,9 +55,9 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
         </div>
       </div>
 
-      {/* DEFENCE + GOALIE side-by-side */}
-      <div className="flex flex-col items-start justify-center gap-8 sm:flex-row sm:items-start sm:gap-10 md:gap-14">
-        <div className="mx-auto sm:mx-0">
+      {/* DEFENCE + GOALIE always side-by-side */}
+      <div className="flex flex-row items-start justify-center gap-6 sm:gap-10 md:gap-14">
+        <div>
           <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
             Defence
           </h3>
@@ -73,7 +73,7 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
           </div>
         </div>
 
-        <div className="mx-auto sm:mx-0">
+        <div>
           <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
             Goalie
           </h3>
@@ -127,28 +127,57 @@ function Jersey({
   secondaryColor: string;
 }) {
   return (
-    <div className="relative w-[92px] sm:w-[104px] md:w-[112px]">
-      <svg viewBox="0 0 200 200" className="h-auto w-full drop-shadow-[0_6px_18px_rgba(0,0,0,0.35)]">
+    <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
+      <svg viewBox="0 0 220 240" className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]">
+        {/* Body — long-sleeve hockey jersey shape */}
         <path
-          d="M 50 35 L 80 25 Q 100 45 120 25 L 150 35 L 175 60 L 165 85 L 150 75 L 150 175 Q 100 185 50 175 L 50 75 L 35 85 L 25 60 Z"
+          d="
+            M 70 30
+            L 95 22
+            Q 110 38 125 22
+            L 150 30
+            L 175 50
+            L 195 110
+            L 195 165
+            Q 185 175 170 168
+            L 160 100
+            L 160 215
+            Q 110 225 60 215
+            L 60 100
+            L 50 168
+            Q 35 175 25 165
+            L 25 110
+            L 45 50
+            Z
+          "
           fill={primaryColor}
           stroke={secondaryColor}
-          strokeWidth="2"
+          strokeWidth="2.5"
         />
-        <path d="M 50 35 L 80 25 Q 90 35 95 50 L 60 60 Z" fill={secondaryColor} />
-        <path d="M 150 35 L 120 25 Q 110 35 105 50 L 140 60 Z" fill={secondaryColor} />
-        <rect x="50" y="172" width="100" height="6" fill={secondaryColor} />
+
+        {/* Shoulder yokes */}
+        <path d="M 70 30 L 95 22 Q 105 35 110 50 L 70 60 Z" fill={secondaryColor} />
+        <path d="M 150 30 L 125 22 Q 115 35 110 50 L 150 60 Z" fill={secondaryColor} />
+
+        {/* Sleeve cuff stripes */}
+        <rect x="22" y="155" width="16" height="14" rx="1" fill={secondaryColor} />
+        <rect x="182" y="155" width="16" height="14" rx="1" fill={secondaryColor} />
+
+        {/* Bottom hem stripe */}
+        <rect x="60" y="208" width="100" height="8" fill={secondaryColor} />
+
+        {/* Collar */}
         <path
-          d="M 80 25 Q 100 45 120 25 L 115 22 Q 100 38 85 22 Z"
+          d="M 95 22 Q 110 38 125 22 L 122 18 Q 110 32 98 18 Z"
           fill={secondaryColor}
-          opacity="0.6"
+          opacity="0.7"
         />
       </svg>
-      <div className="pointer-events-none absolute inset-x-0 top-[28%] flex flex-col items-center">
-        <span className="max-w-[80%] truncate text-[9px] font-bold uppercase tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] sm:text-[10px]">
+      <div className="pointer-events-none absolute inset-x-0 top-[34%] flex flex-col items-center">
+        <span className="max-w-[60%] truncate text-[10px] font-bold uppercase tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[11px]">
           {name}
         </span>
-        <span className="text-xl font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)] sm:text-2xl">
+        <span className="text-2xl font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] sm:text-[28px]">
           {number ?? '—'}
         </span>
       </div>
@@ -158,10 +187,28 @@ function Jersey({
 
 function EmptyJersey({ primaryColor }: { primaryColor: string }) {
   return (
-    <div className="relative w-[92px] sm:w-[104px] md:w-[112px]">
-      <svg viewBox="0 0 200 200" className="h-auto w-full opacity-40">
+    <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
+      <svg viewBox="0 0 220 240" className="h-auto w-full opacity-40">
         <path
-          d="M 50 35 L 80 25 Q 100 45 120 25 L 150 35 L 175 60 L 165 85 L 150 75 L 150 175 Q 100 185 50 175 L 50 75 L 35 85 L 25 60 Z"
+          d="
+            M 70 30
+            L 95 22
+            Q 110 38 125 22
+            L 150 30
+            L 175 50
+            L 195 110
+            L 195 165
+            Q 185 175 170 168
+            L 160 100
+            L 160 215
+            Q 110 225 60 215
+            L 60 100
+            L 50 168
+            Q 35 175 25 165
+            L 25 110
+            L 45 50
+            Z
+          "
           fill="none"
           stroke={primaryColor}
           strokeWidth="2.5"
