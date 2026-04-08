@@ -677,3 +677,22 @@ These components serve multiple features and should be built as reusable pieces:
 ---
 
 *Generated 2026-03-20. Refresh after significant codebase changes.*
+
+---
+
+## Future Feature Ideas (Backlog)
+
+### 6. "Help a Kid Play" Checkout Donation + Badge
+- **Concept:** At checkout (player registration payment), ask players to contribute $5 towards helping a local kid play in their local hockey league. Pure feel-good charity angle for BLH.
+- **Badge:** If a player donates, they receive a profile badge showing they helped a kid play hockey (e.g., "Community Champion" or "🏒 Helped a Kid Play").
+- **Tournament angle:** BLH could also host a tournament that raises money for kids to play hockey — ties into the same brand identity.
+- **Status:** Idea only. No design or implementation yet.
+- **Added:** 2026-04-07
+
+### 7. League Fee Financing via Stripe (Capital / Financing)
+- **Concept:** Use Stripe's financing/capital capabilities to front 50%+ of a league's collected fees so the league can pay for administration, ice rentals, etc. without chasing players for payments. BLH takes on the collection role from players, and in return takes a percentage.
+- **Value prop for leagues:** Cash flow certainty — they get their money upfront. BLH handles the collections headache.
+- **Revenue model for BLH:** Percentage of total collected fees (on top of normal transaction processing).
+- **Risk:** BLH assumes collection risk on player payments. Need to evaluate Stripe Capital / Stripe Issuing / custom financing terms.
+- **Status:** Idea only. Needs Stripe product research to see what's actually available.
+- **Added:** 2026-04-07

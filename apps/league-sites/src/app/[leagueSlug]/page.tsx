@@ -41,7 +41,7 @@ import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
-import { AuthRedirect } from '@/components/home/AuthRedirect';
+// AuthRedirect removed — homepage always visible now
 import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
 import { StatLeaders } from '@/components/stats/StatLeaders';
@@ -548,8 +548,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   return (
     <SubscriptionWall>
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
-      {/* Redirect authenticated users to their player dashboard */}
-      <AuthRedirect />
+      {/* Auth redirect removed — homepage should always be visible */}
 
       {/* JSON-LD Structured Data for SEO */}
       <script

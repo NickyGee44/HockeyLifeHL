@@ -11,6 +11,7 @@ import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
 import { SubscriptionProvider } from '@/components/shared';
 import type { Metadata } from 'next';
 import { LeagueSiteAnalytics } from '@/components/LeagueSiteAnalytics';
+import { FloatingDock } from '@/components/FloatingDock';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 
@@ -149,6 +150,12 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   <div className="league-site-chrome">
                     <SponsorFooterStrip sponsors={sponsors} />
                   </div>
+                  <FloatingDock
+                    leagueId={league.id}
+                    leagueSlug={leagueSlug}
+                    seasonId={activeSeasonId}
+                    visiblePages={(league as any).settings?.website?.visiblePages}
+                  />
                 </div>
               </DivisionFilterProvider>
             </SubscriptionProvider>
