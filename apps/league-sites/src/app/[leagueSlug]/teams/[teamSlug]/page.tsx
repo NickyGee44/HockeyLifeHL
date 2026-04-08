@@ -8,7 +8,6 @@ import {
   Phone,
   Shield,
   Swords,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
@@ -89,6 +88,32 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   const teamStats = standings.find((standing) => standing.team_id === team.id) ?? null;
   const teamRank = getTeamStandingRank(standings, team.id);
 
+  // Compute current streak from completed games (most recent first)
+  const computeStreak = (): string => {
+    const completed = (seasonGames as any[])
+      .filter((g) => g.status === 'completed' && (g.home_team?.id === team.id || g.away_team?.id === team.id))
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+    if (completed.length === 0) return 'N/A';
+    let kind: 'W' | 'L' | 'T' | null = null;
+    let count = 0;
+    for (const g of completed) {
+      const isHome = g.home_team?.id === team.id;
+      const teamScore = isHome ? Number(g.home_score) || 0 : Number(g.away_score) || 0;
+      const oppScore = isHome ? Number(g.away_score) || 0 : Number(g.home_score) || 0;
+      const result: 'W' | 'L' | 'T' = teamScore > oppScore ? 'W' : teamScore < oppScore ? 'L' : 'T';
+      if (kind === null) {
+        kind = result;
+        count = 1;
+      } else if (result === kind) {
+        count += 1;
+      } else {
+        break;
+      }
+    }
+    return kind ? `${kind}${count}` : 'N/A';
+  };
+  const teamStreak = computeStreak();
+
   const now = new Date();
   const { skaters, goalies } = splitRosterByRole(roster, rosterStatsByPlayer);
   const leaderTab = normalizeLeaderTab(leaderTabParam);
@@ -112,22 +137,29 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const captain = roster.find((player) => player.leadership_role === 'captain');
   const rivalCards = buildRivalCardInsights(rivals);
-  const teamLeaders = buildTeamLeaders(skaters, rosterStatsByPlayer, leaderTab);
+  const leadersByMetric = {
+    points: buildTeamLeaders(skaters, rosterStatsByPlayer, 'points'),
+    goals: buildTeamLeaders(skaters, rosterStatsByPlayer, 'goals'),
+    assists: buildTeamLeaders(skaters, rosterStatsByPlayer, 'assists'),
+    penalty_minutes: buildTeamLeaders(skaters, rosterStatsByPlayer, 'penalty_minutes'),
+  };
 
-  // Build bar chart data: all skaters sorted by active metric
-  const metricKey = leaderTab === 'penalty_minutes' ? 'penalty_minutes' : leaderTab;
-  const barChartPlayers = skaters
-    .map((player) => {
-      const stats = rosterStatsByPlayer[player.player_id];
-      return {
-        playerId: player.player_id,
-        name: player.profile?.full_name || 'Unknown',
-        avatarUrl: player.profile?.avatar_url || '/blank_player.png',
-        jerseyNumber: player.jersey_number,
-        value: stats?.[metricKey] ?? 0,
-      };
-    })
-    .sort((a, b) => b.value - a.value);
+  // Build bar chart data: one row per player with all metric values
+  const barChartPlayers = skaters.map((player) => {
+    const stats = rosterStatsByPlayer[player.player_id];
+    return {
+      playerId: player.player_id,
+      name: player.profile?.full_name || 'Unknown',
+      avatarUrl: player.profile?.avatar_url || '/blank_player.png',
+      jerseyNumber: player.jersey_number,
+      values: {
+        points: stats?.points ?? 0,
+        goals: stats?.goals ?? 0,
+        assists: stats?.assists ?? 0,
+        penalty_minutes: stats?.penalty_minutes ?? 0,
+      },
+    };
+  });
 
   const pointInsights = buildTeamPointInsights({
     teamName: team.name,
@@ -196,7 +228,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                         value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
                         accent={Boolean(teamStats && teamStats.goal_differential > 0)}
                       />
-                      <HeroMetric label="Streak" value={teamStats?.streak || 'N/A'} />
+                      <HeroMetric label="Streak" value={teamStreak} />
                     </div>
                   </div>
                 </div>
@@ -206,11 +238,10 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
           <div className="mt-6 space-y-6">
             <TeamLeadersSection
-              leaders={teamLeaders}
+              leadersByMetric={leadersByMetric}
               barChartPlayers={barChartPlayers}
               leagueSlug={leagueSlug}
-              teamSlug={teamSlug}
-              leaderTab={leaderTab}
+              initialMetric={leaderTab}
               pointInsightsElement={
                 pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} /> : null
               }
@@ -229,16 +260,14 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   timezone={league.timezone || 'America/Toronto'}
                   initialTeamId={team.id}
                   hideFilter
+                  collapsible
                 />
               </section>
             )}
 
             <div className="px-1 md:px-2">
-              <div className="mb-4 flex items-center gap-3">
-                <Users className="h-5 w-5 text-[var(--league-primary)]" />
-                <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Roster</h2>
-              </div>
               <TeamRosterToggle
+                title="Roster"
                 primaryColor={(team as any).primary_color || 'var(--league-primary)'}
                 secondaryColor={(team as any).secondary_color || '#e0b84a'}
                 skaters={skaters.map((player) => ({

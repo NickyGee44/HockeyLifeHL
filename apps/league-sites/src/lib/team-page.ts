@@ -186,8 +186,6 @@ export function buildTeamLeaders(
   return skaters
     .map((player) => {
       const stats = rosterStatsByPlayer[player.player_id];
-      if (!stats || stats.games_played === 0) return null;
-
       return {
         playerId: player.player_id,
         name: player.profile?.full_name || 'Unknown Player',
@@ -195,12 +193,11 @@ export function buildTeamLeaders(
         jerseyNumber: player.jersey_number ?? null,
         leadershipRole: player.leadership_role,
         metric,
-        value: stats[metric] ?? 0,
-        gamesPlayed: stats.games_played,
+        value: stats?.[metric] ?? 0,
+        gamesPlayed: stats?.games_played ?? 0,
         positionLabel: getPositionShortLabel(player.position, false),
       } satisfies TeamLeaderCard;
     })
-    .filter((player): player is TeamLeaderCard => Boolean(player))
     .sort((left, right) => {
       const valueDiff = right.value - left.value;
       if (valueDiff !== 0) return valueDiff;

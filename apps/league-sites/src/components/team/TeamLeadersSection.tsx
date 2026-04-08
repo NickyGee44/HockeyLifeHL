@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { BarChart3, Medal } from 'lucide-react';
@@ -11,16 +11,15 @@ interface BarChartPlayer {
   name: string;
   avatarUrl: string;
   jerseyNumber: number | null | undefined;
-  value: number;
+  values: Record<TeamLeaderMetric, number>;
 }
 
 interface TeamLeadersSectionProps {
-  leaders: TeamLeaderCard[];
+  leadersByMetric: Record<TeamLeaderMetric, TeamLeaderCard[]>;
   barChartPlayers: BarChartPlayer[];
   leagueSlug: string;
-  teamSlug: string;
-  leaderTab: TeamLeaderMetric;
   pointInsightsElement: React.ReactNode;
+  initialMetric?: TeamLeaderMetric;
 }
 
 const METRIC_LABELS: Record<TeamLeaderMetric, string> = {
@@ -38,15 +37,22 @@ const TAB_OPTIONS: [TeamLeaderMetric, string][] = [
 ];
 
 export function TeamLeadersSection({
-  leaders,
+  leadersByMetric,
   barChartPlayers,
   leagueSlug,
-  teamSlug,
-  leaderTab,
   pointInsightsElement,
+  initialMetric = 'points',
 }: TeamLeadersSectionProps) {
+  const [metric, setMetric] = useState<TeamLeaderMetric>(initialMetric);
   const [showChart, setShowChart] = useState(false);
-  const maxValue = barChartPlayers.length > 0 ? barChartPlayers[0].value : 1;
+
+  const leaders = leadersByMetric[metric] ?? [];
+
+  const sortedBarChartPlayers = useMemo(() => {
+    return [...barChartPlayers].sort((a, b) => (b.values[metric] ?? 0) - (a.values[metric] ?? 0));
+  }, [barChartPlayers, metric]);
+
+  const maxValue = sortedBarChartPlayers.length > 0 ? sortedBarChartPlayers[0].values[metric] ?? 0 : 1;
 
   return (
     <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
@@ -59,23 +65,25 @@ export function TeamLeadersSection({
         <div className="flex items-center gap-3 sm:ml-auto">
           <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
             {TAB_OPTIONS.map(([value, label]) => (
-              <Link
+              <button
                 key={value}
-                href={`/${leagueSlug}/teams/${teamSlug}?tab=${value}`}
+                type="button"
+                onClick={() => setMetric(value)}
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  leaderTab === value
+                  metric === value
                     ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
                 }`}
               >
                 {label}
-              </Link>
+              </button>
             ))}
           </div>
 
           <button
+            type="button"
             onClick={() => setShowChart((prev) => !prev)}
-            className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+            className={`ml-auto flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
               showChart
                 ? 'border-[var(--league-primary)]/40 bg-[var(--league-primary)]/15 text-[var(--league-primary)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
@@ -112,11 +120,12 @@ export function TeamLeadersSection({
       ) : (
         <div className="space-y-2">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-            {METRIC_LABELS[leaderTab]} — All Players
+            {METRIC_LABELS[metric]} — All Players
           </p>
-          {barChartPlayers.length > 0 ? (
-            barChartPlayers.map((player, i) => {
-              const pct = maxValue > 0 ? (player.value / maxValue) * 100 : 0;
+          {sortedBarChartPlayers.length > 0 ? (
+            sortedBarChartPlayers.map((player) => {
+              const value = player.values[metric] ?? 0;
+              const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
               const firstName = player.name.split(' ').slice(0, -1).join(' ') || player.name;
               const lastName = player.name.includes(' ') ? player.name.split(' ').slice(-1)[0] : '';
 
@@ -158,7 +167,7 @@ export function TeamLeadersSection({
                       />
                     </div>
                     <span className="w-8 text-right text-sm font-black text-[var(--color-text-primary)]">
-                      {player.value}
+                      {value}
                     </span>
                   </div>
                 </Link>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import type { ScheduleGame, Team } from '@/lib/types';
 
@@ -12,6 +13,7 @@ interface SeasonGamesTableProps {
   timezone: string;
   initialTeamId?: string;
   hideFilter?: boolean;
+  collapsible?: boolean;
 }
 
 function formatDateTime(dateStr: string, timeZone: string) {
@@ -38,15 +40,36 @@ export function SeasonGamesTable({
   timezone,
   initialTeamId = '',
   hideFilter = false,
+  collapsible = false,
 }: SeasonGamesTableProps) {
   const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
+  const [expanded, setExpanded] = useState(false);
 
-  const filteredGames = useMemo(() => {
+  const allFilteredGames = useMemo(() => {
     if (!selectedTeamId) return games;
     return games.filter(
       (g) => g.home_team?.id === selectedTeamId || g.away_team?.id === selectedTeamId,
     );
   }, [games, selectedTeamId]);
+
+  const filteredGames = useMemo(() => {
+    if (!collapsible || expanded) return allFilteredGames;
+    const completed: ScheduleGame[] = [];
+    const upcoming: ScheduleGame[] = [];
+    for (const g of allFilteredGames) {
+      if (g.status === 'completed' || g.status === 'pending_verification') completed.push(g);
+      else if (g.status === 'scheduled' || g.status === 'in_progress') upcoming.push(g);
+    }
+    // Sort completed desc (most recent first), upcoming asc (soonest first)
+    completed.sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+    upcoming.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+    // Take last 2 completed (reversed back to chronological) + next 2 upcoming
+    const recentCompleted = completed.slice(0, 2).reverse();
+    const nextUpcoming = upcoming.slice(0, 2);
+    return [...recentCompleted, ...nextUpcoming];
+  }, [allFilteredGames, collapsible, expanded]);
+
+  const hasMore = collapsible && allFilteredGames.length > filteredGames.length;
 
   if (games.length === 0) return null;
 
@@ -279,6 +302,26 @@ export function SeasonGamesTable({
       {filteredGames.length === 0 && (
         <div className="py-8 text-center text-sm text-[var(--color-text-muted)]">
           No games found for this team.
+        </div>
+      )}
+
+      {(hasMore || (collapsible && expanded && allFilteredGames.length > 4)) && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+          >
+            {expanded ? (
+              <>
+                Show Less <ChevronUp className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                Show All Season Games <ChevronDown className="h-4 w-4" />
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>
