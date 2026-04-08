@@ -116,11 +116,11 @@ function JerseySlot({
 }
 
 /**
- * Hockey jersey SVG built to match a real jersey silhouette:
+ * Hockey jersey SVG — BACK view (where player name + number live)
  * - wide level shoulders
  * - full long sleeves with cuff stripes
  * - bell-shaped torso with hem stripe
- * - V-collar with lace detail
+ * - simple rounded back collar (no laces)
  * - shoulder yokes in secondary color
  */
 function Jersey({
@@ -239,25 +239,26 @@ function Jersey({
           clipPath="url(#jerseyClip)"
         />
 
-        {/* V-collar lace area */}
+        {/* Back collar — rounded bump, no laces */}
         <path
-          d="M 95 22 Q 110 38 125 22 L 122 30 Q 110 44 98 30 Z"
-          fill="rgba(0,0,0,0.25)"
+          d="M 95 22 Q 110 34 125 22 Q 118 28 110 28 Q 102 28 95 22 Z"
+          fill="rgba(0,0,0,0.22)"
         />
-
-        {/* Lace cross-stitches */}
-        <line x1="103" y1="28" x2="117" y2="34" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
-        <line x1="117" y1="28" x2="103" y2="34" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
-        <line x1="103" y1="36" x2="117" y2="42" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
-        <line x1="117" y1="36" x2="103" y2="42" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
+        <path
+          d="M 95 22 Q 110 34 125 22"
+          fill="none"
+          stroke="rgba(0,0,0,0.35)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
 
-      {/* Name + number overlay, centered on torso below collar */}
-      <div className="pointer-events-none absolute inset-x-0 top-[38%] flex flex-col items-center">
-        <span className="max-w-[55%] truncate text-[10px] font-bold uppercase tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[11px]">
+      {/* Name (top, arched area) + number (large, center back) */}
+      <div className="pointer-events-none absolute inset-x-0 top-[28%] flex flex-col items-center">
+        <span className="max-w-[58%] truncate text-[10px] font-bold uppercase tracking-[0.05em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-[11px]">
           {name}
         </span>
-        <span className="text-2xl font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] sm:text-[28px]">
+        <span className="mt-1 text-[30px] font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.65)] sm:text-[36px] md:text-[40px]">
           {number ?? '—'}
         </span>
       </div>
