@@ -19,6 +19,7 @@ import {
   Info,
   MapPin,
   UserPlus,
+  LayoutDashboard,
   X,
   LogOut,
   Sun,
@@ -49,6 +50,7 @@ interface MoreMenuItem {
 }
 
 const MORE_ITEMS: MoreMenuItem[] = [
+  { href: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
   { href: '/teams', label: 'Teams', icon: Users, pageKey: 'teams' },
   { href: '/players', label: 'Players', icon: Users, pageKey: 'players' },
   { href: '/news', label: 'News', icon: Newspaper, pageKey: 'news' },
@@ -142,7 +144,7 @@ export function FloatingDock({
   return (
     <>
       {/* Spacer so content isn't hidden behind dock */}
-      <div className="h-28 lg:hidden" />
+      <div className="h-32 lg:hidden" />
 
       {/* Dock wrapper — centers everything */}
       <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center lg:hidden" ref={moreRef}>
@@ -253,7 +255,7 @@ export function FloatingDock({
 
         {/* ─── Dock bar ─── */}
         <div
-          className="relative mb-[env(safe-area-inset-bottom,6px)] mx-auto w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
+          className="relative mb-[calc(env(safe-area-inset-bottom,6px)+12px)] mx-auto w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
           style={{
             background: `linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 14%, rgba(18,18,26,0.88)) 0%, color-mix(in srgb, var(--league-secondary-safe) 10%, rgba(10,10,16,0.92)) 100%)`,
           }}
@@ -305,13 +307,13 @@ export function FloatingDock({
                     <Image
                       src={teamLogoUrl}
                       alt="My Team"
-                      width={72}
-                      height={72}
-                      className="h-[72px] w-[72px] object-contain"
+                      width={108}
+                      height={108}
+                      className="h-[108px] w-[108px] object-contain"
                     />
                   ) : (
-                    <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white/[0.08]">
-                      <Users className="h-8 w-8 text-white/50" />
+                    <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full bg-white/[0.08]">
+                      <Users className="h-12 w-12 text-white/50" />
                     </div>
                   )}
                 </div>
