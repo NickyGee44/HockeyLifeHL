@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
+  BarChart3,
   Mail,
   Phone,
   Shield,
@@ -13,17 +14,21 @@ import {
 import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
 import { RivalsCarousel } from '@/components/team/RivalsCarousel';
 import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
+import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
+import { SeasonGamesTable } from '@/components/schedule/SeasonGamesTable';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
 import {
   getCurrentSeason,
   getLeagueBySlug,
   getSeasons,
+  getSeasonGames,
   getStandings,
   getTeamRoster,
   getTeamRosterStats,
   getTeamRivals,
   getTeamWithCaptain,
+  getTeams,
 } from '@/lib/data';
 import {
   buildRivalCardInsights,
@@ -71,12 +76,14 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const currentSeason = await getCurrentSeason(league.id);
 
-  const [roster, rosterStatsByPlayer, standings, rivals, seasons] = await Promise.all([
+  const [roster, rosterStatsByPlayer, standings, rivals, seasons, seasonGames, allTeams] = await Promise.all([
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
     getTeamRivals(team.id, 4, currentSeason?.id),
     getSeasons(league.id),
+    currentSeason?.id ? getSeasonGames(league.id, currentSeason.id) : Promise.resolve([]),
+    getTeams(league.id),
   ]);
 
   const teamStats = standings.find((standing) => standing.team_id === team.id) ?? null;
@@ -209,86 +216,122 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
               }
             />
 
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Users}
-                title="Roster"
-              />
-
-              <StatsTableCard
-                columns={['Player', 'GP', 'G', 'A', 'PTS', 'PIM', 'Pos']}
-                emptyTitle="No skater statistics yet"
-                emptyDescription="Skater stats will populate once official games are recorded."
-              >
-                {skaters.map((player) => {
-                  const stats = rosterStatsByPlayer[player.player_id];
-                  const gp = stats?.games_played ?? 0;
-                  return (
-                    <tr key={player.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
-                      <td className="px-4 py-3">
-                        <RosterPlayerCell
-                          leagueSlug={leagueSlug}
-                          playerId={player.player_id}
-                          name={player.profile?.full_name || 'Unknown Player'}
-                          avatarUrl={player.profile?.avatar_url || '/blank_player.png'}
-                          leadershipRole={player.leadership_role}
-                          jerseyNumber={player.jersey_number}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.goals ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.assists ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center font-semibold">{gp > 0 ? stats?.points ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.penalty_minutes ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">
-                        {getPositionShortLabel(player.position, false)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </StatsTableCard>
-
-              {goalies.length > 0 && (
-                <div className="mt-6">
-                  <div className="mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-[var(--league-primary)]" />
-                    <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Goalies</h3>
-                  </div>
-                  <StatsTableCard
-                    columns={['Goalie', 'GP', 'W', 'L', 'GAA', 'SV%', 'SO']}
-                    emptyTitle="No goalie statistics yet"
-                    emptyDescription="Goalie stats will appear once this team has official goaltending entries."
-                  >
-                    {goalies.map((goalie) => {
-                      const stats = rosterStatsByPlayer[goalie.player_id];
-                      const gp = stats?.games_played ?? 0;
-                      return (
-                        <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
-                          <td className="px-4 py-3">
-                            <RosterPlayerCell
-                              leagueSlug={leagueSlug}
-                              playerId={goalie.player_id}
-                              name={goalie.profile?.full_name || 'Unknown Goalie'}
-                              avatarUrl={goalie.profile?.avatar_url || '/blank_player.png'}
-                              leadershipRole={goalie.leadership_role}
-                              jerseyNumber={goalie.jersey_number}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.wins ?? 0 : '-'}</td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.losses ?? 0 : '-'}</td>
-                          <td className="px-4 py-3 text-center">
-                            {gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage) : '-'}</td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.shutouts ?? 0 : '-'}</td>
-                        </tr>
-                      );
-                    })}
-                  </StatsTableCard>
+            {seasonGames.length > 0 && (
+              <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
+                <div className="mb-4 flex items-center gap-3">
+                  <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
+                  <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Season Games</h2>
                 </div>
-              )}
-            </section>
+                <SeasonGamesTable
+                  games={seasonGames as any}
+                  teams={allTeams}
+                  leagueSlug={leagueSlug}
+                  timezone={league.timezone || 'America/Toronto'}
+                  initialTeamId={team.id}
+                  hideFilter
+                />
+              </section>
+            )}
+
+            <div className="px-1 md:px-2">
+              <div className="mb-4 flex items-center gap-3">
+                <Users className="h-5 w-5 text-[var(--league-primary)]" />
+                <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Roster</h2>
+              </div>
+              <TeamRosterToggle
+                primaryColor={(team as any).primary_color || 'var(--league-primary)'}
+                secondaryColor={(team as any).secondary_color || '#e0b84a'}
+                skaters={skaters.map((player) => ({
+                  playerId: player.player_id,
+                  name: player.profile?.full_name || 'Unknown',
+                  jerseyNumber: player.jersey_number,
+                  position: player.position,
+                }))}
+                goalies={goalies.map((goalie) => ({
+                  playerId: goalie.player_id,
+                  name: goalie.profile?.full_name || 'Unknown',
+                  jerseyNumber: goalie.jersey_number,
+                  position: 'G',
+                }))}
+                statsView={
+                  <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
+                    <StatsTableCard
+                      columns={['Player', 'GP', 'G', 'A', 'PTS', 'PIM', 'Pos']}
+                      emptyTitle="No skater statistics yet"
+                      emptyDescription="Skater stats will populate once official games are recorded."
+                    >
+                      {skaters.map((player) => {
+                        const stats = rosterStatsByPlayer[player.player_id];
+                        const gp = stats?.games_played ?? 0;
+                        return (
+                          <tr key={player.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
+                            <td className="px-4 py-3">
+                              <RosterPlayerCell
+                                leagueSlug={leagueSlug}
+                                playerId={player.player_id}
+                                name={player.profile?.full_name || 'Unknown Player'}
+                                avatarUrl={player.profile?.avatar_url || '/blank_player.png'}
+                                leadershipRole={player.leadership_role}
+                                jerseyNumber={player.jersey_number}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? stats?.goals ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? stats?.assists ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center font-semibold">{gp > 0 ? stats?.points ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? stats?.penalty_minutes ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">
+                              {getPositionShortLabel(player.position, false)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </StatsTableCard>
+
+                    {goalies.length > 0 && (
+                      <div className="mt-6">
+                        <div className="mb-4 flex items-center gap-2">
+                          <Shield className="h-5 w-5 text-[var(--league-primary)]" />
+                          <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Goalies</h3>
+                        </div>
+                        <StatsTableCard
+                          columns={['Goalie', 'GP', 'W', 'L', 'GAA', 'SV%', 'SO']}
+                          emptyTitle="No goalie statistics yet"
+                          emptyDescription="Goalie stats will appear once this team has official goaltending entries."
+                        >
+                          {goalies.map((goalie) => {
+                            const stats = rosterStatsByPlayer[goalie.player_id];
+                            const gp = stats?.games_played ?? 0;
+                            return (
+                              <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
+                                <td className="px-4 py-3">
+                                  <RosterPlayerCell
+                                    leagueSlug={leagueSlug}
+                                    playerId={goalie.player_id}
+                                    name={goalie.profile?.full_name || 'Unknown Goalie'}
+                                    avatarUrl={goalie.profile?.avatar_url || '/blank_player.png'}
+                                    leadershipRole={goalie.leadership_role}
+                                    jerseyNumber={goalie.jersey_number}
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? stats?.wins ?? 0 : '-'}</td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? stats?.losses ?? 0 : '-'}</td>
+                                <td className="px-4 py-3 text-center">
+                                  {gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage) : '-'}</td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? stats?.shutouts ?? 0 : '-'}</td>
+                              </tr>
+                            );
+                          })}
+                        </StatsTableCard>
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+            </div>
 
             <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
               <SectionHeader

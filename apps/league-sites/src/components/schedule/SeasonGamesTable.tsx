@@ -10,6 +10,8 @@ interface SeasonGamesTableProps {
   teams: Team[];
   leagueSlug: string;
   timezone: string;
+  initialTeamId?: string;
+  hideFilter?: boolean;
 }
 
 function formatDateTime(dateStr: string, timeZone: string) {
@@ -34,8 +36,10 @@ export function SeasonGamesTable({
   teams,
   leagueSlug,
   timezone,
+  initialTeamId = '',
+  hideFilter = false,
 }: SeasonGamesTableProps) {
-  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
 
   const filteredGames = useMemo(() => {
     if (!selectedTeamId) return games;
@@ -49,22 +53,24 @@ export function SeasonGamesTable({
   return (
     <div>
       {/* Team filter */}
-      <div className="mb-4">
-        <select
-          value={selectedTeamId}
-          onChange={(e) => setSelectedTeamId(e.target.value)}
-          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
-        >
-          <option value="">All Teams</option>
-          {teams
-            .filter((t) => t.team_type !== 'free_agents' && t.team_type !== 'placeholder')
-            .map((team) => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-        </select>
-      </div>
+      {!hideFilter && (
+        <div className="mb-4">
+          <select
+            value={selectedTeamId}
+            onChange={(e) => setSelectedTeamId(e.target.value)}
+            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+          >
+            <option value="">All Teams</option>
+            {teams
+              .filter((t) => t.team_type !== 'free_agents' && t.team_type !== 'placeholder')
+              .map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
 
       {/* Desktop table */}
       <div className="hidden md:block overflow-x-auto">
