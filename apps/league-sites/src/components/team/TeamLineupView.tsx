@@ -52,7 +52,6 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
 
   return (
     <div className="mt-2 space-y-8">
-      {/* FORWARDS */}
       <div>
         <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
           Forwards
@@ -69,7 +68,6 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
         </div>
       </div>
 
-      {/* DEFENCE + GOALIE always side-by-side */}
       <div className="flex flex-row items-start justify-center gap-6 sm:gap-10 md:gap-14">
         <div>
           <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
@@ -129,32 +127,53 @@ function JerseySlot({
   );
 }
 
-// Shared jersey silhouette — BACK view. Sharp armpits, bell hem, wide sleeves with cuffs.
+/**
+ * Jersey silhouette — BACK view, styled to match the reference illustration.
+ * viewBox: 0 0 280 240
+ * Single continuous outline: collar → right shoulder → sleeve down → cuff →
+ * concave armpit → body side → bell hem → mirror on left.
+ * This path + stripe polygons were iterated in local rsvg previews before shipping.
+ */
 const JERSEY_PATH = `
-  M 95 25
-  Q 110 38 125 25
-  L 150 30
-  L 195 58
-  L 208 168
-  L 160 172
-  L 158 90
-  L 178 212
-  Q 110 222 42 212
-  L 62 90
-  L 60 172
-  L 12 168
-  L 25 58
-  L 70 30
+  M 120 50
+  Q 140 62 160 50
+  Q 185 54 200 58
+  L 260 165
+  L 245 195
+  L 195 145
+  L 215 225
+  Q 140 245 65 225
+  L 85 145
+  L 35 195
+  L 20 165
+  Q 50 80 80 58
+  Q 95 54 120 50
   Z
 `;
 
-/**
- * Hockey jersey — back view, bold illustrated style.
- * - Heavy dark outline
- * - Secondary-color cuff + hem stripes with dark borders
- * - NAME across upper back
- * - Large varsity NUMBER with dark outline
- */
+// Stripe polygons — traced to sit flush against JERSEY_PATH edges (no gaps/overflow).
+const LEFT_CUFF_STRIPE = `
+  M 22 168
+  L 78 154
+  L 85 175
+  L 32 192
+  Z
+`;
+const RIGHT_CUFF_STRIPE = `
+  M 202 154
+  L 258 168
+  L 248 192
+  L 195 175
+  Z
+`;
+const HEM_STRIPE = `
+  M 80 205
+  L 200 205
+  L 215 225
+  Q 140 245 65 225
+  Z
+`;
+
 function Jersey({
   name,
   number,
@@ -170,12 +189,12 @@ function Jersey({
   const nameColor = isLightColor(primaryColor) ? '#111111' : '#ffffff';
 
   const displayName = name.toUpperCase().slice(0, 12);
-  const nameFontSize = displayName.length > 10 ? 12 : displayName.length > 7 ? 14 : 16;
+  const nameFontSize = displayName.length > 10 ? 13 : displayName.length > 7 ? 15 : 17;
 
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
       <svg
-        viewBox="0 0 220 220"
+        viewBox="0 0 280 240"
         className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]"
       >
         {/* Jersey silhouette */}
@@ -183,76 +202,71 @@ function Jersey({
           d={JERSEY_PATH}
           fill={primaryColor}
           stroke={outline}
-          strokeWidth="4"
+          strokeWidth="5"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
 
-        {/* Back collar shadow */}
+        {/* Subtle collar shadow */}
         <path
-          d="M 95 25 Q 110 38 125 25 Q 110 33 95 25 Z"
-          fill="rgba(0,0,0,0.28)"
+          d="M 120 50 Q 140 65 160 50 Q 140 58 120 50 Z"
+          fill="rgba(0,0,0,0.3)"
         />
 
-        {/* Left cuff stripe */}
+        {/* Cuff stripes */}
         <path
-          d="M 14 150 L 60 150 L 61 170 L 13 172 Z"
+          d={LEFT_CUFF_STRIPE}
           fill={secondaryColor}
           stroke={outline}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinejoin="round"
         />
-
-        {/* Right cuff stripe */}
         <path
-          d="M 160 150 L 206 150 L 207 172 L 159 170 Z"
+          d={RIGHT_CUFF_STRIPE}
           fill={secondaryColor}
           stroke={outline}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinejoin="round"
         />
 
         {/* Hem stripe */}
         <path
-          d="M 46 188 L 174 188 L 178 212 Q 110 222 42 212 Z"
+          d={HEM_STRIPE}
           fill={secondaryColor}
           stroke={outline}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinejoin="round"
         />
 
-        {/* Name */}
+        {/* NAME — upper back */}
         <text
-          x="110"
-          y="80"
+          x="140"
+          y="110"
           textAnchor="middle"
           fontSize={nameFontSize}
           fontWeight={900}
           fill={nameColor}
-          stroke={outline}
-          strokeWidth="0.5"
           style={{
-            paintOrder: 'stroke fill',
-            fontFamily: 'Impact, "Oswald", "Arial Black", sans-serif',
-            letterSpacing: '0.5px',
+            fontFamily: '"Arial Black", Impact, "Oswald", sans-serif',
+            letterSpacing: '1px',
           }}
         >
           {displayName}
         </text>
 
-        {/* Number — varsity, secondary fill with heavy dark outline */}
+        {/* NUMBER — large varsity with dark outline */}
         <text
-          x="110"
-          y="158"
+          x="140"
+          y="185"
           textAnchor="middle"
           fontSize={68}
           fontWeight={900}
           fill={secondaryColor}
           stroke={outline}
-          strokeWidth="4.5"
+          strokeWidth="5"
           style={{
             paintOrder: 'stroke fill',
-            fontFamily: 'Impact, "Oswald", "Arial Black", sans-serif',
+            fontFamily: '"Arial Black", Impact, "Oswald", sans-serif',
           }}
         >
           {number ?? '—'}
@@ -265,7 +279,7 @@ function Jersey({
 function EmptyJersey({ primaryColor }: { primaryColor: string }) {
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
-      <svg viewBox="0 0 220 220" className="h-auto w-full opacity-40">
+      <svg viewBox="0 0 280 240" className="h-auto w-full opacity-40">
         <path
           d={JERSEY_PATH}
           fill="none"
