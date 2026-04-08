@@ -30,7 +30,6 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { signOut } from '@/lib/supabase/auth';
-import { useBugReportContext } from '@/components/bug-report/BugReportProvider';
 
 interface FloatingDockProps {
   leagueId: string;
@@ -39,7 +38,6 @@ interface FloatingDockProps {
   leagueLogoUrl: string | null;
   seasonId: string | null;
   visiblePages?: Record<string, boolean>;
-  /** All leagues the site knows about — enables league switcher chevrons */
   allLeagues?: Array<{ slug: string; name: string; logo_url: string | null }>;
 }
 
@@ -52,11 +50,11 @@ interface MoreMenuItem {
 
 const MORE_ITEMS: MoreMenuItem[] = [
   { href: '/teams', label: 'Teams', icon: Users, pageKey: 'teams' },
+  { href: '/players', label: 'Players', icon: Users, pageKey: 'players' },
   { href: '/news', label: 'News', icon: Newspaper, pageKey: 'news' },
   { href: '/suspensions', label: 'Suspensions', icon: Shield, pageKey: 'suspensions' },
   { href: '/history', label: 'History', icon: Crown, pageKey: 'history' },
   { href: '/gallery', label: 'Gallery', icon: Camera, pageKey: 'gallery' },
-  { href: '/players', label: 'Players', icon: Users, pageKey: 'players' },
   { href: '/events', label: 'Events', icon: Calendar, pageKey: 'events' },
   { href: '/venues', label: 'Venues', icon: MapPin, pageKey: 'venues' },
   { href: '/about', label: 'About', icon: Info, pageKey: 'about' },
@@ -87,15 +85,6 @@ export function FloatingDock({
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // Bug report context
-  let bugReportCtx: ReturnType<typeof useBugReportContext> | null = null;
-  try {
-    bugReportCtx = useBugReportContext();
-  } catch {
-    // Not inside BugReportProvider
-  }
-
-  // For theme toggle hydration
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -139,7 +128,6 @@ export function FloatingDock({
   // League switcher
   const leagues = allLeagues && allLeagues.length > 1 ? allLeagues : null;
   const currentLeagueIdx = leagues?.findIndex((l) => l.slug === leagueSlug) ?? 0;
-
   const prevLeague = leagues ? leagues[(currentLeagueIdx - 1 + leagues.length) % leagues.length] : null;
   const nextLeague = leagues ? leagues[(currentLeagueIdx + 1) % leagues.length] : null;
 
@@ -151,82 +139,56 @@ export function FloatingDock({
 
   const isDark = resolvedTheme === 'dark';
 
-  const dockItems: Array<{
-    key: string;
-    href: string;
-    label: string;
-    active: boolean;
-    render: () => React.ReactNode;
-  }> = [
-    {
-      key: 'standings',
-      href: `/${leagueSlug}/standings`,
-      label: 'Standings',
-      active: isActive('/standings'),
-      render: () => <Trophy className="h-5 w-5" />,
-    },
-    {
-      key: 'schedule',
-      href: `/${leagueSlug}/schedule`,
-      label: 'Schedule',
-      active: isActive('/schedule'),
-      render: () => <Calendar className="h-5 w-5" />,
-    },
-    {
-      key: 'stats',
-      href: `/${leagueSlug}/stats`,
-      label: 'Stats',
-      active: isActive('/stats'),
-      render: () => <BarChart3 className="h-5 w-5" />,
-    },
-  ];
-
   return (
     <>
       {/* Spacer so content isn't hidden behind dock */}
-      <div className="h-24 lg:hidden" />
+      <div className="h-28 lg:hidden" />
 
-      {/* Dock */}
+      {/* Dock wrapper — centers everything */}
       <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center lg:hidden" ref={moreRef}>
         {/* "More" popup menu */}
         {moreOpen && (
-          <div className="absolute inset-x-4 bottom-[calc(100%+8px)] max-w-sm mx-auto rounded-2xl border border-white/15 bg-[color-mix(in_srgb,var(--league-primary)_12%,color-mix(in_srgb,var(--league-secondary-safe)_8%,var(--color-surface)))] p-3 shadow-2xl backdrop-blur-2xl animate-in slide-in-from-bottom-4 duration-200">
+          <div className="absolute inset-x-4 bottom-[calc(100%+4px)] max-w-sm mx-auto rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-in slide-in-from-bottom-4 duration-200"
+            style={{
+              background: `linear-gradient(170deg, color-mix(in srgb, var(--league-primary) 10%, rgba(20,20,28,0.92)) 0%, color-mix(in srgb, var(--league-secondary-safe) 6%, rgba(12,12,18,0.95)) 100%)`,
+            }}
+          >
             {/* League logo header with optional switcher chevrons */}
-            <div className="flex items-center justify-center gap-3 pb-3 border-b border-white/10 mb-3">
+            <div className="flex items-center justify-center gap-4 px-4 pt-4 pb-3 border-b border-white/[0.08]">
               {leagues && prevLeague && (
                 <Link
                   href={`/${prevLeague.slug}`}
-                  className="rounded-lg p-1.5 text-[var(--color-text-muted)] hover:bg-white/10 transition-colors"
+                  className="rounded-lg p-1.5 text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
               )}
               <Link
                 href={`/${leagueSlug}`}
-                className="flex flex-col items-center gap-1.5"
+                className="flex flex-col items-center gap-2"
                 onClick={() => setMoreOpen(false)}
               >
                 {leagueLogoUrl ? (
                   <Image
                     src={leagueLogoUrl}
                     alt={leagueName}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 rounded-xl object-contain drop-shadow-lg"
+                    width={56}
+                    height={56}
+                    className="h-14 w-14 rounded-2xl object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--league-primary-soft)] text-[var(--league-primary)]">
-                    <Trophy className="h-6 w-6" />
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--league-primary-soft)] text-[var(--league-primary)]">
+                    <Trophy className="h-7 w-7" />
                   </div>
                 )}
-                <span className="text-[11px] font-semibold text-[var(--color-text-primary)] leading-tight text-center max-w-[120px] truncate">
+                <span className="text-[11px] font-semibold text-white/70 leading-tight text-center max-w-[140px] truncate">
                   {leagueName}
                 </span>
               </Link>
               {leagues && nextLeague && (
                 <Link
                   href={`/${nextLeague.slug}`}
-                  className="rounded-lg p-1.5 text-[var(--color-text-muted)] hover:bg-white/10 transition-colors"
+                  className="rounded-lg p-1.5 text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Link>
@@ -234,150 +196,153 @@ export function FloatingDock({
             </div>
 
             {/* Page links grid */}
-            <div className="grid grid-cols-3 gap-1">
+            <div className="grid grid-cols-3 gap-0.5 p-2">
               {filteredMoreItems.map((item) => {
                 const active = isActive(item.href);
                 return (
                   <Link
                     key={item.pageKey}
                     href={`/${leagueSlug}${item.href}`}
-                    className={`flex flex-col items-center gap-1 rounded-xl px-2 py-3 text-center transition-colors ${
+                    className={`flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center transition-colors ${
                       active
-                        ? 'bg-[var(--league-primary-soft)] text-[var(--league-primary)]'
-                        : 'text-[var(--color-text-secondary)] hover:bg-white/8'
+                        ? 'bg-[var(--league-primary)]/15 text-[var(--league-primary)]'
+                        : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
                     }`}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-[22px] w-[22px]" />
                     <span className="text-[10px] font-medium leading-tight">{item.label}</span>
                   </Link>
                 );
               })}
             </div>
 
-            {/* Utility row: sign out, theme toggle, bug report */}
-            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-center gap-2">
+            {/* Utility row: theme toggle, bug report, sign out — icons only */}
+            <div className="flex items-center justify-center gap-1 px-4 pt-2 pb-3 border-t border-white/[0.08] mt-1">
               {mounted && (
                 <button
                   type="button"
                   onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--color-text-muted)] transition-colors hover:bg-white/10 hover:text-[var(--color-text-primary)]"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
                   aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                 >
-                  {isDark ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+                  {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => {
                   setMoreOpen(false);
-                  // Trigger bug report modal via DOM event
                   window.dispatchEvent(new CustomEvent('open-bug-report'));
                 }}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--color-text-muted)] transition-colors hover:bg-white/10 hover:text-[var(--color-text-primary)]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
                 aria-label="Report a bug"
               >
-                <Bug className="h-4.5 w-4.5" />
+                <Bug className="h-[18px] w-[18px]" />
               </button>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--color-text-muted)] transition-colors hover:bg-red-500/15 hover:text-red-400"
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400"
                 aria-label="Sign out"
               >
-                <LogOut className="h-4.5 w-4.5" />
+                <LogOut className="h-[18px] w-[18px]" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Dock bar — floating, not full-width */}
+        {/* ─── Dock bar ─── */}
         <div
-          className="mb-[env(safe-area-inset-bottom,8px)] mx-4 w-[min(calc(100%-2rem),360px)] rounded-2xl border border-white/15 px-2 py-3 shadow-2xl backdrop-blur-2xl"
+          className="relative mb-[env(safe-area-inset-bottom,6px)] mx-auto w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
           style={{
-            background: `linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 18%, var(--color-surface) 82%) 0%, color-mix(in srgb, var(--league-secondary-safe) 12%, var(--color-surface) 88%) 100%)`,
+            background: `linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 14%, rgba(18,18,26,0.88)) 0%, color-mix(in srgb, var(--league-secondary-safe) 10%, rgba(10,10,16,0.92)) 100%)`,
           }}
         >
-          <nav className="flex items-end justify-around">
-            {/* Left items: Standings, Schedule */}
-            {dockItems.slice(0, 2).map((item) => (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-colors ${
-                  item.active
-                    ? 'text-[var(--league-primary)]'
-                    : 'text-white/60 hover:text-white/90'
-                }`}
-              >
-                {item.render()}
-                <span className={`text-[10px] font-semibold ${item.active ? 'text-[var(--league-primary)]' : ''}`}>
-                  {item.label}
-                </span>
-              </Link>
-            ))}
-
-            {/* Center: Team logo — oversized focal point, no text label */}
+          <nav className="grid grid-cols-5 items-end py-2.5">
+            {/* Standings */}
             <Link
-              href={teamHref}
-              className="relative -mt-6 flex flex-col items-center"
+              href={`/${leagueSlug}/standings`}
+              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+                isActive('/standings')
+                  ? 'text-[var(--league-primary)]'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
             >
-              <div
-                className={`relative flex h-16 w-16 items-center justify-center rounded-full transition-transform hover:scale-105 ${
-                  isTeamActive
-                    ? 'ring-2 ring-[var(--league-primary)] ring-offset-2 ring-offset-[var(--color-surface)]'
-                    : ''
-                }`}
-                style={{
-                  background: 'radial-gradient(circle, color-mix(in srgb, var(--league-primary) 25%, var(--color-surface)) 0%, color-mix(in srgb, var(--league-secondary-safe) 15%, var(--color-surface)) 100%)',
-                  boxShadow: '0 0 20px color-mix(in srgb, var(--league-primary) 35%, transparent), 0 4px 12px rgba(0,0,0,0.3)',
-                }}
-              >
-                {teamLogoUrl ? (
-                  <Image
-                    src={teamLogoUrl}
-                    alt="My Team"
-                    width={52}
-                    height={52}
-                    className="h-[52px] w-[52px] rounded-full object-contain drop-shadow-lg"
-                  />
-                ) : (
-                  <Users className="h-7 w-7 text-white/70" />
-                )}
-              </div>
+              <Trophy className="h-[22px] w-[22px]" />
+              <span className="text-[10px] font-semibold">Standings</span>
             </Link>
 
-            {/* Right items: Stats, More */}
-            {dockItems.slice(2).map((item) => (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-colors ${
-                  item.active
-                    ? 'text-[var(--league-primary)]'
-                    : 'text-white/60 hover:text-white/90'
-                }`}
-              >
-                {item.render()}
-                <span className={`text-[10px] font-semibold ${item.active ? 'text-[var(--league-primary)]' : ''}`}>
-                  {item.label}
-                </span>
-              </Link>
-            ))}
+            {/* Schedule */}
+            <Link
+              href={`/${leagueSlug}/schedule`}
+              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+                isActive('/schedule')
+                  ? 'text-[var(--league-primary)]'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              <Calendar className="h-[22px] w-[22px]" />
+              <span className="text-[10px] font-semibold">Schedule</span>
+            </Link>
 
-            {/* More button */}
+            {/* ─── Center: Team logo — oversized, no container, no label ─── */}
+            <div className="flex items-center justify-center">
+              <Link
+                href={teamHref}
+                className="absolute left-1/2 -translate-x-1/2 bottom-1 flex items-center justify-center"
+              >
+                <div
+                  className={`relative transition-transform hover:scale-105 active:scale-95 ${
+                    isTeamActive ? 'drop-shadow-[0_0_12px_var(--league-primary)]' : ''
+                  }`}
+                  style={{
+                    filter: isTeamActive
+                      ? undefined
+                      : 'drop-shadow(0 2px 8px rgba(0,0,0,0.5))',
+                  }}
+                >
+                  {teamLogoUrl ? (
+                    <Image
+                      src={teamLogoUrl}
+                      alt="My Team"
+                      width={72}
+                      height={72}
+                      className="h-[72px] w-[72px] object-contain"
+                    />
+                  ) : (
+                    <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white/[0.08]">
+                      <Users className="h-8 w-8 text-white/50" />
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </div>
+
+            {/* Stats */}
+            <Link
+              href={`/${leagueSlug}/stats`}
+              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+                isActive('/stats')
+                  ? 'text-[var(--league-primary)]'
+                  : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              <BarChart3 className="h-[22px] w-[22px]" />
+              <span className="text-[10px] font-semibold">Stats</span>
+            </Link>
+
+            {/* More */}
             <button
               type="button"
               onClick={() => setMoreOpen((o) => !o)}
-              className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1 transition-colors ${
+              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
                 moreOpen || isMoreActive
                   ? 'text-[var(--league-primary)]'
-                  : 'text-white/60 hover:text-white/90'
+                  : 'text-white/50 hover:text-white/80'
               }`}
             >
-              <MoreHorizontal className="h-5 w-5" />
-              <span className={`text-[10px] font-semibold ${moreOpen || isMoreActive ? 'text-[var(--league-primary)]' : ''}`}>
-                More
-              </span>
+              <MoreHorizontal className="h-[22px] w-[22px]" />
+              <span className="text-[10px] font-semibold">More</span>
             </button>
           </nav>
         </div>
