@@ -153,6 +153,8 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   <FloatingDock
                     leagueId={league.id}
                     leagueSlug={leagueSlug}
+                    leagueName={league.name}
+                    leagueLogoUrl={league.logo_url}
                     seasonId={activeSeasonId}
                     visiblePages={(league as any).settings?.website?.visiblePages}
                   />
