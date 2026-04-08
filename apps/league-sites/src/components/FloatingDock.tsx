@@ -50,7 +50,7 @@ interface MoreMenuItem {
 }
 
 const MORE_ITEMS: MoreMenuItem[] = [
-  { href: '/dashboard', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'dashboard' },
+  { href: '/me', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'me' },
   { href: '/teams', label: 'Teams', icon: Users, pageKey: 'teams' },
   { href: '/players', label: 'Players', icon: Users, pageKey: 'players' },
   { href: '/news', label: 'News', icon: Newspaper, pageKey: 'news' },
@@ -291,7 +291,7 @@ export function FloatingDock({
             <div className="flex items-center justify-center">
               <Link
                 href={teamHref}
-                className="absolute left-1/2 -translate-x-1/2 bottom-1 flex items-center justify-center"
+                className="absolute left-1/2 -translate-x-1/2 bottom-[-2px] flex items-center justify-center"
               >
                 <div
                   className={`relative transition-transform hover:scale-105 active:scale-95 ${
@@ -307,13 +307,13 @@ export function FloatingDock({
                     <Image
                       src={teamLogoUrl}
                       alt="My Team"
-                      width={108}
-                      height={108}
-                      className="h-[108px] w-[108px] object-contain"
+                      width={90}
+                      height={90}
+                      className="h-[90px] w-[90px] object-contain"
                     />
                   ) : (
-                    <div className="flex h-[108px] w-[108px] items-center justify-center rounded-full bg-white/[0.08]">
-                      <Users className="h-12 w-12 text-white/50" />
+                    <div className="flex h-[90px] w-[90px] items-center justify-center rounded-full bg-white/[0.08]">
+                      <Users className="h-10 w-10 text-white/50" />
                     </div>
                   )}
                 </div>
