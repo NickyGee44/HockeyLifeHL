@@ -28,6 +28,20 @@ function isDefence(position?: string | null): boolean {
   return p === 'd' || p === 'defence' || p === 'defense' || p === 'ld' || p === 'rd';
 }
 
+/** Perceived luminance — used to pick readable name color against team primary. */
+function isLightColor(hex: string): boolean {
+  try {
+    const clean = hex.replace('#', '').trim();
+    if (clean.length !== 6) return true;
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55;
+  } catch {
+    return true;
+  }
+}
+
 export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor }: TeamLineupViewProps) {
   const defenders = skaters.filter((p) => isDefence(p.position));
   const forwards = skaters.filter((p) => !isDefence(p.position));
@@ -115,13 +129,31 @@ function JerseySlot({
   );
 }
 
+// Shared jersey silhouette — BACK view. Sharp armpits, bell hem, wide sleeves with cuffs.
+const JERSEY_PATH = `
+  M 95 25
+  Q 110 38 125 25
+  L 150 30
+  L 195 58
+  L 208 168
+  L 160 172
+  L 158 90
+  L 178 212
+  Q 110 222 42 212
+  L 62 90
+  L 60 172
+  L 12 168
+  L 25 58
+  L 70 30
+  Z
+`;
+
 /**
- * Hockey jersey SVG — BACK view (where player name + number live)
- * - wide level shoulders
- * - full long sleeves with cuff stripes
- * - bell-shaped torso with hem stripe
- * - simple rounded back collar (no laces)
- * - shoulder yokes in secondary color
+ * Hockey jersey — back view, bold illustrated style.
+ * - Heavy dark outline
+ * - Secondary-color cuff + hem stripes with dark borders
+ * - NAME across upper back
+ * - Large varsity NUMBER with dark outline
  */
 function Jersey({
   name,
@@ -134,134 +166,98 @@ function Jersey({
   primaryColor: string;
   secondaryColor: string;
 }) {
+  const outline = '#111111';
+  const nameColor = isLightColor(primaryColor) ? '#111111' : '#ffffff';
+
+  const displayName = name.toUpperCase().slice(0, 12);
+  const nameFontSize = displayName.length > 10 ? 12 : displayName.length > 7 ? 14 : 16;
+
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
-      <svg viewBox="0 0 220 220" className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]">
-        <defs>
-          {/* Clip the hem stripe to the jersey body shape so it follows the curve */}
-          <clipPath id="jerseyClip">
-            <path
-              d="
-                M 95 22
-                Q 110 32 125 22
-                L 160 32
-                L 195 48
-                L 208 178
-                L 175 178
-                L 168 88
-                L 165 200
-                Q 110 215 55 200
-                L 52 88
-                L 45 178
-                L 12 178
-                L 25 48
-                L 60 32
-                Z
-              "
-            />
-          </clipPath>
-        </defs>
-
-        {/* Body — main jersey shape */}
+      <svg
+        viewBox="0 0 220 220"
+        className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]"
+      >
+        {/* Jersey silhouette */}
         <path
-          d="
-            M 95 22
-            Q 110 32 125 22
-            L 160 32
-            L 195 48
-            L 208 178
-            L 175 178
-            L 168 88
-            L 165 200
-            Q 110 215 55 200
-            L 52 88
-            L 45 178
-            L 12 178
-            L 25 48
-            L 60 32
-            Z
-          "
+          d={JERSEY_PATH}
           fill={primaryColor}
-          stroke="rgba(0,0,0,0.35)"
-          strokeWidth="2"
+          stroke={outline}
+          strokeWidth="4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Back collar shadow */}
+        <path
+          d="M 95 25 Q 110 38 125 25 Q 110 33 95 25 Z"
+          fill="rgba(0,0,0,0.28)"
+        />
+
+        {/* Left cuff stripe */}
+        <path
+          d="M 14 150 L 60 150 L 61 170 L 13 172 Z"
+          fill={secondaryColor}
+          stroke={outline}
+          strokeWidth="2.5"
           strokeLinejoin="round"
         />
 
-        {/* Left shoulder yoke — curves over shoulder onto upper sleeve */}
+        {/* Right cuff stripe */}
         <path
-          d="
-            M 95 22
-            Q 110 32 110 50
-            L 80 58
-            L 52 78
-            L 35 70
-            L 25 48
-            L 60 32
-            Z
-          "
+          d="M 160 150 L 206 150 L 207 172 L 159 170 Z"
           fill={secondaryColor}
-          stroke="rgba(0,0,0,0.18)"
-          strokeWidth="1"
+          stroke={outline}
+          strokeWidth="2.5"
+          strokeLinejoin="round"
         />
 
-        {/* Right shoulder yoke — mirror */}
+        {/* Hem stripe */}
         <path
-          d="
-            M 125 22
-            Q 110 32 110 50
-            L 140 58
-            L 168 78
-            L 185 70
-            L 195 48
-            L 160 32
-            Z
-          "
+          d="M 46 188 L 174 188 L 178 212 Q 110 222 42 212 Z"
           fill={secondaryColor}
-          stroke="rgba(0,0,0,0.18)"
-          strokeWidth="1"
+          stroke={outline}
+          strokeWidth="2.5"
+          strokeLinejoin="round"
         />
 
-        {/* Cuff stripes — left sleeve */}
-        <rect x="14" y="148" width="32" height="6" fill={secondaryColor} />
-        <rect x="14" y="160" width="32" height="6" fill={secondaryColor} />
+        {/* Name */}
+        <text
+          x="110"
+          y="80"
+          textAnchor="middle"
+          fontSize={nameFontSize}
+          fontWeight={900}
+          fill={nameColor}
+          stroke={outline}
+          strokeWidth="0.5"
+          style={{
+            paintOrder: 'stroke fill',
+            fontFamily: 'Impact, "Oswald", "Arial Black", sans-serif',
+            letterSpacing: '0.5px',
+          }}
+        >
+          {displayName}
+        </text>
 
-        {/* Cuff stripes — right sleeve */}
-        <rect x="174" y="148" width="32" height="6" fill={secondaryColor} />
-        <rect x="174" y="160" width="32" height="6" fill={secondaryColor} />
-
-        {/* Hem stripe — clipped to body shape so it follows the curve */}
-        <rect
-          x="0"
-          y="172"
-          width="220"
-          height="14"
+        {/* Number — varsity, secondary fill with heavy dark outline */}
+        <text
+          x="110"
+          y="158"
+          textAnchor="middle"
+          fontSize={68}
+          fontWeight={900}
           fill={secondaryColor}
-          clipPath="url(#jerseyClip)"
-        />
-
-        {/* Back collar — rounded bump, no laces */}
-        <path
-          d="M 95 22 Q 110 34 125 22 Q 118 28 110 28 Q 102 28 95 22 Z"
-          fill="rgba(0,0,0,0.22)"
-        />
-        <path
-          d="M 95 22 Q 110 34 125 22"
-          fill="none"
-          stroke="rgba(0,0,0,0.35)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-
-      {/* Name (top, arched area) + number (large, center back) */}
-      <div className="pointer-events-none absolute inset-x-0 top-[28%] flex flex-col items-center">
-        <span className="max-w-[58%] truncate text-[10px] font-bold uppercase tracking-[0.05em] text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.75)] sm:text-[11px]">
-          {name}
-        </span>
-        <span className="mt-1 text-[30px] font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.65)] sm:text-[36px] md:text-[40px]">
+          stroke={outline}
+          strokeWidth="4.5"
+          style={{
+            paintOrder: 'stroke fill',
+            fontFamily: 'Impact, "Oswald", "Arial Black", sans-serif',
+          }}
+        >
           {number ?? '—'}
-        </span>
-      </div>
+        </text>
+      </svg>
     </div>
   );
 }
@@ -271,26 +267,10 @@ function EmptyJersey({ primaryColor }: { primaryColor: string }) {
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
       <svg viewBox="0 0 220 220" className="h-auto w-full opacity-40">
         <path
-          d="
-            M 95 22
-            Q 110 32 125 22
-            L 160 32
-            L 195 48
-            L 208 178
-            L 175 178
-            L 168 88
-            L 165 200
-            Q 110 215 55 200
-            L 52 88
-            L 45 178
-            L 12 178
-            L 25 48
-            L 60 32
-            Z
-          "
+          d={JERSEY_PATH}
           fill="none"
           stroke={primaryColor}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeDasharray="6 4"
           strokeLinejoin="round"
         />
