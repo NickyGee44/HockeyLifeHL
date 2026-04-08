@@ -37,13 +37,13 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
   const goalie = goalies[0] || null;
 
   return (
-    <div className="mt-2 space-y-6">
+    <div className="mt-2 space-y-8">
       {/* FORWARDS */}
       <div>
-        <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+        <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
           Forwards
         </h3>
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-5">
           {forwardLineup.map((player, i) => (
             <JerseySlot
               key={`fwd-${i}`}
@@ -55,34 +55,35 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
         </div>
       </div>
 
-      {/* DEFENCE */}
-      <div>
-        <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-          Defence
-        </h3>
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          {defenceLineup.map((player, i) => (
+      {/* DEFENCE + GOALIE side-by-side */}
+      <div className="flex flex-col items-start justify-center gap-8 sm:flex-row sm:items-start sm:gap-10 md:gap-14">
+        <div className="mx-auto sm:mx-0">
+          <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+            Defence
+          </h3>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+            {defenceLineup.map((player, i) => (
+              <JerseySlot
+                key={`def-${i}`}
+                player={player}
+                primaryColor={primaryColor}
+                secondaryColor={secondaryColor}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="mx-auto sm:mx-0">
+          <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+            Goalie
+          </h3>
+          <div className="flex justify-center">
             <JerseySlot
-              key={`def-${i}`}
-              player={player}
+              player={goalie}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
             />
-          ))}
-        </div>
-      </div>
-
-      {/* GOALIE */}
-      <div>
-        <h3 className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-          Goalie
-        </h3>
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          <JerseySlot
-            player={goalie}
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
-          />
+          </div>
         </div>
       </div>
     </div>
@@ -126,7 +127,7 @@ function Jersey({
   secondaryColor: string;
 }) {
   return (
-    <div className="relative w-full max-w-[110px]">
+    <div className="relative w-[92px] sm:w-[104px] md:w-[112px]">
       <svg viewBox="0 0 200 200" className="h-auto w-full drop-shadow-[0_6px_18px_rgba(0,0,0,0.35)]">
         <path
           d="M 50 35 L 80 25 Q 100 45 120 25 L 150 35 L 175 60 L 165 85 L 150 75 L 150 175 Q 100 185 50 175 L 50 75 L 35 85 L 25 60 Z"
@@ -157,7 +158,7 @@ function Jersey({
 
 function EmptyJersey({ primaryColor }: { primaryColor: string }) {
   return (
-    <div className="relative w-full max-w-[110px]">
+    <div className="relative w-[92px] sm:w-[104px] md:w-[112px]">
       <svg viewBox="0 0 200 200" className="h-auto w-full opacity-40">
         <path
           d="M 50 35 L 80 25 Q 100 45 120 25 L 150 35 L 175 60 L 165 85 L 150 75 L 150 175 Q 100 185 50 175 L 50 75 L 35 85 L 25 60 Z"
