@@ -115,6 +115,14 @@ function JerseySlot({
   );
 }
 
+/**
+ * Hockey jersey SVG built to match a real jersey silhouette:
+ * - wide level shoulders
+ * - full long sleeves with cuff stripes
+ * - bell-shaped torso with hem stripe
+ * - V-collar with lace detail
+ * - shoulder yokes in secondary color
+ */
 function Jersey({
   name,
   number,
@@ -128,53 +136,125 @@ function Jersey({
 }) {
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
-      <svg viewBox="0 0 220 240" className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]">
-        {/* Body — long-sleeve hockey jersey shape */}
+      <svg viewBox="0 0 220 220" className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]">
+        <defs>
+          {/* Clip the hem stripe to the jersey body shape so it follows the curve */}
+          <clipPath id="jerseyClip">
+            <path
+              d="
+                M 95 22
+                Q 110 32 125 22
+                L 160 32
+                L 195 48
+                L 208 178
+                L 175 178
+                L 168 88
+                L 165 200
+                Q 110 215 55 200
+                L 52 88
+                L 45 178
+                L 12 178
+                L 25 48
+                L 60 32
+                Z
+              "
+            />
+          </clipPath>
+        </defs>
+
+        {/* Body — main jersey shape */}
         <path
           d="
-            M 70 30
-            L 95 22
-            Q 110 38 125 22
-            L 150 30
-            L 175 50
-            L 195 110
-            L 195 165
-            Q 185 175 170 168
-            L 160 100
-            L 160 215
-            Q 110 225 60 215
-            L 60 100
-            L 50 168
-            Q 35 175 25 165
-            L 25 110
-            L 45 50
+            M 95 22
+            Q 110 32 125 22
+            L 160 32
+            L 195 48
+            L 208 178
+            L 175 178
+            L 168 88
+            L 165 200
+            Q 110 215 55 200
+            L 52 88
+            L 45 178
+            L 12 178
+            L 25 48
+            L 60 32
             Z
           "
           fill={primaryColor}
-          stroke={secondaryColor}
-          strokeWidth="2.5"
+          stroke="rgba(0,0,0,0.35)"
+          strokeWidth="2"
+          strokeLinejoin="round"
         />
 
-        {/* Shoulder yokes */}
-        <path d="M 70 30 L 95 22 Q 105 35 110 50 L 70 60 Z" fill={secondaryColor} />
-        <path d="M 150 30 L 125 22 Q 115 35 110 50 L 150 60 Z" fill={secondaryColor} />
-
-        {/* Sleeve cuff stripes */}
-        <rect x="22" y="155" width="16" height="14" rx="1" fill={secondaryColor} />
-        <rect x="182" y="155" width="16" height="14" rx="1" fill={secondaryColor} />
-
-        {/* Bottom hem stripe */}
-        <rect x="60" y="208" width="100" height="8" fill={secondaryColor} />
-
-        {/* Collar */}
+        {/* Left shoulder yoke — curves over shoulder onto upper sleeve */}
         <path
-          d="M 95 22 Q 110 38 125 22 L 122 18 Q 110 32 98 18 Z"
+          d="
+            M 95 22
+            Q 110 32 110 50
+            L 80 58
+            L 52 78
+            L 35 70
+            L 25 48
+            L 60 32
+            Z
+          "
           fill={secondaryColor}
-          opacity="0.7"
+          stroke="rgba(0,0,0,0.18)"
+          strokeWidth="1"
         />
+
+        {/* Right shoulder yoke — mirror */}
+        <path
+          d="
+            M 125 22
+            Q 110 32 110 50
+            L 140 58
+            L 168 78
+            L 185 70
+            L 195 48
+            L 160 32
+            Z
+          "
+          fill={secondaryColor}
+          stroke="rgba(0,0,0,0.18)"
+          strokeWidth="1"
+        />
+
+        {/* Cuff stripes — left sleeve */}
+        <rect x="14" y="148" width="32" height="6" fill={secondaryColor} />
+        <rect x="14" y="160" width="32" height="6" fill={secondaryColor} />
+
+        {/* Cuff stripes — right sleeve */}
+        <rect x="174" y="148" width="32" height="6" fill={secondaryColor} />
+        <rect x="174" y="160" width="32" height="6" fill={secondaryColor} />
+
+        {/* Hem stripe — clipped to body shape so it follows the curve */}
+        <rect
+          x="0"
+          y="172"
+          width="220"
+          height="14"
+          fill={secondaryColor}
+          clipPath="url(#jerseyClip)"
+        />
+
+        {/* V-collar lace area */}
+        <path
+          d="M 95 22 Q 110 38 125 22 L 122 30 Q 110 44 98 30 Z"
+          fill="rgba(0,0,0,0.25)"
+        />
+
+        {/* Lace cross-stitches */}
+        <line x1="103" y1="28" x2="117" y2="34" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="117" y1="28" x2="103" y2="34" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="103" y1="36" x2="117" y2="42" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="117" y1="36" x2="103" y2="42" stroke={secondaryColor} strokeWidth="1.4" strokeLinecap="round" />
       </svg>
-      <div className="pointer-events-none absolute inset-x-0 top-[34%] flex flex-col items-center">
-        <span className="max-w-[60%] truncate text-[10px] font-bold uppercase tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[11px]">
+
+      {/* Name + number overlay, centered on torso below collar */}
+      <div className="pointer-events-none absolute inset-x-0 top-[38%] flex flex-col items-center">
+        <span className="max-w-[55%] truncate text-[10px] font-bold uppercase tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] sm:text-[11px]">
           {name}
         </span>
         <span className="text-2xl font-black leading-none text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)] sm:text-[28px]">
@@ -188,31 +268,30 @@ function Jersey({
 function EmptyJersey({ primaryColor }: { primaryColor: string }) {
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
-      <svg viewBox="0 0 220 240" className="h-auto w-full opacity-40">
+      <svg viewBox="0 0 220 220" className="h-auto w-full opacity-40">
         <path
           d="
-            M 70 30
-            L 95 22
-            Q 110 38 125 22
-            L 150 30
-            L 175 50
-            L 195 110
-            L 195 165
-            Q 185 175 170 168
-            L 160 100
-            L 160 215
-            Q 110 225 60 215
-            L 60 100
-            L 50 168
-            Q 35 175 25 165
-            L 25 110
-            L 45 50
+            M 95 22
+            Q 110 32 125 22
+            L 160 32
+            L 195 48
+            L 208 178
+            L 175 178
+            L 168 88
+            L 165 200
+            Q 110 215 55 200
+            L 52 88
+            L 45 178
+            L 12 178
+            L 25 48
+            L 60 32
             Z
           "
           fill="none"
           stroke={primaryColor}
           strokeWidth="2.5"
           strokeDasharray="6 4"
+          strokeLinejoin="round"
         />
       </svg>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
