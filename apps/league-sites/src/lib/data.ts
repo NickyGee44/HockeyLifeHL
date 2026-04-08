@@ -1025,7 +1025,7 @@ export async function getTeamSchedule(
 /**
  * Fetch team rivals (teams they've played with head-to-head record)
  */
-export async function getTeamRivals(teamId: string, limit = 3): Promise<{
+export async function getTeamRivals(teamId: string, limit = 3, seasonId?: string): Promise<{
   team: { id: string; name: string; slug: string; logo: string | null };
   wins: number;
   losses: number;
@@ -1034,8 +1034,8 @@ export async function getTeamRivals(teamId: string, limit = 3): Promise<{
 }[]> {
   const supabase = await createClient();
 
-  // Get all completed games for this team
-  const { data: games, error } = await supabase
+  // Get completed games for this team, optionally scoped to a season
+  let query = supabase
     .from('games')
     .select(`
       home_team_id,
@@ -1047,6 +1047,12 @@ export async function getTeamRivals(teamId: string, limit = 3): Promise<{
     `)
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .eq('status', 'completed');
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data: games, error } = await query;
 
   if (error || !games || games.length === 0) {
     return [];

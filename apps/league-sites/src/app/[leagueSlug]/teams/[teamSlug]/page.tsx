@@ -3,9 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
-  BarChart3,
   Mail,
-  Medal,
   Phone,
   Shield,
   Swords,
@@ -14,6 +12,7 @@ import {
 } from 'lucide-react';
 import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
 import { RivalsCarousel } from '@/components/team/RivalsCarousel';
+import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
 import {
@@ -35,9 +34,7 @@ import {
   getTeamStandingRank,
   splitRosterByRole,
   summarizeTeamChampionships,
-  type TeamLeaderCard,
   type TeamLeaderMetric,
-  type TeamPageRosterStatsByPlayer,
 } from '@/lib/team-page';
 
 interface TeamPageProps {
@@ -78,7 +75,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
-    getTeamRivals(team.id, 4),
+    getTeamRivals(team.id, 4, currentSeason?.id),
     getSeasons(league.id),
   ]);
 
@@ -109,6 +106,22 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   const captain = roster.find((player) => player.leadership_role === 'captain');
   const rivalCards = buildRivalCardInsights(rivals);
   const teamLeaders = buildTeamLeaders(skaters, rosterStatsByPlayer, leaderTab);
+
+  // Build bar chart data: all skaters sorted by active metric
+  const metricKey = leaderTab === 'penalty_minutes' ? 'penalty_minutes' : leaderTab;
+  const barChartPlayers = skaters
+    .map((player) => {
+      const stats = rosterStatsByPlayer[player.player_id];
+      return {
+        playerId: player.player_id,
+        name: player.profile?.full_name || 'Unknown',
+        avatarUrl: player.profile?.avatar_url || '/blank_player.png',
+        jerseyNumber: player.jersey_number,
+        value: stats?.[metricKey] ?? 0,
+      };
+    })
+    .sort((a, b) => b.value - a.value);
+
   const pointInsights = buildTeamPointInsights({
     teamName: team.name,
     teamId: team.id,
@@ -123,26 +136,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
     <SubscriptionWall>
       <div className="min-h-screen bg-[var(--color-background)] px-4 py-8">
         <div className="mx-auto max-w-[1200px] animate-fade-in">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                {titleMeta.map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full border border-[var(--league-primary)]/20 bg-[var(--color-surface)]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-              <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)] md:text-5xl">
-                {team.name}
-              </h1>
-            </div>
-          </div>
-
           <section className="relative isolate overflow-hidden rounded-[34px]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_30%)]" />
             <div className="relative p-6 md:p-8 lg:p-10">
               <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="flex flex-col items-center text-center xl:items-start xl:text-left">
@@ -168,9 +162,9 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="mt-2 space-y-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                      Team Record
+                      {team.name}
                     </p>
                     <p className="text-3xl font-black text-[var(--color-text-primary)] md:text-4xl">
                       {teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : 'No games yet'}
@@ -204,48 +198,16 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
           </section>
 
           <div className="mt-6 space-y-6">
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <SectionHeader
-                  icon={BarChart3}
-                  title="Team Leaders"
-                />
-
-                <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-                  {([
-                    ['points', 'P'],
-                    ['goals', 'G'],
-                    ['assists', 'A'],
-                    ['penalty_minutes', 'PM'],
-                  ] as const).map(([value, label]) => (
-                    <ScheduleToggleLink
-                      key={value}
-                      href={`/${leagueSlug}/teams/${teamSlug}?tab=${value}`}
-                      active={leaderTab === value}
-                    >
-                      {label}
-                    </ScheduleToggleLink>
-                  ))}
-                </div>
-              </div>
-
-              {teamLeaders.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {teamLeaders.map((leader, index) => (
-                    <TeamLeaderPodiumCard key={`${leader.playerId}-${leader.metric}`} leader={leader} place={index + 1} leagueSlug={leagueSlug} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanel
-                  title="No team leaders yet"
-                  description="Leader cards will populate once current-season player stats are recorded."
-                />
-              )}
-
-              {pointInsights.length > 0 ? (
-                <PointInsightsCarousel insights={pointInsights} />
-              ) : null}
-            </section>
+            <TeamLeadersSection
+              leaders={teamLeaders}
+              barChartPlayers={barChartPlayers}
+              leagueSlug={leagueSlug}
+              teamSlug={teamSlug}
+              leaderTab={leaderTab}
+              pointInsightsElement={
+                pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} /> : null
+              }
+            />
 
             <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
               <SectionHeader
@@ -439,67 +401,6 @@ function HeroMetric({ label, value, accent }: { label: string; value: string | n
   );
 }
 
-function TeamLeaderPodiumCard({
-  leader,
-  place,
-  leagueSlug,
-}: {
-  leader: TeamLeaderCard;
-  place: number;
-  leagueSlug: string;
-}) {
-  const medalStyles = [
-    'from-amber-400/30 via-amber-300/18 to-transparent border-amber-300/35 text-amber-200',
-    'from-slate-200/25 via-slate-100/15 to-transparent border-slate-300/30 text-slate-100',
-    'from-orange-500/22 via-orange-300/14 to-transparent border-orange-300/25 text-orange-200',
-  ];
-  const labels: Record<TeamLeaderMetric, string> = {
-    goals: 'Goals',
-    assists: 'Assists',
-    points: 'Points',
-    penalty_minutes: 'PIM',
-  };
-
-  return (
-    <Link
-      href={`/${leagueSlug}/players/${leader.playerId}`}
-      className={`rounded-[24px] border bg-gradient-to-br p-5 transition-transform duration-200 hover:-translate-y-0.5 ${medalStyles[place - 1] || medalStyles[2]}`}
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-current/20 bg-black/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">
-          <Medal className="h-3.5 w-3.5" />
-          {place === 1 ? 'Gold' : place === 2 ? 'Silver' : 'Bronze'}
-        </div>
-        <span className="text-3xl font-black leading-none">{leader.value}</span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Image
-          src={leader.avatarUrl || '/blank_player.png'}
-          alt={leader.name}
-          width={60}
-          height={60}
-          className="h-14 w-14 rounded-full border border-white/10 object-cover"
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-lg font-bold text-[var(--color-text-primary)]">{leader.name}</p>
-            {leader.leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
-            {leader.leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
-          </div>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {labels[leader.metric]} leader • {leader.positionLabel}
-            {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
-          </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {leader.gamesPlayed} GP
-          </p>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 function StatsTableCard({
   columns,
   children,
@@ -599,28 +500,6 @@ function CaptainBadge({ label, muted }: { label: string; muted?: boolean }) {
   );
 }
 
-function ScheduleToggleLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-        active
-          ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-          : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
 
 function EmptyPanel({ title, description }: { title: string; description: string }) {
   return (

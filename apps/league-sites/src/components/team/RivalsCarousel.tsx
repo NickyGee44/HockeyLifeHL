@@ -58,35 +58,35 @@ export function RivalsCarousel({
         href={`/${leagueSlug}/teams/${rival.team.slug}`}
         className="group block overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--league-primary)]/35"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            {rival.team.logo ? (
-              <Image
-                src={rival.team.logo}
-                alt={rival.team.name}
-                width={44}
-                height={44}
-                className="h-11 w-11 rounded-2xl object-cover"
-              />
-            ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--league-primary)]/12 text-sm font-black text-[var(--league-primary)]">
-                {rival.team.name.charAt(0)}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)]">
-                {rival.team.name}
-              </p>
+        <div className="mb-5 flex flex-col items-center gap-4 text-center">
+          {rival.team.logo ? (
+            <Image
+              src={rival.team.logo}
+              alt={rival.team.name}
+              width={120}
+              height={120}
+              className="h-[100px] w-[100px] object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.4)] md:h-[120px] md:w-[120px]"
+            />
+          ) : (
+            <div className="flex h-[100px] w-[100px] items-center justify-center rounded-3xl bg-[var(--league-primary)]/12 text-3xl font-black text-[var(--league-primary)] md:h-[120px] md:w-[120px]">
+              {rival.team.name.charAt(0)}
+            </div>
+          )}
+          <div>
+            <p className="text-lg font-bold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)]">
+              {rival.team.name}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-2">
               <p className="text-sm text-[var(--color-text-secondary)]">
-                {rival.games_played} {rival.games_played === 1 ? 'game' : 'games'}
+                {rival.games_played} {rival.games_played === 1 ? 'game' : 'games'} this season
               </p>
+              <span
+                className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${statusColor}`}
+              >
+                {statusLabel}
+              </span>
             </div>
           </div>
-          <span
-            className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${statusColor}`}
-          >
-            {statusLabel}
-          </span>
         </div>
 
         <div className="mb-3 rounded-[18px] border border-[var(--league-primary)]/15 bg-[var(--league-primary)]/8 px-4 py-3">
