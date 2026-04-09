@@ -4964,6 +4964,71 @@ export async function getPlayerArticles(playerId: string, limit = 10): Promise<N
   return articles as unknown as NewsArticle[];
 }
 
+export async function getTeamArticles(leagueId: string, teamId: string, limit = 6): Promise<NewsArticle[]> {
+  const supabase = createServiceRoleClient();
+
+  const [{ data: tagRows }, { data: teamGames }] = await Promise.all([
+    supabase
+      .from('article_team_tags')
+      .select('article_id')
+      .eq('team_id', teamId)
+      .limit(Math.max(limit * 3, 12)),
+    supabase
+      .from('games')
+      .select('id, scheduled_at')
+      .eq('league_id', leagueId)
+      .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
+      .order('scheduled_at', { ascending: false })
+      .limit(60),
+  ]);
+
+  const taggedArticleIds = [...new Set((tagRows || []).map((row: any) => row.article_id).filter(Boolean))] as string[];
+  const teamGameIds = [...new Set((teamGames || []).map((game: any) => game.id).filter(Boolean))] as string[];
+
+  if (taggedArticleIds.length === 0 && teamGameIds.length === 0) {
+    return [];
+  }
+
+  const articleSelect = '*, author:profiles!articles_author_id_fkey(full_name, avatar_url)';
+  const allowedTypes = ['news', 'game_recap', 'weekly_wrap'];
+
+  const [taggedArticlesResult, gameArticlesResult] = await Promise.all([
+    taggedArticleIds.length > 0
+      ? supabase
+          .from('articles')
+          .select(articleSelect)
+          .eq('league_id', leagueId)
+          .eq('published', true)
+          .in('type', allowedTypes)
+          .in('id', taggedArticleIds)
+      : Promise.resolve({ data: [] as any[] }),
+    teamGameIds.length > 0
+      ? supabase
+          .from('articles')
+          .select(articleSelect)
+          .eq('league_id', leagueId)
+          .eq('published', true)
+          .in('type', allowedTypes)
+          .in('game_id', teamGameIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const mergedById = new Map<string, NewsArticle>();
+
+  for (const article of [...(taggedArticlesResult.data || []), ...(gameArticlesResult.data || [])] as NewsArticle[]) {
+    if (!article?.id) continue;
+    mergedById.set(article.id, article);
+  }
+
+  return [...mergedById.values()]
+    .sort((a, b) => {
+      const aTime = new Date(a.published_at || a.created_at).getTime();
+      const bTime = new Date(b.published_at || b.created_at).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, limit);
+}
+
 // ========== EVENTS ==========
 export async function getLeagueEvents(leagueId: string): Promise<LeagueEvent[]> {
   const supabase = await createClient();

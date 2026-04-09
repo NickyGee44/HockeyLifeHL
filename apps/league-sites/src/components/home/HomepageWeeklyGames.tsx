@@ -34,6 +34,11 @@ interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
   leagueSlug: string;
   timezone?: string | null;
+  eyebrowLabel?: string;
+  title?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  showViewToggle?: boolean;
 }
 
 interface TeamSideProps {
@@ -563,6 +568,11 @@ export function HomepageWeeklyGames({
   games,
   leagueSlug,
   timezone,
+  eyebrowLabel = 'This Week',
+  title = 'This Week’s Games',
+  emptyTitle = 'No games scheduled this week',
+  emptyDescription = 'Check the full schedule for the next slate and recent scores.',
+  showViewToggle = true,
 }: HomepageWeeklyGamesProps) {
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -588,25 +598,27 @@ export function HomepageWeeklyGames({
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
             <Calendar className="h-3.5 w-3.5" />
-            This Week
+            {eyebrowLabel}
             <span className="text-[var(--color-text-muted)]">•</span>
             {games.length} {games.length === 1 ? 'game' : 'games'}
           </div>
           <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-            This Week’s Games
+            {title}
           </h2>
         </div>
 
-        <button
-          type="button"
-          aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
-          aria-pressed={isCompactView}
-          onClick={() => setView((current) => (current === 'cool' ? 'compact' : 'cool'))}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
-          title={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
-        >
-          {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
-        </button>
+        {showViewToggle ? (
+          <button
+            type="button"
+            aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
+            aria-pressed={isCompactView}
+            onClick={() => setView((current) => (current === 'cool' ? 'compact' : 'cool'))}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
+            title={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
+          >
+            {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
+          </button>
+        ) : null}
       </div>
 
       {games.length > 0 ? (
@@ -629,10 +641,10 @@ export function HomepageWeeklyGames({
             </div>
             <div>
               <p className="text-lg font-bold text-[var(--color-text-primary)]">
-                No games scheduled this week
+                {emptyTitle}
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Check the full schedule for the next slate and recent scores.
+                {emptyDescription}
               </p>
             </div>
           </div>
