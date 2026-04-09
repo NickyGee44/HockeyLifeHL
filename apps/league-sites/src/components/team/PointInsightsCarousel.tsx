@@ -23,7 +23,7 @@ function getIcon(key: string) {
   return ICON_MAP[key] || BarChart3;
 }
 
-export function PointInsightsCarousel({ insights }: { insights: PointInsight[] }) {
+export function PointInsightsCarousel({ insights, asBanner = false }: { insights: PointInsight[]; asBanner?: boolean }) {
   const [index, setIndex] = useState(0);
 
   const next = useCallback(() => {
@@ -46,13 +46,19 @@ export function PointInsightsCarousel({ insights }: { insights: PointInsight[] }
   const Icon = getIcon(insight.key);
 
   return (
-    <div className="mt-8 border-t border-[var(--color-border)]/50 pt-6">
-      <div className="mb-4 flex items-center gap-2">
-        <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
-        <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Points Insights</h3>
-      </div>
+    <div className={asBanner ? 'mt-6' : 'mt-8 border-t border-[var(--color-border)]/50 pt-6'}>
+      {!asBanner && (
+        <div className="mb-4 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
+          <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Points Insights</h3>
+        </div>
+      )}
 
-      <div className="relative rounded-[22px] border border-white/10 bg-[var(--color-surface)]/72 p-5">
+      <div className={`relative rounded-[22px] border p-5 ${
+        asBanner
+          ? 'border-[var(--league-primary)]/20 bg-[var(--league-primary)]/[0.06]'
+          : 'border-white/10 bg-[var(--color-surface)]/72'
+      }`}>
         <div className="flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--league-primary)]/12">
             <Icon className="h-5 w-5 text-[var(--league-primary)]" />

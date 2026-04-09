@@ -179,7 +179,7 @@ export function TeamLeadersSection({
         </div>
       )}
 
-      {pointInsightsElement}
+      {metric === 'points' ? pointInsightsElement : null}
     </section>
   );
 }

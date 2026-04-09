@@ -3,11 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
-  BarChart3,
-  Calendar,
-  ChevronRight,
+  CalendarDays,
   Mail,
-  Newspaper,
   Phone,
   Shield,
   Swords,
@@ -17,7 +14,7 @@ import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
 import { RivalsCarousel } from '@/components/team/RivalsCarousel';
 import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
 import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
-import { SeasonGamesTable } from '@/components/schedule/SeasonGamesTable';
+import { TeamScheduleList } from '@/components/schedule/TeamScheduleList';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
@@ -27,12 +24,10 @@ import {
   getSeasons,
   getSeasonGames,
   getStandings,
-  getTeamArticles,
   getTeamRoster,
   getTeamRosterStats,
   getTeamRivals,
   getTeamWithCaptain,
-  getTeams,
 } from '@/lib/data';
 import {
   buildRivalCardInsights,
@@ -45,7 +40,6 @@ import {
   summarizeTeamChampionships,
   type TeamLeaderMetric,
 } from '@/lib/team-page';
-import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 interface TeamPageProps {
   params: Promise<{ leagueSlug: string; teamSlug: string }>;
@@ -81,15 +75,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const currentSeason = await getCurrentSeason(league.id);
 
-  const [roster, rosterStatsByPlayer, standings, rivals, seasons, seasonGames, allTeams, teamArticles] = await Promise.all([
+  const [roster, rosterStatsByPlayer, standings, rivals, seasons, seasonGames] = await Promise.all([
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
     getTeamRivals(team.id, 4, currentSeason?.id),
     getSeasons(league.id),
     currentSeason?.id ? getSeasonGames(league.id, currentSeason.id) : Promise.resolve([]),
-    getTeams(league.id),
-    getTeamArticles(league.id, team.id, 3),
   ]);
 
   const teamStats = standings.find((standing) => standing.team_id === team.id) ?? null;
@@ -185,7 +177,11 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
       if (aPriority !== bPriority) return aPriority - bPriority;
       return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
     })[0] ?? null;
-  const [featuredArticle, ...secondaryArticles] = teamArticles;
+  // Compute win percentage
+  const gamesPlayed = (teamStats?.wins ?? 0) + (teamStats?.losses ?? 0) + (teamStats?.ties ?? 0);
+  const winPctDisplay = gamesPlayed > 0
+    ? `${((teamStats?.wins ?? 0) / gamesPlayed * 100).toFixed(0)}%`
+    : '-';
 
   return (
     <SubscriptionWall>
@@ -233,18 +229,25 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 </div>
 
                 <div className="flex flex-col gap-5">
-                  <div className="overflow-hidden rounded-[26px] border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
-                    <div className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-3 xl:grid-cols-6 xl:divide-y-0">
-                      <HeroMetric label="Points" value={teamStats?.points ?? '-'} accent />
+                  <div
+                    className="overflow-hidden rounded-[22px] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl"
+                    style={{
+                      background: 'color-mix(in srgb, var(--league-primary) 8%, rgba(0,0,0,0.40))',
+                    }}
+                  >
+                    <div className="grid grid-cols-3 divide-x divide-white/10">
+                      <HeroMetric label="Win %" value={winPctDisplay} accent />
                       <HeroMetric label="Rank" value={teamRank ? `#${teamRank}` : '-'} accent />
+                      <HeroMetric label="Streak" value={teamStreak} />
+                    </div>
+                    <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
                       <HeroMetric label="GF" value={teamStats?.goals_for ?? '-'} />
                       <HeroMetric label="GA" value={teamStats?.goals_against ?? '-'} />
                       <HeroMetric
-                        label="Differential"
+                        label="Diff"
                         value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
                         accent={Boolean(teamStats && teamStats.goal_differential > 0)}
                       />
-                      <HeroMetric label="Streak" value={teamStreak} />
                     </div>
                   </div>
                 </div>
@@ -253,16 +256,16 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
           </section>
 
           <div className="mt-6 space-y-6">
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
+            <section>
               <HomepageWeeklyGames
                 games={nextTeamGame ? [nextTeamGame] : []}
                 leagueSlug={leagueSlug}
                 timezone={league.timezone || 'America/Toronto'}
-                eyebrowLabel="Next Up"
                 title="Next Game"
                 emptyTitle="No upcoming games scheduled"
                 emptyDescription="This team does not have another game on the current slate yet."
                 showViewToggle={false}
+                variant="team"
               />
             </section>
 
@@ -272,23 +275,21 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
               leagueSlug={leagueSlug}
               initialMetric={leaderTab}
               pointInsightsElement={
-                pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} /> : null
+                pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} asBanner /> : null
               }
             />
 
-            {seasonGames.length > 0 && (
+            {teamScheduleGames.length > 0 && (
               <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
                 <div className="mb-4 flex items-center gap-3">
-                  <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
-                  <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Season Games</h2>
+                  <CalendarDays className="h-5 w-5 text-[var(--league-primary)]" />
+                  <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Schedule</h2>
                 </div>
-                <SeasonGamesTable
-                  games={seasonGames as any}
-                  teams={allTeams}
+                <TeamScheduleList
+                  games={teamScheduleGames as any}
                   leagueSlug={leagueSlug}
                   timezone={league.timezone || 'America/Toronto'}
-                  initialTeamId={team.id}
-                  hideFilter
+                  teamId={team.id}
                   collapsible
                 />
               </section>
@@ -410,99 +411,6 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
             </section>
 
             <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <SectionHeader
-                  icon={Newspaper}
-                  title="Team News & Recaps"
-                  description="Latest stories tied to this club, from recaps to tagged league coverage."
-                />
-                <Link
-                  href={`/${leagueSlug}/news`}
-                  className="inline-flex items-center gap-1 self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/72 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--league-primary)] transition-colors hover:border-[var(--league-primary)]/50 hover:text-[var(--color-text-primary)]"
-                >
-                  View All
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-
-              {featuredArticle ? (
-                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-                  <Link
-                    href={`/${leagueSlug}/news/${featuredArticle.slug || featuredArticle.id}`}
-                    className="group overflow-hidden rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface)]/92 shadow-[0_22px_60px_-40px_rgba(0,0,0,0.75)]"
-                  >
-                    <div className="relative aspect-[16/8.4] min-h-[220px] overflow-hidden">
-                      {featuredArticle.image_url ? (
-                        <img
-                          src={featuredArticle.image_url}
-                          alt={featuredArticle.title}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-end bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.28),_transparent_48%),linear-gradient(160deg,rgba(18,18,18,1)_0%,rgba(8,8,8,0.96)_100%)] p-6">
-                          <span className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
-                            {team.name}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/24 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--league-primary)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--color-accent-text)]">
-                          Featured Story
-                        </span>
-                        <h3 className="mt-3 text-xl font-black leading-tight text-white md:text-[1.8rem]">
-                          {featuredArticle.title}
-                        </h3>
-                        {featuredArticle.excerpt ? (
-                          <p className="mt-2 max-w-2xl text-sm text-white/80 line-clamp-2">
-                            {stripMarkdownLinks(featuredArticle.excerpt)}
-                          </p>
-                        ) : null}
-                        <div className="mt-4 flex items-center gap-2 text-xs text-white/70">
-                          <Calendar className="h-3.5 w-3.5" />
-                          <time dateTime={featuredArticle.published_at || featuredArticle.created_at}>
-                            {formatArticleDate(featuredArticle.published_at || featuredArticle.created_at)}
-                          </time>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <div className="flex flex-col gap-3">
-                    {secondaryArticles.length > 0 ? (
-                      secondaryArticles.map((article) => (
-                        <Link
-                          key={article.id}
-                          href={`/${leagueSlug}/news/${article.slug || article.id}`}
-                          className="group flex min-h-[108px] flex-col justify-between rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/88 px-5 py-4 transition-colors hover:border-[var(--league-primary)]/45"
-                        >
-                          <h3 className="text-base font-bold leading-snug text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
-                            {article.title}
-                          </h3>
-                          <div className="mt-3 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-                            <Calendar className="h-3.5 w-3.5" />
-                            <time dateTime={article.published_at || article.created_at}>
-                              {formatArticleDate(article.published_at || article.created_at)}
-                            </time>
-                          </div>
-                        </Link>
-                      ))
-                    ) : (
-                      <div className="flex h-full items-center rounded-[22px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/48 px-5 py-6 text-sm text-[var(--color-text-secondary)]">
-                        One story is live so far. More team-specific recaps will stack here as they publish.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <EmptyPanel
-                  title="No team stories yet"
-                  description="Team recaps and tagged league stories will appear here once they are published."
-                />
-              )}
-            </section>
-
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
               <SectionHeader
                 icon={Shield}
                 title="Captain Contact"
@@ -586,21 +494,13 @@ function SectionHeader({
 
 function HeroMetric({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
-    <div className="px-4 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
-      <p className={`mt-2 text-2xl font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
+    <div className="px-3 py-3 text-center">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
+      <p className={`mt-1 text-xl font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
         {value}
       </p>
     </div>
   );
-}
-
-function formatArticleDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 function StatsTableCard({

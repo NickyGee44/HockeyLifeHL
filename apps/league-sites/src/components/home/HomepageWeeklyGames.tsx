@@ -39,6 +39,8 @@ interface HomepageWeeklyGamesProps {
   emptyTitle?: string;
   emptyDescription?: string;
   showViewToggle?: boolean;
+  /** 'team' hides eyebrow, overlay badges, detail team names, status card, and dots */
+  variant?: 'homepage' | 'team';
 }
 
 interface TeamSideProps {
@@ -293,12 +295,14 @@ function CoolView({
   onNavigate,
   leagueSlug,
   timezone,
+  minimal = false,
 }: {
   games: ScheduleGame[];
   activeIndex: number;
   onNavigate: (direction: number) => void;
   leagueSlug: string;
   timezone?: string | null;
+  minimal?: boolean;
 }) {
   const game = games[activeIndex];
   const hasControls = games.length > 1;
@@ -345,32 +349,34 @@ function CoolView({
           )}
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
-          <CoolCardTeam
-            team={slideGame.away_team}
-            leagueSlug={leagueSlug}
-            align="left"
-          />
-          <div
-            className="rounded-[18px] border border-white/10 px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-            style={{
-              backgroundColor:
-                'color-mix(in srgb, var(--color-background-elevated) 76%, transparent)',
-            }}
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-              {centerDisplay.label}
-            </p>
-            <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
-              {centerDisplay.primary}
-            </p>
+        {!minimal && (
+          <div className="mt-4 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+            <CoolCardTeam
+              team={slideGame.away_team}
+              leagueSlug={leagueSlug}
+              align="left"
+            />
+            <div
+              className="rounded-[18px] border border-white/10 px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+              style={{
+                backgroundColor:
+                  'color-mix(in srgb, var(--color-background-elevated) 76%, transparent)',
+              }}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                {centerDisplay.label}
+              </p>
+              <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
+                {centerDisplay.primary}
+              </p>
+            </div>
+            <CoolCardTeam
+              team={slideGame.home_team}
+              leagueSlug={leagueSlug}
+              align="right"
+            />
           </div>
-          <CoolCardTeam
-            team={slideGame.home_team}
-            leagueSlug={leagueSlug}
-            align="right"
-          />
-        </div>
+        )}
       </div>
     );
   };
@@ -420,12 +426,16 @@ function CoolView({
             <span className="sr-only">{getGameAriaLabel(game)}</span>
           </Link>
 
-          <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-            {activeIndex + 1} / {games.length}
-          </div>
-          <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-            {getStatusLabel(game.status)}
-          </div>
+          {!minimal && (
+            <>
+              <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+                {activeIndex + 1} / {games.length}
+              </div>
+              <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+                {getStatusLabel(game.status)}
+              </div>
+            </>
+          )}
 
           {hasControls && (
             <>
@@ -477,7 +487,7 @@ function CoolView({
               {renderDetailsSlide(game)}
             </div>
 
-            <div className="mt-4 flex items-center justify-center gap-2">
+            {!minimal && <div className="mt-4 flex items-center justify-center gap-2">
               {games.map((entry, index) => (
                 <button
                   key={entry.id}
@@ -492,7 +502,7 @@ function CoolView({
                   }`}
                 />
               ))}
-            </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -569,11 +579,13 @@ export function HomepageWeeklyGames({
   leagueSlug,
   timezone,
   eyebrowLabel = 'This Week',
-  title = 'This Week’s Games',
+  title = "This Week\u2019s Games",
   emptyTitle = 'No games scheduled this week',
   emptyDescription = 'Check the full schedule for the next slate and recent scores.',
   showViewToggle = true,
+  variant = 'homepage',
 }: HomepageWeeklyGamesProps) {
+  const isTeamVariant = variant === 'team';
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
   const isCompactView = view === 'compact';
@@ -596,13 +608,16 @@ export function HomepageWeeklyGames({
     <div>
       <div className="flex items-start justify-between gap-4">
         <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            <Calendar className="h-3.5 w-3.5" />
-            {eyebrowLabel}
-            <span className="text-[var(--color-text-muted)]">•</span>
-            {games.length} {games.length === 1 ? 'game' : 'games'}
-          </div>
-          <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+          {!isTeamVariant && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+              <Calendar className="h-3.5 w-3.5" />
+              {eyebrowLabel}
+              <span className="text-[var(--color-text-muted)]">•</span>
+              {games.length} {games.length === 1 ? 'game' : 'games'}
+            </div>
+          )}
+          <h2 className={`${isTeamVariant ? '' : 'mt-3 '}flex items-center gap-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]`}>
+            {isTeamVariant && <Calendar className="h-5 w-5 text-[var(--league-primary)]" />}
             {title}
           </h2>
         </div>
@@ -629,6 +644,7 @@ export function HomepageWeeklyGames({
             onNavigate={handleNavigate}
             leagueSlug={leagueSlug}
             timezone={timezone}
+            minimal={isTeamVariant}
           />
         ) : (
           <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
