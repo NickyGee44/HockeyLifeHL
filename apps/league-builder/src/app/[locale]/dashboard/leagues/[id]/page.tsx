@@ -9,6 +9,7 @@ import {
   Calendar,
   CheckCircle2,
   Globe,
+  ImageIcon,
   LayoutGrid,
   Play,
   PlugZap,
@@ -188,6 +189,14 @@ export default async function LeagueDetailPage({ params }: Props) {
           : 'Connect Stripe',
     },
     {
+      eyebrow: 'Content',
+      title: 'Social graphics workspace is ready',
+      description:
+        'Keep score cards, weekly recap concepts, standings graphics, and future social export flows in one league-scoped portal page.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/social`,
+      cta: 'Open social graphics',
+    },
+    {
       eyebrow: 'Email and Domain',
       title:
         domainSettings.customDomainName || websiteSettings.onboardingRequested
@@ -299,6 +308,13 @@ export default async function LeagueDetailPage({ params }: Props) {
             >
               {primaryActionLabel}
               <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={`/${locale}/dashboard/leagues/${leagueId}/social`}
+              className="inline-flex items-center gap-2 rounded-2xl border border-rink-400/20 bg-rink-500/10 px-5 py-3 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
+            >
+              <ImageIcon className="h-4 w-4" />
+              Social graphics
             </Link>
             <Link
               href={buildLeagueSeasonsHref(locale, leagueId)}
