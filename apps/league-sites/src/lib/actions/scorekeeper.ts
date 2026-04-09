@@ -2936,8 +2936,10 @@ export async function finalizeGameStats(gameId: string): Promise<{
 /**
  * Get or create a scorekeeper session for a captain's own game.
  *
- * Self-scorekeeping must be enabled in the league settings
- * (`leagues.settings.self_scorekeeper_enabled === true`).
+ * Self-scorekeeping must be enabled in the league settings.
+ * Supports both the current `self_scorekeeper_enabled` flag and older
+ * self-scoring config shapes (`scorekeepingMode=self_scorekeeping` or
+ * `statEntryMode=captain`).
  *
  * Returns the token which the client uses to start the scorekeeper session
  * by navigating to `/{leagueSlug}/scorekeeper?token={token}`.
@@ -2995,8 +2997,12 @@ export async function getOrCreateCaptainScorekeeperSession(
     const leagueArr = game.leagues as any;
     const leagueData = Array.isArray(leagueArr) ? leagueArr[0] : leagueArr;
     const leagueSettings = (leagueData?.settings as Record<string, unknown>) ?? {};
+    const selfScorekeeperEnabled =
+      leagueSettings.self_scorekeeper_enabled === true ||
+      leagueSettings.scorekeepingMode === 'self_scorekeeping' ||
+      leagueSettings.statEntryMode === 'captain';
 
-    if (!leagueSettings.self_scorekeeper_enabled) {
+    if (!selfScorekeeperEnabled) {
       return { success: false, error: 'Self-scorekeeping is not enabled for this league' };
     }
 

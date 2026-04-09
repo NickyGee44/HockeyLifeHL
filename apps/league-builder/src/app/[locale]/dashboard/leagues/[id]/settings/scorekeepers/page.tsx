@@ -53,6 +53,11 @@ export default async function LeagueScorekeepersPage({ params }: Props) {
 
   const scorekeepers = scorekeepersResult.success ? scorekeepersResult.data.scorekeepers : [];
   const seasons = seasonsResult.data || [];
+  const leagueSettings = ((league.settings as Record<string, unknown> | null) ?? {});
+  const selfScorekeeperEnabled =
+    leagueSettings.self_scorekeeper_enabled === true ||
+    leagueSettings.scorekeepingMode === 'self_scorekeeping' ||
+    leagueSettings.statEntryMode === 'captain';
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -108,7 +113,7 @@ export default async function LeagueScorekeepersPage({ params }: Props) {
         {/* Self-Scorekeeping Toggle */}
         <SelfScorekeeperToggle
           leagueId={leagueId}
-          initialEnabled={(league.settings as any)?.self_scorekeeper_enabled === true}
+          initialEnabled={selfScorekeeperEnabled}
         />
 
         {/* Management Client */}

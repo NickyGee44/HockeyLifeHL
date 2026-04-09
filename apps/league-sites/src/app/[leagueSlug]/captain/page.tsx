@@ -67,7 +67,11 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const [scoreError, setScoreError] = useState<string | null>(null);
 
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
-  const selfScorekeeperEnabled = league?.settings?.self_scorekeeper_enabled === true;
+  const leagueSettings = (league?.settings ?? null) as Record<string, unknown> | null;
+  const selfScorekeeperEnabled =
+    leagueSettings?.self_scorekeeper_enabled === true ||
+    leagueSettings?.scorekeepingMode === 'self_scorekeeping' ||
+    leagueSettings?.statEntryMode === 'captain';
 
   const teamId = currentTeam?.team_id;
 

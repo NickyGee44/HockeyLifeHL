@@ -461,6 +461,7 @@ export async function createLeague(
         settings: {
           statEntryMode: data.scorekeeping_mode === 'standard' ? 'scorekeeper' : 'captain',
           scorekeepingMode: data.scorekeeping_mode ?? 'self_scorekeeping',
+          self_scorekeeper_enabled: data.scorekeeping_mode !== 'standard',
           allowPlayerRegistration: true,
           requireApproval: data.registration_type !== 'open',
           isDraftLeague: data.registration_type === 'draft',

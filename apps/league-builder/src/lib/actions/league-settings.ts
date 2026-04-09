@@ -152,7 +152,12 @@ export async function updateScorekeeperMode(
     .single();
 
   const currentSettings = (current?.settings as Record<string, unknown>) ?? {};
-  const merged = { ...currentSettings, self_scorekeeper_enabled: selfScorekeeperEnabled };
+  const merged = {
+    ...currentSettings,
+    self_scorekeeper_enabled: selfScorekeeperEnabled,
+    scorekeepingMode: selfScorekeeperEnabled ? 'self_scorekeeping' : 'standard',
+    statEntryMode: selfScorekeeperEnabled ? 'captain' : 'scorekeeper',
+  };
 
   const { error } = await supabase
     .from('leagues')
