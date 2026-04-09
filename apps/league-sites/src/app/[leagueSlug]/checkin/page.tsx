@@ -79,7 +79,11 @@ export default function CheckinPage() {
   const [showGoalieModal, setShowGoalieModal] = useState(false);
 
   // Self-scorekeeping
-  const selfScorekeeperEnabled = league?.settings?.self_scorekeeper_enabled === true;
+  const leagueSettings = (league?.settings ?? null) as Record<string, unknown> | null;
+  const selfScorekeeperEnabled =
+    leagueSettings?.self_scorekeeper_enabled === true ||
+    leagueSettings?.scorekeepingMode === 'self_scorekeeping' ||
+    leagueSettings?.statEntryMode === 'captain';
   const [startingScore, setStartingScore] = useState(false);
 
   // Derived: current game

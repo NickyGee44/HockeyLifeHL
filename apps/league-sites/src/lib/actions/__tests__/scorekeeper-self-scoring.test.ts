@@ -258,6 +258,91 @@ describe('captain self-scoring', () => {
     expect(steps).toHaveLength(0);
   });
 
+  it('accepts legacy self-scoring league settings when the new flag is missing', async () => {
+    const authClient: any = {
+      auth: {
+        getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'captain-1' } } }),
+      },
+      from: jest.fn(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              eq: jest.fn(() => ({
+                is: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({
+                    data: { leadership_role: 'captain' },
+                  }),
+                })),
+              })),
+            })),
+          })),
+        })),
+      })),
+    };
+
+    mockCreateAuthClient.mockResolvedValue(authClient);
+
+    const { client, steps } = createMockClient([
+      {
+        type: 'select',
+        target: 'games',
+        result: {
+          data: {
+            id: 'game-1',
+            league_id: 'league-1',
+            home_team_id: 'team-home',
+            away_team_id: 'team-away',
+            scheduled_at: '2026-03-30T19:00:00.000Z',
+            status: 'scheduled',
+            leagues: { slug: 'hlhl', settings: { scorekeepingMode: 'self_scorekeeping' } },
+          },
+          error: null,
+        },
+      },
+      {
+        type: 'select',
+        target: 'scorekeeper_sessions',
+        result: { data: null, error: null },
+      },
+      {
+        type: 'select',
+        target: 'scorekeeper_sessions',
+        result: { data: null, error: null },
+      },
+      {
+        type: 'insert',
+        target: 'scorekeeper_sessions',
+        result: { data: { id: 'session-1' }, error: null },
+        assert: ({ payload }) => {
+          expect(payload).toEqual(
+            expect.objectContaining({
+              game_id: 'game-1',
+              league_id: 'league-1',
+              created_by: 'captain-1',
+              scorekeeper_id: 'captain-1',
+              session_origin: 'captain_self_score',
+              initiating_team_id: 'team-home',
+              initiating_team_type: 'home',
+              initiating_captain_id: 'captain-1',
+            }),
+          );
+        },
+      },
+    ]);
+
+    mockCreateServiceRoleClient.mockReturnValue(client);
+
+    const result = await getOrCreateCaptainScorekeeperSession('game-1', 'team-home');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: true,
+        leagueSlug: 'hlhl',
+      }),
+    );
+    expect(steps).toHaveLength(0);
+  });
+
   it('reuses an existing active captain session for the same game', async () => {
     const authClient: any = {
       auth: {
