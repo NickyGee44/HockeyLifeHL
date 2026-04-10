@@ -19,17 +19,25 @@ import {
   Info,
   MapPin,
   UserPlus,
+  LogIn,
   LayoutDashboard,
-  X,
   LogOut,
   Sun,
   Moon,
   Bug,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
+  FileText,
+  ClipboardCheck,
+  User,
+  Goal,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
+import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { useDivisionFilter } from '@/components/DivisionFilterProvider';
 import { signOut } from '@/lib/supabase/auth';
 
 interface FloatingDockProps {
@@ -39,6 +47,15 @@ interface FloatingDockProps {
   leagueLogoUrl: string | null;
   seasonId: string | null;
   visiblePages?: Record<string, boolean>;
+  customNavItems?: Array<{
+    label?: string;
+    href?: string;
+    isExternal?: boolean;
+    isCustomPage?: boolean;
+    pageSlug?: string;
+  }>;
+  isPlayoffSeason?: boolean;
+  registrationOpen?: boolean;
   allLeagues?: Array<{ slug: string; name: string; logo_url: string | null }>;
 }
 
@@ -47,12 +64,13 @@ interface MoreMenuItem {
   label: string;
   icon: LucideIcon;
   pageKey: string;
+  external?: boolean;
 }
 
-const MORE_ITEMS: MoreMenuItem[] = [
-  { href: '/me', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'me' },
+const PUBLIC_MORE_ITEMS: MoreMenuItem[] = [
   { href: '/teams', label: 'Teams', icon: Users, pageKey: 'teams' },
   { href: '/players', label: 'Players', icon: Users, pageKey: 'players' },
+  { href: '/playoffs', label: 'Playoffs', icon: Trophy, pageKey: 'playoffs' },
   { href: '/news', label: 'News', icon: Newspaper, pageKey: 'news' },
   { href: '/suspensions', label: 'Suspensions', icon: Shield, pageKey: 'suspensions' },
   { href: '/history', label: 'History', icon: Crown, pageKey: 'history' },
@@ -61,13 +79,38 @@ const MORE_ITEMS: MoreMenuItem[] = [
   { href: '/venues', label: 'Venues', icon: MapPin, pageKey: 'venues' },
   { href: '/about', label: 'About', icon: Info, pageKey: 'about' },
   { href: '/contact', label: 'Contact', icon: Mail, pageKey: 'contact' },
+  { href: '/register', label: 'Register', icon: UserPlus, pageKey: 'register' },
   { href: '/goalies/register', label: 'Goalie Register', icon: UserPlus, pageKey: 'goalies/register' },
+];
+
+const AUTH_MORE_ITEMS: MoreMenuItem[] = [
+  { href: '/me', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'me' },
+  { href: '/checkin', label: 'Check-In', icon: ClipboardCheck, pageKey: 'checkin' },
+  { href: '/me/payments', label: 'Payments', icon: CreditCard, pageKey: 'mepayments' },
+  { href: '/me/waivers', label: 'Waivers', icon: FileText, pageKey: 'mewaivers' },
+  { href: '/me/profile', label: 'Profile', icon: User, pageKey: 'meprofile' },
 ];
 
 function shouldShowPage(pageKey: string, visiblePages?: Record<string, boolean>): boolean {
   if (!visiblePages) return true;
   const key = pageKey.replace('/', '');
   return visiblePages[key] !== false;
+}
+
+function getNavItemHref(item: {
+  href?: string;
+  isExternal?: boolean;
+  isCustomPage?: boolean;
+  pageSlug?: string;
+}): string | null {
+  if (item.isCustomPage && item.pageSlug) {
+    return `/p/${item.pageSlug}`;
+  }
+
+  if (!item.href) return null;
+  if (item.isExternal) return item.href;
+
+  return item.href.startsWith('/') ? item.href : `/${item.href}`;
 }
 
 export function FloatingDock({
@@ -77,11 +120,17 @@ export function FloatingDock({
   leagueLogoUrl,
   seasonId,
   visiblePages,
+  customNavItems,
+  isPlayoffSeason = false,
+  registrationOpen = false,
   allLeagues,
 }: FloatingDockProps) {
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const { currentTeam } = usePlayerProfile(leagueId, seasonId);
+  const { user } = useUser();
+  const { openLogin, openSignup } = useAuth();
+  const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -123,9 +172,38 @@ export function FloatingDock({
   const isTeamActive = teamSlug
     ? pathname.startsWith(`/${leagueSlug}/teams/${teamSlug}`)
     : pathname === `/${leagueSlug}/teams`;
+  const isCaptain = Boolean(currentTeam?.is_captain || currentTeam?.is_alternate);
 
-  const filteredMoreItems = MORE_ITEMS.filter((item) => shouldShowPage(item.pageKey, visiblePages));
-  const isMoreActive = filteredMoreItems.some((item) => isActive(item.href));
+  const captainItems: MoreMenuItem[] = isCaptain
+    ? [
+        { href: '/captain', label: 'Captain', icon: Shield, pageKey: 'captain' },
+        { href: '/captain/goalies', label: 'Goalies', icon: Goal, pageKey: 'captaingoalies' },
+      ]
+    : [];
+
+  const publicItems = PUBLIC_MORE_ITEMS.filter((item) => {
+    if (item.pageKey === 'playoffs' && !isPlayoffSeason) return false;
+    if (item.pageKey === 'register' && !registrationOpen) return false;
+    return shouldShowPage(item.pageKey, visiblePages);
+  });
+
+  const customItems: MoreMenuItem[] = (customNavItems ?? []).flatMap((item) => {
+    const href = getNavItemHref(item);
+    if (!item.label || !href) return [];
+
+    return [{
+      href,
+      label: item.label,
+      icon: FileText,
+      pageKey: `custom-${item.pageSlug ?? item.label}`,
+      external: Boolean(item.isExternal),
+    } satisfies MoreMenuItem];
+  });
+
+  const filteredMoreItems = [...(user ? AUTH_MORE_ITEMS : []), ...captainItems, ...publicItems, ...customItems]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.href === item.href) === index);
+
+  const isMoreActive = filteredMoreItems.some((item) => !item.external && isActive(item.href));
 
   // League switcher
   const leagues = allLeagues && allLeagues.length > 1 ? allLeagues : null;
@@ -139,6 +217,16 @@ export function FloatingDock({
     router.push(`/${leagueSlug}`);
   };
 
+  const handleLoginClick = () => {
+    setMoreOpen(false);
+    openLogin();
+  };
+
+  const handleSignupClick = () => {
+    setMoreOpen(false);
+    openSignup();
+  };
+
   const isDark = resolvedTheme === 'dark';
 
   return (
@@ -146,21 +234,22 @@ export function FloatingDock({
       {/* Spacer so content isn't hidden behind dock */}
       <div className="h-32 lg:hidden" />
 
-      {/* Dock wrapper — centers everything */}
+      {/* Dock wrapper, centers everything */}
       <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center lg:hidden" ref={moreRef}>
-        {/* "More" popup menu */}
+        {/* More popup menu */}
         {moreOpen && (
-          <div className="absolute inset-x-4 bottom-[calc(100%+4px)] max-w-sm mx-auto rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl animate-in slide-in-from-bottom-4 duration-200"
+          <div
+            className="absolute inset-x-4 bottom-[calc(100%+4px)] mx-auto max-w-sm animate-in slide-in-from-bottom-4 rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
             style={{
               background: `linear-gradient(170deg, color-mix(in srgb, var(--league-primary) 10%, rgba(20,20,28,0.92)) 0%, color-mix(in srgb, var(--league-secondary-safe) 6%, rgba(12,12,18,0.95)) 100%)`,
             }}
           >
             {/* League logo header with optional switcher chevrons */}
-            <div className="flex items-center justify-center gap-4 px-4 pt-4 pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center justify-center gap-4 border-b border-white/[0.08] px-4 pt-4 pb-3">
               {leagues && prevLeague && (
                 <Link
                   href={`/${prevLeague.slug}`}
-                  className="rounded-lg p-1.5 text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+                  className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
@@ -183,43 +272,103 @@ export function FloatingDock({
                     <Trophy className="h-7 w-7" />
                   </div>
                 )}
-                <span className="text-[11px] font-semibold text-white/70 leading-tight text-center max-w-[140px] truncate">
+                <span className="max-w-[140px] truncate text-center text-[11px] font-semibold leading-tight text-white/70">
                   {leagueName}
                 </span>
               </Link>
               {leagues && nextLeague && (
                 <Link
                   href={`/${nextLeague.slug}`}
-                  className="rounded-lg p-1.5 text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+                  className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Link>
               )}
             </div>
 
+            {divisions.length > 1 && (
+              <div className="border-b border-white/[0.08] px-4 pt-3 pb-1">
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                  Division
+                </label>
+                <select
+                  value={selectedDivisionId ?? ''}
+                  onChange={(event) => setDivision(event.target.value || null)}
+                  className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--league-primary)]"
+                >
+                  <option value="">All divisions</option>
+                  {divisions.map((division) => (
+                    <option key={division.id} value={division.id}>
+                      {division.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Page links grid */}
             <div className="grid grid-cols-3 gap-0.5 p-2">
               {filteredMoreItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.pageKey}
-                    href={`/${leagueSlug}${item.href}`}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center transition-colors ${
-                      active
-                        ? 'bg-[var(--league-primary)]/15 text-[var(--league-primary)]'
-                        : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
-                    }`}
-                  >
+                const active = item.external ? false : isActive(item.href);
+                const href = item.external ? item.href : `/${leagueSlug}${item.href}`;
+                const className = `flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center transition-colors ${
+                  active
+                    ? 'bg-[var(--league-primary)]/15 text-[var(--league-primary)]'
+                    : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
+                }`;
+
+                const content = (
+                  <>
                     <item.icon className="h-[22px] w-[22px]" />
                     <span className="text-[10px] font-medium leading-tight">{item.label}</span>
+                  </>
+                );
+
+                if (item.external) {
+                  return (
+                    <a
+                      key={item.pageKey}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={className}
+                    >
+                      {content}
+                    </a>
+                  );
+                }
+
+                return (
+                  <Link key={item.pageKey} href={href} className={className}>
+                    {content}
                   </Link>
                 );
               })}
             </div>
 
-            {/* Utility row: theme toggle, bug report, sign out — icons only */}
-            <div className="flex items-center justify-center gap-1 px-4 pt-2 pb-3 border-t border-white/[0.08] mt-1">
+            {!user && (
+              <div className="grid grid-cols-2 gap-2 px-4 pt-2">
+                <button
+                  type="button"
+                  onClick={handleLoginClick}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/[0.1]"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignupClick}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary)] px-3 py-2.5 text-sm font-semibold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Join
+                </button>
+              </div>
+            )}
+
+            {/* Utility row */}
+            <div className="mt-1 flex items-center justify-center gap-1 border-t border-white/[0.08] px-4 pt-2 pb-3">
               {mounted && (
                 <button
                   type="button"
@@ -241,21 +390,23 @@ export function FloatingDock({
               >
                 <Bug className="h-[18px] w-[18px]" />
               </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400"
-                aria-label="Sign out"
-              >
-                <LogOut className="h-[18px] w-[18px]" />
-              </button>
+              {user && (
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-[18px] w-[18px]" />
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        {/* ─── Dock bar ─── */}
+        {/* Dock bar */}
         <div
-          className="relative mb-[calc(env(safe-area-inset-bottom,6px)+12px)] mx-auto w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
+          className="relative mx-auto mb-[calc(env(safe-area-inset-bottom,6px)+12px)] w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
           style={{
             background: `linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 14%, rgba(18,18,26,0.88)) 0%, color-mix(in srgb, var(--league-secondary-safe) 10%, rgba(10,10,16,0.92)) 100%)`,
           }}
@@ -287,11 +438,11 @@ export function FloatingDock({
               <span className="text-[10px] font-semibold">Schedule</span>
             </Link>
 
-            {/* ─── Center: Team logo — oversized, no container, no label ─── */}
+            {/* Center: Team logo */}
             <div className="flex items-center justify-center">
               <Link
                 href={teamHref}
-                className="absolute left-1/2 -translate-x-1/2 bottom-[-2px] flex items-center justify-center"
+                className="absolute left-1/2 bottom-[-2px] flex -translate-x-1/2 items-center justify-center"
               >
                 <div
                   className={`relative transition-transform hover:scale-105 active:scale-95 ${
@@ -336,7 +487,7 @@ export function FloatingDock({
             {/* More */}
             <button
               type="button"
-              onClick={() => setMoreOpen((o) => !o)}
+              onClick={() => setMoreOpen((open) => !open)}
               className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
                 moreOpen || isMoreActive
                   ? 'text-[var(--league-primary)]'

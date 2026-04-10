@@ -157,6 +157,9 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                     leagueLogoUrl={league.logo_url}
                     seasonId={activeSeasonId}
                     visiblePages={(league as any).settings?.website?.visiblePages}
+                    customNavItems={(league as any).settings?.website?.navItems}
+                    isPlayoffSeason={isPlayoffSeason}
+                    registrationOpen={registrationOpen}
                   />
                 </div>
               </DivisionFilterProvider>
