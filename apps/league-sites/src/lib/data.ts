@@ -3215,7 +3215,7 @@ async function getNativeUnifiedSkaterStatsRows(
     ? await getConfirmedCheckinAppearanceRows(supabase, {
         leagueId,
         seasonId,
-        teamIds: filteredTeamIds,
+        teamIds: filteredTeamIds ?? undefined,
       })
     : [];
 
