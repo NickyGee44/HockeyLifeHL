@@ -84,9 +84,14 @@ const LEAGUE_THEME_CSS_PROPERTIES = [
   '--league-glow-color',
   '--color-accent-text',
   '--league-secondary-contrast',
+  '--league-ambient-color',
+  '--league-ambient-soft',
+  '--league-ambient-strong',
 ] as const;
 
 function applyLeagueCssVariables(root: HTMLElement, theme: LeagueTheme) {
+  const ambientColor = pickAmbientColor(theme.primaryColor, theme.secondaryColor);
+
   root.style.setProperty('--league-primary-raw', theme.primaryColor);
   root.style.setProperty('--league-secondary-raw', theme.secondaryColor);
   root.style.setProperty('--league-accent-raw', theme.accentColor);
@@ -107,4 +112,71 @@ function applyLeagueCssVariables(root: HTMLElement, theme: LeagueTheme) {
   root.style.setProperty('--league-glow-color', theme.primarySoft);
   root.style.setProperty('--color-accent-text', theme.onPrimary);
   root.style.setProperty('--league-secondary-contrast', theme.onSecondary);
+  root.style.setProperty('--league-ambient-color', ambientColor);
+  root.style.setProperty('--league-ambient-soft', withAlpha(ambientColor, 0.16));
+  root.style.setProperty('--league-ambient-strong', withAlpha(ambientColor, 0.3));
+}
+
+function pickAmbientColor(primaryColor: string, secondaryColor: string) {
+  if (!isNearBlack(primaryColor)) {
+    return primaryColor;
+  }
+
+  if (!isNearBlack(secondaryColor)) {
+    return secondaryColor;
+  }
+
+  return '#d4af37';
+}
+
+function isNearBlack(color: string) {
+  const rgb = parseColor(color);
+  if (!rgb) return false;
+
+  const luminance = (0.2126 * rgb.r) + (0.7152 * rgb.g) + (0.0722 * rgb.b);
+  return luminance < 48;
+}
+
+function withAlpha(color: string, alpha: number) {
+  const rgb = parseColor(color);
+  if (!rgb) return color;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function parseColor(color: string) {
+  const value = color.trim();
+
+  if (value.startsWith('#')) {
+    const hex = value.slice(1);
+    const normalized = hex.length === 3
+      ? hex.split('').map((char) => char + char).join('')
+      : hex.length >= 6
+        ? hex.slice(0, 6)
+        : null;
+
+    if (!normalized) return null;
+
+    const int = Number.parseInt(normalized, 16);
+    if (Number.isNaN(int)) return null;
+
+    return {
+      r: (int >> 16) & 255,
+      g: (int >> 8) & 255,
+      b: int & 255,
+    };
+  }
+
+  const match = value.match(/rgba?\(([^)]+)\)/i);
+  if (!match) return null;
+
+  const parts = match[1].split(',').map((part) => Number.parseFloat(part.trim()));
+  if (parts.length < 3 || parts.slice(0, 3).some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  return {
+    r: Math.max(0, Math.min(255, parts[0])),
+    g: Math.max(0, Math.min(255, parts[1])),
+    b: Math.max(0, Math.min(255, parts[2])),
+  };
 }
