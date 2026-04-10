@@ -8,6 +8,7 @@ import { RichArticleContent } from '@/components/news/RichArticleContent';
 import { buildArticleMentions } from '@/lib/articles/linkify';
 import { getArticleLinkContext, getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
 import { formatLeagueLongCalendarDate } from '@/lib/league-timezone';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 interface ArticlePageProps {
   params: Promise<{ leagueSlug: string; slug: string }>;
@@ -21,12 +22,14 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const article = await getNewsArticleBySlug(league.id, slug);
   if (!article) return { title: 'Article Not Found' };
 
+  const safeExcerpt = stripMarkdownLinks(article.excerpt);
+
   return {
     title: `${article.title} - ${league.name}`,
-    description: article.excerpt || `Read "${article.title}" on ${league.name}`,
+    description: safeExcerpt || `Read "${article.title}" on ${league.name}`,
     openGraph: {
       title: article.title,
-      description: article.excerpt || undefined,
+      description: safeExcerpt || undefined,
       images: article.image_url ? [article.image_url] : undefined,
     },
   };
@@ -55,6 +58,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   });
 
   const publishedDate = article.published_at || article.created_at;
+  const safeExcerpt = stripMarkdownLinks(article.excerpt);
   const formattedDate = new Date(publishedDate).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -100,9 +104,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <h1 className="max-w-4xl text-3xl font-extrabold leading-tight text-white md:text-5xl">
                 {article.title}
               </h1>
-              {article.excerpt && (
+              {safeExcerpt && (
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/78 md:text-base">
-                  {article.excerpt}
+                  {safeExcerpt}
                 </p>
               )}
               <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/72">

@@ -15,6 +15,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import type { League, LeagueStats, NewsArticle, Season } from '@/lib/types';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 
 const HERO_AUTOPLAY_MS = 7000;
 const HERO_MANUAL_HOLD_MS = 12000;
@@ -94,7 +95,7 @@ function clipText(value: string, maxLength: number) {
 }
 
 function deriveSnippet(article: NewsArticle) {
-  const excerpt = article.excerpt?.trim();
+  const excerpt = stripMarkdownLinks(article.excerpt);
   if (excerpt) {
     return clipText(excerpt, 140);
   }

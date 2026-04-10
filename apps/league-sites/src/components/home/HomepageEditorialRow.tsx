@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight, CalendarDays } from 'lucide-react';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import type { LeagueEvent, NewsArticle } from '@/lib/types';
 
 export interface HomepageRecognitionCard {
@@ -37,11 +38,12 @@ function getArticleLabel(type: string) {
 }
 
 function getArticleSnippet(article: NewsArticle) {
-  if (article.excerpt?.trim()) {
-    return article.excerpt.trim();
+  const excerpt = stripMarkdownLinks(article.excerpt);
+  if (excerpt) {
+    return excerpt;
   }
 
-  const firstParagraph = article.content
+  const firstParagraph = stripMarkdownLinks(article.content)
     .split(/\n+/)
     .map((part) => part.trim())
     .find(Boolean);
