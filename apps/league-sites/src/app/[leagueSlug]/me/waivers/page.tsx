@@ -326,7 +326,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
         </button>
 
         <div className="max-w-3xl mx-auto">
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-hidden">
             {/* Header */}
             <div className="p-6 border-b border-[var(--color-border)]">
               <div className="flex items-start gap-4">
@@ -484,7 +484,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+        <div className="glass-card rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-green-400" />
@@ -495,7 +495,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
             </div>
           </div>
         </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+        <div className="glass-card rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
               <Clock className="w-5 h-5 text-amber-400" />
@@ -510,7 +510,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
 
       {/* Waivers List */}
       {waivers.length === 0 ? (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+        <div className="glass-card rounded-xl p-8 text-center">
           <FileText className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
           <p className="text-[var(--color-text-secondary)]">
             No waivers required for this league.
@@ -522,7 +522,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
             <button
               key={waiver.id}
               onClick={() => setSelectedWaiver(waiver)}
-              className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 hover:bg-[var(--color-surface-hover)] transition-colors text-left"
+              className="w-full glass-card rounded-xl p-4 hover:bg-[var(--color-surface-hover)] transition-colors text-left"
             >
               <div className="flex items-center gap-4">
                 <div

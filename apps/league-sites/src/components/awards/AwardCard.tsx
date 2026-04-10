@@ -19,7 +19,7 @@ export function AwardCard({ award }: AwardCardProps) {
   const teamName = award.team?.name || null;
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-5 hover:border-[var(--league-primary)] transition-all duration-300 group">
+    <div className="glass-card rounded-xl p-5 group">
       <div className="flex items-start gap-4">
         {/* Trophy icon */}
         <div className="shrink-0 w-12 h-12 rounded-xl bg-[var(--league-primary)]/10 flex items-center justify-center group-hover:bg-[var(--league-primary)]/20 transition-colors">

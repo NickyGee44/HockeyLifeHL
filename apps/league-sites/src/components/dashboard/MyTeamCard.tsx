@@ -106,7 +106,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
 
   if (!team || !team.team) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <div className="glass-card rounded-xl p-6">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 mx-auto bg-[var(--color-surface-hover)] rounded-full flex items-center justify-center">
             <Users className="w-8 h-8 text-[var(--color-text-secondary)]" />
@@ -133,7 +133,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
   const fullRecord = otl > 0 ? `${record}-${otl}` : record;
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+    <div className="glass-card rounded-xl overflow-hidden">
       {/* Team Header */}
       <div className="p-6 border-b border-[var(--color-border)]">
         <Link

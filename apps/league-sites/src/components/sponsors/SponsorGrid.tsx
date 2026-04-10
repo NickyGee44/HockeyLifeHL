@@ -64,8 +64,7 @@ function SponsorCard({ sponsor, tier }: { sponsor: LeagueSponsor; tier: string }
   const content = (
     <div
       className={`
-        bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl
-        hover:border-[var(--league-primary)] transition-all duration-300
+        glass-card rounded-xl
         ${isPremier ? 'p-6' : 'p-4'}
         flex flex-col items-center text-center group
       `}

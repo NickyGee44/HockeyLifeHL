@@ -30,7 +30,7 @@ export function NewsCard({ article, leagueSlug, leagueName, leagueLogoUrl }: New
   return (
     <Link
       href={`/${leagueSlug}/news/${article.slug || article.id}`}
-      className="group block overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/96 shadow-[0_22px_54px_-34px_rgba(15,23,42,0.42)] transition-colors hover:border-[var(--league-primary)]/35"
+      className="group block glass-card overflow-hidden rounded-[28px]"
     >
       {/* Image */}
       {article.image_url ? (

@@ -65,7 +65,7 @@ function PlayerCard({
   return (
     <Link
       href={`/${leagueSlug}/players/${player.id}`}
-      className="group bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden hover:border-[var(--league-primary)]/50 transition-all"
+      className="group glass-card rounded-xl overflow-hidden"
     >
       {/* Avatar */}
       <div className="aspect-square relative bg-[var(--color-surface-hover)]">

@@ -56,7 +56,7 @@ export function RivalsCarousel({
     <div className="relative">
       <Link
         href={`/${leagueSlug}/teams/${rival.team.slug}`}
-        className="group block overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--league-primary)]/35"
+        className="group block glass-card overflow-hidden rounded-[24px] p-5 hover:-translate-y-0.5"
       >
         <div className="mb-5 flex flex-col items-center gap-4 text-center">
           {rival.team.logo ? (

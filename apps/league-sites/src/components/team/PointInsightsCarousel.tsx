@@ -54,10 +54,10 @@ export function PointInsightsCarousel({ insights, asBanner = false }: { insights
         </div>
       )}
 
-      <div className={`relative rounded-[22px] border p-5 ${
+      <div className={`relative rounded-[22px] p-5 ${
         asBanner
-          ? 'border-[var(--league-primary)]/20 bg-[var(--league-primary)]/[0.06]'
-          : 'border-white/10 bg-[var(--color-surface)]/72'
+          ? 'border border-[var(--league-primary)]/20 bg-[var(--league-primary)]/[0.06]'
+          : 'glass-card'
       }`}>
         <div className="flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--league-primary)]/12">

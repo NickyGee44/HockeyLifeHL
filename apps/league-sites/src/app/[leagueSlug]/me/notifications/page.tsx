@@ -171,7 +171,7 @@ export default function NotificationsPage() {
 
       <div className="space-y-4">
         {/* Email */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
             <Mail className="w-4 h-4 text-[var(--league-primary)]" />
             <span className="font-medium text-[var(--color-text-primary)]">Email</span>
@@ -228,7 +228,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* SMS */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
             <MessageSquare className="w-4 h-4 text-[var(--league-primary)]" />
             <span className="font-medium text-[var(--color-text-primary)]">SMS</span>
@@ -253,7 +253,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Push */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
             <Smartphone className="w-4 h-4 text-[var(--league-primary)]" />
             <span className="font-medium text-[var(--color-text-primary)]">Push Notifications</span>

@@ -117,7 +117,7 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
   // Show skeleton loader while profile is loading
   if (profileLoading) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+      <div className="glass-card rounded-xl p-4">
         <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
           Quick Actions
         </h3>
@@ -143,7 +143,7 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+    <div className="glass-card rounded-xl p-4">
       <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
         Quick Actions
       </h3>

@@ -136,7 +136,7 @@ export function TeamAttendance({
 
   if (isLoading) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <div className="glass-card rounded-xl p-6">
         <div className="flex items-center justify-center gap-2 text-[var(--color-text-secondary)]">
           <Loader2 className="w-5 h-5 animate-spin" />
           Loading attendance...
@@ -147,7 +147,7 @@ export function TeamAttendance({
 
   if (games.length === 0) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <div className="glass-card rounded-xl p-6">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
           Team Attendance
@@ -186,7 +186,7 @@ export function TeamAttendance({
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+    <div className="glass-card rounded-xl overflow-hidden">
       <div className="p-4 border-b border-[var(--color-border)]">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />

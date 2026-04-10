@@ -33,7 +33,7 @@ export function ExpandableLeaderBoard({
   const hasMore = leaders.length > INITIAL_COUNT;
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+    <div className="glass-card rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
         {icon}
         <h3 className="font-semibold text-sm text-[var(--color-text-primary)]">{title}</h3>
@@ -112,7 +112,7 @@ export function ExpandableGoalieLeaderBoard({
   const hasMore = leaders.length > INITIAL_COUNT;
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+    <div className="glass-card rounded-xl overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

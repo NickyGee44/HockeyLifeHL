@@ -363,7 +363,7 @@ function JoinTeamView({
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Existing Requests */}
         {requests.length > 0 && (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-hidden">
             <div className="p-4 border-b border-[var(--color-border)]">
               <h2 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
                 <Clock className="w-5 h-5 text-[var(--league-primary)]" />
@@ -408,7 +408,7 @@ function JoinTeamView({
         )}
 
         {/* Join Request Form */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+        <div className="glass-card rounded-xl overflow-hidden">
           <div className="p-4 border-b border-[var(--color-border)]">
             <h2 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-[var(--league-primary)]" />

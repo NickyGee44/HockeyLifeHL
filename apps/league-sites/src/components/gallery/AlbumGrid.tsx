@@ -29,7 +29,7 @@ export function AlbumGrid({ albums, leagueSlug }: AlbumGridProps) {
         <Link
           key={album.id}
           href={`/${leagueSlug}/gallery/${album.id}`}
-          className="group block overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--league-primary)]/50 transition-all duration-300"
+          className="group block glass-card overflow-hidden rounded-xl"
         >
           {/* Cover Image */}
           <div className="relative aspect-video bg-[var(--color-background)] overflow-hidden">
