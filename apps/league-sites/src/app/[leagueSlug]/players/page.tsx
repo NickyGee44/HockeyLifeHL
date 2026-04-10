@@ -99,15 +99,28 @@ async function getPlayers(
     return [];
   }
 
-  // Transform and filter, map logo_url to logo
-  let players: PlayerWithTeam[] = data.map((p: any) => {
+  // Transform rows, then dedupe by profile so one player only appears once
+  const rosterRows: PlayerWithTeam[] = data.map((p: any) => {
     const rawTeam = Array.isArray(p.team) ? p.team[0] : p.team;
+    const profile = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+
     return {
       ...p,
-      profile: Array.isArray(p.profile) ? p.profile[0] : p.profile,
+      id: profile?.id || p.id,
+      profile,
       team: rawTeam ? { ...rawTeam, logo: rawTeam.logo_url } : null,
     };
   });
+
+  const uniquePlayers = new Map<string, PlayerWithTeam>();
+  for (const player of rosterRows) {
+    const dedupeKey = player.profile?.id || player.id;
+    if (!uniquePlayers.has(dedupeKey)) {
+      uniquePlayers.set(dedupeKey, player);
+    }
+  }
+
+  let players = Array.from(uniquePlayers.values());
 
   // Client-side search filter
   if (filters?.search) {

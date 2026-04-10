@@ -809,8 +809,9 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
 }
 
 type RosterStatsAccumulator = {
-  skater_games_played: number;
-  goalie_games_played: number;
+  skater_game_ids: Set<string>;
+  goalie_game_ids: Set<string>;
+  confirmed_checkin_game_ids: Set<string>;
   goals: number;
   assists: number;
   penalty_minutes: number;
@@ -837,6 +838,61 @@ export type TeamRosterStatsByPlayer = Record<string, {
   is_goalie: boolean;
 }>;
 
+const PLAYED_GAME_STATUSES = ['in_progress', 'pending_verification', 'completed'] as const;
+
+type ConfirmedCheckinAppearanceRow = {
+  player_id: string;
+  team_id: string;
+  game_id: string;
+  game?: {
+    season_id?: string | null;
+  } | {
+    season_id?: string | null;
+  }[] | null;
+};
+
+async function getConfirmedCheckinAppearanceRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  options: {
+    leagueId?: string;
+    seasonId?: string;
+    teamId?: string;
+    teamIds?: string[];
+    playerIds?: string[];
+  },
+): Promise<ConfirmedCheckinAppearanceRow[]> {
+  let query = supabase
+    .from('game_checkins')
+    .select('player_id, team_id, game_id, game:games!inner(season_id, league_id, status)')
+    .eq('status', 'confirmed')
+    .in('game.status', [...PLAYED_GAME_STATUSES]);
+
+  if (options.leagueId) {
+    query = query.eq('game.league_id', options.leagueId);
+  }
+
+  if (options.seasonId) {
+    query = query.eq('game.season_id', options.seasonId);
+  }
+
+  if (options.teamId) {
+    query = query.eq('team_id', options.teamId);
+  } else if (options.teamIds && options.teamIds.length > 0) {
+    query = query.in('team_id', options.teamIds);
+  }
+
+  if (options.playerIds && options.playerIds.length > 0) {
+    query = query.in('player_id', options.playerIds);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) {
+    return [];
+  }
+
+  return data as unknown as ConfirmedCheckinAppearanceRow[];
+}
+
 /**
  * Fetch aggregated roster stats for a team.
  * Combines skater stats and goalie stats for the provided season.
@@ -849,12 +905,12 @@ export async function getTeamRosterStats(
 
   let skaterQuery = supabase
     .from('player_stats')
-    .select('player_id, goals, assists, penalty_minutes')
+    .select('player_id, game_id, goals, assists, penalty_minutes')
     .eq('team_id', teamId);
 
   let goalieQuery = supabase
     .from('goalie_stats')
-    .select('player_id, saves, shots_against, goals_against, shutout, game_result')
+    .select('player_id, game_id, saves, shots_against, goals_against, shutout, game_result')
     .eq('team_id', teamId);
 
   if (seasonId) {
@@ -862,9 +918,10 @@ export async function getTeamRosterStats(
     goalieQuery = goalieQuery.eq('season_id', seasonId);
   }
 
-  const [{ data: skaterRows }, { data: goalieRows }] = await Promise.all([
+  const [{ data: skaterRows }, { data: goalieRows }, confirmedCheckins] = await Promise.all([
     skaterQuery,
     goalieQuery,
+    getConfirmedCheckinAppearanceRows(supabase, { teamId, seasonId }),
   ]);
 
   const accumulator: Record<string, RosterStatsAccumulator> = {};
@@ -872,8 +929,9 @@ export async function getTeamRosterStats(
   const ensure = (playerId: string): RosterStatsAccumulator => {
     if (!accumulator[playerId]) {
       accumulator[playerId] = {
-        skater_games_played: 0,
-        goalie_games_played: 0,
+        skater_game_ids: new Set<string>(),
+        goalie_game_ids: new Set<string>(),
+        confirmed_checkin_game_ids: new Set<string>(),
         goals: 0,
         assists: 0,
         penalty_minutes: 0,
@@ -891,7 +949,9 @@ export async function getTeamRosterStats(
 
   for (const row of skaterRows || []) {
     const entry = ensure(row.player_id);
-    entry.skater_games_played += 1;
+    if (row.game_id) {
+      entry.skater_game_ids.add(row.game_id);
+    }
     entry.goals += row.goals || 0;
     entry.assists += row.assists || 0;
     entry.penalty_minutes += row.penalty_minutes || 0;
@@ -899,7 +959,9 @@ export async function getTeamRosterStats(
 
   for (const row of goalieRows || []) {
     const entry = ensure(row.player_id);
-    entry.goalie_games_played += 1;
+    if (row.game_id) {
+      entry.goalie_game_ids.add(row.game_id);
+    }
     entry.is_goalie = true;
     entry.saves += row.saves || 0;
     entry.shots_against += row.shots_against || 0;
@@ -914,11 +976,20 @@ export async function getTeamRosterStats(
     }
   }
 
+  for (const row of confirmedCheckins) {
+    const entry = ensure(row.player_id);
+    entry.confirmed_checkin_game_ids.add(row.game_id);
+  }
+
   const output: TeamRosterStatsByPlayer = {};
   for (const [playerId, entry] of Object.entries(accumulator)) {
-    const gamesPlayed = Math.max(entry.skater_games_played, entry.goalie_games_played);
+    const gamesPlayed = Math.max(
+      entry.skater_game_ids.size,
+      entry.goalie_game_ids.size,
+      entry.confirmed_checkin_game_ids.size,
+    );
     const savePct = entry.shots_against > 0 ? entry.saves / entry.shots_against : null;
-    const gaa = entry.goalie_games_played > 0 ? entry.goals_against / entry.goalie_games_played : null;
+    const gaa = entry.goalie_game_ids.size > 0 ? entry.goals_against / entry.goalie_game_ids.size : null;
 
     output[playerId] = {
       games_played: gamesPlayed,
@@ -2254,6 +2325,7 @@ type RawSkaterStatsRow = {
   player_id: string;
   team_id: string;
   season_id: string;
+  game_id: string;
   goals: number | null;
   assists: number | null;
   shots?: number | null;
@@ -2279,6 +2351,7 @@ type RawGoalieStatsRow = {
   player_id: string;
   team_id: string;
   season_id: string;
+  game_id: string;
   saves?: number | null;
   shots_against?: number | null;
   goals_against?: number | null;
@@ -2337,7 +2410,7 @@ type SkaterStatsAccumulator = {
   division_name: string | null;
   position: string | null;
   is_goalie: boolean;
-  games_played: number;
+  game_ids: Set<string>;
   goals: number;
   assists: number;
   penalty_minutes: number;
@@ -2350,7 +2423,7 @@ type SkaterStatsAccumulator = {
   empty_net_goals: number;
   shots: number;
   best_team_games: number;
-  team_games: Map<string, number>;
+  team_games: Map<string, Set<string>>;
 };
 
 type GoalieStatsAccumulator = {
@@ -2361,7 +2434,7 @@ type GoalieStatsAccumulator = {
   team_id: string;
   team_name: string;
   division_name: string | null;
-  games_played: number;
+  game_ids: Set<string>;
   wins: number;
   losses: number;
   saves: number;
@@ -2369,7 +2442,7 @@ type GoalieStatsAccumulator = {
   shots_against: number;
   shutouts: number;
   best_team_games: number;
-  team_games: Map<string, number>;
+  team_games: Map<string, Set<string>>;
 };
 
 export function aggregateNativeGoalieStatsRows(
@@ -2402,7 +2475,7 @@ export function aggregateNativeGoalieStatsRows(
       team_id: row.team_id,
       team_name: teamData?.name || 'Unknown Team',
       division_name: getJoinedDivisionName(teamData?.divisions),
-      games_played: 0,
+      game_ids: new Set<string>(),
       wins: 0,
       losses: 0,
       saves: 0,
@@ -2410,10 +2483,12 @@ export function aggregateNativeGoalieStatsRows(
       shots_against: 0,
       shutouts: 0,
       best_team_games: 0,
-      team_games: new Map<string, number>(),
+      team_games: new Map<string, Set<string>>(),
     };
 
-    entry.games_played += 1;
+    if (row.game_id) {
+      entry.game_ids.add(row.game_id);
+    }
     entry.saves += row.saves || 0;
     entry.goals_against += row.goals_against || 0;
     entry.shots_against += row.shots_against || (row.saves || 0) + (row.goals_against || 0);
@@ -2427,8 +2502,12 @@ export function aggregateNativeGoalieStatsRows(
     }
 
     const teamKey = `${row.team_id}:${row.season_id ?? 'any'}`;
-    const teamGames = (entry.team_games.get(teamKey) || 0) + 1;
-    entry.team_games.set(teamKey, teamGames);
+    const teamGameIds = entry.team_games.get(teamKey) || new Set<string>();
+    if (row.game_id) {
+      teamGameIds.add(row.game_id);
+    }
+    entry.team_games.set(teamKey, teamGameIds);
+    const teamGames = teamGameIds.size;
     if (teamGames > entry.best_team_games) {
       entry.best_team_games = teamGames;
       entry.team_id = row.team_id;
@@ -2454,13 +2533,13 @@ export function aggregateNativeGoalieStatsRows(
         division_name: entry.division_name,
         position: 'Goalie',
         championships: 0,
-        games_played: entry.games_played,
+        games_played: entry.game_ids.size,
         wins: entry.wins,
         losses: entry.losses,
         saves: entry.saves,
         goals_against: entry.goals_against,
         save_percentage: entry.shots_against > 0 ? roundStatValue((entry.saves / entry.shots_against) * 100, 1) : null,
-        goals_against_average: entry.games_played > 0 ? roundStatValue(entry.goals_against / entry.games_played) : null,
+        goals_against_average: entry.game_ids.size > 0 ? roundStatValue(entry.goals_against / entry.game_ids.size) : null,
         shutouts: entry.shutouts,
       },
       seasonId,
@@ -3064,6 +3143,7 @@ async function getNativeUnifiedSkaterStatsRows(
       player_id,
       team_id,
       season_id,
+      game_id,
       goals,
       assists,
       shots,
@@ -3131,6 +3211,14 @@ async function getNativeUnifiedSkaterStatsRows(
     }
   }
 
+  const confirmedCheckins = seasonId
+    ? await getConfirmedCheckinAppearanceRows(supabase, {
+        leagueId,
+        seasonId,
+        teamIds: filteredTeamIds,
+      })
+    : [];
+
   const playerMap = new Map<string, SkaterStatsAccumulator>();
   for (const row of visibleRows) {
     const playerData = unwrapJoinedRecord(row.player);
@@ -3149,7 +3237,7 @@ async function getNativeUnifiedSkaterStatsRows(
       division_name: getJoinedDivisionName(teamData?.divisions),
       position: roster?.position || null,
       is_goalie: Boolean(roster?.is_goalie),
-      games_played: 0,
+      game_ids: new Set<string>(),
       goals: 0,
       assists: 0,
       penalty_minutes: 0,
@@ -3162,10 +3250,12 @@ async function getNativeUnifiedSkaterStatsRows(
       empty_net_goals: 0,
       shots: 0,
       best_team_games: 0,
-      team_games: new Map<string, number>(),
+      team_games: new Map<string, Set<string>>(),
     };
 
-    entry.games_played += 1;
+    if (row.game_id) {
+      entry.game_ids.add(row.game_id);
+    }
     entry.goals += row.goals || 0;
     entry.assists += row.assists || 0;
     entry.penalty_minutes += row.penalty_minutes || 0;
@@ -3179,8 +3269,12 @@ async function getNativeUnifiedSkaterStatsRows(
     entry.shots += row.shots || 0;
 
     const teamKey = `${row.team_id}:${row.season_id ?? 'any'}`;
-    const teamGames = (entry.team_games.get(teamKey) || 0) + 1;
-    entry.team_games.set(teamKey, teamGames);
+    const teamGameIds = entry.team_games.get(teamKey) || new Set<string>();
+    if (row.game_id) {
+      teamGameIds.add(row.game_id);
+    }
+    entry.team_games.set(teamKey, teamGameIds);
+    const teamGames = teamGameIds.size;
     if (teamGames > entry.best_team_games) {
       entry.best_team_games = teamGames;
       entry.team_id = row.team_id;
@@ -3237,7 +3331,7 @@ async function getNativeUnifiedSkaterStatsRows(
           division_name: getJoinedDivisionName(teamData?.divisions),
           position: rawRow.position || null,
           is_goalie: false,
-          games_played: 0,
+          game_ids: new Set<string>(),
           goals: 0,
           assists: 0,
           penalty_minutes: 0,
@@ -3250,9 +3344,29 @@ async function getNativeUnifiedSkaterStatsRows(
           empty_net_goals: 0,
           shots: 0,
           best_team_games: 0,
-          team_games: new Map<string, number>(),
+          team_games: new Map<string, Set<string>>(),
         });
       }
+    }
+  }
+
+  for (const row of confirmedCheckins) {
+    const entry = playerMap.get(row.player_id);
+    if (!entry) {
+      continue;
+    }
+
+    entry.game_ids.add(row.game_id);
+    const gameData = unwrapJoinedRecord(row.game);
+    const teamKey = `${row.team_id}:${gameData?.season_id ?? 'any'}`;
+    const teamGameIds = entry.team_games.get(teamKey) || new Set<string>();
+    teamGameIds.add(row.game_id);
+    entry.team_games.set(teamKey, teamGameIds);
+
+    const teamGames = teamGameIds.size;
+    if (teamGames > entry.best_team_games) {
+      entry.best_team_games = teamGames;
+      entry.team_id = row.team_id;
     }
   }
 
@@ -3271,13 +3385,13 @@ async function getNativeUnifiedSkaterStatsRows(
           division_name: entry.division_name,
           position: entry.position,
           championships: 0,
-          games_played: entry.games_played,
+          games_played: entry.game_ids.size,
           goals: entry.goals,
           assists: entry.assists,
           points,
-          points_per_game: entry.games_played > 0 ? roundStatValue(points / entry.games_played) : 0,
-          goals_per_game: entry.games_played > 0 ? roundStatValue(entry.goals / entry.games_played) : 0,
-          assists_per_game: entry.games_played > 0 ? roundStatValue(entry.assists / entry.games_played) : 0,
+          points_per_game: entry.game_ids.size > 0 ? roundStatValue(points / entry.game_ids.size) : 0,
+          goals_per_game: entry.game_ids.size > 0 ? roundStatValue(entry.goals / entry.game_ids.size) : 0,
+          assists_per_game: entry.game_ids.size > 0 ? roundStatValue(entry.assists / entry.game_ids.size) : 0,
           penalty_minutes: entry.penalty_minutes,
           plus_minus: entry.plus_minus,
           power_play_goals: entry.power_play_goals,
@@ -3288,7 +3402,7 @@ async function getNativeUnifiedSkaterStatsRows(
           game_winning_goals: entry.game_winning_goals,
           empty_net_goals: entry.empty_net_goals,
           shots: entry.shots,
-          shots_per_game: entry.games_played > 0 ? roundStatValue(entry.shots / entry.games_played) : 0,
+          shots_per_game: entry.game_ids.size > 0 ? roundStatValue(entry.shots / entry.game_ids.size) : 0,
         },
         seasonId,
       );
@@ -3373,6 +3487,7 @@ async function getNativeUnifiedGoalieStatsRows(
       player_id,
       team_id,
       season_id,
+      game_id,
       saves,
       shots_against,
       goals_against,
@@ -4117,6 +4232,7 @@ export async function getPlayerProfile(playerId: string): Promise<Player | null>
  * Uses player_stats table which has per-game stats with proper columns
  */
 type PlayerCareerTotalsRow = {
+  game_id?: string | null;
   goals: number | null;
   assists: number | null;
   penalty_minutes?: number | null;
@@ -4150,7 +4266,8 @@ export function summarizePlayerCareerTotals(
   const goals = seasonSummary?.goals ?? totals.goals;
   const assists = seasonSummary?.assists ?? totals.assists;
   const points = seasonSummary?.points ?? (goals + assists);
-  const gamesPlayed = seasonSummary?.games_played ?? rows.length;
+  const distinctGameCount = new Set(rows.map((row) => row.game_id).filter(Boolean)).size;
+  const gamesPlayed = seasonSummary?.games_played ?? (distinctGameCount || rows.length);
 
   return {
     player_id: playerId,
@@ -4288,10 +4405,10 @@ export async function getPlayerCareerStats(
   }
 
   // Query player_stats rows for fields not exposed by player_season_stats (for example
-  // penalty minutes), but use the season summary as the source of truth for aggregate GP.
+  // penalty minutes), but repair GP from distinct appearances plus confirmed check-ins.
   let query = supabase
     .from('player_stats')
-    .select('goals, assists, penalty_minutes')
+    .select('game_id, goals, assists, penalty_minutes')
     .eq('player_id', playerId);
 
   if (seasonId) {
@@ -4301,6 +4418,26 @@ export async function getPlayerCareerStats(
   const { data, error } = await query;
 
   if (error) return null;
+
+  const statGameIds = new Set((data || []).map((row) => row.game_id).filter(Boolean));
+
+  if (seasonId) {
+    const confirmedCheckins = await getConfirmedCheckinAppearanceRows(supabase, {
+      seasonId,
+      playerIds: [playerId],
+    });
+
+    for (const row of confirmedCheckins) {
+      if (row.game_id) {
+        statGameIds.add(row.game_id);
+      }
+    }
+
+    seasonSummary = {
+      ...seasonSummary,
+      games_played: Math.max(seasonSummary?.games_played ?? 0, statGameIds.size),
+    };
+  }
 
   return summarizePlayerCareerTotals(playerId, data || [], seasonSummary);
 }
