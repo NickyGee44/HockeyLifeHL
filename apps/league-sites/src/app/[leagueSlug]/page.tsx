@@ -42,7 +42,6 @@ import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 // AuthRedirect removed — homepage always visible now
-import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
 import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
@@ -693,10 +692,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           </section>
         )}
       </div>
-
-      {sponsors.length > 0 && (
-        <SponsorBanner sponsors={sponsors} />
-      )}
 
     </div>
     </SubscriptionWall>
