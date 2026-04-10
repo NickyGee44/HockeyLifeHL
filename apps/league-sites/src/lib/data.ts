@@ -845,9 +845,23 @@ type ConfirmedCheckinAppearanceRow = {
   team_id: string;
   game_id: string;
   game?: {
+    id?: string | null;
     season_id?: string | null;
+    scheduled_at?: string | null;
+    status?: string | null;
+    home_team_id?: string | null;
+    away_team_id?: string | null;
+    home_score?: number | null;
+    away_score?: number | null;
   } | {
+    id?: string | null;
     season_id?: string | null;
+    scheduled_at?: string | null;
+    status?: string | null;
+    home_team_id?: string | null;
+    away_team_id?: string | null;
+    home_score?: number | null;
+    away_score?: number | null;
   }[] | null;
 };
 
@@ -863,7 +877,7 @@ async function getConfirmedCheckinAppearanceRows(
 ): Promise<ConfirmedCheckinAppearanceRow[]> {
   let query = supabase
     .from('game_checkins')
-    .select('player_id, team_id, game_id, game:games!inner(season_id, league_id, status)')
+    .select('player_id, team_id, game_id, game:games!inner(id, season_id, scheduled_at, league_id, status, home_team_id, away_team_id, home_score, away_score)')
     .eq('status', 'confirmed')
     .in('game.status', [...PLAYED_GAME_STATUSES]);
 
@@ -891,6 +905,153 @@ async function getConfirmedCheckinAppearanceRows(
   }
 
   return data as unknown as ConfirmedCheckinAppearanceRow[];
+}
+
+async function getFallbackRosterAppearanceRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  options: {
+    seasonId?: string;
+    teamId?: string;
+    teamIds?: string[];
+    playerIds?: string[];
+  },
+): Promise<ConfirmedCheckinAppearanceRow[]> {
+  if (!options.seasonId) {
+    return [];
+  }
+
+  let rosterQuery = supabase
+    .from('team_rosters')
+    .select('player_id, team_id, season_id, joined_at, end_date')
+    .eq('season_id', options.seasonId)
+    .eq('status', 'active');
+
+  if (options.teamId) {
+    rosterQuery = rosterQuery.eq('team_id', options.teamId);
+  } else if (options.teamIds && options.teamIds.length > 0) {
+    rosterQuery = rosterQuery.in('team_id', options.teamIds);
+  }
+
+  if (options.playerIds && options.playerIds.length > 0) {
+    rosterQuery = rosterQuery.in('player_id', options.playerIds);
+  }
+
+  const { data: rosterRows, error: rosterError } = await rosterQuery;
+  if (rosterError || !rosterRows || rosterRows.length === 0) {
+    return [];
+  }
+
+  const teamIds = [...new Set(rosterRows.map((row) => row.team_id).filter(Boolean))];
+  if (teamIds.length === 0) {
+    return [];
+  }
+
+  const teamFilter = teamIds
+    .map((teamId) => `home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
+    .join(',');
+
+  const [{ data: gameRows, error: gamesError }, { data: checkinRows }, { data: availabilityRows }, { data: skaterRows }, { data: goalieRows }] = await Promise.all([
+    supabase
+      .from('games')
+      .select('id, season_id, scheduled_at, status, home_team_id, away_team_id, home_score, away_score')
+      .eq('season_id', options.seasonId)
+      .in('status', [...PLAYED_GAME_STATUSES])
+      .or(teamFilter),
+    supabase
+      .from('game_checkins')
+      .select('game_id, team_id')
+      .eq('status', 'confirmed')
+      .in('team_id', teamIds),
+    supabase
+      .from('player_availability')
+      .select('game_id, team_id')
+      .eq('season_id', options.seasonId)
+      .in('team_id', teamIds),
+    supabase
+      .from('player_stats')
+      .select('game_id, team_id')
+      .eq('season_id', options.seasonId)
+      .in('team_id', teamIds),
+    supabase
+      .from('goalie_stats')
+      .select('game_id, team_id')
+      .eq('season_id', options.seasonId)
+      .in('team_id', teamIds),
+  ]);
+
+  if (gamesError || !gameRows || gameRows.length === 0) {
+    return [];
+  }
+
+  const attendanceSignals = new Set<string>();
+  for (const row of checkinRows || []) {
+    if (row.game_id && row.team_id) {
+      attendanceSignals.add(`${row.game_id}:${row.team_id}`);
+    }
+  }
+  for (const row of availabilityRows || []) {
+    if (row.game_id && row.team_id) {
+      attendanceSignals.add(`${row.game_id}:${row.team_id}`);
+    }
+  }
+
+  const statSignals = new Set<string>();
+  for (const row of skaterRows || []) {
+    if (row.game_id && row.team_id) {
+      statSignals.add(`${row.game_id}:${row.team_id}`);
+    }
+  }
+  for (const row of goalieRows || []) {
+    if (row.game_id && row.team_id) {
+      statSignals.add(`${row.game_id}:${row.team_id}`);
+    }
+  }
+
+  const appearanceRows: ConfirmedCheckinAppearanceRow[] = [];
+  const seen = new Set<string>();
+
+  for (const rosterRow of rosterRows) {
+    for (const gameRow of gameRows) {
+      const teamParticipates = gameRow.home_team_id === rosterRow.team_id || gameRow.away_team_id === rosterRow.team_id;
+      if (!teamParticipates || !gameRow.id || !rosterRow.player_id || !rosterRow.team_id) {
+        continue;
+      }
+
+      const attendanceKey = `${gameRow.id}:${rosterRow.team_id}`;
+      if (attendanceSignals.has(attendanceKey)) {
+        continue;
+      }
+
+      const hasScore = gameRow.home_score != null || gameRow.away_score != null;
+      const hasStats = statSignals.has(attendanceKey);
+      if (!hasScore && !hasStats) {
+        continue;
+      }
+
+      if (rosterRow.joined_at && gameRow.scheduled_at && new Date(gameRow.scheduled_at).getTime() < new Date(rosterRow.joined_at).getTime()) {
+        continue;
+      }
+
+      if (rosterRow.end_date && gameRow.scheduled_at && new Date(gameRow.scheduled_at).getTime() > new Date(rosterRow.end_date).getTime()) {
+        continue;
+      }
+
+      const key = `${rosterRow.player_id}:${rosterRow.team_id}:${gameRow.id}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+
+      appearanceRows.push({
+        player_id: rosterRow.player_id,
+        team_id: rosterRow.team_id,
+        game_id: gameRow.id,
+        game: gameRow,
+      });
+    }
+  }
+
+  return appearanceRows;
 }
 
 /**
@@ -4422,19 +4583,40 @@ export async function getPlayerCareerStats(
   const statGameIds = new Set((data || []).map((row) => row.game_id).filter(Boolean));
 
   if (seasonId) {
-    const confirmedCheckins = await getConfirmedCheckinAppearanceRows(supabase, {
-      seasonId,
-      playerIds: [playerId],
-    });
+    const [confirmedCheckins, fallbackRosterAppearances, rosterSummaryResult] = await Promise.all([
+      getConfirmedCheckinAppearanceRows(supabase, {
+        seasonId,
+        playerIds: [playerId],
+      }),
+      getFallbackRosterAppearanceRows(supabase, {
+        seasonId,
+        playerIds: [playerId],
+      }),
+      (!seasonSummary?.team_name || !seasonSummary?.position)
+        ? supabase
+            .from('team_rosters')
+            .select('position, team:teams!team_rosters_team_id_fkey(name)')
+            .eq('player_id', playerId)
+            .eq('season_id', seasonId)
+            .eq('status', 'active')
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
 
-    for (const row of confirmedCheckins) {
+    for (const row of [...confirmedCheckins, ...fallbackRosterAppearances]) {
       if (row.game_id) {
         statGameIds.add(row.game_id);
       }
     }
 
+    const rosterTeam = Array.isArray(rosterSummaryResult.data?.team)
+      ? rosterSummaryResult.data?.team[0]
+      : rosterSummaryResult.data?.team;
+
     seasonSummary = {
       ...seasonSummary,
+      team_name: seasonSummary?.team_name || rosterTeam?.name || undefined,
+      position: seasonSummary?.position || rosterSummaryResult.data?.position || undefined,
       games_played: Math.max(seasonSummary?.games_played ?? 0, statGameIds.size),
     };
   }
@@ -4518,10 +4700,49 @@ export async function getPlayerGameLog(
 
   if (error || !data) return [];
 
-  // Transform to expected format
-  return data.map((stat: any) => {
+  const rows = [...data];
+
+  if (seasonId) {
+    const fallbackRosterAppearances = await getFallbackRosterAppearanceRows(supabase, {
+      seasonId,
+      playerIds: [playerId],
+    });
+
+    const existingGameIds = new Set(rows.map((row: any) => row.game_id).filter(Boolean));
+    const missingAppearanceRows = fallbackRosterAppearances.filter((row) => row.game_id && !existingGameIds.has(row.game_id));
+
+    if (missingAppearanceRows.length > 0) {
+      const { data: fallbackGames } = await supabase
+        .from('games')
+        .select(`
+          id,
+          scheduled_at,
+          home_score,
+          away_score,
+          status,
+          home_team:teams!games_home_team_id_fkey(id, name, slug),
+          away_team:teams!games_away_team_id_fkey(id, name, slug)
+        `)
+        .in('id', missingAppearanceRows.map((row) => row.game_id));
+
+      const gameMap = new Map((fallbackGames || []).map((game: any) => [game.id, game]));
+
+      for (const row of missingAppearanceRows) {
+        rows.push({
+          id: `fallback-${row.game_id}-${row.team_id}`,
+          goals: 0,
+          assists: 0,
+          penalty_minutes: 0,
+          game_id: row.game_id,
+          team_id: row.team_id,
+          game: gameMap.get(row.game_id) || row.game || null,
+        });
+      }
+    }
+  }
+
+  const transformed = rows.map((stat: any) => {
     const game = Array.isArray(stat.game) ? stat.game[0] : stat.game;
-    // Determine opponent based on which team the player is on
     const homeTeam = Array.isArray(game?.home_team) ? game?.home_team[0] : game?.home_team;
     const awayTeam = Array.isArray(game?.away_team) ? game?.away_team[0] : game?.away_team;
     const isHome = homeTeam?.id === stat.team_id;
@@ -4529,7 +4750,7 @@ export async function getPlayerGameLog(
     const myScore = isHome ? game?.home_score : game?.away_score;
     const theirScore = isHome ? game?.away_score : game?.home_score;
     let result = '-';
-    if (game?.status === 'completed' && myScore != null && theirScore != null) {
+    if ((game?.status === 'completed' || game?.status === 'pending_verification') && myScore != null && theirScore != null) {
       result = myScore > theirScore ? 'W' : myScore < theirScore ? 'L' : 'T';
     }
     return {
@@ -4546,6 +4767,10 @@ export async function getPlayerGameLog(
       pim: stat.penalty_minutes || 0,
     };
   }) as PlayerGameLogEntry[];
+
+  return transformed
+    .sort((left, right) => new Date(right.date || 0).getTime() - new Date(left.date || 0).getTime())
+    .slice(0, limit);
 }
 
 /**
