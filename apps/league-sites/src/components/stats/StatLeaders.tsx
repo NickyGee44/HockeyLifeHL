@@ -126,7 +126,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
     .slice(0, 3);
 
   return (
-    <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-4 md:p-6">
+    <div className="league-shell-panel rounded-[30px] border border-[var(--color-border)] p-4 md:p-6">
       <div>
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
           League Leaders
@@ -147,7 +147,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
                 className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                   isActive
                     ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-                    : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    : 'border-[var(--glass-card-border)] bg-[var(--color-surface)]/60 text-[var(--color-text-secondary)] hover:border-[var(--glass-card-border-hover)] hover:text-[var(--color-text-primary)]'
                 }`}
               >
                 <Icon className="h-3 w-3" />
@@ -166,7 +166,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
               return (
                 <div
                   key={`${activeMetric.id}-${leader.player_id}`}
-                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3 py-2.5"
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-[var(--glass-card-border)] bg-[var(--color-surface)]/55 px-3 py-2.5"
                 >
                   <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
                     index === 0
@@ -213,7 +213,7 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
             })}
           </div>
         ) : (
-          <div className="mt-4 rounded-[18px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/50 px-4 py-6 text-center">
+          <div className="mt-4 rounded-[18px] border border-dashed border-[var(--glass-card-border)] bg-[var(--color-surface)]/40 px-4 py-6 text-center">
             <p className="text-sm font-semibold text-[var(--color-text-primary)]">No leaders yet</p>
             <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{activeMetric.emptyLabel}</p>
           </div>
