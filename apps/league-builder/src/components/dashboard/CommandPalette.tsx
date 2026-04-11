@@ -1,48 +1,26 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { Command } from 'cmdk';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useAppSidebar } from './AppSidebarContext';
-import { usePathname } from 'next/navigation';
-import {
-  Home,
-  Calendar,
-  Users,
-  Trophy,
-  ClipboardCheck,
-  User,
-  Settings,
-  CreditCard,
-  Palette,
-  Newspaper,
-  Star,
-  Award,
-  Image,
-  Dices,
-  Bug,
-  Plus,
-  Search,
-  Database,
-} from 'lucide-react';
+import { Search } from 'lucide-react';
+import { buildCommandPaletteActions, buildCommandPalettePages } from '@/lib/dashboard/command-palette';
 
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
   const t = useTranslations('commandPalette');
   const pathname = usePathname();
-  const { leagueId: contextLeagueId } = useAppSidebar();
+  const { leagueId: contextLeagueId, seasonId } = useAppSidebar();
 
   const pathLeagueId = React.useMemo(() => {
     const match = pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i);
     return match ? match[1] : null;
   }, [pathname]);
   const effectiveLeagueId = pathLeagueId ?? contextLeagueId;
-
-  const leagueBase = effectiveLeagueId
-    ? `/dashboard/leagues/${effectiveLeagueId}`
-    : '/dashboard';
 
   // Global keyboard shortcut
   React.useEffect(() => {
@@ -65,35 +43,13 @@ export function CommandPalette() {
   );
 
   const pages = React.useMemo(
-    () => [
-      { label: t('pages.overview'), icon: Home, href: '/dashboard' },
-      { label: 'Staff Pool', icon: User, href: '/dashboard/staff' },
-      ...(effectiveLeagueId ? [{ label: 'Migration Center', icon: Database, href: `${leagueBase}/migration-center` }] : []),
-      { label: t('pages.schedule'), icon: Calendar, href: `${leagueBase}/schedule` },
-      { label: t('pages.teamsAndDivisions'), icon: Users, href: `${leagueBase}/teams` },
-      { label: t('pages.standings'), icon: Trophy, href: `${leagueBase}/games` },
-      { label: t('pages.registration'), icon: ClipboardCheck, href: `${leagueBase}/registrations` },
-      { label: t('pages.bugReports'), icon: Bug, href: `${leagueBase}/bugs` },
-      { label: t('pages.players'), icon: User, href: `${leagueBase}/staff` },
-      { label: t('pages.settings'), icon: Settings, href: '/dashboard/settings' },
-      { label: t('pages.billing'), icon: CreditCard, href: '/dashboard/settings/billing' },
-      // Website Editor temporarily disabled
-      { label: t('pages.news'), icon: Newspaper, href: `${leagueBase}/news` },
-      { label: t('pages.sponsors'), icon: Star, href: `${leagueBase}/sponsors` },
-      { label: t('pages.awards'), icon: Award, href: `${leagueBase}/awards` },
-      { label: t('pages.gallery'), icon: Image, href: `${leagueBase}/gallery` },
-      { label: t('pages.draftRoom'), icon: Dices, href: `${leagueBase}/draft` },
-    ],
-    [t, leagueBase, effectiveLeagueId]
+    () => buildCommandPalettePages({ t, leagueId: effectiveLeagueId, seasonId }),
+    [t, effectiveLeagueId, seasonId]
   );
 
   const actions = React.useMemo(
-    () => [
-      { label: t('actions.createLeague'), icon: Plus, href: '/dashboard/leagues/new' },
-      { label: t('actions.addTeam'), icon: Users, href: `${leagueBase}/teams` },
-      { label: t('actions.newSeason'), icon: Calendar, href: `${leagueBase}/settings` },
-    ],
-    [t, leagueBase]
+    () => buildCommandPaletteActions({ t, leagueId: effectiveLeagueId }),
+    [t, effectiveLeagueId]
   );
 
   if (!open) return null;
