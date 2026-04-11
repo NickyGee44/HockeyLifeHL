@@ -2,11 +2,12 @@ import { Metadata } from 'next';
 import { Trophy } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason } from '@/lib/data';
+import { getLeagueBySlug, getStandings, getDivisions, getCurrentSeason, getSeasonGames } from '@/lib/data';
 import { StandingsWithSearch } from '@/components/StandingsWithSearch';
 import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import type { TeamStanding, Division } from '@/lib/types';
 import { filterPublicStandings } from '@/lib/publicSiteVisibility';
+import { SeasonCompletionArc } from '@/components/shared/SeasonCompletionArc';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -26,9 +27,10 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
   const currentSeason = await getCurrentSeason(league.id);
   const selectedSeasonId = currentSeason?.id || null;
 
-  const [rawStandings, divisions] = await Promise.all([
+  const [rawStandings, divisions, seasonGames] = await Promise.all([
     getStandings(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
+    selectedSeasonId ? getSeasonGames(league.id, selectedSeasonId) : Promise.resolve([]),
   ]);
   const standings = filterPublicStandings(rawStandings);
 
@@ -74,6 +76,12 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
         </div>
       )}
 
+      {/* Season Completion Arc — anchors visually into sponsor bar below */}
+      {seasonGames.length > 0 && (
+        <div className="max-w-[1200px] mx-auto mt-4">
+          <SeasonCompletionArc games={seasonGames} />
+        </div>
+      )}
     </div>
     </SubscriptionWall>
   );
