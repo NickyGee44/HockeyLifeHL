@@ -554,6 +554,37 @@ body {
   backdrop-filter: none;
 }
 
+/* Dashboard-wide shell harmonization so legacy page wrappers/cards inherit the updated look */
+.dashboard-shell {
+  background:
+    radial-gradient(circle at top, rgba(34, 211, 238, 0.08), transparent 32%),
+    radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.10), transparent 28%),
+    #020617;
+}
+
+.dashboard-shell .min-h-screen.bg-neutral-950 {
+  background-color: transparent !important;
+}
+
+.dashboard-shell :is(
+  [class*='rounded-xl'][class*='border-white/[0.06]'][class*='bg-white/[0.02]'],
+  [class*='rounded-2xl'][class*='border-white/10'][class*='bg-white/[0.03]'],
+  [class*='rounded-2xl'][class*='border-white/10'][class*='bg-neutral-900/70'],
+  [class*='rounded-2xl'][class*='border-white/[0.08]'][class*='bg-black/20'],
+  [class*='rounded-3xl'][class*='border-white/10'][class*='bg-white/[0.04]'],
+  [class*='rounded-[24px]'][class*='border-white/[0.08]'][class*='bg-neutral-950/40'],
+  [class*='rounded-[24px]'][class*='border-white/[0.08]'][class*='bg-neutral-950/70'],
+  [class*='rounded-[30px]'][class*='border-white/[0.08]'],
+  [class*='rounded-[30px]'][class*='border-white/10'],
+  [class*='rounded-[32px]'][class*='border-white/10'][class*='bg-white/[0.04]']
+) {
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
 /* Button Glow Effect */
 .btn-glow {
   position: relative;
