@@ -1,13 +1,18 @@
+'use client';
+
 /**
  * SeasonCompletionArc — grounded hump curve showing regular-season progress.
  * When playoff games exist, switches to a filled "PLAYOFFS" hump with pulse.
  *
- * Server component — pure CSS animations, no client JS.
+ * Client component — uses IntersectionObserver for scroll-triggered entrance
+ * animation (fires once). The hump fills from 0→final% and the text counts up.
  *
  * The baseline (bottom edge) of the hump is designed to sit flush against
  * the sponsor footer strip. Pages rendering this component should remove
  * bottom padding so the curve visually connects to the sponsor bar.
  */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface SeasonCompletionArcProps {
   /** All games for the current season (all types). */
@@ -31,13 +36,65 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
     : 0;
 
   const isPlayoffMode = hasPlayoffs;
-  const fillPct = isPlayoffMode ? 100 : pct;
+  const targetFillPct = isPlayoffMode ? 100 : pct;
 
-  // SVG geometry — wide hump, viewBox 800×100
-  // Hump: smooth bell curve from bottom-left to bottom-right with peak at center
+  // --- Scroll-triggered animation state ---
+  const sectionRef = useRef<HTMLElement>(null);
+  const hasAnimated = useRef(false);
+  const [animatedPct, setAnimatedPct] = useState(0);
+  const [animatedFill, setAnimatedFill] = useState(0);
+  const [visible, setVisible] = useState(false);
+
+  // Count-up + fill animation
+  const animate = useCallback(() => {
+    const duration = 1200; // ms
+    const start = performance.now();
+
+    function tick(now: number) {
+      const elapsed = now - start;
+      // ease-out cubic
+      const t = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      setAnimatedPct(Math.round(eased * pct));
+      setAnimatedFill(eased * targetFillPct);
+
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        setAnimatedPct(pct);
+        setAnimatedFill(targetFillPct);
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }, [pct, targetFillPct]);
+
+  // IntersectionObserver — fire once
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          setVisible(true);
+          animate();
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [animate]);
+
+  // SVG geometry — wide hump, viewBox 800×180 (doubled height)
   const VB_W = 800;
-  const VB_H = 100;
-  const PEAK_Y = 10; // how high the peak rises (lower = taller hump)
+  const VB_H = 180;
+  const PEAK_Y = 10; // peak near top of taller viewBox
 
   const humpPath = [
     `M 0 ${VB_H}`,
@@ -46,14 +103,21 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
     'Z',
   ].join(' ');
 
+  const humpStroke = [
+    `M 0 ${VB_H}`,
+    `C 180 ${VB_H}, 280 ${PEAK_Y}, ${VB_W / 2} ${PEAK_Y}`,
+    `C ${VB_W - 280} ${PEAK_Y}, ${VB_W - 180} ${VB_H}, ${VB_W} ${VB_H}`,
+  ].join(' ');
+
   // Clip rect width for progress fill (in viewBox units)
-  const clipWidth = (fillPct / 100) * VB_W;
+  const clipWidth = (animatedFill / 100) * VB_W;
 
   // Unique ID prefix to avoid collisions if multiple instances render
   const uid = 'sc-hump';
 
   return (
     <section
+      ref={sectionRef}
       className="season-completion-hump relative flex flex-col items-center"
       aria-label="Season Completion"
     >
@@ -63,14 +127,22 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
         </h2>
       </div>
 
-      <div className="relative z-10 mb-[-52px]">
+      <div
+        className="relative z-10 mb-[-52px]"
+        style={{
+          opacity: visible ? 1 : 0,
+          transition: 'opacity 0.4s ease-out',
+        }}
+      >
         {isPlayoffMode ? (
-          <span className="text-base font-black uppercase tracking-[0.22em] text-[var(--league-primary,#D4AF37)] sc-hump-pulse md:text-lg">
+          <span
+            className={`text-base font-black uppercase tracking-[0.22em] text-[var(--league-primary,#D4AF37)] md:text-lg ${visible ? 'sc-hump-pulse' : ''}`}
+          >
             Playoffs
           </span>
         ) : (
           <span className="text-3xl font-extrabold tabular-nums text-[var(--color-text-primary)] md:text-4xl">
-            {pct}<span className="text-lg font-semibold text-[var(--color-text-muted)] md:text-xl">%</span>
+            {animatedPct}<span className="text-lg font-semibold text-[var(--color-text-muted)] md:text-xl">%</span>
           </span>
         )}
       </div>
@@ -81,7 +153,7 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
         className="w-full h-auto block"
         preserveAspectRatio="none"
         aria-hidden="true"
-        style={{ maxHeight: '184px' }}
+        style={{ maxHeight: '340px' }}
       >
         <defs>
           {/* Gradient for track */}
@@ -96,7 +168,7 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
             <stop offset="100%" stopColor="var(--league-primary, #D4AF37)" stopOpacity="0.05" />
           </linearGradient>
 
-          {/* Clip for progress percentage */}
+          {/* Clip for progress percentage — animated width */}
           <clipPath id={`${uid}-clip`}>
             <rect x="0" y="0" width={clipWidth} height={VB_H} />
           </clipPath>
@@ -105,23 +177,19 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
         {/* Track (full hump, muted) */}
         <path d={humpPath} fill={`url(#${uid}-track)`} />
 
-        {/* Progress fill (clipped to percentage) */}
-        {fillPct > 0 && (
+        {/* Progress fill (clipped to animated percentage) */}
+        {animatedFill > 0 && (
           <path
             d={humpPath}
             fill={`url(#${uid}-fill)`}
             clipPath={`url(#${uid}-clip)`}
-            className={isPlayoffMode ? 'sc-hump-pulse' : ''}
+            className={isPlayoffMode && visible ? 'sc-hump-pulse' : ''}
           />
         )}
 
         {/* Subtle top-edge stroke for definition */}
         <path
-          d={[
-            `M 0 ${VB_H}`,
-            `C 180 ${VB_H}, 280 ${PEAK_Y}, ${VB_W / 2} ${PEAK_Y}`,
-            `C ${VB_W - 280} ${PEAK_Y}, ${VB_W - 180} ${VB_H}, ${VB_W} ${VB_H}`,
-          ].join(' ')}
+          d={humpStroke}
           fill="none"
           stroke="var(--league-primary, #D4AF37)"
           strokeWidth="1.2"
@@ -129,13 +197,9 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
         />
 
         {/* Progress edge highlight — shows a brighter stroke up to the fill point */}
-        {fillPct > 0 && fillPct < 100 && (
+        {animatedFill > 0 && animatedFill < 100 && (
           <path
-            d={[
-              `M 0 ${VB_H}`,
-              `C 180 ${VB_H}, 280 ${PEAK_Y}, ${VB_W / 2} ${PEAK_Y}`,
-              `C ${VB_W - 280} ${PEAK_Y}, ${VB_W - 180} ${VB_H}, ${VB_W} ${VB_H}`,
-            ].join(' ')}
+            d={humpStroke}
             fill="none"
             stroke="var(--league-primary, #D4AF37)"
             strokeWidth="1.5"
