@@ -121,14 +121,14 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
       className="season-completion-hump relative flex flex-col items-center"
       aria-label="Season Completion"
     >
-      <div className="relative z-10 mb-4 w-full text-left">
+      <div className="relative z-10 mb-7 w-full text-left md:mb-8">
         <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] md:text-3xl">
           Season Completion
         </h2>
       </div>
 
       <div
-        className="relative z-10 mb-[-52px]"
+        className="relative z-10 mb-[-60px] translate-y-2 md:translate-y-3"
         style={{
           opacity: visible ? 1 : 0,
           transition: 'opacity 0.4s ease-out',
