@@ -10,6 +10,7 @@ import { filterPublicStandings } from '@/lib/publicSiteVisibility';
 import { SeasonCompletionArc } from '@/components/shared/SeasonCompletionArc';
 import { StandingsPlayoffsSection } from '@/components/playoffs/StandingsPlayoffsSection';
 import { buildPlayoffPreview, type PlayoffPreview } from '@/lib/playoffs/preview';
+import { createClient } from '@/lib/supabase/server';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -29,24 +30,35 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
   const currentSeason = await getCurrentSeason(league.id);
   const selectedSeasonId = currentSeason?.id || null;
 
-  const [rawStandings, divisions, seasonGames] = await Promise.all([
+  const supabase = await createClient();
+
+  const [rawStandings, divisions, seasonGames, standingsConfigResult] = await Promise.all([
     getStandings(league.id, selectedSeasonId || undefined),
     getDivisions(league.id),
     selectedSeasonId ? getSeasonGames(league.id, selectedSeasonId) : Promise.resolve([]),
+    selectedSeasonId
+      ? supabase
+          .from('standings_config')
+          .select('playoff_teams_total, use_division_playoffs, playoff_teams_per_division')
+          .eq('season_id', selectedSeasonId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
   const standings = filterPublicStandings(rawStandings);
 
   // Group standings by division
   const standingsByDivision = groupByDivision(standings, divisions);
 
+  const standingsConfig = standingsConfigResult?.data;
+
   const hasConfiguredPlayoffs =
-    (currentSeason?.use_division_playoffs && (currentSeason?.playoff_teams_per_division ?? 0) >= 2) ||
-    (currentSeason?.playoff_teams_total ?? 0) >= 2;
+    (standingsConfig?.use_division_playoffs && (standingsConfig?.playoff_teams_per_division ?? 0) >= 2) ||
+    (standingsConfig?.playoff_teams_total ?? 0) >= 2;
 
   const previewConfig = {
-    playoffTeamsTotal: currentSeason?.playoff_teams_total,
-    playoffTeamsPerDivision: currentSeason?.playoff_teams_per_division,
-    useDivisionPlayoffs: currentSeason?.use_division_playoffs,
+    playoffTeamsTotal: standingsConfig?.playoff_teams_total,
+    playoffTeamsPerDivision: standingsConfig?.playoff_teams_per_division,
+    useDivisionPlayoffs: standingsConfig?.use_division_playoffs,
   };
 
   const playoffPreviews: PlayoffPreview[] = hasConfiguredPlayoffs && standings.length > 1
