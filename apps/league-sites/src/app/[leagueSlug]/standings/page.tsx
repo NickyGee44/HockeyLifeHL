@@ -10,7 +10,7 @@ import { filterPublicStandings } from '@/lib/publicSiteVisibility';
 import { SeasonCompletionArc } from '@/components/shared/SeasonCompletionArc';
 import { StandingsPlayoffsSection } from '@/components/playoffs/StandingsPlayoffsSection';
 import { buildPlayoffPreview, type PlayoffPreview } from '@/lib/playoffs/preview';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -30,7 +30,7 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
   const currentSeason = await getCurrentSeason(league.id);
   const selectedSeasonId = currentSeason?.id || null;
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   const [rawStandings, divisions, seasonGames, standingsConfigResult] = await Promise.all([
     getStandings(league.id, selectedSeasonId || undefined),
