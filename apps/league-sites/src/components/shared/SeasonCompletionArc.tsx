@@ -57,13 +57,13 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
       className="season-completion-hump relative flex flex-col items-center"
       aria-label="Season Completion"
     >
-      <div className="relative z-10 mb-3 text-center">
+      <div className="relative z-10 mb-4 w-full text-left">
         <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] md:text-3xl">
           Season Completion
         </h2>
       </div>
 
-      <div className="relative z-10 mb-[-34px]">
+      <div className="relative z-10 mb-[-52px]">
         {isPlayoffMode ? (
           <span className="text-base font-black uppercase tracking-[0.22em] text-[var(--league-primary,#D4AF37)] sc-hump-pulse md:text-lg">
             Playoffs
@@ -81,7 +81,7 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
         className="w-full h-auto block"
         preserveAspectRatio="none"
         aria-hidden="true"
-        style={{ maxHeight: '108px' }}
+        style={{ maxHeight: '184px' }}
       >
         <defs>
           {/* Gradient for track */}
