@@ -76,9 +76,9 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
         </div>
       )}
 
-      {/* Season Completion Arc — anchors visually into sponsor bar below */}
+      {/* Season Completion Arc — baseline sits flush against sponsor bar */}
       {seasonGames.length > 0 && (
-        <div className="max-w-[1200px] mx-auto mt-4">
+        <div className="mx-auto mt-6 -mb-12">
           <SeasonCompletionArc games={seasonGames} />
         </div>
       )}

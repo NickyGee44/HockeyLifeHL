@@ -256,9 +256,9 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
           </div>
         )}
 
-        {/* Season Completion Arc — anchors visually into sponsor bar below */}
+        {/* Season Completion Arc — baseline sits flush against sponsor bar */}
         {seasonGames.length > 0 && (
-          <div className="max-w-[1200px] mx-auto mt-8">
+          <div className="max-w-[1200px] mx-auto mt-6 -mb-8">
             <SeasonCompletionArc games={seasonGames as ScheduleGame[]} />
           </div>
         )}

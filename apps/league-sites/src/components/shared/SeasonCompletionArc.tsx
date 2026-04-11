@@ -1,8 +1,12 @@
 /**
- * SeasonCompletionArc — elliptical arc showing regular-season progress.
- * When playoff games exist, switches to a pulsing "PLAYOFFS" label.
+ * SeasonCompletionArc — grounded hump curve showing regular-season progress.
+ * When playoff games exist, switches to a filled "PLAYOFFS" hump with pulse.
  *
  * Server component — pure CSS animations, no client JS.
+ *
+ * The baseline (bottom edge) of the hump is designed to sit flush against
+ * the sponsor footer strip. Pages rendering this component should remove
+ * bottom padding so the curve visually connects to the sponsor bar.
  */
 
 interface SeasonCompletionArcProps {
@@ -26,129 +30,133 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
     ? Math.round((completedRegular.length / totalRegular) * 100)
     : 0;
 
-  // Arc geometry — elliptical, 220° sweep (phone-brightness style)
-  // SVG viewBox is 200×140, arc center at (100, 130)
-  const rx = 85;
-  const ry = 105;
-  const cx = 100;
-  const cy = 130;
-  const startAngle = -200; // degrees from 3-o'clock, going CCW
-  const endAngle = 20;
-  const sweepDeg = endAngle - startAngle; // 220°
-
-  function polarToCartesian(
-    cxVal: number,
-    cyVal: number,
-    rxVal: number,
-    ryVal: number,
-    angleDeg: number,
-  ) {
-    const rad = (angleDeg * Math.PI) / 180;
-    return {
-      x: cxVal + rxVal * Math.cos(rad),
-      y: cyVal + ryVal * Math.sin(rad),
-    };
-  }
-
-  const start = polarToCartesian(cx, cy, rx, ry, startAngle);
-  const end = polarToCartesian(cx, cy, rx, ry, endAngle);
-
-  // Track path (full arc)
-  const trackD = [
-    `M ${start.x} ${start.y}`,
-    `A ${rx} ${ry} 0 1 1 ${end.x} ${end.y}`,
-  ].join(' ');
-
-  // Filled arc — clip to pct of sweep
-  const fillAngle = startAngle + (sweepDeg * (hasPlayoffs ? 100 : pct)) / 100;
-  const fillEnd = polarToCartesian(cx, cy, rx, ry, fillAngle);
-  const largeArc = (fillAngle - startAngle) > 180 ? 1 : 0;
-  const fillD = [
-    `M ${start.x} ${start.y}`,
-    `A ${rx} ${ry} 0 ${largeArc} 1 ${fillEnd.x} ${fillEnd.y}`,
-  ].join(' ');
-
   const isPlayoffMode = hasPlayoffs;
+  const fillPct = isPlayoffMode ? 100 : pct;
+
+  // SVG geometry — wide hump, viewBox 800×100
+  // Hump: smooth bell curve from bottom-left to bottom-right with peak at center
+  const VB_W = 800;
+  const VB_H = 100;
+  const PEAK_Y = 10; // how high the peak rises (lower = taller hump)
+
+  const humpPath = [
+    `M 0 ${VB_H}`,
+    `C 180 ${VB_H}, 280 ${PEAK_Y}, ${VB_W / 2} ${PEAK_Y}`,
+    `C ${VB_W - 280} ${PEAK_Y}, ${VB_W - 180} ${VB_H}, ${VB_W} ${VB_H}`,
+    'Z',
+  ].join(' ');
+
+  // Clip rect width for progress fill (in viewBox units)
+  const clipWidth = (fillPct / 100) * VB_W;
+
+  // Unique ID prefix to avoid collisions if multiple instances render
+  const uid = 'sc-hump';
 
   return (
     <section
-      className="season-completion-arc relative flex flex-col items-center pb-0 -mb-2"
+      className="season-completion-hump relative flex flex-col items-center"
       aria-label="Season Completion"
     >
-      {/* Heading */}
-      <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)] mb-2">
-        Season Completion
-      </h2>
-
-      <div className="relative w-[220px] h-[150px]">
-        <svg
-          viewBox="0 0 200 140"
-          className="w-full h-full"
-          aria-hidden="true"
-        >
-          {/* Glow filter for playoff mode */}
-          {isPlayoffMode && (
-            <defs>
-              <filter id="playoff-glow">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-          )}
-
-          {/* Track (background arc) */}
-          <path
-            d={trackD}
-            fill="none"
-            stroke="var(--color-border, rgba(255,255,255,0.08))"
-            strokeWidth="6"
-            strokeLinecap="round"
-          />
-
-          {/* Filled arc */}
-          {(pct > 0 || isPlayoffMode) && (
-            <path
-              d={fillD}
-              fill="none"
-              stroke="var(--league-primary, #D4AF37)"
-              strokeWidth="6"
-              strokeLinecap="round"
-              className={isPlayoffMode ? 'season-arc-pulse' : ''}
-              filter={isPlayoffMode ? 'url(#playoff-glow)' : undefined}
-            />
-          )}
-        </svg>
-
-        {/* Center label */}
-        <div className="absolute inset-0 flex items-center justify-center pt-4">
-          {isPlayoffMode ? (
-            <span className="text-lg font-black uppercase tracking-widest text-[var(--league-primary,#D4AF37)] season-arc-pulse-text">
-              Playoffs
-            </span>
-          ) : (
-            <span className="text-3xl font-extrabold tabular-nums text-[var(--color-text-primary)]">
-              {pct}<span className="text-lg font-semibold text-[var(--color-text-muted)]">%</span>
-            </span>
-          )}
-        </div>
+      {/* Label above the hump */}
+      <div className="relative z-10 mb-1 text-center">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+          Season Completion
+        </h2>
       </div>
 
-      {/* Inline styles for pulse animation — CSS-only, no client JS */}
+      {/* Percentage / Playoffs label — positioned above the hump peak */}
+      <div className="relative z-10 mb-[-18px]">
+        {isPlayoffMode ? (
+          <span className="text-sm font-black uppercase tracking-[0.25em] text-[var(--league-primary,#D4AF37)] sc-hump-pulse">
+            Playoffs
+          </span>
+        ) : (
+          <span className="text-2xl font-extrabold tabular-nums text-[var(--color-text-primary)]">
+            {pct}<span className="text-sm font-semibold text-[var(--color-text-muted)]">%</span>
+          </span>
+        )}
+      </div>
+
+      {/* The hump SVG — full width, no bottom margin */}
+      <svg
+        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        className="w-full h-auto block"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        style={{ maxHeight: '70px' }}
+      >
+        <defs>
+          {/* Gradient for track */}
+          <linearGradient id={`${uid}-track`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-border, rgba(255,255,255,0.08))" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="var(--color-border, rgba(255,255,255,0.08))" stopOpacity="0.15" />
+          </linearGradient>
+
+          {/* Gradient for filled progress */}
+          <linearGradient id={`${uid}-fill`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--league-primary, #D4AF37)" stopOpacity={isPlayoffMode ? '0.35' : '0.25'} />
+            <stop offset="100%" stopColor="var(--league-primary, #D4AF37)" stopOpacity="0.05" />
+          </linearGradient>
+
+          {/* Clip for progress percentage */}
+          <clipPath id={`${uid}-clip`}>
+            <rect x="0" y="0" width={clipWidth} height={VB_H} />
+          </clipPath>
+        </defs>
+
+        {/* Track (full hump, muted) */}
+        <path d={humpPath} fill={`url(#${uid}-track)`} />
+
+        {/* Progress fill (clipped to percentage) */}
+        {fillPct > 0 && (
+          <path
+            d={humpPath}
+            fill={`url(#${uid}-fill)`}
+            clipPath={`url(#${uid}-clip)`}
+            className={isPlayoffMode ? 'sc-hump-pulse' : ''}
+          />
+        )}
+
+        {/* Subtle top-edge stroke for definition */}
+        <path
+          d={[
+            `M 0 ${VB_H}`,
+            `C 180 ${VB_H}, 280 ${PEAK_Y}, ${VB_W / 2} ${PEAK_Y}`,
+            `C ${VB_W - 280} ${PEAK_Y}, ${VB_W - 180} ${VB_H}, ${VB_W} ${VB_H}`,
+          ].join(' ')}
+          fill="none"
+          stroke="var(--league-primary, #D4AF37)"
+          strokeWidth="1.2"
+          strokeOpacity="0.2"
+        />
+
+        {/* Progress edge highlight — shows a brighter stroke up to the fill point */}
+        {fillPct > 0 && fillPct < 100 && (
+          <path
+            d={[
+              `M 0 ${VB_H}`,
+              `C 180 ${VB_H}, 280 ${PEAK_Y}, ${VB_W / 2} ${PEAK_Y}`,
+              `C ${VB_W - 280} ${PEAK_Y}, ${VB_W - 180} ${VB_H}, ${VB_W} ${VB_H}`,
+            ].join(' ')}
+            fill="none"
+            stroke="var(--league-primary, #D4AF37)"
+            strokeWidth="1.5"
+            strokeOpacity="0.45"
+            clipPath={`url(#${uid}-clip)`}
+          />
+        )}
+      </svg>
+
+      {/* CSS-only animations */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
-@keyframes season-arc-strobe {
+.sc-hump-pulse {
+  animation: sc-hump-breathe 3s ease-in-out infinite;
+}
+@keyframes sc-hump-breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-.season-arc-pulse {
-  animation: season-arc-strobe 2.4s ease-in-out infinite;
-}
-.season-arc-pulse-text {
-  animation: season-arc-strobe 2.4s ease-in-out infinite;
+  50% { opacity: 0.6; }
 }
 `,
         }}
