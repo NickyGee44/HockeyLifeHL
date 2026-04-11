@@ -14,6 +14,12 @@ export interface PreviewSeries {
   lowSeed: PreviewTeam | null;
 }
 
+export interface PreviewRound {
+  roundNumber: number;
+  label: string;
+  series: PreviewSeries[];
+}
+
 export interface PlayoffPreviewDivisionOption {
   id: string;
   name: string;
@@ -31,6 +37,7 @@ export interface PlayoffPreview {
   totalRounds: number;
   playoffTeamCount: number;
   firstRound: PreviewSeries[];
+  rounds: PreviewRound[];
   useDivisionPlayoffs: boolean;
   divisionId: string | null;
   divisionName: string | null;
@@ -53,6 +60,14 @@ export interface PreviewStandingsRow {
 
 function sortStandings(rows: PreviewStandingsRow[]): PreviewStandingsRow[] {
   return [...rows].sort((a, b) => b.points - a.points);
+}
+
+function getRoundLabel(roundNumber: number, totalRounds: number): string {
+  const roundsFromEnd = totalRounds - roundNumber + 1;
+  if (roundsFromEnd === 1) return 'Championship';
+  if (roundsFromEnd === 2) return 'Semifinals';
+  if (roundsFromEnd === 3) return 'Quarterfinals';
+  return `Round ${roundNumber}`;
 }
 
 export function buildPlayoffPreviewContext(
@@ -147,6 +162,28 @@ export function buildPlayoffPreview(
     });
   }
 
+  const rounds: PreviewRound[] = [
+    {
+      roundNumber: 1,
+      label: getRoundLabel(1, totalRounds),
+      series: firstRound,
+    },
+  ];
+
+  let currentMatchups = firstRoundMatchups;
+  for (let roundNumber = 2; roundNumber <= totalRounds; roundNumber++) {
+    currentMatchups = Math.max(1, currentMatchups / 2);
+    rounds.push({
+      roundNumber,
+      label: getRoundLabel(roundNumber, totalRounds),
+      series: Array.from({ length: currentMatchups }, (_, index) => ({
+        seriesNumber: index + 1,
+        highSeed: null,
+        lowSeed: null,
+      })),
+    });
+  }
+
   return {
     success: true,
     data: {
@@ -154,6 +191,7 @@ export function buildPlayoffPreview(
       totalRounds,
       playoffTeamCount: playoffTeams.length,
       firstRound,
+      rounds,
       useDivisionPlayoffs: !!selectedDivision || !!config.useDivisionPlayoffs,
       divisionId: selectedDivision?.id ?? null,
       divisionName: selectedDivision?.name ?? null,

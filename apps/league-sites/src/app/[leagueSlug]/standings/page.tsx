@@ -8,6 +8,8 @@ import { DivisionUrlSync } from '@/components/DivisionUrlSync';
 import type { TeamStanding, Division } from '@/lib/types';
 import { filterPublicStandings } from '@/lib/publicSiteVisibility';
 import { SeasonCompletionArc } from '@/components/shared/SeasonCompletionArc';
+import { StandingsPlayoffsSection } from '@/components/playoffs/StandingsPlayoffsSection';
+import { buildPlayoffPreview, type PlayoffPreview } from '@/lib/playoffs/preview';
 
 interface StandingsPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -36,6 +38,30 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
 
   // Group standings by division
   const standingsByDivision = groupByDivision(standings, divisions);
+
+  const hasConfiguredPlayoffs =
+    (currentSeason?.use_division_playoffs && (currentSeason?.playoff_teams_per_division ?? 0) >= 2) ||
+    (currentSeason?.playoff_teams_total ?? 0) >= 2;
+
+  const previewConfig = {
+    playoffTeamsTotal: currentSeason?.playoff_teams_total,
+    playoffTeamsPerDivision: currentSeason?.playoff_teams_per_division,
+    useDivisionPlayoffs: currentSeason?.use_division_playoffs,
+  };
+
+  const playoffPreviews: PlayoffPreview[] = hasConfiguredPlayoffs && standings.length > 1
+    ? currentSeason?.use_division_playoffs
+      ? divisions
+          .filter((division) => standings.some((team) => team.division_id === division.id))
+          .flatMap((division) => {
+            const result = buildPlayoffPreview(standings, previewConfig, division.id);
+            return result.success ? [result.data] : [];
+          })
+      : (() => {
+          const result = buildPlayoffPreview(standings, previewConfig);
+          return result.success ? [result.data] : [];
+        })()
+    : [];
 
   return (
     <SubscriptionWall>
@@ -74,6 +100,10 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
             Standings will appear once games have been played.
           </p>
         </div>
+      )}
+
+      {playoffPreviews.length > 0 && (
+        <StandingsPlayoffsSection standings={standings} previews={playoffPreviews} />
       )}
 
       {/* Season Completion Arc — baseline sits flush against sponsor bar */}

@@ -94,9 +94,12 @@ export interface Season {
   league_id: string;
   start_date: string;
   end_date: string;
-  status: 'upcoming' | 'active' | 'completed';
+  status: 'upcoming' | 'active' | 'playoffs' | 'completed';
   is_current: boolean;
   champion_team_id?: string | null;
+  playoff_teams_total?: number | null;
+  playoff_teams_per_division?: number | null;
+  use_division_playoffs?: boolean | null;
 }
 
 export interface Division {
