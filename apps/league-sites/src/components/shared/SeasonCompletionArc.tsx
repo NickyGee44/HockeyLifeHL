@@ -57,22 +57,20 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
       className="season-completion-hump relative flex flex-col items-center"
       aria-label="Season Completion"
     >
-      {/* Label above the hump */}
-      <div className="relative z-10 mb-1 text-center">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
+      <div className="relative z-10 mb-3 text-center">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)] md:text-3xl">
           Season Completion
         </h2>
       </div>
 
-      {/* Percentage / Playoffs label — positioned above the hump peak */}
-      <div className="relative z-10 mb-[-18px]">
+      <div className="relative z-10 mb-[-34px]">
         {isPlayoffMode ? (
-          <span className="text-sm font-black uppercase tracking-[0.25em] text-[var(--league-primary,#D4AF37)] sc-hump-pulse">
+          <span className="text-base font-black uppercase tracking-[0.22em] text-[var(--league-primary,#D4AF37)] sc-hump-pulse md:text-lg">
             Playoffs
           </span>
         ) : (
-          <span className="text-2xl font-extrabold tabular-nums text-[var(--color-text-primary)]">
-            {pct}<span className="text-sm font-semibold text-[var(--color-text-muted)]">%</span>
+          <span className="text-3xl font-extrabold tabular-nums text-[var(--color-text-primary)] md:text-4xl">
+            {pct}<span className="text-lg font-semibold text-[var(--color-text-muted)] md:text-xl">%</span>
           </span>
         )}
       </div>
@@ -83,7 +81,7 @@ export function SeasonCompletionArc({ games }: SeasonCompletionArcProps) {
         className="w-full h-auto block"
         preserveAspectRatio="none"
         aria-hidden="true"
-        style={{ maxHeight: '70px' }}
+        style={{ maxHeight: '108px' }}
       >
         <defs>
           {/* Gradient for track */}
