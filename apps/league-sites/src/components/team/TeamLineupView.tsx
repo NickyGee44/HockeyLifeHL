@@ -1,5 +1,7 @@
 'use client';
 
+import { Check, HelpCircle, X } from 'lucide-react';
+
 interface LineupPlayer {
   playerId: string;
   name: string;
@@ -12,6 +14,7 @@ interface TeamLineupViewProps {
   goalies: LineupPlayer[];
   primaryColor: string;
   secondaryColor: string;
+  availabilityMap?: Record<string, 'confirmed' | 'tentative' | 'out'>;
 }
 
 const FORWARD_SLOTS = 6;
@@ -28,7 +31,6 @@ function isDefence(position?: string | null): boolean {
   return p === 'd' || p === 'defence' || p === 'defense' || p === 'ld' || p === 'rd';
 }
 
-/** Perceived luminance — used to pick readable name color against team primary. */
 function isLightColor(hex: string): boolean {
   try {
     const clean = hex.replace('#', '').trim();
@@ -42,7 +44,13 @@ function isLightColor(hex: string): boolean {
   }
 }
 
-export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor }: TeamLineupViewProps) {
+export function TeamLineupView({
+  skaters,
+  goalies,
+  primaryColor,
+  secondaryColor,
+  availabilityMap = {},
+}: TeamLineupViewProps) {
   const defenders = skaters.filter((p) => isDefence(p.position));
   const forwards = skaters.filter((p) => !isDefence(p.position));
 
@@ -63,6 +71,7 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
               player={player}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
+              availability={player ? availabilityMap[player.playerId] : undefined}
             />
           ))}
         </div>
@@ -80,6 +89,7 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
                 player={player}
                 primaryColor={primaryColor}
                 secondaryColor={secondaryColor}
+                availability={player ? availabilityMap[player.playerId] : undefined}
               />
             ))}
           </div>
@@ -94,6 +104,7 @@ export function TeamLineupView({ skaters, goalies, primaryColor, secondaryColor 
               player={goalie}
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
+              availability={goalie ? availabilityMap[goalie.playerId] : undefined}
             />
           </div>
         </div>
@@ -106,10 +117,12 @@ function JerseySlot({
   player,
   primaryColor,
   secondaryColor,
+  availability,
 }: {
   player: LineupPlayer | null;
   primaryColor: string;
   secondaryColor: string;
+  availability?: 'confirmed' | 'tentative' | 'out';
 }) {
   return (
     <div className="flex flex-col items-center">
@@ -119,6 +132,7 @@ function JerseySlot({
           number={player.jerseyNumber}
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
+          availability={availability}
         />
       ) : (
         <EmptyJersey primaryColor={primaryColor} />
@@ -127,13 +141,6 @@ function JerseySlot({
   );
 }
 
-/**
- * Jersey silhouette — BACK view, styled to match the reference illustration.
- * viewBox: 0 0 280 240
- * Single continuous outline: collar → right shoulder → sleeve down → cuff →
- * concave armpit → body side → bell hem → mirror on left.
- * This path + stripe polygons were iterated in local rsvg previews before shipping.
- */
 const JERSEY_PATH = `
   M 120 50
   Q 140 62 160 50
@@ -151,7 +158,6 @@ const JERSEY_PATH = `
   Z
 `;
 
-// Stripe polygons — traced to sit flush against JERSEY_PATH edges (no gaps/overflow).
 const LEFT_CUFF_STRIPE = `
   M 22 168
   L 78 154
@@ -179,11 +185,13 @@ function Jersey({
   number,
   primaryColor,
   secondaryColor,
+  availability,
 }: {
   name: string;
   number: number | null;
   primaryColor: string;
   secondaryColor: string;
+  availability?: 'confirmed' | 'tentative' | 'out';
 }) {
   const outline = '#111111';
   const nameColor = isLightColor(primaryColor) ? '#111111' : '#ffffff';
@@ -197,7 +205,6 @@ function Jersey({
         viewBox="0 0 280 240"
         className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]"
       >
-        {/* Jersey silhouette */}
         <path
           d={JERSEY_PATH}
           fill={primaryColor}
@@ -207,13 +214,11 @@ function Jersey({
           strokeLinecap="round"
         />
 
-        {/* Subtle collar shadow */}
         <path
           d="M 120 50 Q 140 65 160 50 Q 140 58 120 50 Z"
           fill="rgba(0,0,0,0.3)"
         />
 
-        {/* Cuff stripes */}
         <path
           d={LEFT_CUFF_STRIPE}
           fill={secondaryColor}
@@ -229,7 +234,6 @@ function Jersey({
           strokeLinejoin="round"
         />
 
-        {/* Hem stripe */}
         <path
           d={HEM_STRIPE}
           fill={secondaryColor}
@@ -238,7 +242,15 @@ function Jersey({
           strokeLinejoin="round"
         />
 
-        {/* NAME — upper back */}
+        {availability === 'out' ? (
+          <>
+            <path d={JERSEY_PATH} fill="rgba(148,163,184,0.58)" stroke="none" />
+            <path d={LEFT_CUFF_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
+            <path d={RIGHT_CUFF_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
+            <path d={HEM_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
+          </>
+        ) : null}
+
         <text
           x="140"
           y="110"
@@ -254,7 +266,6 @@ function Jersey({
           {displayName}
         </text>
 
-        {/* NUMBER — large varsity with dark outline */}
         <text
           x="140"
           y="185"
@@ -272,7 +283,28 @@ function Jersey({
           {number ?? '—'}
         </text>
       </svg>
+
+      <AvailabilityBadge availability={availability} />
     </div>
+  );
+}
+
+function AvailabilityBadge({ availability }: { availability?: 'confirmed' | 'tentative' | 'out' }) {
+  if (!availability) return null;
+
+  const config =
+    availability === 'confirmed'
+      ? { icon: Check, className: 'bg-emerald-500 text-white ring-emerald-200/40' }
+      : availability === 'tentative'
+        ? { icon: HelpCircle, className: 'bg-amber-400 text-black ring-amber-100/50' }
+        : { icon: X, className: 'bg-slate-500 text-white ring-slate-200/35' };
+
+  const Icon = config.icon;
+
+  return (
+    <span className={`absolute bottom-3 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-offset-2 ring-offset-transparent ${config.className}`}>
+      <Icon className="h-4 w-4" />
+    </span>
   );
 }
 

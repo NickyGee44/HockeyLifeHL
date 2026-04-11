@@ -310,27 +310,26 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 emptyDescription="This team does not have another game on the current slate yet."
                 showViewToggle={false}
                 variant="team"
+                teamActions={nextTeamGame ? (
+                  <TeamPageCheckinCard
+                    leagueId={league.id}
+                    leagueSlug={leagueSlug}
+                    seasonId={currentSeason?.id ?? null}
+                    timezone={league.timezone || 'America/Toronto'}
+                    teamId={team.id}
+                    teamName={team.name}
+                    opponentName={nextOpponentName}
+                    nextGame={{
+                      id: nextTeamGame.id,
+                      scheduledAt: nextTeamGame.scheduled_at,
+                      venue: nextTeamGame.venue,
+                    }}
+                    seasonRecord={seasonRecord}
+                    opponentRecord={headToHeadRecord}
+                  />
+                ) : null}
               />
             </section>
-
-            {nextTeamGame ? (
-              <TeamPageCheckinCard
-                leagueId={league.id}
-                leagueSlug={leagueSlug}
-                seasonId={currentSeason?.id ?? null}
-                timezone={league.timezone || 'America/Toronto'}
-                teamId={team.id}
-                teamName={team.name}
-                opponentName={nextOpponentName}
-                nextGame={{
-                  id: nextTeamGame.id,
-                  scheduledAt: nextTeamGame.scheduled_at,
-                  venue: nextTeamGame.venue,
-                }}
-                seasonRecord={seasonRecord}
-                opponentRecord={headToHeadRecord}
-              />
-            ) : null}
 
             <TeamLeadersSection
               leadersByMetric={leadersByMetric}
@@ -375,6 +374,8 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   jerseyNumber: goalie.jersey_number,
                   position: 'G',
                 }))}
+                availabilityGameId={nextTeamGame?.id ?? null}
+                availabilityTeamId={team.id}
                 statsView={
                   <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
                     <StatsTableCard

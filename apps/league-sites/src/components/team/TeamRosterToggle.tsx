@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { List } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { TeamLineupView } from './TeamLineupView';
 
 interface LineupPlayer {
@@ -18,6 +19,8 @@ interface TeamRosterToggleProps {
   goalies: LineupPlayer[];
   primaryColor: string;
   secondaryColor: string;
+  availabilityGameId?: string | null;
+  availabilityTeamId?: string | null;
 }
 
 function JerseyIcon({ className }: { className?: string }) {
@@ -43,12 +46,41 @@ export function TeamRosterToggle({
   goalies,
   primaryColor,
   secondaryColor,
+  availabilityGameId = null,
+  availabilityTeamId = null,
 }: TeamRosterToggleProps) {
   const [view, setView] = useState<'lineup' | 'stats'>('lineup');
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, 'confirmed' | 'tentative' | 'out'>>({});
+
+  useEffect(() => {
+    if (!availabilityGameId || !availabilityTeamId) {
+      setAvailabilityMap({});
+      return;
+    }
+
+    const loadAvailability = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('game_checkins')
+        .select('player_id, status')
+        .eq('team_id', availabilityTeamId)
+        .eq('game_id', availabilityGameId);
+
+      const nextMap: Record<string, 'confirmed' | 'tentative' | 'out'> = {};
+      for (const row of data || []) {
+        if (row.status === 'confirmed' || row.status === 'tentative' || row.status === 'out') {
+          nextMap[row.player_id] = row.status;
+        }
+      }
+
+      setAvailabilityMap(nextMap);
+    };
+
+    loadAvailability();
+  }, [availabilityGameId, availabilityTeamId]);
 
   return (
     <div>
-      {/* Header row: title + toggle inline */}
       <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
           {title}
@@ -85,6 +117,7 @@ export function TeamRosterToggle({
           goalies={goalies}
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
+          availabilityMap={availabilityMap}
         />
       ) : (
         statsView

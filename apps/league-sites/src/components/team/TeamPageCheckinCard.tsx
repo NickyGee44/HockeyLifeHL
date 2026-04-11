@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { Check, HelpCircle, Loader2, Send, Users, X } from 'lucide-react';
+import { Check, HelpCircle, Loader2, Send, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useUser } from '@/hooks/useUser';
@@ -53,7 +53,6 @@ export function TeamPageCheckinCard({
   const [roster, setRoster] = useState<TeamRosterEntry[]>([]);
   const [statuses, setStatuses] = useState<Record<string, ReminderCheckinStatus>>({});
   const [shareState, setShareState] = useState<'idle' | 'sharing'>('idle');
-  const [feedback, setFeedback] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const isOnThisTeam = currentTeam?.team_id === teamId;
@@ -109,15 +108,6 @@ export function TeamPageCheckinCard({
     loadData();
   }, [isOnThisTeam, nextGame.id, seasonId, teamId, user]);
 
-  const attendanceSummary = useMemo(() => {
-    const summary = { confirmed: 0, tentative: 0, out: 0, no_response: 0 };
-    for (const player of roster) {
-      const status = statuses[player.playerId] || 'no_response';
-      summary[status] += 1;
-    }
-    return summary;
-  }, [roster, statuses]);
-
   const rosterForShare = useMemo<ReminderRosterPlayer[]>(() => {
     return roster.map((player) => ({
       fullName: player.fullName,
@@ -131,22 +121,16 @@ export function TeamPageCheckinCard({
   }
 
   const handleCheckin = (status: CheckinStatus) => {
-    setFeedback(null);
     startTransition(async () => {
       const result = await updateGameCheckin(nextGame.id, teamId, status);
       if (!result.success || !user) {
-        setFeedback(result.error || 'Could not save your check-in.');
+        if (typeof window !== 'undefined') {
+          window.alert(result.error || 'Could not save your check-in.');
+        }
         return;
       }
 
       setStatuses((prev) => ({ ...prev, [user.id]: mapCheckinStatus(status) }));
-      setFeedback(
-        status === 'confirmed'
-          ? 'You’re in.'
-          : status === 'out'
-            ? 'Marked out.'
-            : 'Marked unsure.'
-      );
     });
   };
 
@@ -155,7 +139,6 @@ export function TeamPageCheckinCard({
 
     try {
       setShareState('sharing');
-      setFeedback(null);
 
       const scheduledDate = new Date(nextGame.scheduledAt);
       const puckDropLabel = new Intl.DateTimeFormat('en-CA', {
@@ -182,15 +165,13 @@ export function TeamPageCheckinCard({
         shareUrl,
       });
 
-      if (result === 'shared') {
-        setFeedback('Opened your share sheet.');
-      } else if (result === 'shared-text') {
-        setFeedback('Opened your share sheet with the reminder link.');
-      } else {
-        setFeedback('Downloaded the reminder card and copied the check-in link.');
+      if (result === 'downloaded' && typeof window !== 'undefined') {
+        window.alert('Reminder card downloaded and check-in link copied.');
       }
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : 'Could not open the share sheet.');
+      if (typeof window !== 'undefined') {
+        window.alert(error instanceof Error ? error.message : 'Could not open the share sheet.');
+      }
     } finally {
       setShareState('idle');
     }
@@ -235,58 +216,24 @@ export function TeamPageCheckinCard({
   }
 
   return (
-    <section className="league-reading-panel rounded-[28px] p-5 md:p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Game check-in
-          </p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-            Let your team know early.
-          </h2>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-secondary)]">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-surface-hover)] px-3 py-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" /> {attendanceSummary.confirmed} in
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-surface-hover)] px-3 py-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-400" /> {attendanceSummary.out} out
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-surface-hover)] px-3 py-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> {attendanceSummary.tentative} unsure
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-surface-hover)] px-3 py-1.5">
-            <Users className="h-3.5 w-3.5" /> {attendanceSummary.no_response} waiting
-          </span>
-        </div>
-      </div>
-
-      <div className={`mt-5 grid gap-3 ${canSend ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3'}`}>
-        {tiles.map((tile) => {
-          const Icon = tile.icon;
-          const loading = tile.key === 'send' ? shareState === 'sharing' : isPending;
-          return (
-            <button
-              key={tile.key}
-              type="button"
-              onClick={tile.onClick}
-              disabled={loading || isLoading}
-              className={buildTileClass(tile.accent, tile.active)}
-            >
-              <div className="flex items-center justify-center">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Icon className="h-6 w-6" />}
-              </div>
-              <span className="mt-3 text-base font-bold">{tile.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {feedback ? (
-        <p className="mt-4 text-sm font-medium text-[var(--color-text-secondary)]">{feedback}</p>
-      ) : null}
-    </section>
+    <div className={`grid gap-2 ${canSend ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+      {tiles.map((tile) => {
+        const Icon = tile.icon;
+        const loading = tile.key === 'send' ? shareState === 'sharing' : isPending;
+        return (
+          <button
+            key={tile.key}
+            type="button"
+            onClick={tile.onClick}
+            disabled={loading || isLoading}
+            className={buildTileClass(tile.accent, tile.active)}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+            <span className="text-sm font-semibold">{tile.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -318,5 +265,5 @@ function buildTileClass(accent: string, active: boolean) {
     blue: 'border-white/8 bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:border-sky-400/35 hover:text-sky-300',
   };
 
-  return `rounded-[22px] border px-4 py-5 text-center transition-all ${accentMap[accent]} disabled:cursor-not-allowed disabled:opacity-60`;
+  return `flex h-10 items-center justify-center gap-1.5 rounded-xl border px-3 text-center transition-all ${accentMap[accent]} disabled:cursor-not-allowed disabled:opacity-60`;
 }

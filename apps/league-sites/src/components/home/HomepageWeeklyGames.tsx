@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -41,6 +41,7 @@ interface HomepageWeeklyGamesProps {
   showViewToggle?: boolean;
   /** 'team' hides eyebrow, overlay badges, detail team names, status card, and dots */
   variant?: 'homepage' | 'team';
+  teamActions?: ReactNode;
 }
 
 interface TeamSideProps {
@@ -296,6 +297,7 @@ function CoolView({
   leagueSlug,
   timezone,
   minimal = false,
+  teamActions,
 }: {
   games: ScheduleGame[];
   activeIndex: number;
@@ -303,6 +305,7 @@ function CoolView({
   leagueSlug: string;
   timezone?: string | null;
   minimal?: boolean;
+  teamActions?: ReactNode;
 }) {
   const game = games[activeIndex];
   const hasControls = games.length > 1;
@@ -377,6 +380,8 @@ function CoolView({
             />
           </div>
         )}
+
+        {minimal && teamActions ? <div className="mt-3">{teamActions}</div> : null}
       </div>
     );
   };
@@ -584,6 +589,7 @@ export function HomepageWeeklyGames({
   emptyDescription = 'Check the full schedule for the next slate and recent scores.',
   showViewToggle = true,
   variant = 'homepage',
+  teamActions,
 }: HomepageWeeklyGamesProps) {
   const isTeamVariant = variant === 'team';
   const [view, setView] = useState<WeeklyGamesView>('cool');
@@ -645,6 +651,7 @@ export function HomepageWeeklyGames({
             leagueSlug={leagueSlug}
             timezone={timezone}
             minimal={isTeamVariant}
+            teamActions={teamActions}
           />
         ) : (
           <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
