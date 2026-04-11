@@ -238,6 +238,7 @@ export function WizardContainer({
         leagueId={createdLeague.leagueId}
         leagueSlug={createdLeague.slug}
         leagueName={formData.name}
+        seasonId={createdLeague.seasonId}
         seasonName={formData.season_name}
         location={`${formData.city}, ${formData.state_province}`}
         teamCount={formData.teams?.length || 0}

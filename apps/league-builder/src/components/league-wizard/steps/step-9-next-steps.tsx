@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { buildSeasonWorkspaceHref } from '@/lib/dashboard/workspace-routes';
 import {
   CheckCircle2,
   Globe,
@@ -17,6 +18,7 @@ interface Step9NextStepsProps {
   leagueId: string;
   leagueSlug: string;
   leagueName: string;
+  seasonId: string;
   seasonName: string;
   location: string;
   teamCount: number;
@@ -65,6 +67,7 @@ export function Step9NextSteps({
   leagueId,
   leagueSlug,
   leagueName,
+  seasonId,
   seasonName,
   location,
   teamCount,
@@ -73,6 +76,8 @@ export function Step9NextSteps({
   domainRequested,
   isDraftLeague,
 }: Step9NextStepsProps) {
+  const seasonBaseHref = buildSeasonWorkspaceHref('', leagueId, seasonId);
+
   const leagueSiteUrl = (() => {
     const sitesBaseUrl = process.env.NEXT_PUBLIC_LEAGUE_SITES_URL?.replace(/\/+$/, '') ?? '';
     if (!sitesBaseUrl) return `/${leagueSlug}`;
@@ -140,7 +145,7 @@ export function Step9NextSteps({
             title="Invite Team Captains"
             description="Send invitations to team captains so they can set up their rosters"
             buttonLabel="Invite Captains"
-            href={`/dashboard/leagues/${leagueId}/teams`}
+            href={`${seasonBaseHref}/teams`}
           />
         )}
 
@@ -150,7 +155,7 @@ export function Step9NextSteps({
             title="Set Up Draft"
             description="Configure draft settings, populate the player pool, and launch the draft room"
             buttonLabel="Draft Setup"
-            href={`/dashboard/leagues/${leagueId}/draft`}
+            href={`${seasonBaseHref}/draft`}
           />
         )}
 
