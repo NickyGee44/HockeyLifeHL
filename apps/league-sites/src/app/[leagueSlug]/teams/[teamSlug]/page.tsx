@@ -14,6 +14,7 @@ import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
 import { RivalsCarousel } from '@/components/team/RivalsCarousel';
 import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
 import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
+import { TeamPageCheckinCard } from '@/components/team/TeamPageCheckinCard';
 import { TeamScheduleList } from '@/components/schedule/TeamScheduleList';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { notFound } from 'next/navigation';
@@ -177,6 +178,49 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
       if (aPriority !== bPriority) return aPriority - bPriority;
       return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
     })[0] ?? null;
+
+  const nextOpponentId = nextTeamGame
+    ? nextTeamGame.home_team?.id === team.id
+      ? nextTeamGame.away_team?.id ?? null
+      : nextTeamGame.home_team?.id ?? null
+    : null;
+  const nextOpponentName = nextTeamGame
+    ? nextTeamGame.home_team?.id === team.id
+      ? nextTeamGame.away_team?.name || 'Opponent'
+      : nextTeamGame.home_team?.name || 'Opponent'
+    : 'Opponent';
+  const opponentSeriesGames = nextOpponentId
+    ? (seasonGames as any[]).filter((game) => {
+        const homeId = game.home_team?.id;
+        const awayId = game.away_team?.id;
+        return (
+          game.status === 'completed' &&
+          ((homeId === team.id && awayId === nextOpponentId) ||
+            (homeId === nextOpponentId && awayId === team.id))
+        );
+      })
+    : [];
+  const opponentSeriesRecord = opponentSeriesGames.reduce(
+    (record, game) => {
+      const isHome = game.home_team?.id === team.id;
+      const teamScore = isHome ? Number(game.home_score) || 0 : Number(game.away_score) || 0;
+      const opponentScore = isHome ? Number(game.away_score) || 0 : Number(game.home_score) || 0;
+
+      if (teamScore > opponentScore) record.wins += 1;
+      else if (teamScore < opponentScore) record.losses += 1;
+      else record.ties += 1;
+
+      return record;
+    },
+    { wins: 0, losses: 0, ties: 0 },
+  );
+  const seasonRecord = teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : '0-0-0';
+  const headToHeadRecord = formatRecord(
+    opponentSeriesRecord.wins,
+    opponentSeriesRecord.losses,
+    opponentSeriesRecord.ties,
+  );
+
   // Compute win percentage
   const gamesPlayed = (teamStats?.wins ?? 0) + (teamStats?.losses ?? 0) + (teamStats?.ties ?? 0);
   const winPctDisplay = gamesPlayed > 0
@@ -268,6 +312,25 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 variant="team"
               />
             </section>
+
+            {nextTeamGame ? (
+              <TeamPageCheckinCard
+                leagueId={league.id}
+                leagueSlug={leagueSlug}
+                seasonId={currentSeason?.id ?? null}
+                timezone={league.timezone || 'America/Toronto'}
+                teamId={team.id}
+                teamName={team.name}
+                opponentName={nextOpponentName}
+                nextGame={{
+                  id: nextTeamGame.id,
+                  scheduledAt: nextTeamGame.scheduled_at,
+                  venue: nextTeamGame.venue,
+                }}
+                seasonRecord={seasonRecord}
+                opponentRecord={headToHeadRecord}
+              />
+            ) : null}
 
             <TeamLeadersSection
               leadersByMetric={leadersByMetric}
