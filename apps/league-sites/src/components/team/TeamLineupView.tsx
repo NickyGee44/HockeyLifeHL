@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, HelpCircle, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 interface LineupPlayer {
   playerId: string;
@@ -290,20 +290,18 @@ function Jersey({
 }
 
 function AvailabilityBadge({ availability }: { availability?: 'confirmed' | 'tentative' | 'out' }) {
-  if (!availability) return null;
+  if (!availability || availability === 'tentative') return null;
 
   const config =
     availability === 'confirmed'
       ? { icon: Check, className: 'bg-emerald-500 text-white ring-emerald-200/40' }
-      : availability === 'tentative'
-        ? { icon: HelpCircle, className: 'bg-amber-400 text-black ring-amber-100/50' }
-        : { icon: X, className: 'bg-slate-500 text-white ring-slate-200/35' };
+      : { icon: X, className: 'bg-red-500 text-white ring-red-200/35' };
 
   const Icon = config.icon;
 
   return (
-    <span className={`absolute bottom-3 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-offset-2 ring-offset-transparent ${config.className}`}>
-      <Icon className="h-4 w-4" />
+    <span className={`absolute bottom-1 right-0 inline-flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-offset-2 ring-offset-transparent ${config.className}`}>
+      <Icon className="h-3 w-3" />
     </span>
   );
 }

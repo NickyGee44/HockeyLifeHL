@@ -130,7 +130,20 @@ export function TeamPageCheckinCard({
         return;
       }
 
-      setStatuses((prev) => ({ ...prev, [user.id]: mapCheckinStatus(status) }));
+      const nextStatus = mapCheckinStatus(status);
+      setStatuses((prev) => ({ ...prev, [user.id]: nextStatus }));
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('team-checkin-updated', {
+            detail: {
+              gameId: nextGame.id,
+              playerId: user.id,
+              status: nextStatus,
+            },
+          })
+        );
+      }
     });
   };
 
@@ -216,7 +229,7 @@ export function TeamPageCheckinCard({
   }
 
   return (
-    <div className={`grid gap-2 ${canSend ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
+    <div className={`grid gap-2 ${canSend ? 'grid-cols-4' : 'grid-cols-3'}`}>
       {tiles.map((tile) => {
         const Icon = tile.icon;
         const loading = tile.key === 'send' ? shareState === 'sharing' : isPending;
@@ -229,7 +242,7 @@ export function TeamPageCheckinCard({
             className={buildTileClass(tile.accent, tile.active)}
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-            <span className="text-sm font-semibold">{tile.label}</span>
+            <span className="text-[12px] font-semibold leading-none sm:text-sm">{tile.label}</span>
           </button>
         );
       })}

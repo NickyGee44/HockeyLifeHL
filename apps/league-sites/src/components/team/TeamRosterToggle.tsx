@@ -76,7 +76,36 @@ export function TeamRosterToggle({
       setAvailabilityMap(nextMap);
     };
 
+    const handleAvailabilityUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        gameId: string;
+        playerId: string;
+        status: string;
+      }>).detail;
+
+      if (!detail || detail.gameId !== availabilityGameId) return;
+      if (
+        detail.status !== 'confirmed' &&
+        detail.status !== 'tentative' &&
+        detail.status !== 'out'
+      ) {
+        return;
+      }
+
+      const nextStatus = detail.status as 'confirmed' | 'tentative' | 'out';
+
+      setAvailabilityMap((prev) => ({
+        ...prev,
+        [detail.playerId]: nextStatus,
+      }));
+    };
+
     loadAvailability();
+    window.addEventListener('team-checkin-updated', handleAvailabilityUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('team-checkin-updated', handleAvailabilityUpdate as EventListener);
+    };
   }, [availabilityGameId, availabilityTeamId]);
 
   return (
