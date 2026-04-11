@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
@@ -219,21 +220,16 @@ export function FloatingDock({
 
   const isDark = resolvedTheme === 'dark';
 
-  return (
-    <>
-      {/* Spacer so content isn't hidden behind dock */}
-      <div className="h-32 lg:hidden" />
-
-      {/* Dock wrapper, centers everything */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center lg:hidden" ref={moreRef}>
-        {/* More popup menu */}
-        {moreOpen && (
-          <div
-            className="absolute inset-x-4 bottom-[calc(100%+4px)] mx-auto max-w-sm animate-in slide-in-from-bottom-4 rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
-            style={{
-              background: `linear-gradient(170deg, color-mix(in srgb, var(--league-primary) 10%, rgba(20,20,28,0.92)) 0%, color-mix(in srgb, var(--league-secondary-safe) 6%, rgba(12,12,18,0.95)) 100%)`,
-            }}
-          >
+  const dock = (
+    <div className="fixed inset-x-0 bottom-0 z-[999] flex justify-center lg:hidden" ref={moreRef}>
+      {/* More popup menu */}
+      {moreOpen && (
+        <div
+          className="absolute inset-x-4 bottom-[calc(100%+4px)] mx-auto max-w-sm animate-in slide-in-from-bottom-4 rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
+          style={{
+            background: `linear-gradient(170deg, color-mix(in srgb, var(--league-primary) 10%, rgba(20,20,28,0.92)) 0%, color-mix(in srgb, var(--league-secondary-safe) 6%, rgba(12,12,18,0.95)) 100%)`,
+          }}
+        >
             {/* League logo header with optional switcher chevrons */}
             <div className="flex items-center justify-center gap-4 border-b border-white/[0.08] px-4 pt-4 pb-3">
               {leagues && prevLeague && (
@@ -502,6 +498,13 @@ export function FloatingDock({
           </nav>
         </div>
       </div>
+  );
+
+  return (
+    <>
+      {/* Spacer so content isn't hidden behind dock */}
+      <div className="h-32 lg:hidden" />
+      {mounted ? createPortal(dock, document.body) : dock}
     </>
   );
 }
