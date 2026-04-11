@@ -27,11 +27,8 @@ import {
   Bug,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
-  FileText,
-  ClipboardCheck,
-  User,
   Goal,
+  FileText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
@@ -79,16 +76,10 @@ const PUBLIC_MORE_ITEMS: MoreMenuItem[] = [
   { href: '/venues', label: 'Venues', icon: MapPin, pageKey: 'venues' },
   { href: '/about', label: 'About', icon: Info, pageKey: 'about' },
   { href: '/contact', label: 'Contact', icon: Mail, pageKey: 'contact' },
-  { href: '/register', label: 'Register', icon: UserPlus, pageKey: 'register' },
-  { href: '/goalies/register', label: 'Goalie Register', icon: UserPlus, pageKey: 'goalies/register' },
 ];
 
 const AUTH_MORE_ITEMS: MoreMenuItem[] = [
   { href: '/me', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'me' },
-  { href: '/checkin', label: 'Check-In', icon: ClipboardCheck, pageKey: 'checkin' },
-  { href: '/me/payments', label: 'Payments', icon: CreditCard, pageKey: 'mepayments' },
-  { href: '/me/waivers', label: 'Waivers', icon: FileText, pageKey: 'mewaivers' },
-  { href: '/me/profile', label: 'Profile', icon: User, pageKey: 'meprofile' },
 ];
 
 function shouldShowPage(pageKey: string, visiblePages?: Record<string, boolean>): boolean {
@@ -176,7 +167,6 @@ export function FloatingDock({
 
   const captainItems: MoreMenuItem[] = isCaptain
     ? [
-        { href: '/captain', label: 'Captain', icon: Shield, pageKey: 'captain' },
         { href: '/captain/goalies', label: 'Goalies', icon: Goal, pageKey: 'captaingoalies' },
       ]
     : [];
@@ -390,6 +380,18 @@ export function FloatingDock({
               >
                 <Bug className="h-[18px] w-[18px]" />
               </button>
+              {user && isCaptain && (
+                <Link
+                  href={`/${leagueSlug}/captain`}
+                  onClick={() => setMoreOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-[var(--league-primary)]/15 hover:text-[var(--league-primary)]"
+                  aria-label={currentTeam?.is_captain ? 'Captain dashboard' : 'Assistant captain dashboard'}
+                >
+                  <span className="text-base font-black leading-none tracking-tight">
+                    {currentTeam?.is_captain ? 'C' : 'A'}
+                  </span>
+                </Link>
+              )}
               {user && (
                 <button
                   type="button"
