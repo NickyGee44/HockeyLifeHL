@@ -7,9 +7,7 @@ import { useUser } from '@/hooks/useUser';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
 import { MyTeamCard } from '@/components/dashboard/MyTeamCard';
-import { MyUpcomingGames } from '@/components/dashboard/MyUpcomingGames';
 import { MySubInvitations } from '@/components/dashboard/MySubInvitations';
-import { MyRecentResults } from '@/components/dashboard/MyRecentResults';
 import { MyStats } from '@/components/dashboard/MyStats';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ErrorCard } from '@/components/ui/ErrorCard';
@@ -175,27 +173,20 @@ export default function PlayerDashboard() {
       )}
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Team Card + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <MyTeamCard team={currentTeam} leagueSlug={leagueSlug} />
-          <QuickActions leagueSlug={leagueSlug} hasOutstandingPayment={outstandingBalance?.hasBalance} />
+          <MyTeamCard
+            team={currentTeam}
+            leagueSlug={leagueSlug}
+            seasonId={league?.current_season_id}
+          />
+          <QuickActions
+            leagueSlug={leagueSlug}
+            hasOutstandingPayment={outstandingBalance?.hasBalance}
+          />
         </div>
 
-        {/* Middle Column - Upcoming Games */}
         <div>
-          <MyUpcomingGames
-            teamId={currentTeam?.team_id}
-            leagueSlug={leagueSlug}
-          />
-        </div>
-
-        {/* Right Column - Recent Results + Stats */}
-        <div className="space-y-6">
-          <MyRecentResults
-            teamId={currentTeam?.team_id}
-            leagueSlug={leagueSlug}
-          />
           <MyStats
             playerId={profile?.id}
             seasonId={league?.current_season_id}

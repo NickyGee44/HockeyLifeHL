@@ -35,9 +35,30 @@ interface TeamStats {
 interface MyTeamCardProps {
   team: TeamMembership | null;
   leagueSlug: string;
+  seasonId?: string | null;
 }
 
-export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
+function sortStandings(left: any, right: any) {
+  const leftPoints = Number(left?.points || 0);
+  const rightPoints = Number(right?.points || 0);
+  if (rightPoints !== leftPoints) return rightPoints - leftPoints;
+
+  const leftWins = Number(left?.wins || 0);
+  const rightWins = Number(right?.wins || 0);
+  if (rightWins !== leftWins) return rightWins - leftWins;
+
+  const leftGoalDiff = Number(left?.goal_differential || 0);
+  const rightGoalDiff = Number(right?.goal_differential || 0);
+  if (rightGoalDiff !== leftGoalDiff) return rightGoalDiff - leftGoalDiff;
+
+  const leftGoalsFor = Number(left?.goals_for || 0);
+  const rightGoalsFor = Number(right?.goals_for || 0);
+  if (rightGoalsFor !== leftGoalsFor) return rightGoalsFor - leftGoalsFor;
+
+  return String(left?.team_name || '').localeCompare(String(right?.team_name || ''));
+}
+
+export function MyTeamCard({ team, leagueSlug, seasonId }: MyTeamCardProps) {
   const [stats, setStats] = useState<TeamStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +79,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
       // Try to get team standings data (actual RPC: get_team_standings)
       const { data, error: rpcError } = await supabase.rpc('get_team_standings', {
         check_league_id: team.team.league_id,
-        check_season_id: null,
+        check_season_id: seasonId || null,
       });
 
       if (rpcError) {
@@ -68,20 +89,21 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
       if (data) {
         const teamStanding = data.find((s: any) => s.team_id === team.team_id);
         if (teamStanding) {
-          // Calculate division rank
-          const divisionTeams = data.filter(
-            (s: any) => s.division_id === teamStanding.division_id
-          );
-          divisionTeams.sort((a: any, b: any) => b.points - a.points);
+          const relevantStandings = data
+            .filter((s: any) =>
+              teamStanding.division_id ? s.division_id === teamStanding.division_id : true
+            )
+            .sort(sortStandings);
+
           const divisionRank =
-            divisionTeams.findIndex((s: any) => s.team_id === team.team_id) + 1;
+            relevantStandings.findIndex((s: any) => s.team_id === team.team_id) + 1;
 
           setStats({
-            wins: teamStanding.wins || 0,
-            losses: teamStanding.losses || 0,
-            ties: teamStanding.ties || 0,
-            overtime_losses: teamStanding.overtime_losses || 0,
-            points: teamStanding.points || 0,
+            wins: Number(teamStanding.wins || 0),
+            losses: Number(teamStanding.losses || 0),
+            ties: Number(teamStanding.ties || 0),
+            overtime_losses: Number(teamStanding.overtime_losses || 0),
+            points: Number(teamStanding.points || 0),
             division_rank: divisionRank || null,
             division_name: teamStanding.division_name || null,
           });
@@ -93,7 +115,7 @@ export function MyTeamCard({ team, leagueSlug }: MyTeamCardProps) {
       setIsLoading(false);
       setIsRetrying(false);
     }
-  }, [team]);
+  }, [seasonId, team]);
 
   useEffect(() => {
     fetchStats();

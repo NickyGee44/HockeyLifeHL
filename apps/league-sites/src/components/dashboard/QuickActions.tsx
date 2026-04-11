@@ -3,17 +3,13 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import {
-  Bell,
-  Calendar,
   CreditCard,
   FileCheck,
-  Trophy,
   Users,
   Settings,
   Shield,
   ClipboardCheck,
   Loader2,
-  UserSearch,
 } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
@@ -58,22 +54,10 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
       variant: 'primary',
     },
     {
-      label: 'View Schedule',
-      href: `/${leagueSlug}/schedule`,
-      icon: Calendar,
-      description: 'See all upcoming games',
-    },
-    {
       label: 'Sign Waivers',
       href: `/${leagueSlug}/me/waivers`,
       icon: FileCheck,
       description: 'Complete required forms',
-    },
-    {
-      label: 'Standings',
-      href: `/${leagueSlug}/standings`,
-      icon: Trophy,
-      description: 'Check league standings',
     },
     {
       label: 'My Team',
@@ -84,22 +68,10 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
       description: 'View team roster',
     },
     {
-      label: 'Find Players',
-      href: `/${leagueSlug}/players`,
-      icon: UserSearch,
-      description: 'Browse league players',
-    },
-    {
       label: 'Settings',
       href: `/${leagueSlug}/me/profile`,
       icon: Settings,
       description: 'Update your profile',
-    },
-    {
-      label: 'Notifications',
-      href: `/${leagueSlug}/me/notifications`,
-      icon: Bell,
-      description: 'Email & push preferences',
     },
   ];
 
