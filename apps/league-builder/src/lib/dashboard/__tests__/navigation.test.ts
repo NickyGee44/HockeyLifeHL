@@ -4,6 +4,8 @@ import {
   getDashboardAutoExpandedGroups,
   getDashboardContextSwitchHref,
 } from '@/lib/dashboard/navigation';
+import { buildCommandPalettePages } from '@/lib/dashboard/command-palette';
+import { isLegacyDashboardNavigationHref } from '@/lib/dashboard/route-policy';
 
 const t = (key: string) => key;
 
@@ -44,7 +46,7 @@ describe('dashboard navigation', () => {
       navigation
     );
 
-    expect(expanded.has('season-more-tools')).toBe(true);
+    expect(expanded.has('season-core')).toBe(true);
   });
 
   it('preserves league-scope destinations when switching leagues', () => {
@@ -97,5 +99,30 @@ describe('dashboard navigation', () => {
         '/dashboard/leagues/league-1/seasons/season-1/rosters',
       ])
     );
+  });
+
+  it('keeps navigation hrefs off known legacy redirect routes', () => {
+    const navigation = buildDashboardNavigation({
+      locale: '',
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+      isSubscribed: true,
+      captainTeams: [],
+      isPlatformAdmin: false,
+      t,
+    });
+
+    const hrefs = flattenDashboardNavigation(navigation).map((item) => item.href);
+    expect(hrefs.filter((href) => isLegacyDashboardNavigationHref(href))).toEqual([]);
+  });
+
+  it('keeps command palette hrefs off known legacy redirect routes', () => {
+    const hrefs = buildCommandPalettePages({
+      t,
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+    }).map((item) => item.href);
+
+    expect(hrefs.filter((href) => isLegacyDashboardNavigationHref(href))).toEqual([]);
   });
 });

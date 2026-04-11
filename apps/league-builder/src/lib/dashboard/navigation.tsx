@@ -95,12 +95,11 @@ interface DashboardMobileTabItem {
 }
 
 const DEFAULT_SEGMENT_LABELS: Record<string, string> = {
-  dashboard: 'Portfolio',
+  dashboard: 'Dashboard',
   leagues: 'Leagues',
   seasons: 'Seasons',
   playoffs: 'Playoffs',
   'migration-center': 'Migration Center',
-  company: 'Organization Settings',
   integrations: 'Integrations',
   finance: 'Financials',
   staff: 'Staff',
@@ -188,11 +187,10 @@ export function buildDashboardNavigation({
   t,
 }: DashboardNavigationBuilderParams): DashboardNavigationSection[] {
   const organizationEntries: Array<DashboardNavigationItem | DashboardNavigationGroup> = [
-    createItem('org-home', 'Portfolio Home', buildDashboardHomeHref(locale), Home, 'organization'),
+    createItem('org-home', 'Dashboard', buildDashboardHomeHref(locale), Home, 'organization'),
     createItem('org-leagues', t('leagues') || 'Leagues', '/dashboard/leagues', Building2, 'organization'),
     createItem('org-staff', t('staffPool') || 'Staff Pool', '/dashboard/staff', Flag, 'organization'),
-    createItem('org-settings', 'Organization Settings', '/dashboard/company', Building2, 'organization'),
-    createItem('org-billing', t('billing') || 'Billing', '/dashboard/settings/billing', CreditCard, 'organization'),
+    createItem('org-settings', 'Organization Settings', '/dashboard/settings', Settings, 'organization'),
   ];
 
   const sections: DashboardNavigationSection[] = [
@@ -207,24 +205,24 @@ export function buildDashboardNavigation({
   if (leagueId) {
     const leagueHub = buildLeagueHubHref(locale, leagueId);
     const leagueEntries: Array<DashboardNavigationItem | DashboardNavigationGroup> = [
-      createItem('league-home', t('leagueOverview') || 'League Hub', leagueHub, Home, 'league'),
+      createItem('league-home', t('leagueOverview') || 'League Overview', leagueHub, Home, 'league'),
       createItem('league-seasons', t('seasons') || 'Seasons', buildLeagueSeasonsHref(locale, leagueId), CalendarDays, 'league'),
       createItem('league-finance', t('financials') || 'Financials', `${leagueHub}/finance`, Wallet, 'league', {
         matchPrefixes: [`${leagueHub}/finance`, `${leagueHub}/payments`],
         locked: !isSubscribed,
       }),
-      createItem('league-billing', t('leagueBilling') || 'League Billing', `${leagueHub}/billing`, CreditCard, 'league'),
-      createItem('league-website', t('websiteEditor') || 'Website', `${leagueHub}/website`, Globe, 'league', {
-        locked: !isSubscribed,
-      }),
-      createItem('league-integrations', 'Integrations', `${leagueHub}/integrations`, Zap, 'league'),
       {
         kind: 'group',
-        id: 'league-content',
-        label: t('sectionContent') || 'Content',
-        icon: Newspaper,
+        id: 'league-secondary',
+        label: 'League Tools',
+        icon: Globe,
         scope: 'league',
         items: [
+          createItem('league-billing', t('leagueBilling') || 'League Billing', `${leagueHub}/billing`, CreditCard, 'league'),
+          createItem('league-website', t('websiteEditor') || 'Website', `${leagueHub}/website`, Globe, 'league', {
+            locked: !isSubscribed,
+          }),
+          createItem('league-integrations', 'Integrations', `${leagueHub}/integrations`, Zap, 'league'),
           createItem('league-news', t('news') || 'News', `${leagueHub}/news`, Newspaper, 'league', { locked: !isSubscribed }),
           createItem('league-pages', t('pages') || 'Pages', `${leagueHub}/pages`, FileText, 'league', { locked: !isSubscribed }),
           createItem('league-sponsors', t('sponsors') || 'Sponsors', `${leagueHub}/sponsors`, Handshake, 'league', { locked: !isSubscribed }),
@@ -236,10 +234,11 @@ export function buildDashboardNavigation({
       {
         kind: 'group',
         id: 'league-settings',
-        label: t('leagueSettings') || 'League Settings',
+        label: t('leagueSettings') || 'Settings',
         icon: Settings,
         scope: 'league',
         items: [
+          createItem('league-settings-home', t('leagueSettings') || 'League Settings', `${leagueHub}/settings`, Settings, 'league', { locked: !isSubscribed }),
           createItem('league-general', t('general') || 'General', `${leagueHub}/settings/general`, Settings, 'league', { locked: !isSubscribed }),
           createItem('league-structure', 'League Structure', `${leagueHub}/divisions`, Users, 'league', {
             matchPrefixes: [`${leagueHub}/divisions`, `${leagueHub}/teams-divisions`],
@@ -258,7 +257,7 @@ export function buildDashboardNavigation({
 
     sections.unshift({
       id: 'league',
-      label: 'League Hub',
+      label: 'League',
       scope: 'league',
       entries: leagueEntries,
     });
@@ -277,7 +276,7 @@ export function buildDashboardNavigation({
   if (leagueId && seasonId) {
     const seasonHome = buildSeasonWorkspaceHref(locale, leagueId, seasonId);
     const seasonEntries: Array<DashboardNavigationItem | DashboardNavigationGroup> = [
-      createItem('season-home', 'Season Home', seasonHome, Home, 'season', { locked: !isSubscribed }),
+      createItem('season-home', 'Season Overview', seasonHome, Home, 'season', { locked: !isSubscribed }),
       createItem('season-registrations', t('registration') || 'Registration', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'registrations'), ClipboardCheck, 'season', {
         locked: !isSubscribed,
       }),
@@ -291,30 +290,30 @@ export function buildDashboardNavigation({
       }),
       {
         kind: 'group',
-        id: 'season-schedule',
-        label: 'Schedule & Games',
+        id: 'season-core',
+        label: 'Season Play',
         icon: Calendar,
         scope: 'season',
         items: [
           createItem('season-schedule-item', t('schedule') || 'Schedule', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'schedule'), Calendar, 'season', { locked: !isSubscribed }),
           createItem('season-games', 'Games', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'games'), Trophy, 'season', { locked: !isSubscribed }),
+          createItem('season-standings', 'Standings', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'standings'), BarChart3, 'season', { locked: !isSubscribed }),
+          createItem('season-playoffs', 'Playoffs', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'playoffs'), Trophy, 'season', { locked: !isSubscribed }),
+          createItem('season-draft', 'Draft Room', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'draft'), Shuffle, 'season', { locked: !isSubscribed }),
         ],
       },
       {
         kind: 'group',
-        id: 'season-more-tools',
-        label: 'More Tools',
+        id: 'season-tools',
+        label: 'Season Tools',
         icon: Dices,
         scope: 'season',
         items: [
           createItem('season-scorekeepers', t('scorekeeperSchedule') || 'Scorekeeper Schedule', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'scorekeepers'), ClipboardList, 'season', {
             locked: !isSubscribed,
           }),
-          createItem('season-standings', 'Standings', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'standings'), BarChart3, 'season', { locked: !isSubscribed }),
-          createItem('season-playoffs', 'Playoffs', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'playoffs'), Trophy, 'season', { locked: !isSubscribed }),
           createItem('season-ratings', 'Ratings', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'ratings'), Star, 'season', { locked: !isSubscribed }),
           createItem('season-eligibility', 'Eligibility', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'eligibility'), Shield, 'season', { locked: !isSubscribed }),
-          createItem('season-draft', 'Draft Room', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'draft'), Shuffle, 'season', { locked: !isSubscribed }),
           createItem('season-settings', 'Edit Season', buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'settings'), Settings, 'season', {
             matchPrefixes: [buildSeasonWorkspaceHref(locale, leagueId, seasonId, 'settings')],
             locked: !isSubscribed,
@@ -416,8 +415,8 @@ export function getDashboardMobileTabs(
 
   const idsByScope: Record<DashboardWorkspaceScope, string[]> = {
     season: ['season-home', 'season-registrations', 'season-teams-item', 'season-schedule-item', 'league-home'],
-    league: ['league-home', 'league-seasons', 'league-finance', 'league-website', 'league-general'],
-    organization: ['org-home', 'org-leagues', 'org-staff', 'org-settings', 'org-billing'],
+    league: ['league-home', 'league-seasons', 'league-finance', 'league-settings-home'],
+    organization: ['org-home', 'org-leagues', 'org-staff', 'org-settings'],
   };
 
   return idsByScope[scope]
