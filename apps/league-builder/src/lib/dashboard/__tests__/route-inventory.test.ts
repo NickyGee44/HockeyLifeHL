@@ -1,0 +1,63 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  DASHBOARD_REDIRECT_MAP,
+  DASHBOARD_ROUTE_CLASSIFICATION_COUNTS,
+  DASHBOARD_ROUTE_INVENTORY,
+} from '@/lib/dashboard/route-inventory';
+
+function discoverDashboardPageRoutes() {
+  const dashboardRoot = path.resolve(process.cwd(), 'src/app/[locale]/dashboard');
+
+  return fs
+    .readdirSync(dashboardRoot, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name === 'page.tsx')
+    .map((entry) => {
+      const relativePath = path.relative(dashboardRoot, path.join(entry.parentPath, entry.name));
+      const normalizedPath = relativePath.split(path.sep).join('/');
+      if (normalizedPath === 'page.tsx') {
+        return '/';
+      }
+
+      return `/${normalizedPath.replace(/\/page\.tsx$/, '')}`;
+    })
+    .sort();
+}
+
+describe('dashboard route inventory', () => {
+  it('covers every dashboard page route exactly once', () => {
+    const discoveredRoutes = discoverDashboardPageRoutes();
+    const inventoryRoutes = DASHBOARD_ROUTE_INVENTORY.map((entry) => entry.route).sort();
+
+    expect(new Set(inventoryRoutes).size).toBe(inventoryRoutes.length);
+    expect(inventoryRoutes).toEqual(discoveredRoutes);
+  });
+
+  it('keeps redirect map entries aligned with redirect-shim inventory routes', () => {
+    const redirectShimRoutes = DASHBOARD_ROUTE_INVENTORY.filter((entry) => entry.classification === 'redirect-shim').map(
+      (entry) => entry.route
+    );
+
+    const redirectMapSources = DASHBOARD_REDIRECT_MAP.map((entry) => entry.from);
+
+    expect(DASHBOARD_REDIRECT_MAP.length).toBeGreaterThanOrEqual(redirectShimRoutes.length);
+    for (const route of redirectShimRoutes) {
+      const fullRoute = `/dashboard${route}`;
+      expect(
+        redirectMapSources.some((source) => source === fullRoute || source.endsWith('*') && fullRoute.startsWith(source.slice(0, -1)))
+      ).toBe(true);
+    }
+  });
+
+  it('reports the expected classification totals', () => {
+    expect(DASHBOARD_ROUTE_INVENTORY).toHaveLength(91);
+    expect(DASHBOARD_ROUTE_CLASSIFICATION_COUNTS).toEqual({
+      'canonical-workspace': 21,
+      'canonical-settings': 17,
+      'detail-route': 14,
+      'public-supporting': 25,
+      'redirect-shim': 14,
+      'candidate-delete': 0,
+    });
+  });
+});

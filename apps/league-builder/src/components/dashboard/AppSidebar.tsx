@@ -87,7 +87,7 @@ export function AppSidebar({
               <p className="mt-1 truncate text-sm font-semibold text-white">{orgName}</p>
             </div>
             <Link
-              href="/dashboard/company"
+              href="/dashboard/settings"
               onClick={closeMobileNav}
               className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-2 text-neutral-400 transition-colors hover:border-white/[0.16] hover:bg-white/[0.06] hover:text-neutral-200"
               title="Organization settings"
