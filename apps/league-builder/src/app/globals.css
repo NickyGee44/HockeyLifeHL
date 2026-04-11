@@ -525,7 +525,7 @@ body {
   top: -200px;
   right: -100px;
   background: linear-gradient(135deg, #22D3EE, #3B82F6);
-  opacity: 0.12;
+  opacity: 0.06;
 }
 
 .aurora-bg::after {
@@ -534,17 +534,17 @@ body {
   bottom: -200px;
   left: -100px;
   background: linear-gradient(135deg, #A78BFA, #6366f1);
-  opacity: 0.10;
+  opacity: 0.05;
 }
 
 /* Premium Surface (glass card recipe) */
 .surface-premium {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
   border-radius: 1rem;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
 }
 
 [data-theme="light"] .surface-premium {
