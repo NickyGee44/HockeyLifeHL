@@ -257,6 +257,7 @@ export function buildDashboardNavigation({
           createItem('league-website-overview', t('websiteEditor') || 'Website', `${leagueHub}/website`, Globe, 'league', {
             locked: !isSubscribed,
           }),
+          createItem('league-social-graphics', 'Social Graphics', `${leagueHub}/social`, Image, 'league', { locked: !isSubscribed }),
           createItem('league-news', t('news') || 'News', `${leagueHub}/news`, Newspaper, 'league', { locked: !isSubscribed }),
           createItem('league-pages', t('pages') || 'Pages', `${leagueHub}/pages`, FileText, 'league', { locked: !isSubscribed }),
           createItem('league-sponsors', t('sponsors') || 'Sponsors', `${leagueHub}/sponsors`, Handshake, 'league', { locked: !isSubscribed }),
