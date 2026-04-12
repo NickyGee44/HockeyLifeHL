@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useReducer, useCallback, useRef, type ReactNode } from 'react';
-import type { EditorState, EditorPanel, ViewportSize, LeagueEditorData, WebsiteSettings } from './types';
+import type { EditorState, EditorPanel, ViewportSize, LeagueEditorData, WebsiteSettings, BackgroundPreset } from './types';
 import { DEFAULT_COLORS, DEFAULT_VISIBLE_PAGES } from './constants';
 import { buildWebsiteEditorPreviewUrl } from '@/lib/website-editor/preview';
 
@@ -41,6 +41,7 @@ function leagueToState(league: LeagueEditorData | undefined, leagues: LeagueEdit
     logoUrl: league?.logo_url ?? null,
     bannerUrl: league?.banner_url ?? null,
     faviconUrl: league?.favicon_url ?? null,
+    backgroundPreset: (ws.backgroundPreset as BackgroundPreset) || 'weekly-games',
     tagline: league?.tagline ?? '',
     description: league?.description ?? '',
     contactEmail: league?.contact_email ?? '',
@@ -155,6 +156,7 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
       state.logoUrl !== s.logoUrl ||
       state.bannerUrl !== s.bannerUrl ||
       state.faviconUrl !== s.faviconUrl ||
+      state.backgroundPreset !== s.backgroundPreset ||
       state.tagline !== s.tagline ||
       state.description !== s.description ||
       state.contactEmail !== s.contactEmail ||

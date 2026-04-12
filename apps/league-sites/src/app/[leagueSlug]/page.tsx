@@ -588,6 +588,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 games={weeklyGames}
                 leagueSlug={leagueSlug}
                 timezone={league.timezone}
+                backgroundPreset={websiteSettings?.backgroundPreset ?? 'weekly-games'}
               />
             </section>
 

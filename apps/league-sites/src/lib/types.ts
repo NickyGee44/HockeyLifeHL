@@ -17,11 +17,15 @@ export interface SocialLinks {
 
 export type ThemePreset = 'dark' | 'light' | 'custom';
 
+/** Selectable background image presets for the public league site */
+export type BackgroundPreset = 'none' | 'weekly-games';
+
 /**
  * Website settings stored in league.settings.website
  */
 export interface WebsiteSettings {
   themePreset?: ThemePreset;
+  backgroundPreset?: BackgroundPreset;
   bannerUrl?: string | null;
   socialFacebook?: string | null;
   socialTwitter?: string | null;

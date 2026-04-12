@@ -305,6 +305,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 games={nextTeamGame ? [nextTeamGame] : []}
                 leagueSlug={leagueSlug}
                 timezone={league.timezone || 'America/Toronto'}
+                backgroundPreset={league.settings?.website?.backgroundPreset ?? 'weekly-games'}
                 title="Next Game"
                 emptyTitle="No upcoming games scheduled"
                 emptyDescription="This team does not have another game on the current slate yet."

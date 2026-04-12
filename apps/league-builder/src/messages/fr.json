@@ -1722,7 +1722,14 @@
       "faviconSubtitle": "La petite icône affichée dans les onglets du navigateur. Formats : ICO, PNG, SVG jusqu'à 1 Mo.",
       "faviconUpload": "Télécharger le favicon",
       "faviconReplace": "Remplacer le favicon",
-      "faviconRemove": "Supprimer"
+      "faviconRemove": "Supprimer",
+      "background": "Arrière-plan",
+      "backgroundSubtitle": "Choisissez un arrière-plan pour la section des matchs. Les couleurs s'adaptent au thème de votre ligue.",
+      "backgroundPresetWeeklyGames": "Patinoire",
+      "backgroundPresetNone": "Aucun arrière-plan",
+      "backgroundPresetNoneLabel": "Aucun",
+      "backgroundTipColors": "L'arrière-plan s'adapte à la couleur principale de votre ligue",
+      "backgroundTipNone": "Utilisez 'Aucun arrière-plan' pour un look épuré"
     },
     "content": {
       "title": "Contenu du site web",

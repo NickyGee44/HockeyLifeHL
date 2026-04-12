@@ -76,10 +76,10 @@ import { pickOperationalSeason } from './seasons/operational';
 import { resolveSeasonParticipationTeamIds } from './season-team-participation';
 import { filterPublicStandings, filterPublicTeams, isPublicFacingTeam } from './publicSiteVisibility';
 
-// Default brand colors from BRAND-KIT.md
-const DEFAULT_PRIMARY = '#D4AF37';
+// Default brand colors – platinum/silver fallback instead of gold
+const DEFAULT_PRIMARY = '#C0C0C0';
 const DEFAULT_SECONDARY = '#1a1a1a';
-const DEFAULT_ACCENT = '#D4AF37';
+const DEFAULT_ACCENT = '#C0C0C0';
 const DEFAULT_FONT_FAMILY = '"Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif';
 const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'hockeylifehl-original', 'pilot']);
 const AGGREGATE_STATS_GAME_LOCATION_PREFIX = '[aggregate-only]';

@@ -23,6 +23,7 @@ export function useEditorSave() {
 
       const websiteSettings = {
         themePreset: state.themePreset,
+        backgroundPreset: state.backgroundPreset,
         socialFacebook: state.socialFacebook,
         socialTwitter: state.socialTwitter,
         socialInstagram: state.socialInstagram,

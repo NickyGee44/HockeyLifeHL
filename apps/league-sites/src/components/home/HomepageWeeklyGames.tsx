@@ -30,6 +30,8 @@ const COOL_HERO_IMAGE_MASK =
     'radial-gradient(138% 124% at 50% 42%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.97) 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.48) 72%, rgba(0,0,0,0.18) 86%, transparent 100%)',
   ].join(',');
 
+type BackgroundPreset = 'none' | 'weekly-games';
+
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
   leagueSlug: string;
@@ -42,6 +44,8 @@ interface HomepageWeeklyGamesProps {
   /** 'team' hides eyebrow, overlay badges, detail team names, status card, and dots */
   variant?: 'homepage' | 'team';
   teamActions?: ReactNode;
+  /** Which background image preset to render (default: 'weekly-games') */
+  backgroundPreset?: BackgroundPreset;
 }
 
 interface TeamSideProps {
@@ -298,6 +302,7 @@ function CoolView({
   timezone,
   minimal = false,
   teamActions,
+  backgroundPreset = 'weekly-games',
 }: {
   games: ScheduleGame[];
   activeIndex: number;
@@ -306,6 +311,7 @@ function CoolView({
   timezone?: string | null;
   minimal?: boolean;
   teamActions?: ReactNode;
+  backgroundPreset?: BackgroundPreset;
 }) {
   const game = games[activeIndex];
   const hasControls = games.length > 1;
@@ -397,14 +403,16 @@ function CoolView({
                 'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 44%, transparent) 0%, color-mix(in srgb, var(--color-surface) 12%, transparent) 34%, color-mix(in srgb, var(--color-surface) 70%, transparent) 74%, var(--color-surface) 100%)',
             }}
           />
-          <div
-            className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
-            style={{
-              backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
-              WebkitMaskImage: COOL_HERO_IMAGE_MASK,
-              maskImage: COOL_HERO_IMAGE_MASK,
-            }}
-          />
+          {backgroundPreset === 'weekly-games' && (
+            <div
+              className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
+              style={{
+                backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
+                WebkitMaskImage: COOL_HERO_IMAGE_MASK,
+                maskImage: COOL_HERO_IMAGE_MASK,
+              }}
+            />
+          )}
           <div className="absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
           <div className="absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
           <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_68%,transparent)_42%,transparent_100%)] sm:h-24" />
@@ -534,7 +542,7 @@ function CompactView({
             key={game.id}
             className="relative overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background-elevated)_94%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))] p-4 shadow-[0_26px_60px_-42px_rgba(0,0,0,0.82)]"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.15),transparent_58%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,var(--league-primary-soft,rgba(192,192,192,0.16)),transparent_58%)]" />
             <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
               <CompactTeam
                 team={game.away_team}
@@ -590,6 +598,7 @@ export function HomepageWeeklyGames({
   showViewToggle = true,
   variant = 'homepage',
   teamActions,
+  backgroundPreset = 'weekly-games',
 }: HomepageWeeklyGamesProps) {
   const isTeamVariant = variant === 'team';
   const [view, setView] = useState<WeeklyGamesView>('cool');
@@ -652,6 +661,7 @@ export function HomepageWeeklyGames({
             timezone={timezone}
             minimal={isTeamVariant}
             teamActions={teamActions}
+            backgroundPreset={backgroundPreset}
           />
         ) : (
           <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
