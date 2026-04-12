@@ -385,13 +385,6 @@ function TeamCardInner({
 
   return (
     <div className="surface-premium card-hover p-5 group relative">
-      {/* Clickable overlay to navigate to team detail */}
-      <Link
-        href={teamHref}
-        className="absolute inset-0 rounded-xl z-0"
-        aria-label={`Manage ${team.name}`}
-      />
-
       <div className="flex items-start justify-between mb-4 relative z-10">
         <div className="flex items-center gap-3">
           <div
@@ -401,9 +394,12 @@ function TeamCardInner({
             {team.short_name || team.name.substring(0, 2).toUpperCase()}
           </div>
           <div>
-            <h3 className="font-semibold text-white group-hover:text-rink-500 transition-colors">
+            <Link
+              href={teamHref}
+              className="font-semibold text-white transition-colors hover:text-rink-500 focus:outline-none focus:text-rink-400"
+            >
               {team.name}
-            </h3>
+            </Link>
             <div className="flex items-center gap-2">
               {team.divisions && (
                 <p className="text-sm text-neutral-500">{team.divisions.name}</p>
@@ -447,7 +443,7 @@ function TeamCardInner({
         </DropdownMenu>
       </div>
 
-      <div className="flex items-center justify-between relative z-10">
+      <div className="flex items-center justify-between gap-3 relative z-10">
         <span
           className={cn(
             'px-2.5 py-1 text-xs font-semibold rounded-full border',
@@ -456,9 +452,23 @@ function TeamCardInner({
         >
           {(team.status || 'active').charAt(0).toUpperCase() + (team.status || 'active').slice(1)}
         </span>
-        <span className="text-xs text-neutral-500 group-hover:text-rink-400 transition-colors">
-          Manage →
-        </span>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href={teamRosterHref}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-neutral-300 transition-colors hover:bg-white/[0.06] hover:text-white"
+          >
+            <UserCheck className="h-3.5 w-3.5" />
+            Roster
+          </Link>
+          <Link
+            href={teamHref}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-rink-500 px-3.5 py-2 text-sm font-semibold text-black transition-colors hover:bg-rink-400"
+          >
+            <Settings className="h-4 w-4" />
+            Manage team
+          </Link>
+        </div>
       </div>
     </div>
   );
