@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@hockey-life/ui';
 import { Pipette, Check } from 'lucide-react';
 
@@ -43,7 +44,9 @@ export function ColorPicker({
 }: ColorPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customColor, setCustomColor] = useState(value);
+  const [portalStyle, setPortalStyle] = useState<CSSProperties | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,14 +55,49 @@ export function ColorPicker({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+      const target = event.target as Node;
+      if (
+        containerRef.current?.contains(target) ||
+        portalRef.current?.contains(target)
+      ) {
+        return;
       }
+
+      setIsOpen(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+
+      setPortalStyle({
+        position: 'fixed',
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
 
   const handlePresetClick = (color: string) => {
     setCustomColor(color);
@@ -122,90 +160,94 @@ export function ColorPicker({
       </button>
 
       {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 mt-2 w-full p-4 bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Preset Colors Grid */}
-          <div className="mb-4">
-            <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
-              Presets
-            </span>
-            <div className="grid grid-cols-8 gap-1.5">
-              {presetColors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => handlePresetClick(color)}
-                  className={cn(
-                    'w-7 h-7 rounded-lg border-2 transition-all hover:scale-110',
-                    value === color
-                      ? 'border-rink-500 ring-2 ring-rink-500/30'
-                      : 'border-transparent hover:border-neutral-600'
-                  )}
-                  style={{ backgroundColor: color }}
-                  title={color}
-                >
-                  {value === color && (
-                    <Check
-                      className="w-4 h-4 mx-auto"
-                      style={{ color: getContrastColor(color) }}
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Color Input */}
-          <div className="pt-4 border-t border-neutral-800">
-            <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
-              Custom Color
-            </span>
-            <div className="flex items-center gap-3">
-              <input
-                ref={inputRef}
-                type="color"
-                value={customColor}
-                onChange={handleCustomChange}
-                className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
-              />
-              <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
-                  #
-                </span>
-                <input
-                  type="text"
-                  value={customColor.replace('#', '')}
-                  onChange={handleHexInput}
-                  maxLength={6}
-                  className={cn(
-                    'w-full pl-7 pr-3 py-2 rounded-lg text-sm font-mono',
-                    'bg-neutral-800 border border-neutral-700 text-white',
-                    'focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20',
-                    'uppercase'
-                  )}
-                  placeholder="000000"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Preview */}
-          <div className="mt-4 pt-4 border-t border-neutral-800">
-            <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
-              Preview
-            </span>
+      {isOpen && portalStyle && typeof document !== 'undefined'
+        ? createPortal(
             <div
-              className="h-12 rounded-xl flex items-center justify-center font-bold"
-              style={{
-                backgroundColor: value,
-                color: getContrastColor(value),
-              }}
+              ref={portalRef}
+              style={portalStyle}
+              className="z-[80] rounded-2xl border border-white/10 bg-neutral-950/95 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200"
             >
-              Sample Text
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="mb-4">
+                <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
+                  Presets
+                </span>
+                <div className="grid grid-cols-8 gap-1.5">
+                  {presetColors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => handlePresetClick(color)}
+                      className={cn(
+                        'w-7 h-7 rounded-lg border-2 transition-all hover:scale-110',
+                        value === color
+                          ? 'border-rink-500 ring-2 ring-rink-500/30'
+                          : 'border-transparent hover:border-neutral-600'
+                      )}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {value === color && (
+                        <Check
+                          className="w-4 h-4 mx-auto"
+                          style={{ color: getContrastColor(color) }}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-neutral-800">
+                <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
+                  Custom Color
+                </span>
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={inputRef}
+                    type="color"
+                    value={customColor}
+                    onChange={handleCustomChange}
+                    className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
+                  />
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
+                      #
+                    </span>
+                    <input
+                      type="text"
+                      value={customColor.replace('#', '')}
+                      onChange={handleHexInput}
+                      maxLength={6}
+                      className={cn(
+                        'w-full pl-7 pr-3 py-2 rounded-lg text-sm font-mono',
+                        'bg-neutral-800 border border-neutral-700 text-white',
+                        'focus:border-rink-500 focus:ring-2 focus:ring-rink-500/20',
+                        'uppercase'
+                      )}
+                      placeholder="000000"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-neutral-800">
+                <span className="text-xs text-neutral-500 uppercase tracking-wider mb-2 block">
+                  Preview
+                </span>
+                <div
+                  className="h-12 rounded-xl flex items-center justify-center font-bold"
+                  style={{
+                    backgroundColor: value,
+                    color: getContrastColor(value),
+                  }}
+                >
+                  Sample Text
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

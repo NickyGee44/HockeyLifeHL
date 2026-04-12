@@ -170,7 +170,41 @@ export default async function LeagueDetailPage({ params }: Props) {
       ? `Open ${currentSeason.name}`
       : leagueChecklist.nextActionLabel || (currentSeason ? `Open ${currentSeason.name}` : 'Create first season');
 
-  const primaryReadinessCards = [
+  const dailyOperationsCards = [
+    {
+      eyebrow: 'Today',
+      title: pendingRegistrations ? `${pendingRegistrations} registrations need review` : 'Registrations are caught up',
+      description: pendingRegistrations
+        ? 'Approve, decline, or follow up on incoming player signups from the current season workspace.'
+        : 'No waiting registration approvals right now.',
+      href: currentSeason
+        ? `${buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'registrations')}?status=pending`
+        : buildLeagueSeasonsHref(locale, leagueId),
+      cta: pendingRegistrations ? 'Review registrations' : 'Open registrations',
+    },
+    {
+      eyebrow: 'Game day',
+      title: pendingGames ? `${pendingGames} games need verification` : 'No game verification backlog',
+      description: pendingGames
+        ? 'Check captain confirmations and clean up unfinished score flow before standings drift.'
+        : 'Completed games are already verified.',
+      href: currentSeason
+        ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')
+        : buildLeagueSeasonsHref(locale, leagueId),
+      cta: pendingGames ? 'Open games' : 'View games',
+    },
+    {
+      eyebrow: 'Inbox',
+      title: unreadMessages ? `${unreadMessages} unread contact message${unreadMessages === 1 ? '' : 's'}` : 'Contact inbox is clear',
+      description: unreadMessages
+        ? 'Reply to website inquiries and league questions before they turn into missed signups.'
+        : 'No unread public website messages right now.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/contact-inbox`,
+      cta: unreadMessages ? 'Review inbox' : 'Open inbox',
+    },
+  ];
+
+  const seasonMilestoneCards = [
     {
       eyebrow: 'Payments',
       title:
@@ -199,9 +233,9 @@ export default async function LeagueDetailPage({ params }: Props) {
     },
     {
       eyebrow: 'Staffing',
-      title: currentSeason ? 'Staffing belongs to the active season' : 'No active season for staffing yet',
+      title: currentSeason ? 'Staffing lives inside the season workspace' : 'No active season for staffing yet',
       description: currentSeason
-        ? 'Use the season workspace and More Tools when referees, scorekeepers, or other staff need assignment.'
+        ? 'Use the current season workspace when referees, scorekeepers, or other game-day staff need assignment.'
         : 'Create a season first, then assign game-day staff inside that workspace.',
       href: currentSeason
         ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'scorekeepers')
@@ -255,8 +289,8 @@ export default async function LeagueDetailPage({ params }: Props) {
           </Link>
         </div>
 
-        <section className="relative overflow-hidden rounded-[30px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_32%),linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.48)] sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_40%)] p-6 sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <LeagueLogo
                 logoUrl={league.logo_url}
@@ -267,13 +301,9 @@ export default async function LeagueDetailPage({ params }: Props) {
                 bordered
               />
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-rink-300/80">
-                  League Hub
-                </p>
-                <h1 className="mt-3 text-3xl font-black tracking-tight text-white">{league.name}</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-neutral-300">
-                  This page is now the orientation surface for league setup, finance, content, and
-                  integrations. Day-to-day operations should happen from a season workspace.
+                <h1 className="text-3xl font-black tracking-tight text-white">{league.name}</h1>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Your owner home for daily tasks, season work, and league-wide setup.
                 </p>
               </div>
             </div>
@@ -287,7 +317,7 @@ export default async function LeagueDetailPage({ params }: Props) {
                     ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-300'
                     : league.status === 'draft'
                       ? 'border-amber-400/20 bg-amber-500/10 text-amber-200'
-                      : 'border-white/[0.10] bg-white/[0.05] text-neutral-300'
+                      : 'border-white/[0.08] bg-white/[0.03] text-neutral-400'
                 )}
               >
                 {(league.status || 'active').charAt(0).toUpperCase() + (league.status || 'active').slice(1)}
@@ -295,7 +325,7 @@ export default async function LeagueDetailPage({ params }: Props) {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-5">
+          <div className="mt-5 grid gap-3 md:grid-cols-5">
             <LeagueMetricCard label={t('teams')} value={teamsCount || 0} icon={<Users className="h-4 w-4" />} />
             <LeagueMetricCard label={t('divisions')} value={divisionsCount || 0} icon={<LayoutGrid className="h-4 w-4" />} />
             <LeagueMetricCard label={t('seasons')} value={league.seasons?.length || 0} icon={<Calendar className="h-4 w-4" />} />
@@ -303,19 +333,19 @@ export default async function LeagueDetailPage({ params }: Props) {
             <LeagueMetricCard label={t('timezone')} value={league.timezone || t('notSet')} icon={<Settings className="h-4 w-4" />} />
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href={primaryActionHref}
-              className="inline-flex items-center gap-2 rounded-2xl bg-rink-500 px-5 py-3 text-sm font-semibold text-black transition-colors hover:bg-rink-400"
+              className="inline-flex items-center gap-2 rounded-xl bg-rink-500 px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-rink-400"
             >
               {primaryActionLabel}
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href={buildLeagueSeasonsHref(locale, leagueId)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-5 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-neutral-300 transition-colors hover:bg-white/[0.06]"
             >
-              View all seasons
+              All seasons
             </Link>
           </div>
         </section>
@@ -345,29 +375,29 @@ export default async function LeagueDetailPage({ params }: Props) {
 
           <div className="space-y-6">
             <SummarySurface
-              eyebrow="Current workspace"
+              eyebrow="Current season"
               title={currentSeason ? currentSeason.name : 'No active season yet'}
               description={
                 currentSeason
-                  ? `${getSeasonStatusLabel(currentSeason.status, currentSeason.registration_type)} status. Open this workspace for registrations, teams, schedules, and games.`
+                  ? `${getSeasonStatusLabel(currentSeason.status, currentSeason.registration_type)} status. Use this workspace for registrations, teams, schedules, and games.`
                   : 'Create the first season to unlock the operating workspace.'
               }
               icon={<Play className="h-4 w-4" />}
             />
             <SummarySurface
-              eyebrow="Connections"
-              title={paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted ? 'Stripe connected' : 'Stripe still needs review'}
+              eyebrow="Website & content"
+              title={websiteSettings.onboardingRequested || league.is_public ? 'Public site is live or in progress' : 'Website publishing is still optional'}
               description={
                 websiteSettings.onboardingRequested || league.is_public
-                  ? 'Website publishing is enabled for this league.'
-                  : 'Public website publishing is currently optional.'
+                  ? 'News, pages, sponsors, gallery, and contact tools now sit under one publishing area.'
+                  : 'Open Website & Content when you are ready to publish outward-facing updates.'
               }
               icon={<PlugZap className="h-4 w-4" />}
             />
             <SummarySurface
               eyebrow="Compliance"
               title={signedWaiversTotal > 0 ? `${signedWaiversTotal} signed waiver${signedWaiversTotal === 1 ? '' : 's'}` : 'No signed waivers yet'}
-              description="Waiver setup and signatures stay visible here, but the actual waiver tool now lives in league settings."
+              description="Waiver status stays visible here so League Home still shows what could block registrations."
               icon={<CheckCircle2 className="h-4 w-4" />}
             />
           </div>
@@ -375,17 +405,29 @@ export default async function LeagueDetailPage({ params }: Props) {
 
         <section className="mt-6">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-              Critical Systems
-            </p>
-            <h2 className="mt-2 text-2xl font-bold text-white">League readiness</h2>
-            <p className="mt-1 text-sm text-neutral-400">
-              Each core system has one status, one next step, and one place to manage it.
+            <h2 className="text-xl font-bold text-white">What needs attention now</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Daily owner work should start here, then branch into the current season or a focused workspace.
             </p>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {primaryReadinessCards.map((card) => (
+            {dailyOperationsCards.map((card) => (
+              <ReadinessCard key={card.eyebrow} {...card} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <div>
+            <h2 className="text-lg font-bold text-white">Season and setup checkpoints</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              These are the larger league-owner jobs that matter before registrations, launch, or payouts.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {seasonMilestoneCards.map((card) => (
               <ReadinessCard key={card.eyebrow} {...card} />
             ))}
           </div>
@@ -395,7 +437,7 @@ export default async function LeagueDetailPage({ params }: Props) {
           <div>
             <h2 className="text-lg font-bold text-white">Supporting workspaces</h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Secondary publishing and cleanup surfaces stay available here without crowding the core season workflow.
+              Secondary publishing and cleanup surfaces stay available here without competing with core owner jobs.
             </p>
           </div>
 
@@ -409,13 +451,7 @@ export default async function LeagueDetailPage({ params }: Props) {
         <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                Seasons
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Season workspaces</h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Open a season for operations, or create the next one without leaving the league scope.
-              </p>
+              <h2 className="text-xl font-bold text-white">Seasons</h2>
             </div>
             <Link
               href={`/${locale}/dashboard/leagues/${leagueId}/seasons/new`}
@@ -433,11 +469,11 @@ export default async function LeagueDetailPage({ params }: Props) {
               ))}
             </div>
           ) : (
-            <div className="surface-premium mt-5 p-8 text-center">
-              <Calendar className="mx-auto h-12 w-12 text-rink-400" />
-              <h3 className="mt-4 text-xl font-bold text-white">{t('noSeasonsYet')}</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-neutral-400">
-                Create the first season to unlock the season workspace and checklist-driven launch flow.
+            <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
+              <Calendar className="mx-auto h-10 w-10 text-neutral-600" />
+              <h3 className="mt-4 text-lg font-bold text-white">{t('noSeasonsYet')}</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+                Create the first season to get started.
               </p>
             </div>
           )}
@@ -457,12 +493,12 @@ function LeagueMetricCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.10] bg-black/20 p-4 backdrop-blur-xl">
-      <div className="flex items-center gap-2 text-neutral-400">
-        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
-        <span className="text-xs font-medium uppercase tracking-[0.14em]">{label}</span>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="flex items-center gap-2 text-neutral-500">
+        <span className="text-neutral-400">{icon}</span>
+        <span className="text-xs font-medium">{label}</span>
       </div>
-      <p className="mt-4 truncate text-2xl font-black text-white">{value}</p>
+      <p className="mt-3 truncate text-2xl font-bold text-white">{value}</p>
     </div>
   );
 }
@@ -479,18 +515,13 @@ function SummarySurface({
   icon: React.ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        'surface-premium p-5',
-        tone === 'primary' && 'border-rink-400/15 bg-[linear-gradient(145deg,rgba(34,211,238,0.10),rgba(255,255,255,0.03))]'
-      )}
-    >
-      <div className="flex items-center gap-2 text-neutral-400">
-        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">{eyebrow}</span>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+      <div className="flex items-center gap-2 text-neutral-500">
+        <span className="text-neutral-400">{icon}</span>
+        <span className="text-xs font-medium">{eyebrow}</span>
       </div>
-      <h3 className="mt-4 text-lg font-bold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-7 text-neutral-400">{description}</p>
+      <h3 className="mt-3 text-base font-bold text-white">{title}</h3>
+      <p className="mt-1 text-sm text-neutral-500">{description}</p>
     </div>
   );
 }
@@ -511,17 +542,6 @@ function ReadinessCard({
   subtle?: boolean;
 }) {
   return (
-<<<<<<< HEAD
-    <div className="surface-premium p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-        {eyebrow}
-      </p>
-      <h3 className="mt-3 text-lg font-bold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-7 text-neutral-400">{description}</p>
-      <Link
-        href={href}
-        className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-rink-400/20 bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
-=======
     <div className={cn(
       'rounded-xl border p-5',
       subtle
@@ -539,7 +559,6 @@ function ReadinessCard({
             ? 'border-white/[0.06] bg-white/[0.02] text-neutral-400 hover:bg-white/[0.04]'
             : 'border-white/[0.08] bg-white/[0.03] text-neutral-300 hover:bg-white/[0.06]'
         )}
->>>>>>> 41c8f6a3 (refactor: demote secondary dashboard surfaces)
       >
         {cta}
         <ArrowRight className="h-4 w-4" />
@@ -557,10 +576,10 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
   };
 
   return (
-    <div className="surface-premium p-5">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-bold text-white">{season.name}</h3>
+          <h3 className="text-base font-bold text-white">{season.name}</h3>
           <p className="mt-1 text-sm text-neutral-500">
             {new Date(season.start_date).toLocaleDateString()} -{' '}
             {season.end_date ? new Date(season.end_date).toLocaleDateString() : t('ongoing')}
@@ -576,20 +595,20 @@ function SeasonCard({ season, leagueId, locale, t }: { season: any; leagueId: st
         </span>
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap gap-3">
         <Link
           href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}`}
-          className="inline-flex items-center gap-2 rounded-2xl bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
+          className="inline-flex items-center gap-2 rounded-xl bg-rink-500 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-rink-400"
         >
           <Play className="h-4 w-4" />
           Open workspace
         </Link>
         <Link
           href={`/${locale}/dashboard/leagues/${leagueId}/seasons/${season.id}/edit`}
-          className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-300 transition-colors hover:bg-white/[0.06]"
         >
           <Settings className="h-4 w-4" />
-          Edit season
+          Edit
         </Link>
       </div>
     </div>

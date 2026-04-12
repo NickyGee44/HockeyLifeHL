@@ -142,10 +142,10 @@ export default async function TeamsDivisionsPage({ params, searchParams }: Props
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tight">Teams & Divisions</h1>
+              <h1 className="text-3xl font-black text-white tracking-tight">League Setup, Teams & Divisions</h1>
               <p className="text-neutral-400 mt-1">
-                Manage teams and divisions in {league.name}
-                {preferredSeason ? ` for ${preferredSeason.name ?? 'the selected season'}` : ''}
+                Organize the clubs, divisions, and free agents that drive {league.name}
+                {preferredSeason ? ` for ${preferredSeason.name ?? 'the selected season'}` : ''}.
               </p>
             </div>
 

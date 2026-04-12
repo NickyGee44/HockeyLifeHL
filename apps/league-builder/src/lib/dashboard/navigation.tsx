@@ -273,7 +273,7 @@ export function buildDashboardNavigation({
         icon: Wallet,
         scope: 'league',
         items: [
-          createItem('league-finance-home', 'Finance Overview', `${leagueHub}/finance`, Wallet, 'league', {
+          createItem('league-finance-home', 'Finance Dashboard', `${leagueHub}/finance`, Wallet, 'league', {
             matchPrefixes: [`${leagueHub}/finance`, `${leagueHub}/payments`],
             locked: !isSubscribed,
           }),
@@ -288,7 +288,6 @@ export function buildDashboardNavigation({
         icon: Settings,
         scope: 'league',
         items: [
-          createItem('league-settings-home', t('leagueSettings') || 'League Settings', `${leagueHub}/settings`, Settings, 'league', { locked: !isSubscribed }),
           createItem('league-general', t('general') || 'General', `${leagueHub}/settings/general`, Settings, 'league', { locked: !isSubscribed }),
           createItem('league-email-domain', t('emailDomain') || 'Email Domain', `${leagueHub}/settings/email-domain`, Mail, 'league', { locked: !isSubscribed }),
           createItem('league-bugs', t('bugReports') || 'Bug Reports', `${leagueHub}/bugs`, Bug, 'support'),
