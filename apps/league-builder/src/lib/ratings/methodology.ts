@@ -31,7 +31,7 @@ export const PLAYER_TABLE_COLUMN_HELP: Record<string, string> = {
   gaa:
     'Goals against per game. Lower is better for goalies and becomes more influential when shot detail is limited.',
   overall:
-    'Overall percentile after weighting the active categories for that player, then comparing them against players in the same division.',
+    'Overall percentile for the current season snapshot. If a player has multiple team or division contexts, the displayed season rating is trust-weighted across those contexts instead of pretending they only played in one place.',
 };
 
 export const TEAM_RATING_METRIC_HELP: Record<string, string> = {

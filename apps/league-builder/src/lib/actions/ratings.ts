@@ -253,14 +253,19 @@ export async function getPlayerRatings(
     const stats = statByPlayer.get(row.player_id) ?? { points: 0, plusMinus: 0 };
     const isGoalie = row.position === 'goalie';
     const statsJson = (row.stats_json as Record<string, unknown>) ?? null;
+    const primaryTeamId = typeof statsJson?.primaryTeamId === 'string' ? statsJson.primaryTeamId : (roster?.teamId ?? null);
+    const primaryDivisionId = typeof statsJson?.primaryDivisionId === 'string' ? statsJson.primaryDivisionId : (roster?.divisionId ?? null);
+    const contextCount = typeof statsJson?.contextCount === 'number' ? statsJson.contextCount : 1;
+    const teamLabel = primaryTeamId ? (teamNameById.get(primaryTeamId) || 'Unassigned') : 'Unassigned';
+    const divisionLabel = primaryDivisionId ? (divisionNameById.get(primaryDivisionId) || 'Unassigned') : 'Unassigned';
 
     return {
       playerId: row.player_id,
       name: profileNameById.get(row.player_id) || 'Unknown Player',
-      teamId: roster?.teamId ?? null,
-      teamName: roster?.teamId ? (teamNameById.get(roster.teamId) || 'Unassigned') : 'Unassigned',
-      divisionId: roster?.divisionId ?? null,
-      divisionName: roster?.divisionId ? (divisionNameById.get(roster.divisionId) || 'Unassigned') : 'Unassigned',
+      teamId: primaryTeamId,
+      teamName: contextCount > 1 ? `${teamLabel} (+${contextCount - 1} context${contextCount - 1 === 1 ? '' : 's'})` : teamLabel,
+      divisionId: primaryDivisionId,
+      divisionName: contextCount > 1 ? `${divisionLabel} (${contextCount} contexts)` : divisionLabel,
       position: (row.position as 'skater' | 'goalie') ?? 'skater',
       grade: row.rating,
       overallPercentile: Number(row.overall_percentile ?? 0),
@@ -412,6 +417,18 @@ export async function getPlayerDetail(
       normalizedScore: number;
       appliedWeight: number;
     }>;
+    contextSnapshots?: Array<{
+      teamId: string | null;
+      teamName: string;
+      divisionId: string | null;
+      divisionName: string;
+      gamesPlayed: number;
+      grade: string;
+      overallPercentile: number;
+      confidenceScore: number;
+      trustScore: number;
+      position: string;
+    }>;
   };
   error?: string;
 }> {
@@ -471,12 +488,19 @@ export async function getPlayerDetail(
 
   const service = createServiceRoleClient();
 
-  const [ratingsRes, rostersRes, seasonsRes, teamsRes, divisionsRes] = await Promise.all([
+  const [ratingsRes, contextRes, rostersRes, seasonsRes, teamsRes, divisionsRes] = await Promise.all([
     service
       .from('player_ratings' as any)
       .select('season_id, rating, overall_percentile, games_played, position, calculated_at, stats_json')
       .eq('league_id', leagueId)
       .eq('player_id', playerId)
+      .order('calculated_at', { ascending: false }),
+    service
+      .from('player_rating_contexts' as any)
+      .select('season_id, team_id, division_id, rating, overall_percentile, games_played, confidence_score, trust_score, position, calculated_at')
+      .eq('league_id', leagueId)
+      .eq('player_id', playerId)
+      .eq('snapshot_kind', 'season_latest')
       .order('calculated_at', { ascending: false }),
     service
       .from('team_rosters')
@@ -498,6 +522,7 @@ export async function getPlayerDetail(
   ]);
 
   if (ratingsRes.error) return { success: false, error: 'Failed to load player rating history' };
+  if (contextRes.error) return { success: false, error: 'Failed to load player rating contexts' };
   if (rostersRes.error) return { success: false, error: 'Failed to load team history' };
 
   const seasonNameById = new Map((seasonsRes.data ?? []).map((season) => [season.id, season.name]));
@@ -535,6 +560,18 @@ export async function getPlayerDetail(
               appliedWeight: Number(entry.appliedWeight ?? 0),
             }))
         : [],
+      contextSnapshots: (contextRes.data ?? []).map((row: any) => ({
+        teamId: row.team_id,
+        teamName: row.team_id ? (teamNameById.get(row.team_id) || 'Unknown Team') : 'Unassigned',
+        divisionId: row.division_id,
+        divisionName: row.division_id ? (divisionNameById.get(row.division_id) || 'Unassigned') : 'Unassigned',
+        gamesPlayed: Number(row.games_played ?? 0),
+        grade: row.rating,
+        overallPercentile: Number(row.overall_percentile ?? 0),
+        confidenceScore: Number(row.confidence_score ?? 0),
+        trustScore: Number(row.trust_score ?? 0),
+        position: row.position || 'skater',
+      })),
     },
   };
 }

@@ -18,6 +18,26 @@ export interface PlayerRatingRecord {
   calculated_at: string;
 }
 
+export interface PlayerRatingContextRecord {
+  league_id: string;
+  season_id: string;
+  player_id: string;
+  team_id: string | null;
+  division_id: string | null;
+  rating: PlayerGrade;
+  games_played: number;
+  attendance_rate: number;
+  points_per_game: number;
+  raw_percentile: number;
+  overall_percentile: number;
+  confidence_score: number;
+  trust_score: number;
+  position: 'skater' | 'goalie';
+  snapshot_kind: 'season_latest';
+  stats_json: Record<string, unknown>;
+  calculated_at: string;
+}
+
 export interface TeamRatingRecord {
   team_id: string;
   season_id: string;
@@ -74,6 +94,7 @@ export interface RatingCalculationSummary {
   leagueId: string;
   playersProcessed: number;
   playersRated: number;
+  playerContextsRated?: number;
   teamsRated?: number;
   skippedForMinGames: number;
 }
