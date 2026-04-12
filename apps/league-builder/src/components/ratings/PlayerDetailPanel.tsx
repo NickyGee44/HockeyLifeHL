@@ -79,7 +79,10 @@ export function PlayerDetailPanel({ open, playerId, leagueId, onClose }: PlayerD
             )}
 
             <div>
-              <p className="text-sm text-neutral-500 mb-2">Rating History</p>
+              <p className="text-sm text-neutral-500 mb-2">Season snapshots</p>
+              <p className="mb-2 text-xs text-neutral-500">
+                These are latest season-level recalculation snapshots, not weekly trend points.
+              </p>
               <div className="space-y-2">
                 {detail.ratingsHistory.map((row) => (
                   <div key={`${row.seasonId}-${row.calculatedAt}`} className="border border-white/10 rounded px-3 py-2 text-sm">
@@ -96,8 +99,27 @@ export function PlayerDetailPanel({ open, playerId, leagueId, onClose }: PlayerD
               </div>
             </div>
 
+            {detail.contextSnapshots && detail.contextSnapshots.length > 0 && (
+              <div>
+                <p className="text-sm text-neutral-500 mb-2">Current season context weighting</p>
+                <div className="space-y-2">
+                  {detail.contextSnapshots.map((row, idx) => (
+                    <div key={`${row.teamId ?? 'no-team'}-${row.divisionId ?? 'no-division'}-${idx}`} className="border border-white/10 rounded px-3 py-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-white">{row.teamName} · {row.divisionName}</span>
+                        <span className="text-rink-400 font-semibold">{row.grade}</span>
+                      </div>
+                      <div className="mt-1 text-xs text-neutral-400">
+                        {row.overallPercentile.toFixed(1)} percentile, {row.gamesPlayed} GP, {row.confidenceScore.toFixed(0)} confidence, {row.trustScore.toFixed(1)} trust
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
-              <p className="text-sm text-neutral-500 mb-2">Division History</p>
+              <p className="text-sm text-neutral-500 mb-2">Division history</p>
               <div className="space-y-2">
                 {detail.teamHistory.map((row, idx) => (
                   <div key={`${row.seasonId}-${row.teamName}-${idx}`} className="border border-white/10 rounded px-3 py-2 text-sm text-neutral-300">

@@ -52,6 +52,10 @@ export function PlayerDirectory({ leagueId, rows }: PlayerDirectoryProps) {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-neutral-400">
+        Ratings shown here are latest season snapshots. Players with multiple team or division contexts are blended with trust weighting, and the team or division label reflects the strongest current-season context.
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <input
           value={search}

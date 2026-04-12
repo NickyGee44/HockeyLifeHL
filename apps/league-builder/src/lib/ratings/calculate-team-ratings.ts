@@ -54,23 +54,18 @@ export async function calculateTeamRatings(
   leagueId: string,
   seasonId: string
 ): Promise<{ records: TeamRatingRecord[] }> {
-  const [teamsRes, rosterRes, playerRatingsRes, standingsRes] = await Promise.all([
+  const [teamsRes, contextRatingsRes, standingsRes] = await Promise.all([
     supabase
       .from('teams')
       .select('id, division_id, status')
       .eq('league_id', leagueId)
       .neq('status', 'inactive'),
     supabase
-      .from('team_rosters')
-      .select('team_id, player_id, is_goalie, position, end_date, status')
+      .from('player_rating_contexts' as any)
+      .select('player_id, team_id, overall_percentile, confidence_score, trust_score, position, stats_json')
       .eq('league_id', leagueId)
       .eq('season_id', seasonId)
-      .or('end_date.is.null,status.eq.active'),
-    supabase
-      .from('player_ratings')
-      .select('player_id, overall_percentile, position, stats_json')
-      .eq('league_id', leagueId)
-      .eq('season_id', seasonId),
+      .eq('snapshot_kind', 'season_latest'),
     supabase
       .from('standings_calculated')
       .select('team_id, games_played, points, goals_for, goals_against')
@@ -79,11 +74,8 @@ export async function calculateTeamRatings(
   ]);
 
   if (teamsRes.error) throw teamsRes.error;
-  if (rosterRes.error) throw rosterRes.error;
-  if (playerRatingsRes.error) throw playerRatingsRes.error;
+  if (contextRatingsRes.error) throw contextRatingsRes.error;
   if (standingsRes.error) throw standingsRes.error;
-
-  const teams = teamsRes.data ?? [];
 
   const standingsByTeam = new Map<string, {
     gamesPlayed: number;
@@ -91,7 +83,6 @@ export async function calculateTeamRatings(
     goalsFor: number;
     goalsAgainst: number;
   }>();
-
   for (const row of standingsRes.data ?? []) {
     if (!row.team_id) continue;
     standingsByTeam.set(row.team_id, {
@@ -102,85 +93,63 @@ export async function calculateTeamRatings(
     });
   }
 
-  const rosterByTeam = new Map<string, Array<{
-    playerId: string;
-    position: 'skater' | 'goalie';
-  }>>();
-
-  for (const row of rosterRes.data ?? []) {
-    const position = row.is_goalie || (row.position || '').toLowerCase() === 'goalie' ? 'goalie' : 'skater';
-    const list = rosterByTeam.get(row.team_id) ?? [];
-    list.push({ playerId: row.player_id, position });
-    rosterByTeam.set(row.team_id, list);
-  }
-
-  const ratingsByPlayer = new Map<string, {
+  const ratingsByTeam = new Map<string, Array<{
     overall: number;
+    confidence: number;
+    trust: number;
     position: 'skater' | 'goalie';
     offense: number;
     defense: number;
-  }>();
+  }>>();
 
-  for (const row of playerRatingsRes.data ?? []) {
+  for (const row of contextRatingsRes.data ?? []) {
+    if (!row.team_id) continue;
     const stats = (row.stats_json ?? {}) as Record<string, unknown>;
-    ratingsByPlayer.set(row.player_id, {
+    const list = ratingsByTeam.get(row.team_id) ?? [];
+    list.push({
       overall: Number(row.overall_percentile ?? 0),
+      confidence: Number(row.confidence_score ?? 0),
+      trust: Math.max(1, Number(row.trust_score ?? 0)),
       position: (row.position as 'skater' | 'goalie') ?? 'skater',
       offense: Number(stats.offense_score ?? row.overall_percentile ?? 0),
       defense: Number(stats.defense_score ?? row.overall_percentile ?? 0),
     });
+    ratingsByTeam.set(row.team_id, list);
   }
 
   const gaaByTeam: number[] = [];
-  for (const team of teams) {
-    const standing = standingsByTeam.get(team.id);
-    if (!standing || standing.gamesPlayed <= 0) continue;
-    gaaByTeam.push(standing.goalsAgainst / standing.gamesPlayed);
-  }
-
-  const gaaMin = Math.min(...gaaByTeam, 1);
-  const gaaMax = Math.max(...gaaByTeam, 5);
   const pointsPctValues: number[] = [];
   const goalDiffPerGameValues: number[] = [];
-
   for (const row of standingsByTeam.values()) {
     if (row.gamesPlayed <= 0) continue;
+    gaaByTeam.push(row.goalsAgainst / row.gamesPlayed);
     pointsPctValues.push(row.points / (row.gamesPlayed * 2));
     goalDiffPerGameValues.push((row.goalsFor - row.goalsAgainst) / row.gamesPlayed);
   }
 
+  const gaaMin = Math.min(...gaaByTeam, 1);
+  const gaaMax = Math.max(...gaaByTeam, 5);
   const pointsPctMin = Math.min(...pointsPctValues, 0);
   const pointsPctMax = Math.max(...pointsPctValues, 1);
   const goalDiffPerGameMin = Math.min(...goalDiffPerGameValues, -3);
   const goalDiffPerGameMax = Math.max(...goalDiffPerGameValues, 3);
 
-  const records: TeamRatingRecord[] = [];
   const now = new Date().toISOString();
+  const records: TeamRatingRecord[] = [];
 
-  for (const team of teams) {
-    const roster = rosterByTeam.get(team.id) ?? [];
-    const rosterRatings = roster
-      .map((player) => {
-        const rating = ratingsByPlayer.get(player.playerId);
-        if (!rating) return null;
-        return {
-          ...rating,
-          rosterPosition: player.position,
-        };
-      })
-      .filter((entry): entry is { overall: number; position: 'skater' | 'goalie'; offense: number; defense: number; rosterPosition: 'skater' | 'goalie' } => entry !== null);
-
-    const skaters = rosterRatings.filter((entry) => entry.rosterPosition === 'skater');
-    const goalies = rosterRatings.filter((entry) => entry.rosterPosition === 'goalie');
-    const rosterCoverage = roster.length > 0 ? rosterRatings.length / roster.length : 0;
-
+  for (const team of teamsRes.data ?? []) {
+    const rosterRatings = ratingsByTeam.get(team.id) ?? [];
+    const skaters = rosterRatings.filter((entry) => entry.position === 'skater');
+    const goalies = rosterRatings.filter((entry) => entry.position === 'goalie');
     const overall = avg(rosterRatings.map((entry) => entry.overall));
     const offense = takeTopAverage(skaters.map((entry) => entry.offense), 4, 0.55);
     const rosterDefense = takeTopAverage(skaters.map((entry) => entry.defense), 4, 0.65);
     const goaltendingBase = goalies.length > 0
-      ? avg(goalies.map((entry) => ((entry.overall * 0.55) + (entry.defense * 0.45))))
+      ? avg(goalies.map((entry) => (entry.overall * 0.55) + (entry.defense * 0.45)))
       : 0;
     const depthFactor = takeTopAverage(rosterRatings.map((entry) => entry.overall), 6, 0.85);
+    const trustCoverage = avg(rosterRatings.map((entry) => clamp(entry.trust / 12, 0, 1))) * 100;
+    const confidenceCoverage = avg(rosterRatings.map((entry) => entry.confidence));
 
     const standing = standingsByTeam.get(team.id);
     const gamesPlayed = standing?.gamesPlayed ?? 0;
@@ -190,31 +159,24 @@ export async function calculateTeamRatings(
 
     const pointsPct = gamesPlayed > 0 ? points / (gamesPlayed * 2) : 0;
     const goalDiffPerGame = gamesPlayed > 0 ? (goalsFor - goalsAgainst) / gamesPlayed : 0;
-    const pointsPctFactor = normalize(pointsPct, pointsPctMin, pointsPctMax) * 100;
-    const goalDiffFactor = normalize(goalDiffPerGame, goalDiffPerGameMin, goalDiffPerGameMax) * 100;
-    const recordFactor = round2((pointsPctFactor * 0.7) + (goalDiffFactor * 0.3));
-
+    const recordFactor = round2((normalize(pointsPct, pointsPctMin, pointsPctMax) * 70) + (normalize(goalDiffPerGame, goalDiffPerGameMin, goalDiffPerGameMax) * 30));
     const gaa = gamesPlayed > 0 ? goalsAgainst / gamesPlayed : gaaMax;
     const teamDefenseFactor = inverseNormalize(gaa, gaaMin, gaaMax) * 100;
     const goaltending = round2(goalies.length > 0 ? goaltendingBase : teamDefenseFactor);
-    const defense = round2(
-      goalies.length > 0
-        ? (rosterDefense * 0.55) + (goaltending * 0.2) + (teamDefenseFactor * 0.25)
-        : (rosterDefense * 0.7) + (teamDefenseFactor * 0.3)
-    );
+    const defense = round2(goalies.length > 0
+      ? (rosterDefense * 0.55) + (goaltending * 0.2) + (teamDefenseFactor * 0.25)
+      : (rosterDefense * 0.7) + (teamDefenseFactor * 0.3));
 
-    const rosterStrength = round2((overall * 0.55) + (depthFactor * 0.25) + (rosterCoverage * 20));
-    const overallPercentile = round2(
-      clamp(
-        (offense * 0.28) +
-          (defense * 0.24) +
-          (goaltending * 0.18) +
-          (recordFactor * 0.18) +
-          (rosterStrength * 0.12),
-        0,
-        100
-      )
-    );
+    const rosterStrength = round2((overall * 0.5) + (depthFactor * 0.2) + (trustCoverage * 0.15) + (confidenceCoverage * 0.15));
+    const overallPercentile = round2(clamp(
+      (offense * 0.28) +
+      (defense * 0.24) +
+      (goaltending * 0.18) +
+      (recordFactor * 0.18) +
+      (rosterStrength * 0.12),
+      0,
+      100
+    ));
 
     records.push({
       team_id: team.id,
@@ -236,10 +198,7 @@ export async function calculateTeamRatings(
     const { error: upsertError } = await supabase
       .from('team_ratings' as any)
       .upsert(records as any, { onConflict: 'team_id,season_id' });
-
-    if (upsertError) {
-      throw upsertError;
-    }
+    if (upsertError) throw upsertError;
   }
 
   return { records };
