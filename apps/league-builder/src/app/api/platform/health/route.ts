@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { featureFlags } from '@/lib/config/feature-flags';
-import { isUserPlatformAdmin } from '@/lib/auth/platform-admin';
+import { requirePlatformAdminApiAccess } from '@/lib/api/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,18 +10,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Endpoint disabled' }, { status: 404 });
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
-  const isPlatformAdmin = await isUserPlatformAdmin(user.id);
-  if (!isPlatformAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const access = await requirePlatformAdminApiAccess();
+  if ('response' in access) {
+    return access.response;
   }
 
   const service = createServiceRoleClient();

@@ -1,43 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireLeagueApiAccess } from '@/lib/api/guards';
 import { seedSeasonParticipationTeams } from '@/lib/seasons/team-participation';
-
-async function requireLeagueSeasonAccess(leagueId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: 'Unauthorized', status: 401 as const };
-  }
-
-  const access = await verifyLeagueOwnerAccess(leagueId);
-  if (!access.authorized) {
-    return {
-      error: access.error || 'Forbidden',
-      status: 403 as const,
-      userId: user.id,
-    };
-  }
-
-  return { userId: user.id };
-}
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const access = await requireLeagueSeasonAccess(leagueId);
-  if ('error' in access) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  const access = await requireLeagueApiAccess(leagueId);
+  if ('response' in access) {
+    return access.response;
   }
 
   const supabase = createServiceRoleClient();
 
-  // Fetch seasons for the league
   const { data: seasons, error } = await supabase
     .from('seasons')
     .select('id, name, status, start_date, end_date')
@@ -57,9 +34,9 @@ export async function POST(
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const access = await requireLeagueSeasonAccess(leagueId);
-  if ('error' in access) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  const access = await requireLeagueApiAccess(leagueId);
+  if ('response' in access) {
+    return access.response;
   }
 
   const supabase = createServiceRoleClient();
@@ -84,7 +61,6 @@ export async function POST(
       schedule_setup_mode: _schedule_setup_mode,
     } = body;
 
-    // Validate required fields
     if (!name || !start_date || !end_date) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -100,7 +76,6 @@ export async function POST(
       );
     }
 
-    // Create the new season
     const { data: newSeason, error: seasonError } = await supabase
       .from('seasons')
       .insert({
@@ -130,7 +105,6 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create season' }, { status: 500 });
     }
 
-    // If carrying forward teams, update team-season associations
     if (carry_forward_teams && selected_team_ids && selected_team_ids.length > 0) {
       await seedSeasonParticipationTeams({
         supabase,
@@ -142,20 +116,17 @@ export async function POST(
       });
 
       if (import_rosters && previous_season_id) {
-        // Import rosters for selected teams
         for (const teamId of selected_team_ids) {
           if (team_roster_import[teamId]) {
-            // Use the copy_roster_between_seasons function
             const { error: rosterError } = await supabase.rpc('copy_roster_between_seasons', {
               p_team_id: teamId,
               p_from_season_id: previous_season_id,
               p_to_season_id: newSeason.id,
-              p_player_ids: undefined, // Import all players
+              p_player_ids: undefined,
             });
 
             if (rosterError) {
               console.error(`Error importing roster for team ${teamId}:`, rosterError);
-              // Continue with other teams, don't fail the whole operation
             }
           }
         }
@@ -174,9 +145,9 @@ export async function PUT(
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const access = await requireLeagueSeasonAccess(leagueId);
-  if ('error' in access) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  const access = await requireLeagueApiAccess(leagueId);
+  if ('response' in access) {
+    return access.response;
   }
 
   const supabase = createServiceRoleClient();
@@ -189,7 +160,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Season ID is required' }, { status: 400 });
     }
 
-    // Build update object with only provided fields
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
     if (start_date !== undefined) updateData.start_date = start_date;
@@ -229,9 +199,9 @@ export async function DELETE(
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
   const { leagueId } = await params;
-  const access = await requireLeagueSeasonAccess(leagueId);
-  if ('error' in access) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+  const access = await requireLeagueApiAccess(leagueId);
+  if ('response' in access) {
+    return access.response;
   }
 
   const supabase = createServiceRoleClient();
@@ -244,7 +214,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'seasonId is required' }, { status: 400 });
     }
 
-    // Check if the season has any games before deleting
     const { count: gameCount } = await supabase
       .from('games')
       .select('*', { count: 'exact', head: true })

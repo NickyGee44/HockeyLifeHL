@@ -1,8 +1,8 @@
-import { verifyCaptainOrAdminAccess, verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
-import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { buildLeaguePlayerSearchResults } from '@/lib/roster/player-search';
+import { requireLeagueOrTeamApiAccess } from '@/lib/api/guards';
 
 type LookupRow = {
   id: string;
@@ -33,29 +33,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ leagueId: string }> }
 ) {
-  const supabase = await createClient();
   const serviceSupabase = createServiceRoleClient();
   const { leagueId } = await params;
   const searchQuery = request.nextUrl.searchParams.get('q')?.trim() || '';
   const teamId = request.nextUrl.searchParams.get('teamId')?.trim() || '';
   const seasonId = request.nextUrl.searchParams.get('seasonId')?.trim() || '';
 
-  // Verify user is authenticated
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Verify user can manage rosters in this league, either through league access
-  // or through explicit access to the target team.
-  const leagueAccess = await verifyLeagueOwnerAccess(leagueId);
-  const teamAccess = teamId ? await verifyCaptainOrAdminAccess(teamId) : null;
-  const hasTeamAccess = !!teamAccess?.authorized && teamAccess.team?.league_id === leagueId;
-
-  if (!leagueAccess.authorized && !hasTeamAccess) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const access = await requireLeagueOrTeamApiAccess(leagueId, teamId || undefined);
+  if ('response' in access) {
+    return access.response;
   }
 
   const { data: league, error: leagueError } = await serviceSupabase
@@ -175,12 +161,8 @@ export async function GET(
       return NextResponse.json({ error: 'Search failed' }, { status: 500 });
     }
 
-    const teamNameById = new Map(
-      (teamsResponse.data ?? []).map((team) => [team.id, team.name ?? null])
-    );
-    const seasonNameById = new Map(
-      (seasonsResponse.data ?? []).map((season) => [season.id, season.name ?? null])
-    );
+    const teamNameById = new Map((teamsResponse.data ?? []).map((team) => [team.id, team.name ?? null]));
+    const seasonNameById = new Map((seasonsResponse.data ?? []).map((season) => [season.id, season.name ?? null]));
 
     const players = buildLeaguePlayerSearchResults({
       profiles: searchableProfiles,

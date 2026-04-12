@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireCronSecret } from '@/lib/api/guards';
 import { sendEmail, getUnsubscribeUrl } from '@/lib/notifications/email-service';
 import { getGameReminderEmail } from '@/lib/notifications/templates/game-reminder';
 import { format } from 'date-fns';
@@ -18,9 +19,9 @@ import { format } from 'date-fns';
  * - Generates and stores unsubscribe tokens for players who don't have one
  */
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = requireCronSecret(request);
+  if ('response' in auth) {
+    return auth.response;
   }
 
   try {

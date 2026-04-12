@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildLeagueBackupExport, verifyLeagueBackupToken } from '@/lib/backup/league-backup';
-import { verifyLeagueOwnerAccess } from '@/lib/actions/permissions';
+import { requireLeagueApiAccess } from '@/lib/api/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,9 +22,9 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid backup token.' }, { status: 401 });
     }
   } else {
-    const access = await verifyLeagueOwnerAccess(leagueId);
-    if (!access.authorized) {
-      return NextResponse.json({ error: access.error || 'Unauthorized' }, { status: 401 });
+    const access = await requireLeagueApiAccess(leagueId, { forbiddenError: 'Unauthorized' });
+    if ('response' in access) {
+      return access.response;
     }
   }
 
