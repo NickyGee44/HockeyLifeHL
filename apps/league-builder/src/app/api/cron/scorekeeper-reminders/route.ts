@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireCronSecret } from '@/lib/api/guards';
 import { sendScorekeeperDailyReminder } from '@/lib/email/scorekeeper-emails';
 import { format } from 'date-fns';
 
@@ -13,9 +14,9 @@ import { format } from 'date-fns';
  * - Groups multiple games per scorekeeper into a single email
  */
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = requireCronSecret(request);
+  if ('response' in auth) {
+    return auth.response;
   }
 
   try {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireCronSecret } from '@/lib/api/guards';
 
 // Vercel Cron route: Process pending and retry notifications.
 // Schedule: Every 5 minutes
@@ -6,9 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // 1. Claim and send pending notifications (batch of 10)
 // 2. Retry failed notifications (batch of 5)
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = requireCronSecret(request);
+  if ('response' in auth) {
+    return auth.response;
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

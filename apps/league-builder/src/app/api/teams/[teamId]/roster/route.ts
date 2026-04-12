@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addPlayerToRoster } from '@/lib/actions/roster';
-import { verifyCaptainOrAdminAccess } from '@/lib/actions/permissions';
 import { sanitizeErrorForLogging } from '@/lib/utils/sanitize';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { requireTeamApiAccess } from '@/lib/api/guards';
 
 function normalizeRosterRows(rows: any[] | null | undefined) {
   return (rows || []).map((row: any) => ({
@@ -45,23 +45,14 @@ export async function GET(
   { params }: { params: Promise<{ teamId: string }> }
 ) {
   const { teamId } = await params;
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const access = await requireTeamApiAccess(teamId);
+  if ('response' in access) {
+    return access.response;
   }
 
-  const access = await verifyCaptainOrAdminAccess(teamId);
-  if (!access.authorized || !access.team) {
-    return NextResponse.json(
-      { error: access.error || 'Forbidden' },
-      { status: 403 }
-    );
-  }
+  const supabase = access.supabase;
 
-  const leagueId = access.team.league_id;
+  const leagueId = access.access.team!.league_id;
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get('seasonId');
 
@@ -115,10 +106,10 @@ export async function GET(
     .maybeSingle();
 
   const canSeeRatings =
-    access.accessType === 'platform_admin' ||
-    access.accessType === 'org_owner' ||
-    access.accessType === 'league_admin' ||
-    (access.accessType === 'captain' && season?.registration_type === 'draft');
+    access.access.accessType === 'platform_admin' ||
+    access.access.accessType === 'org_owner' ||
+    access.access.accessType === 'league_admin' ||
+    (access.access.accessType === 'captain' && season?.registration_type === 'draft');
 
   if (!canSeeRatings) {
     return NextResponse.json(roster);
