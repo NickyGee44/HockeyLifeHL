@@ -35,6 +35,28 @@ type RawGameRow = {
   } | null;
 };
 
+type RawStandingsConfigRow = {
+  season_id: string;
+  points_win: number | null;
+  points_loss: number | null;
+  points_tie: number | null;
+};
+
+type TeamSnapshot = {
+  teamId: string;
+  teamName: string;
+  shortName: string;
+  primaryColor: string | null;
+};
+
+type SeasonStandingsSnapshot = {
+  weekId: string;
+  standings: Array<{
+    teamId: string;
+    rank: number;
+  }>;
+};
+
 export default async function LeagueSocialGraphicsPage({ params }: Props) {
   const { locale, id: leagueId } = await params;
   setRequestLocale(locale);
@@ -78,30 +100,23 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
   const seasonRows = seasons ?? [];
   const completedGames = (games ?? []) as RawGameRow[];
 
-  const standingsBySeason = new Map(
-    await Promise.all(
-      seasonRows.map(async (season) => [season.id, await getStandings(season.id)] as const),
-    ),
+  const { data: standingsConfigs } = seasonRows.length
+    ? await supabase
+        .from('standings_config')
+        .select('season_id, points_win, points_loss, points_tie')
+        .in('season_id', seasonRows.map((season) => season.id))
+    : { data: [] };
+
+  const standingsConfigBySeason = new Map(
+    ((standingsConfigs ?? []) as RawStandingsConfigRow[]).map((row) => [row.season_id, row]),
   );
 
-  const seasonData = seasonRows.map((season) => ({
-    id: season.id,
-    name: season.name,
-    status: season.status,
-    standings: (standingsBySeason.get(season.id) ?? []).map((team) => ({
-      teamId: team.teamId,
-      teamName: team.teamName,
-      shortName: team.shortName,
-      points: team.points,
-      wins: team.wins,
-      losses: team.losses,
-      ties: team.ties,
-      goalsFor: team.goalsFor,
-      goalsAgainst: team.goalsAgainst,
-      goalDiff: team.goalDiff,
-      rank: team.rank,
-    })),
-    games: completedGames
+  const standingsBySeason = new Map(
+    await Promise.all(seasonRows.map(async (season) => [season.id, await getStandings(season.id)] as const)),
+  );
+
+  const seasonData = seasonRows.map((season) => {
+    const seasonGames = completedGames
       .filter((game) => game.season_id === season.id)
       .map((game) => ({
         id: game.id,
@@ -128,8 +143,37 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
               primaryColor: game.away_team.primary_color,
             }
           : null,
+      }));
+
+    const teamDirectory = buildTeamDirectory(seasonGames, standingsBySeason.get(season.id) ?? []);
+    const standingsSnapshots = buildStandingsSnapshots(
+      seasonGames,
+      teamDirectory,
+      standingsConfigBySeason.get(season.id),
+    );
+
+    return {
+      id: season.id,
+      name: season.name,
+      status: season.status,
+      standings: (standingsBySeason.get(season.id) ?? []).map((team) => ({
+        teamId: team.teamId,
+        teamName: team.teamName,
+        shortName: team.shortName,
+        points: team.points,
+        wins: team.wins,
+        losses: team.losses,
+        ties: team.ties,
+        goalsFor: team.goalsFor,
+        goalsAgainst: team.goalsAgainst,
+        goalDiff: team.goalDiff,
+        rank: team.rank,
+        primaryColor: teamDirectory.get(team.teamId)?.primaryColor ?? null,
       })),
-  }));
+      standingsSnapshots,
+      games: seasonGames,
+    };
+  });
 
   const totalGraphicsReady = seasonData.filter((season) => season.games.length > 0).length;
   const totalGames = completedGames.length;
@@ -191,8 +235,8 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
             />
             <InfoMetric
               label="Exports"
-              value="SVG downloads"
-              helper="Vector output for posting or editing"
+              value="SVG + PNG"
+              helper="Post-ready downloads from the workspace"
             />
           </div>
         </section>
@@ -209,8 +253,8 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <StepRow title="Score cards" body="Pick any completed game in the selected week and export a branded final-score card." icon={<ImageIcon className="h-4 w-4" />} />
-              <StepRow title="Weekly recaps" body="Bundle a week of final scores into one consistent roundup graphic for league channels." icon={<Download className="h-4 w-4" />} />
-              <StepRow title="Standings updates" body="Turn the live standings table into a clean rankings graphic without leaving the league dashboard." icon={<Trophy className="h-4 w-4" />} />
+              <StepRow title="Weekly recaps" body="Bundle more of the week into one recap graphic instead of truncating the feed after a handful of games." icon={<Download className="h-4 w-4" />} />
+              <StepRow title="Standings updates" body="Show live rankings with week-over-week movement so owners can post the story, not just the table." icon={<Trophy className="h-4 w-4" />} />
             </div>
           </div>
 
@@ -219,7 +263,7 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
             <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral-300">
               <li>Built from real completed games only.</li>
               <li>Week windows are grouped into deterministic seven-day buckets inside each season.</li>
-              <li>Exports are SVG so owners can post immediately or refine in design tools later.</li>
+              <li>Owners can generate, regenerate, preview, and export SVG or PNG without leaving the dashboard.</li>
             </ul>
           </div>
         </section>
@@ -239,6 +283,169 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
       </div>
     </div>
   );
+}
+
+function buildTeamDirectory(
+  games: Array<{
+    homeTeam: { id: string; name: string; shortName: string | null; primaryColor: string | null } | null;
+    awayTeam: { id: string; name: string; shortName: string | null; primaryColor: string | null } | null;
+  }>,
+  standings: Awaited<ReturnType<typeof getStandings>>,
+): Map<string, TeamSnapshot> {
+  const teams = new Map<string, TeamSnapshot>();
+
+  for (const team of standings) {
+    teams.set(team.teamId, {
+      teamId: team.teamId,
+      teamName: team.teamName,
+      shortName: team.shortName,
+      primaryColor: null,
+    });
+  }
+
+  for (const game of games) {
+    if (game.homeTeam) {
+      teams.set(game.homeTeam.id, {
+        teamId: game.homeTeam.id,
+        teamName: game.homeTeam.name,
+        shortName: game.homeTeam.shortName || game.homeTeam.name,
+        primaryColor: game.homeTeam.primaryColor,
+      });
+    }
+    if (game.awayTeam) {
+      teams.set(game.awayTeam.id, {
+        teamId: game.awayTeam.id,
+        teamName: game.awayTeam.name,
+        shortName: game.awayTeam.shortName || game.awayTeam.name,
+        primaryColor: game.awayTeam.primaryColor,
+      });
+    }
+  }
+
+  return teams;
+}
+
+function buildStandingsSnapshots(
+  games: Array<{
+    id: string;
+    scheduledAt: string;
+    homeScore: number;
+    awayScore: number;
+    homeTeam: { id: string } | null;
+    awayTeam: { id: string } | null;
+  }>,
+  teamDirectory: Map<string, TeamSnapshot>,
+  config?: RawStandingsConfigRow,
+): SeasonStandingsSnapshot[] {
+  const weekBuckets = buildWeekBuckets(games);
+  const sortedGames = [...games].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  const pointsWin = config?.points_win ?? 2;
+  const pointsLoss = config?.points_loss ?? 0;
+  const pointsTie = config?.points_tie ?? 1;
+
+  return weekBuckets.map((bucket) => {
+    const cutoff = new Date(bucket.start).getTime();
+    const priorGames = sortedGames.filter((game) => new Date(game.scheduledAt).getTime() < cutoff);
+    const standings = calculateStandings(priorGames, teamDirectory, { pointsWin, pointsLoss, pointsTie });
+    return {
+      weekId: bucket.id,
+      standings: standings.map((team) => ({ teamId: team.teamId, rank: team.rank })),
+    };
+  });
+}
+
+function buildWeekBuckets(games: Array<{ scheduledAt: string }>) {
+  if (!games.length) return [] as Array<{ id: string; start: string }>;
+
+  const sorted = [...games].sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  const anchor = startOfDay(sorted[0]!.scheduledAt).getTime();
+  const seen = new Set<number>();
+
+  return sorted.flatMap((game) => {
+    const current = startOfDay(game.scheduledAt).getTime();
+    const index = Math.max(0, Math.floor((current - anchor) / WEEK_MS));
+    if (seen.has(index)) return [];
+    seen.add(index);
+    return [{ id: `week-${index + 1}`, start: new Date(anchor + index * WEEK_MS).toISOString() }];
+  });
+}
+
+function calculateStandings(
+  games: Array<{
+    homeScore: number;
+    awayScore: number;
+    homeTeam: { id: string } | null;
+    awayTeam: { id: string } | null;
+  }>,
+  teamDirectory: Map<string, TeamSnapshot>,
+  scoring: { pointsWin: number; pointsLoss: number; pointsTie: number },
+) {
+  const table = new Map(
+    Array.from(teamDirectory.values()).map((team) => [
+      team.teamId,
+      {
+        teamId: team.teamId,
+        teamName: team.teamName,
+        shortName: team.shortName,
+        points: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        goalsFor: 0,
+        goalsAgainst: 0,
+        goalDiff: 0,
+        rank: 0,
+      },
+    ]),
+  );
+
+  for (const game of games) {
+    if (!game.homeTeam?.id || !game.awayTeam?.id) continue;
+    const home = table.get(game.homeTeam.id);
+    const away = table.get(game.awayTeam.id);
+    if (!home || !away) continue;
+
+    home.goalsFor += game.homeScore;
+    home.goalsAgainst += game.awayScore;
+    away.goalsFor += game.awayScore;
+    away.goalsAgainst += game.homeScore;
+
+    if (game.homeScore === game.awayScore) {
+      home.ties += 1;
+      away.ties += 1;
+      home.points += scoring.pointsTie;
+      away.points += scoring.pointsTie;
+    } else if (game.homeScore > game.awayScore) {
+      home.wins += 1;
+      away.losses += 1;
+      home.points += scoring.pointsWin;
+      away.points += scoring.pointsLoss;
+    } else {
+      away.wins += 1;
+      home.losses += 1;
+      away.points += scoring.pointsWin;
+      home.points += scoring.pointsLoss;
+    }
+  }
+
+  return Array.from(table.values())
+    .map((team) => ({ ...team, goalDiff: team.goalsFor - team.goalsAgainst }))
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+      if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+      if (b.wins !== a.wins) return b.wins - a.wins;
+      return a.teamName.localeCompare(b.teamName);
+    })
+    .map((team, index) => ({ ...team, rank: index + 1 }));
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function startOfDay(input: string) {
+  const date = new Date(input);
+  date.setHours(0, 0, 0, 0);
+  return date;
 }
 
 function InfoMetric({
