@@ -337,6 +337,7 @@ export async function sendGameReminderNotification(
       id,
       scheduled_at,
       league_id,
+      season_id,
       location,
       home_team:teams!home_team_id(id, name),
       away_team:teams!away_team_id(id, name),
@@ -385,7 +386,7 @@ export async function sendGameReminderNotification(
       venueName: game.location || 'TBD',
       venueAddress: undefined,
       hoursUntilGame,
-      dashboardUrl: `${siteUrl}/dashboard/games/${gameId}`,
+      dashboardUrl: `${siteUrl}/dashboard/leagues/${game.league_id}/seasons/${game.season_id}/games/${gameId}`,
       unsubscribeUrl: unsubscribeToken ? getUnsubscribeUrl(unsubscribeToken, 'game_updates') : undefined,
       leagueName: game.league?.name,
     });
