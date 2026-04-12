@@ -12,6 +12,7 @@ import { SubscriptionProvider } from '@/components/shared';
 import type { Metadata } from 'next';
 import { LeagueSiteAnalytics } from '@/components/LeagueSiteAnalytics';
 import { FloatingDock } from '@/components/FloatingDock';
+import { ScrollRevealObserver } from '@/components/ScrollRevealObserver';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 
@@ -146,7 +147,10 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                     />
                   </div>
                   <LeagueSiteAnalytics leagueSlug={leagueSlug} />
-                  <main className="league-site-main flex-1">{children}</main>
+                  <main className="league-site-main flex-1">
+                    <ScrollRevealObserver />
+                    {children}
+                  </main>
                   <div className="league-site-chrome">
                     <SponsorFooterStrip sponsors={sponsors} />
                   </div>

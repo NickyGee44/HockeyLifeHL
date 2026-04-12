@@ -339,6 +339,15 @@ body::after {
 .league-site-main > * {
   position: relative;
   z-index: 1;
+  /* Scroll-reveal: start slightly faded and shifted, reveal on intersection */
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.league-site-main > .in-view {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .league-home-light .card,
@@ -2014,6 +2023,13 @@ body::after {
   .rank-up .rank-indicator-arrow,
   .rank-down .rank-indicator-arrow {
     animation: none !important;
+  }
+
+  /* Disable scroll-reveal in reduced-motion mode — show everything immediately */
+  .league-site-main > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 
   .game-card,
