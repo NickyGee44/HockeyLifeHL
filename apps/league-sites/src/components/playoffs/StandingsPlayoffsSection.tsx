@@ -20,16 +20,16 @@ function TeamMark({
   logoUrl: string | null;
   size?: 'sm' | 'md';
 }) {
-  const classes = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+  const classes = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
 
   if (logoUrl) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logoUrl} alt={name} className={`${classes} rounded-full object-contain bg-white/5 p-1`} />;
+    return <img src={logoUrl} alt={name} className={`${classes} object-contain`} />;
   }
 
   return (
     <div
-      className={`${classes} rounded-full flex items-center justify-center text-xs font-black`}
+      className={`${classes} flex items-center justify-center rounded-full text-xs font-black`}
       style={{ backgroundColor: 'var(--league-primary)', color: 'var(--color-accent-text)' }}
       aria-label={name}
       title={name}
@@ -39,115 +39,134 @@ function TeamMark({
   );
 }
 
-/* Grey shield SVG for TBD placeholders */
-function TBDShield({ className }: { className?: string }) {
+function ShieldFrame({ className = 'h-14 w-12', tone = 'filled' }: { className?: string; tone?: 'filled' | 'muted' }) {
+  const fill = tone === 'filled' ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.12)';
+  const stroke = tone === 'filled' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.26)';
+
   return (
-    <svg viewBox="0 0 40 48" fill="none" className={className} aria-label="TBD">
+    <svg viewBox="0 0 40 48" fill="none" className={className} aria-hidden="true">
       <path
         d="M20 2L4 10V24C4 34 20 46 20 46C20 46 36 34 36 24V10L20 2Z"
-        fill="currentColor"
-        opacity="0.18"
-        stroke="currentColor"
+        fill={fill}
+        stroke={stroke}
         strokeWidth="1.5"
-        strokeOpacity="0.25"
       />
     </svg>
   );
 }
 
-function BracketTeam({ team }: { team: PlayoffPreview['firstRound'][number]['highSeed'] }) {
-  if (!team) {
-    return (
-      <div className="flex items-center justify-center py-3 opacity-35">
-        <div className="h-10 w-10 rounded-full bg-white/10" />
+function ShieldNode({
+  team,
+  muted = false,
+  trophy = false,
+}: {
+  team?: PlayoffPreview['firstRound'][number]['highSeed'] | null;
+  muted?: boolean;
+  trophy?: boolean;
+}) {
+  return (
+    <div className="relative flex h-14 w-12 items-center justify-center">
+      <ShieldFrame tone={muted ? 'muted' : 'filled'} />
+      <div className="absolute inset-0 flex items-center justify-center">
+        {team ? <TeamMark name={team.teamName} logoUrl={team.logoUrl} size="md" /> : <span className="sr-only">TBD</span>}
       </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-2 py-2 px-2">
-      <span className="text-[10px] font-black tabular-nums text-[var(--color-text-secondary)] w-4 text-right">
-        #{team.rank}
-      </span>
-      <TeamMark name={team.teamName} logoUrl={team.logoUrl} />
-    </div>
-  );
-}
-
-function TBDSlot() {
-  return (
-    <div className="flex items-center justify-center py-4">
-      <TBDShield className="w-8 h-10 text-white/40" />
-    </div>
-  );
-}
-
-function ChampionshipSlot() {
-  return (
-    <div className="flex items-center justify-center py-4">
-      <div className="relative">
-        <TBDShield className="w-10 h-12 text-white/40" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+      {trophy && (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src="/trophy.png"
           alt="Championship"
-          className="absolute -top-3 -right-3 w-8 h-8 drop-shadow-[0_2px_6px_rgba(255,215,0,0.5)]"
+          className="absolute -right-4 -top-3 h-10 w-10 object-contain drop-shadow-[0_6px_16px_rgba(255,215,0,0.35)]"
         />
+      )}
+    </div>
+  );
+}
+
+function FirstRoundSeries({ series, showOutgoingConnector }: { series: PlayoffPreview['rounds'][number]['series'][number]; showOutgoingConnector: boolean }) {
+  return (
+    <div className="relative flex min-h-[150px] items-center">
+      <div className="relative flex flex-col items-center gap-8 pr-7">
+        <div className="relative">
+          <ShieldNode team={series.highSeed} />
+          <div className="absolute left-full top-1/2 h-px w-4 -translate-y-1/2 bg-[#8f8366]" />
+        </div>
+        <div className="relative">
+          <ShieldNode team={series.lowSeed} />
+          <div className="absolute left-full top-1/2 h-px w-4 -translate-y-1/2 bg-[#8f8366]" />
+        </div>
+
+        <div className="absolute right-3 top-[28px] h-[94px] w-px bg-[#8f8366]" />
+        {showOutgoingConnector && <div className="absolute right-3 top-1/2 h-px w-4 -translate-y-1/2 bg-[#8f8366]" />}
       </div>
     </div>
   );
 }
 
-function RoundColumn({ round, isFirstRound, isChampionship }: { round: PlayoffPreview['rounds'][number]; isFirstRound: boolean; isChampionship: boolean }) {
+function LaterRoundSeries({
+  isChampionship,
+  showOutgoingConnector,
+}: {
+  isChampionship: boolean;
+  showOutgoingConnector: boolean;
+}) {
   return (
-    <div className="min-w-[140px] flex-1 flex flex-col">
-      <p className="mb-3 text-center text-[10px] font-black uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
-        {round.label}
-      </p>
-      <div className="flex flex-1 flex-col justify-around gap-3">
-        {round.series.map((series) => (
-          <div
-            key={`${round.roundNumber}-${series.seriesNumber}`}
-            className="rounded-xl border border-white/8 bg-white/[0.03] overflow-hidden"
-          >
-            {isFirstRound ? (
-              <>
-                <BracketTeam team={series.highSeed} />
-                <div className="mx-2 h-px bg-white/8" />
-                <BracketTeam team={series.lowSeed} />
-              </>
-            ) : isChampionship ? (
-              <ChampionshipSlot />
-            ) : (
-              <TBDSlot />
-            )}
-          </div>
-        ))}
-      </div>
+    <div className="relative flex min-h-[150px] items-center justify-center px-5">
+      <div className="absolute left-0 top-1/2 h-px w-5 -translate-y-1/2 bg-[#8f8366]" />
+      <ShieldNode muted trophy={isChampionship} />
+      {showOutgoingConnector && <div className="absolute right-0 top-1/2 h-px w-5 -translate-y-1/2 bg-[#8f8366]" />}
+    </div>
+  );
+}
+
+function RoundColumn({
+  round,
+  isFirstRound,
+  isChampionship,
+  showOutgoingConnector,
+}: {
+  round: PlayoffPreview['rounds'][number];
+  isFirstRound: boolean;
+  isChampionship: boolean;
+  showOutgoingConnector: boolean;
+}) {
+  return (
+    <div className="flex min-w-[90px] flex-col justify-around gap-4">
+      {round.series.map((series) => (
+        <div key={`${round.roundNumber}-${series.seriesNumber}`} className="flex flex-1 items-center">
+          {isFirstRound ? (
+            <FirstRoundSeries series={series} showOutgoingConnector={showOutgoingConnector} />
+          ) : (
+            <LaterRoundSeries isChampionship={isChampionship} showOutgoingConnector={showOutgoingConnector} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
 
 function PlayoffBrackets({ previews }: { previews: PlayoffPreview[] }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {previews.map((preview) => (
         <div key={preview.divisionId ?? 'league'}>
-          <div className="mb-3 flex items-center gap-3">
-            <h3 className="text-sm font-black text-[var(--color-text-primary)]">{preview.divisionName ?? 'League Bracket'}</h3>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-              {preview.playoffTeamCount} Teams
-            </span>
-          </div>
+          {preview.divisionName && (
+            <div className="mb-4 flex items-center gap-3">
+              <h3 className="text-sm font-black text-[var(--color-text-primary)]">{preview.divisionName}</h3>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                {preview.playoffTeamCount} Teams
+              </span>
+            </div>
+          )}
 
-          <div className="overflow-x-auto">
-            <div className="flex min-w-max items-stretch gap-3 pb-1">
+          <div className="overflow-x-auto pb-2">
+            <div className="flex min-w-max items-stretch gap-2">
               {preview.rounds.map((round, index) => (
                 <RoundColumn
                   key={`${preview.divisionId ?? 'league'}-${round.roundNumber}`}
                   round={round}
                   isFirstRound={index === 0}
                   isChampionship={index === preview.rounds.length - 1 && index > 0}
+                  showOutgoingConnector={index < preview.rounds.length - 1}
                 />
               ))}
             </div>
@@ -192,7 +211,6 @@ function PlayoffOddsTable({ standings }: { standings: TeamStanding[] }) {
 
 export function StandingsPlayoffsSection({ previews, standings }: StandingsPlayoffsSectionProps) {
   const [activePanel, setActivePanel] = useState<PanelKey>('preview');
-  const hasMultiplePreviewCards = previews.length > 1;
 
   const panels = useMemo(
     () => ({
@@ -204,7 +222,7 @@ export function StandingsPlayoffsSection({ previews, standings }: StandingsPlayo
 
   return (
     <section className="mt-10">
-      <div className="flex items-center justify-between mb-5">
+      <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Playoffs</h2>
 
         <div className="inline-flex rounded-full border border-white/10 bg-black/15 p-1 text-xs font-semibold">
@@ -225,11 +243,7 @@ export function StandingsPlayoffsSection({ previews, standings }: StandingsPlayo
         </div>
       </div>
 
-      <div className="md:hidden">{panels[activePanel]}</div>
-      <div className={`hidden md:grid gap-6 ${hasMultiplePreviewCards ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]' : 'lg:grid-cols-2'}`}>
-        <div>{panels.preview}</div>
-        <div>{panels.odds}</div>
-      </div>
+      <div>{panels[activePanel]}</div>
     </section>
   );
 }
