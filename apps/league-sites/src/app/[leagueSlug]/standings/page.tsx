@@ -120,7 +120,7 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
 
       {/* Season Completion Arc — baseline sits flush against sponsor bar */}
       {seasonGames.length > 0 && (
-        <div className="mx-auto mt-6 -mb-12">
+        <div className="mx-auto mt-14 -mb-12">
           <SeasonCompletionArc games={seasonGames} />
         </div>
       )}
