@@ -170,7 +170,41 @@ export default async function LeagueDetailPage({ params }: Props) {
       ? `Open ${currentSeason.name}`
       : leagueChecklist.nextActionLabel || (currentSeason ? `Open ${currentSeason.name}` : 'Create first season');
 
-  const primaryReadinessCards = [
+  const dailyOperationsCards = [
+    {
+      eyebrow: 'Today',
+      title: pendingRegistrations ? `${pendingRegistrations} registrations need review` : 'Registrations are caught up',
+      description: pendingRegistrations
+        ? 'Approve, decline, or follow up on incoming player signups from the current season workspace.'
+        : 'No waiting registration approvals right now.',
+      href: currentSeason
+        ? `${buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'registrations')}?status=pending`
+        : buildLeagueSeasonsHref(locale, leagueId),
+      cta: pendingRegistrations ? 'Review registrations' : 'Open registrations',
+    },
+    {
+      eyebrow: 'Game day',
+      title: pendingGames ? `${pendingGames} games need verification` : 'No game verification backlog',
+      description: pendingGames
+        ? 'Check captain confirmations and clean up unfinished score flow before standings drift.'
+        : 'Completed games are already verified.',
+      href: currentSeason
+        ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'games')
+        : buildLeagueSeasonsHref(locale, leagueId),
+      cta: pendingGames ? 'Open games' : 'View games',
+    },
+    {
+      eyebrow: 'Inbox',
+      title: unreadMessages ? `${unreadMessages} unread contact message${unreadMessages === 1 ? '' : 's'}` : 'Contact inbox is clear',
+      description: unreadMessages
+        ? 'Reply to website inquiries and league questions before they turn into missed signups.'
+        : 'No unread public website messages right now.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/contact-inbox`,
+      cta: unreadMessages ? 'Review inbox' : 'Open inbox',
+    },
+  ];
+
+  const seasonMilestoneCards = [
     {
       eyebrow: 'Payments',
       title:
@@ -199,9 +233,9 @@ export default async function LeagueDetailPage({ params }: Props) {
     },
     {
       eyebrow: 'Staffing',
-      title: currentSeason ? 'Staffing belongs to the active season' : 'No active season for staffing yet',
+      title: currentSeason ? 'Staffing lives inside the season workspace' : 'No active season for staffing yet',
       description: currentSeason
-        ? 'Use the season workspace and More Tools when referees, scorekeepers, or other staff need assignment.'
+        ? 'Use the current season workspace when referees, scorekeepers, or other game-day staff need assignment.'
         : 'Create a season first, then assign game-day staff inside that workspace.',
       href: currentSeason
         ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'scorekeepers')
@@ -269,7 +303,7 @@ export default async function LeagueDetailPage({ params }: Props) {
               <div>
                 <h1 className="text-3xl font-black tracking-tight text-white">{league.name}</h1>
                 <p className="mt-1 text-sm text-neutral-400">
-                  League setup, integrations, and season management.
+                  Your owner home for daily tasks, season work, and league-wide setup.
                 </p>
               </div>
             </div>
@@ -341,29 +375,29 @@ export default async function LeagueDetailPage({ params }: Props) {
 
           <div className="space-y-6">
             <SummarySurface
-              eyebrow="Current workspace"
+              eyebrow="Current season"
               title={currentSeason ? currentSeason.name : 'No active season yet'}
               description={
                 currentSeason
-                  ? `${getSeasonStatusLabel(currentSeason.status, currentSeason.registration_type)} status. Open this workspace for registrations, teams, schedules, and games.`
+                  ? `${getSeasonStatusLabel(currentSeason.status, currentSeason.registration_type)} status. Use this workspace for registrations, teams, schedules, and games.`
                   : 'Create the first season to unlock the operating workspace.'
               }
               icon={<Play className="h-4 w-4" />}
             />
             <SummarySurface
-              eyebrow="Connections"
-              title={paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted ? 'Stripe connected' : 'Stripe still needs review'}
+              eyebrow="Website & content"
+              title={websiteSettings.onboardingRequested || league.is_public ? 'Public site is live or in progress' : 'Website publishing is still optional'}
               description={
                 websiteSettings.onboardingRequested || league.is_public
-                  ? 'Website publishing is enabled for this league.'
-                  : 'Public website publishing is currently optional.'
+                  ? 'News, pages, sponsors, gallery, and contact tools now sit under one publishing area.'
+                  : 'Open Website & Content when you are ready to publish outward-facing updates.'
               }
               icon={<PlugZap className="h-4 w-4" />}
             />
             <SummarySurface
               eyebrow="Compliance"
               title={signedWaiversTotal > 0 ? `${signedWaiversTotal} signed waiver${signedWaiversTotal === 1 ? '' : 's'}` : 'No signed waivers yet'}
-              description="Waiver setup and signatures stay visible here, but the actual waiver tool now lives in league settings."
+              description="Waiver status stays visible here so League Home still shows what could block registrations."
               icon={<CheckCircle2 className="h-4 w-4" />}
             />
           </div>
@@ -371,11 +405,29 @@ export default async function LeagueDetailPage({ params }: Props) {
 
         <section className="mt-6">
           <div>
-            <h2 className="text-xl font-bold text-white">League readiness</h2>
+            <h2 className="text-xl font-bold text-white">What needs attention now</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Daily owner work should start here, then branch into the current season or a focused workspace.
+            </p>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {primaryReadinessCards.map((card) => (
+            {dailyOperationsCards.map((card) => (
+              <ReadinessCard key={card.eyebrow} {...card} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <div>
+            <h2 className="text-lg font-bold text-white">Season and setup checkpoints</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              These are the larger league-owner jobs that matter before registrations, launch, or payouts.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {seasonMilestoneCards.map((card) => (
               <ReadinessCard key={card.eyebrow} {...card} />
             ))}
           </div>
@@ -385,7 +437,7 @@ export default async function LeagueDetailPage({ params }: Props) {
           <div>
             <h2 className="text-lg font-bold text-white">Supporting workspaces</h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Secondary publishing and cleanup surfaces stay available here without crowding the core season workflow.
+              Secondary publishing and cleanup surfaces stay available here without competing with core owner jobs.
             </p>
           </div>
 
