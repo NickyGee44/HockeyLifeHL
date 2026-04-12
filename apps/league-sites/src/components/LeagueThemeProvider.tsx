@@ -126,7 +126,7 @@ function pickAmbientColor(primaryColor: string, secondaryColor: string) {
     return secondaryColor;
   }
 
-  return '#d4af37';
+  return '#d9d9d6';
 }
 
 function isNearBlack(color: string) {
