@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { TeamStanding } from '@/lib/types';
 import type { PlayoffPreview } from '@/lib/playoffs/preview';
 
@@ -11,7 +12,41 @@ interface StandingsPlayoffsSectionProps {
 
 type PanelKey = 'preview' | 'odds';
 
-/* ── Seed entry (logo + seed label, no shield) ── */
+const BRACKET_GOLD = '#8f7a4b';
+const BRACKET_GOLD_SOFT = 'rgba(143,122,75,0.26)';
+
+function ShieldGlyph({ variant = 'grey' }: { variant?: 'grey' | 'gold' }) {
+  const isGold = variant === 'gold';
+
+  return (
+    <svg viewBox="0 0 40 48" fill="none" className="h-8 w-7" aria-hidden="true">
+      <path
+        d="M20 2L4 10V24C4 34 20 46 20 46C20 46 36 34 36 24V10L20 2Z"
+        fill={isGold ? 'rgba(212,170,84,0.26)' : 'rgba(255,255,255,0.10)'}
+        stroke={isGold ? 'rgba(227,191,111,0.88)' : 'rgba(255,255,255,0.22)'}
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function BracketSquare({
+  children,
+  className = '',
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`relative flex h-[78px] w-[78px] items-center justify-center rounded-[18px] border-[2px] bg-[#171410] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_28px_rgba(0,0,0,0.26)] ${className}`}
+      style={{ borderColor: BRACKET_GOLD, backgroundColor: '#16130f' }}
+    >
+      <div className="absolute inset-[7px] rounded-[13px] border" style={{ borderColor: BRACKET_GOLD_SOFT }} />
+      {children}
+    </div>
+  );
+}
 
 function SeedEntry({
   seed,
@@ -20,23 +55,23 @@ function SeedEntry({
 }) {
   if (!seed) {
     return (
-      <div className="flex items-center gap-2">
-        <div className="flex h-14 w-14 items-center justify-center">
-          <span className="text-xs text-white/30">TBD</span>
-        </div>
+      <div className="relative h-[78px] w-[78px]">
+        <BracketSquare>
+          <ShieldGlyph />
+        </BracketSquare>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center">
+    <div className="relative h-[78px] w-[78px]">
+      <BracketSquare>
         {seed.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={seed.logoUrl} alt={seed.teamName} className="h-14 w-14 object-contain" />
+          <img src={seed.logoUrl} alt={seed.teamName} className="relative z-10 h-12 w-12 object-contain" />
         ) : (
           <div
-            className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-black"
+            className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full text-lg font-black"
             style={{ backgroundColor: 'var(--league-primary)', color: 'var(--color-accent-text)' }}
             aria-label={seed.teamName}
             title={seed.teamName}
@@ -44,40 +79,46 @@ function SeedEntry({
             {seed.teamName.charAt(0)}
           </div>
         )}
-      </div>
-      <span className="whitespace-nowrap text-[11px] font-bold text-white/50">#{seed.rank}</span>
-    </div>
-  );
-}
-
-/* ── Shield badges (later rounds) ── */
-
-function ShieldPlaceholder({
-  variant = 'grey',
-  size = 'md',
-}: {
-  variant?: 'grey' | 'gold';
-  size?: 'md' | 'lg';
-}) {
-  const isGold = variant === 'gold';
-  const className = size === 'lg' ? 'h-16 w-14' : 'h-12 w-10';
-  const fill = isGold ? 'rgba(211,162,72,0.22)' : 'rgba(255,255,255,0.08)';
-  const stroke = isGold ? 'rgba(226,185,92,0.75)' : 'rgba(255,255,255,0.18)';
-  const text = isGold ? 'text-[#f1d38b]' : 'text-white/28';
-
-  return (
-    <div className={`relative ${className}`}>
-      <svg viewBox="0 0 40 48" fill="none" className="h-full w-full drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]" aria-hidden="true">
-        <path d="M20 2L4 10V24C4 34 20 46 20 46C20 46 36 34 36 24V10L20 2Z" fill={fill} stroke={stroke} strokeWidth="1.5" />
-      </svg>
-      <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-black uppercase tracking-[0.24em] ${text}`}>
-        TBD
+      </BracketSquare>
+      <span
+        className="absolute -bottom-1 -right-1 z-20 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] font-black leading-none text-[#efe2bd]"
+        style={{ backgroundColor: '#2a2114', border: `2px solid ${BRACKET_GOLD}` }}
+      >
+        {seed.rank}
       </span>
     </div>
   );
 }
 
-/* ── 4‑team bracket layout ── */
+function ShieldPlaceholder({
+  variant = 'grey',
+}: {
+  variant?: 'grey' | 'gold';
+}) {
+  if (variant === 'gold') {
+    return (
+      <div className="relative flex h-[92px] w-[76px] items-center justify-center">
+        <svg viewBox="0 0 52 64" fill="none" className="h-full w-full drop-shadow-[0_10px_24px_rgba(0,0,0,0.28)]" aria-hidden="true">
+          <path
+            d="M26 3L6 13V31C6 44 26 60 26 60C26 60 46 44 46 31V13L26 3Z"
+            fill="rgba(212,170,84,0.24)"
+            stroke="rgba(227,191,111,0.95)"
+            strokeWidth="2.2"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.24em] text-[#f1d38b]">
+          TBD
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <BracketSquare>
+      <ShieldGlyph />
+    </BracketSquare>
+  );
+}
 
 function FourTeamBracket({
   preview,
@@ -87,66 +128,63 @@ function FourTeamBracket({
   const firstRound = preview.rounds[0];
   if (!firstRound) return null;
 
-  const seriesA = firstRound.series[0]; // #1 vs #4
-  const seriesB = firstRound.series[1]; // #2 vs #3
-
-  /* Collect round labels */
+  const seriesA = firstRound.series[0];
+  const seriesB = firstRound.series[1];
   const semifinalLabel = firstRound.label;
   const finalLabel = preview.rounds[1]?.label ?? 'Final';
 
-  /*
-   * Layout geometry (fixed positions, absolute placement):
-   *
-   *   SEEDS (left)          SEMI SHIELDS (mid)        TROPHY (center)        WINNER (right)
-   *   ─────────────         ────────────────          ──────────────         ──────────────
-   *   Seed #1  ──┐
-   *              ├── shield A ──┐
-   *   Seed #4  ──┘              │
-   *                             ├── 🏆 ── shield W
-   *   Seed #2  ──┐              │
-   *              ├── shield B ──┘
-   *   Seed #3  ──┘
-   */
+  const node = 78;
+  const midNode = 78;
+  const champW = 76;
+  const champH = 92;
+  const trophyW = 74;
+  const winnerNode = 78;
 
-  /* Vertical positions (px from top of bracket area) */
-  const seed1Y = 0;
-  const seed4Y = 80;
-  const shieldAY = 28;       /* vertically centered between seed1 & seed4 */
-  const seed2Y = 160;
-  const seed3Y = 240;
-  const shieldBY = 188;      /* vertically centered between seed2 & seed3 */
-  const championshipY = 102; /* championship badge sits between the semifinal badges */
-  const trophyY = 102;       /* trophy sits just to the right of the championship badge */
-  const winnerY = 110;
-
-  /* Horizontal positions */
   const seedX = 0;
-  const lineStartX = 100;    /* right edge of seed entries */
-  const shieldX = 170;
-  const championshipX = 300;
-  const trophyX = 364;
-  const winnerX = 444;
+  const semiX = 222;
+  const champX = 414;
+  const trophyX = 496;
+  const winnerX = 604;
 
-  const bracketHeight = 280;
-  const bracketWidth = 520;
+  const seed1Y = 4;
+  const seed4Y = 114;
+  const seed2Y = 248;
+  const seed3Y = 358;
+  const semi1Y = 60;
+  const semi2Y = 304;
+  const championY = 176;
+  const trophyY = 185;
+  const winnerY = 184;
+
+  const seedCenterX = seedX + node;
+  const semiCenterX = semiX;
+  const semiRightX = semiX + midNode;
+  const championCenterX = champX;
+  const championRightX = champX + champW;
+  const trophyRightX = trophyX + trophyW;
+  const winnerLeftX = winnerX;
+
+  const seed1CenterY = seed1Y + node / 2;
+  const seed4CenterY = seed4Y + node / 2;
+  const seed2CenterY = seed2Y + node / 2;
+  const seed3CenterY = seed3Y + node / 2;
+  const semi1CenterY = semi1Y + midNode / 2;
+  const semi2CenterY = semi2Y + midNode / 2;
+  const championCenterY = championY + champH / 2;
+  const winnerCenterY = winnerY + winnerNode / 2;
+
+  const bracketHeight = 446;
+  const bracketWidth = 690;
 
   return (
     <div className="relative" style={{ height: bracketHeight, width: bracketWidth, minWidth: bracketWidth }}>
-      {/* ── Round labels ── */}
-      <div
-        className="absolute text-[10px] font-bold uppercase tracking-[0.2em] text-white/30"
-        style={{ left: seedX, top: -22 }}
-      >
+      <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: seedX, top: -24 }}>
         {semifinalLabel}
       </div>
-      <div
-        className="absolute text-[10px] font-bold uppercase tracking-[0.2em] text-white/30"
-        style={{ left: championshipX - 8, top: -22 }}
-      >
+      <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: champX, top: -24 }}>
         {finalLabel}
       </div>
 
-      {/* ── Seed entries (left column) ── */}
       <div className="absolute" style={{ left: seedX, top: seed1Y }}>
         <SeedEntry seed={seriesA?.highSeed ?? null} />
       </div>
@@ -160,75 +198,48 @@ function FourTeamBracket({
         <SeedEntry seed={seriesB?.lowSeed ?? null} />
       </div>
 
-      {/* ── Semifinal shield placeholders (middle column) ── */}
-      <div className="absolute" style={{ left: shieldX, top: shieldAY }}>
+      <div className="absolute" style={{ left: semiX, top: semi1Y }}>
         <ShieldPlaceholder />
       </div>
-      <div className="absolute" style={{ left: shieldX, top: shieldBY }}>
+      <div className="absolute" style={{ left: semiX, top: semi2Y }}>
         <ShieldPlaceholder />
       </div>
 
-      {/* ── Championship badge + trophy ── */}
-      <div className="absolute" style={{ left: championshipX, top: championshipY }}>
-        <ShieldPlaceholder variant="gold" size="lg" />
+      <div className="absolute" style={{ left: champX, top: championY }}>
+        <ShieldPlaceholder variant="gold" />
       </div>
       <div className="absolute flex items-center justify-center" style={{ left: trophyX, top: trophyY }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/trophy.png"
-          alt="Championship trophy"
-          className="h-[72px] w-[72px] object-contain drop-shadow-[0_8px_22px_rgba(255,215,0,0.55)]"
-        />
+        <img src="/trophy.png" alt="Championship trophy" className="h-[74px] w-[74px] object-contain drop-shadow-[0_10px_28px_rgba(255,215,0,0.45)]" />
       </div>
-
-      {/* ── Winner shield placeholder (far right) ── */}
       <div className="absolute" style={{ left: winnerX, top: winnerY }}>
         <ShieldPlaceholder />
       </div>
 
-      {/* ── SVG connector lines ── */}
-      <svg
-        className="pointer-events-none absolute inset-0"
-        width={bracketWidth}
-        height={bracketHeight}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Seed #1 → vertical bar */}
-        <line x1={lineStartX} y1={seed1Y + 7} x2={lineStartX} y2={seed4Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
-        {/* Horizontal from seed #1 */}
-        <line x1={lineStartX - 4} y1={seed1Y + 7} x2={lineStartX} y2={seed1Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
-        {/* Horizontal from seed #4 */}
-        <line x1={lineStartX - 4} y1={seed4Y + 7} x2={lineStartX} y2={seed4Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
-        {/* Bar midpoint → shield A */}
-        <line x1={lineStartX} y1={shieldAY + 6} x2={shieldX} y2={shieldAY + 6} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+      <svg className="pointer-events-none absolute inset-0" width={bracketWidth} height={bracketHeight} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g stroke={BRACKET_GOLD} strokeOpacity="0.95" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+          <line x1={seedCenterX} y1={seed1CenterY} x2={seedCenterX + 26} y2={seed1CenterY} />
+          <line x1={seedCenterX} y1={seed4CenterY} x2={seedCenterX + 26} y2={seed4CenterY} />
+          <line x1={seedCenterX + 26} y1={seed1CenterY} x2={seedCenterX + 26} y2={seed4CenterY} />
+          <line x1={seedCenterX + 26} y1={semi1CenterY} x2={semiCenterX} y2={semi1CenterY} />
 
-        {/* Seed #2 → vertical bar */}
-        <line x1={lineStartX} y1={seed2Y + 7} x2={lineStartX} y2={seed3Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
-        {/* Horizontal from seed #2 */}
-        <line x1={lineStartX - 4} y1={seed2Y + 7} x2={lineStartX} y2={seed2Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
-        {/* Horizontal from seed #3 */}
-        <line x1={lineStartX - 4} y1={seed3Y + 7} x2={lineStartX} y2={seed3Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
-        {/* Bar midpoint → shield B */}
-        <line x1={lineStartX} y1={shieldBY + 6} x2={shieldX} y2={shieldBY + 6} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+          <line x1={seedCenterX} y1={seed2CenterY} x2={seedCenterX + 26} y2={seed2CenterY} />
+          <line x1={seedCenterX} y1={seed3CenterY} x2={seedCenterX + 26} y2={seed3CenterY} />
+          <line x1={seedCenterX + 26} y1={seed2CenterY} x2={seedCenterX + 26} y2={seed3CenterY} />
+          <line x1={seedCenterX + 26} y1={semi2CenterY} x2={semiCenterX} y2={semi2CenterY} />
 
-        {/* Shield A / B → championship badge */}
-        <line x1={shieldX + 52} y1={shieldAY + 6} x2={shieldX + 52} y2={shieldBY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
-        <line x1={shieldX + 48} y1={shieldAY + 6} x2={shieldX + 52} y2={shieldAY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
-        <line x1={shieldX + 48} y1={shieldBY + 6} x2={shieldX + 52} y2={shieldBY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
-        <line x1={shieldX + 52} y1={championshipY + 18} x2={championshipX} y2={championshipY + 18} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+          <line x1={semiRightX} y1={semi1CenterY} x2={semiRightX + 32} y2={semi1CenterY} />
+          <line x1={semiRightX} y1={semi2CenterY} x2={semiRightX + 32} y2={semi2CenterY} />
+          <line x1={semiRightX + 32} y1={semi1CenterY} x2={semiRightX + 32} y2={semi2CenterY} />
+          <line x1={semiRightX + 32} y1={championCenterY} x2={championCenterX} y2={championCenterY} />
 
-        {/* Championship badge → trophy */}
-        <line x1={championshipX + 58} y1={championshipY + 18} x2={trophyX} y2={championshipY + 18} stroke="white" strokeOpacity={0.14} strokeWidth={1} />
-
-        {/* Trophy → winner shield */}
-        <line x1={trophyX + 72} y1={winnerY + 14} x2={winnerX} y2={winnerY + 14} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+          <line x1={championRightX} y1={championCenterY} x2={trophyX} y2={championCenterY} />
+          <line x1={trophyRightX} y1={winnerCenterY} x2={winnerLeftX} y2={winnerCenterY} />
+        </g>
       </svg>
     </div>
   );
 }
-
-/* ── Bracket wrapper ── */
 
 function PlayoffBrackets({ previews }: { previews: PlayoffPreview[] }) {
   return (
@@ -244,7 +255,7 @@ function PlayoffBrackets({ previews }: { previews: PlayoffPreview[] }) {
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-xl border border-white/[0.06] bg-[#0d0f14] px-8 pb-6 pt-10">
+          <div className="overflow-x-auto pb-2 pt-3">
             <FourTeamBracket preview={preview} />
           </div>
         </div>
