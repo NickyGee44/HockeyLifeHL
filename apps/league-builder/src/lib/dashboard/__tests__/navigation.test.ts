@@ -26,7 +26,6 @@ describe('dashboard navigation', () => {
     expect(navigation.map((section) => section.id)).toEqual([
       'season',
       'league',
-      'support',
       'organization',
     ]);
   });
@@ -126,6 +125,29 @@ describe('dashboard navigation', () => {
     }).map((item) => item.href);
 
     expect(hrefs.filter((href) => isLegacyDashboardNavigationHref(href))).toEqual([]);
+  });
+
+  it('keeps platform admin entry inside the organization section instead of adding a standalone admin section', () => {
+    const navigation = buildDashboardNavigation({
+      locale: '',
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+      isSubscribed: true,
+      captainTeams: [],
+      isPlatformAdmin: true,
+      t,
+    });
+
+    expect(navigation.map((section) => section.id)).toEqual([
+      'season',
+      'league',
+      'organization',
+    ]);
+
+    const organizationSection = navigation.find((section) => section.id === 'organization');
+    const itemIds = flattenDashboardNavigation([organizationSection!]).map((item) => item.id);
+
+    expect(itemIds).toContain('admin-home');
   });
 
   it('keeps mobile tabs and command palette aligned to the shared season primary workflows', () => {

@@ -4,12 +4,13 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import type * as React from 'react';
 import { buildDashboardNavigation, getDashboardPrimaryItems } from './navigation';
 
 export interface CommandPaletteEntry {
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: LucideIcon | React.ComponentType<{ className?: string }>;
 }
 
 interface BuildCommandPaletteEntriesParams {
