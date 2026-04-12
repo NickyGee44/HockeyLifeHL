@@ -8,6 +8,7 @@ import type { Game } from '@/lib/actions/games';
 import { StatusBadge, StatusDot } from './status-badge';
 import { Calendar, MapPin, Trophy, Edit, X, UserPlus } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
+import { buildSeasonWorkspaceHref } from '@/lib/dashboard/workspace-routes';
 
 interface GameCardProps {
   game: Game;
@@ -31,13 +32,14 @@ export function GameCard({
   className,
   leagueId,
 }: GameCardProps) {
-  const t = useTranslations('games');
   const pathname = usePathname();
   const isCompleted = game.status === 'completed';
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
   const resolvedLeagueId = leagueId ?? pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i)?.[1] ?? null;
-  const gameHref = resolvedLeagueId ? `/dashboard/leagues/${resolvedLeagueId}/games/${game.id}` : `/dashboard/games/${game.id}`;
+  const gameHref = resolvedLeagueId
+    ? buildSeasonWorkspaceHref('', resolvedLeagueId, game.season_id, 'games') + `/${game.id}`
+    : `/dashboard/games/${game.id}`;
 
   return (
     <div
@@ -214,7 +216,9 @@ export function GameCardCompact({
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
   const resolvedLeagueId = leagueId ?? pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i)?.[1] ?? null;
-  const gameHref = resolvedLeagueId ? `/dashboard/leagues/${resolvedLeagueId}/games/${game.id}` : `/dashboard/games/${game.id}`;
+  const gameHref = resolvedLeagueId
+    ? buildSeasonWorkspaceHref('', resolvedLeagueId, game.season_id, 'games') + `/${game.id}`
+    : `/dashboard/games/${game.id}`;
 
   return (
     <div

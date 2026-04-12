@@ -1,19 +1,10 @@
 import {
   Calendar,
-  CreditCard,
-  Database,
-  Dices,
-  Home,
-  Newspaper,
-  Palette,
   Plus,
-  Settings,
-  Trophy,
-  User,
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { buildSeasonWorkspaceHref } from './workspace-routes';
+import { buildDashboardNavigation, getDashboardPrimaryItems } from './navigation';
 
 export interface CommandPaletteEntry {
   label: string;
@@ -32,49 +23,28 @@ export function buildCommandPalettePages({
   leagueId,
   seasonId,
 }: BuildCommandPaletteEntriesParams): CommandPaletteEntry[] {
-  const leagueBase = leagueId ? `/dashboard/leagues/${leagueId}` : null;
+  const navigation = buildDashboardNavigation({
+    locale: '',
+    leagueId,
+    seasonId,
+    isSubscribed: true,
+    captainTeams: [],
+    isPlatformAdmin: false,
+    t: t as (key: string) => string,
+  });
 
-  const orgPages: CommandPaletteEntry[] = [
-    { label: t('pages.overview'), icon: Home, href: '/dashboard' },
-    { label: t('pages.leagues'), icon: Users, href: '/dashboard/leagues' },
-    { label: 'Staff Pool', icon: User, href: '/dashboard/staff' },
-    { label: t('pages.settings'), icon: Settings, href: '/dashboard/settings' },
-  ];
+  const organizationPages = getDashboardPrimaryItems('organization', navigation);
+  const scopedPages = seasonId
+    ? getDashboardPrimaryItems('season', navigation)
+    : leagueId
+      ? getDashboardPrimaryItems('league', navigation)
+      : [];
 
-  if (!leagueBase) {
-    return orgPages;
-  }
-
-  if (!seasonId) {
-    return [
-      ...orgPages,
-      { label: 'League Overview', icon: Home, href: leagueBase },
-      { label: t('pages.seasons'), icon: Calendar, href: `${leagueBase}/seasons` },
-      { label: t('pages.billing'), icon: CreditCard, href: `${leagueBase}/finance` },
-      { label: 'League Settings', icon: Settings, href: `${leagueBase}/settings` },
-      { label: 'League Website', icon: Palette, href: `${leagueBase}/website` },
-      { label: t('pages.news'), icon: Newspaper, href: `${leagueBase}/news` },
-      { label: 'Migration Center', icon: Database, href: `${leagueBase}/migration-center` },
-    ];
-  }
-
-  const resolvedLeagueId = leagueId as string;
-  const resolvedSeasonId = seasonId as string;
-
-  return [
-    ...orgPages,
-    { label: 'League Overview', icon: Home, href: leagueBase },
-    { label: 'Season Overview', icon: Home, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId) },
-    { label: t('pages.registration'), icon: User, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'registrations') },
-    { label: t('pages.teamsAndDivisions'), icon: Users, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'teams') },
-    { label: t('pages.schedule'), icon: Calendar, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'schedule') },
-    { label: 'Games', icon: Trophy, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'games') },
-    { label: t('pages.standings'), icon: Trophy, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'standings') },
-    { label: 'Playoffs', icon: Trophy, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'playoffs') },
-    { label: t('pages.draftRoom'), icon: Dices, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'draft') },
-    { label: 'Edit Season', icon: Settings, href: buildSeasonWorkspaceHref('', resolvedLeagueId, resolvedSeasonId, 'settings') },
-    { label: 'League Settings', icon: Settings, href: `${leagueBase}/settings` },
-  ];
+  return [...organizationPages, ...scopedPages].map((item) => ({
+    label: item.label,
+    href: item.href,
+    icon: item.icon,
+  }));
 }
 
 export function buildCommandPaletteActions({

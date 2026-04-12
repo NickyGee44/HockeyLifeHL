@@ -94,6 +94,12 @@ interface DashboardMobileTabItem {
   icon: DashboardIcon;
 }
 
+const PRIMARY_ITEM_IDS_BY_SCOPE: Record<DashboardWorkspaceScope, string[]> = {
+  season: ['season-home', 'season-registrations', 'season-teams-item', 'season-schedule-item', 'season-games'],
+  league: ['league-home', 'league-seasons', 'league-structure', 'league-finance', 'league-settings-home'],
+  organization: ['org-home', 'org-leagues', 'org-staff', 'org-settings'],
+};
+
 const DEFAULT_SEGMENT_LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
   leagues: 'Leagues',
@@ -207,10 +213,14 @@ export function buildDashboardNavigation({
     const leagueEntries: Array<DashboardNavigationItem | DashboardNavigationGroup> = [
       createItem('league-home', t('leagueOverview') || 'League Overview', leagueHub, Home, 'league'),
       createItem('league-seasons', t('seasons') || 'Seasons', buildLeagueSeasonsHref(locale, leagueId), CalendarDays, 'league'),
+      createItem('league-structure', 'Teams & Divisions', `${leagueHub}/teams-divisions`, Users, 'league', {
+        matchPrefixes: [`${leagueHub}/teams-divisions`, `${leagueHub}/divisions`, `${leagueHub}/teams`],
+      }),
       createItem('league-finance', t('financials') || 'Financials', `${leagueHub}/finance`, Wallet, 'league', {
         matchPrefixes: [`${leagueHub}/finance`, `${leagueHub}/payments`],
         locked: !isSubscribed,
       }),
+      createItem('league-settings-home', t('leagueSettings') || 'League Settings', `${leagueHub}/settings`, Settings, 'league', { locked: !isSubscribed }),
       {
         kind: 'group',
         id: 'league-secondary',
@@ -238,12 +248,7 @@ export function buildDashboardNavigation({
         icon: Settings,
         scope: 'league',
         items: [
-          createItem('league-settings-home', t('leagueSettings') || 'League Settings', `${leagueHub}/settings`, Settings, 'league', { locked: !isSubscribed }),
           createItem('league-general', t('general') || 'General', `${leagueHub}/settings/general`, Settings, 'league', { locked: !isSubscribed }),
-          createItem('league-structure', 'League Structure', `${leagueHub}/divisions`, Users, 'league', {
-            matchPrefixes: [`${leagueHub}/divisions`, `${leagueHub}/teams-divisions`],
-            locked: !isSubscribed,
-          }),
           createItem('league-staff', t('staff') || 'Staff', `${leagueHub}/staff`, Flag, 'league', { locked: !isSubscribed }),
           createItem('league-game-rules', t('gameRules') || 'Game Rules', `${leagueHub}/settings/game-rules`, ClipboardCheck, 'league', { locked: !isSubscribed }),
           createItem('league-registration', t('registration') || 'Registration', `${leagueHub}/settings/registration`, ClipboardCheck, 'league', { locked: !isSubscribed }),
@@ -413,13 +418,7 @@ export function getDashboardMobileTabs(
   const allItems = flattenDashboardNavigation(sections);
   const itemMap = new Map(allItems.map((item) => [item.id, item]));
 
-  const idsByScope: Record<DashboardWorkspaceScope, string[]> = {
-    season: ['season-home', 'season-registrations', 'season-teams-item', 'season-schedule-item', 'league-home'],
-    league: ['league-home', 'league-seasons', 'league-finance', 'league-settings-home'],
-    organization: ['org-home', 'org-leagues', 'org-staff', 'org-settings'],
-  };
-
-  return idsByScope[scope]
+  return PRIMARY_ITEM_IDS_BY_SCOPE[scope]
     .map((id) => itemMap.get(id))
     .filter((item): item is DashboardNavigationItem => Boolean(item))
     .map((item) => ({
@@ -503,4 +502,16 @@ export function getDashboardSectionAccent(scope: DashboardNavigationScope) {
 
 export function getDashboardSectionItems(section: DashboardNavigationSection) {
   return getLeafItems(section.entries);
+}
+
+export function getDashboardPrimaryItems(
+  scope: DashboardWorkspaceScope,
+  sections: DashboardNavigationSection[]
+) {
+  const allItems = flattenDashboardNavigation(sections);
+  const itemMap = new Map(allItems.map((item) => [item.id, item]));
+
+  return PRIMARY_ITEM_IDS_BY_SCOPE[scope]
+    .map((id) => itemMap.get(id))
+    .filter((item): item is DashboardNavigationItem => Boolean(item));
 }

@@ -3,6 +3,8 @@ import {
   flattenDashboardNavigation,
   getDashboardAutoExpandedGroups,
   getDashboardContextSwitchHref,
+  getDashboardMobileTabs,
+  getDashboardPrimaryItems,
 } from '@/lib/dashboard/navigation';
 import { buildCommandPalettePages } from '@/lib/dashboard/command-palette';
 import { isLegacyDashboardNavigationHref } from '@/lib/dashboard/route-policy';
@@ -124,5 +126,30 @@ describe('dashboard navigation', () => {
     }).map((item) => item.href);
 
     expect(hrefs.filter((href) => isLegacyDashboardNavigationHref(href))).toEqual([]);
+  });
+
+  it('keeps mobile tabs and command palette aligned to the shared season primary workflows', () => {
+    const navigation = buildDashboardNavigation({
+      locale: '',
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+      isSubscribed: true,
+      captainTeams: [],
+      isPlatformAdmin: false,
+      t,
+    });
+
+    const primarySeasonHrefs = getDashboardPrimaryItems('season', navigation).map((item) => item.href);
+    const mobileTabHrefs = getDashboardMobileTabs('season', navigation).map((item) => item.href);
+    const commandPaletteHrefs = buildCommandPalettePages({
+      t,
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+    })
+      .slice(-primarySeasonHrefs.length)
+      .map((item) => item.href);
+
+    expect(mobileTabHrefs).toEqual(primarySeasonHrefs);
+    expect(commandPaletteHrefs).toEqual(primarySeasonHrefs);
   });
 });
