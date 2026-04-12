@@ -81,15 +81,22 @@ describe('dashboard route inventory', () => {
     }
   });
 
-  it('marks weakly-owned dashboard leftovers as candidate-delete without removing them yet', () => {
+  it('closes the prior candidate-delete routes with explicit outcomes', () => {
     const candidateDeleteRoutes = DASHBOARD_ROUTE_INVENTORY.filter((entry) => entry.classification === 'candidate-delete').map(
       (entry) => entry.route
     );
+    const analyticsRoute = DASHBOARD_ROUTE_INVENTORY.find((entry) => entry.route === '/analytics');
+    const socialRoute = DASHBOARD_ROUTE_INVENTORY.find((entry) => entry.route === '/leagues/[id]/social');
 
-    expect(candidateDeleteRoutes.sort()).toEqual([
-      '/analytics',
-      '/leagues/[id]/social',
-    ]);
+    expect(candidateDeleteRoutes).toEqual([]);
+    expect(analyticsRoute).toMatchObject({
+      classification: 'redirect-shim',
+      canonicalPath: '/dashboard',
+    });
+    expect(socialRoute).toMatchObject({
+      classification: 'public-supporting',
+      canonicalPath: '/dashboard/leagues/[id]/social',
+    });
   });
 
   it('reports the expected classification totals', () => {
@@ -98,9 +105,9 @@ describe('dashboard route inventory', () => {
       'canonical-workspace': 21,
       'canonical-settings': 17,
       'detail-route': 14,
-      'public-supporting': 23,
-      'redirect-shim': 14,
-      'candidate-delete': 2,
+      'public-supporting': 24,
+      'redirect-shim': 15,
+      'candidate-delete': 0,
     });
   });
 });

@@ -189,6 +189,7 @@ test.describe('Authentication', () => {
       await expect(page).not.toHaveURL(/\/login/);
 
       await page.goto('/dashboard/analytics');
+      await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
       await expect(page).not.toHaveURL(/\/login/);
 
       // Return to dashboard
