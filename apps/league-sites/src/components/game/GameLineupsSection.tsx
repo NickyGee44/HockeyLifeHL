@@ -1,5 +1,6 @@
-import { CalendarDays, Clock3 } from 'lucide-react';
+import { CalendarDays, Clock3, Users } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
+import { SectionHeading } from '@/components/shared';
 import { LineupRinkBoard } from '@/components/lineups/LineupRinkBoard';
 import type { PublishedGameTeamLineup } from '@/lib/lineups/types';
 
@@ -35,26 +36,19 @@ export function GameLineupsSection({
 
   return (
     <section className="container mx-auto px-4 pt-8">
-      <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.16)] sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
-              Game Day Lineups
-            </p>
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-              Captains have published tonight&apos;s look
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-              Built from game-day check-ins and shared by each captain before puck drop.
-            </p>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
-            <CalendarDays className="h-3.5 w-3.5 text-[var(--league-primary)]" />
-            {lineups.length} published
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <SectionHeading
+          title="Game Day Lineups"
+          icon={<Users className="w-5 h-5 text-[var(--league-primary)]" />}
+        />
+        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+          <CalendarDays className="h-3.5 w-3.5 text-[var(--league-primary)]" />
+          {lineups.length} published
         </div>
+      </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      <div className="mt-4 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.16)] sm:p-6">
+        <div className="grid gap-6 xl:grid-cols-2">
           {orderedLineups.map((lineup) => (
             <article
               key={lineup.id}

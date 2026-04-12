@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Sparkles, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
 import { RichArticleContent } from '@/components/news/RichArticleContent';
+import { SectionHeading } from '@/components/shared';
 
 interface GameRecapSectionProps {
   recap: NewsArticle;
@@ -19,20 +20,22 @@ export function GameRecapSection({ recap, leagueSlug }: GameRecapSectionProps) {
 
   return (
     <div className="container mx-auto px-4 pt-8">
-      <div className="card overflow-hidden">
-        <div className="card-header flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[var(--league-primary)]" />
-            <h2 className="text-lg font-bold">Game Recap</h2>
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-500 border border-emerald-500/20">
-              AI Generated
-            </span>
-          </div>
-          {formattedDate && (
-            <span className="text-xs text-[var(--color-text-muted)]">{formattedDate}</span>
-          )}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <SectionHeading
+            title="Game Recap"
+            icon={<Sparkles className="w-5 h-5 text-[var(--league-primary)]" />}
+          />
+          <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-500 border border-emerald-500/20">
+            AI Generated
+          </span>
         </div>
+        {formattedDate && (
+          <span className="text-xs text-[var(--color-text-muted)]">{formattedDate}</span>
+        )}
+      </div>
 
+      <div className="card mt-4 overflow-hidden">
         <div className="p-5 md:p-6">
           {/* Article title */}
           <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-4">

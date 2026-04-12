@@ -1,14 +1,13 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 import {
   CalendarDays,
   Mail,
   Phone,
   Shield,
   Swords,
-  type LucideIcon,
 } from 'lucide-react';
 import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
 import { RivalsCarousel } from '@/components/team/RivalsCarousel';
@@ -18,7 +17,8 @@ import { TeamPageCheckinCard } from '@/components/team/TeamPageCheckinCard';
 import { TeamScheduleList } from '@/components/schedule/TeamScheduleList';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { notFound } from 'next/navigation';
-import { SubscriptionWall } from '@/components/shared';
+import { SubscriptionWall, SectionHeading } from '@/components/shared';
+import { BarChart3 } from 'lucide-react';
 import {
   getCurrentSeason,
   getLeagueBySlug,
@@ -332,29 +332,40 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
               />
             </section>
 
-            <TeamLeadersSection
-              leadersByMetric={leadersByMetric}
-              barChartPlayers={barChartPlayers}
-              leagueSlug={leagueSlug}
-              initialMetric={leaderTab}
-              pointInsightsElement={
-                pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} asBanner /> : null
-              }
-            />
+            <section>
+              <SectionHeading
+                title="Team Leaders"
+                icon={<BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />}
+              />
+              <div className="mt-4">
+                <TeamLeadersSection
+                  hideTitle
+                  leadersByMetric={leadersByMetric}
+                  barChartPlayers={barChartPlayers}
+                  leagueSlug={leagueSlug}
+                  initialMetric={leaderTab}
+                  pointInsightsElement={
+                    pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} asBanner /> : null
+                  }
+                />
+              </div>
+            </section>
 
             {teamScheduleGames.length > 0 && (
-              <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-                <div className="mb-4 flex items-center gap-3">
-                  <CalendarDays className="h-5 w-5 text-[var(--league-primary)]" />
-                  <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Schedule</h2>
-                </div>
-                <TeamScheduleList
-                  games={teamScheduleGames as any}
-                  leagueSlug={leagueSlug}
-                  timezone={league.timezone || 'America/Toronto'}
-                  teamId={team.id}
-                  collapsible
+              <section>
+                <SectionHeading
+                  title="Schedule"
+                  icon={<CalendarDays className="w-5 h-5 text-[var(--league-primary)]" />}
                 />
+                <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
+                  <TeamScheduleList
+                    games={teamScheduleGames as any}
+                    leagueSlug={leagueSlug}
+                    timezone={league.timezone || 'America/Toronto'}
+                    teamId={team.id}
+                    collapsible
+                  />
+                </div>
               </section>
             )}
 
@@ -457,32 +468,33 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
               />
             </div>
 
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Swords}
+            <section>
+              <SectionHeading
                 title="Rivals"
+                icon={<Swords className="w-5 h-5 text-[var(--league-primary)]" />}
               />
-
-              {rivalCards.length > 0 ? (
-                <div className="mt-4">
-                  <RivalsCarousel rivals={rivalCards} leagueSlug={leagueSlug} />
-                </div>
-              ) : (
-                <EmptyPanel
-                  title="No rivalry sample yet"
-                  description="Rival cards will appear after this team logs completed games against opponents."
-                />
-              )}
+              <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
+                {rivalCards.length > 0 ? (
+                  <div>
+                    <RivalsCarousel rivals={rivalCards} leagueSlug={leagueSlug} />
+                  </div>
+                ) : (
+                  <EmptyPanel
+                    title="No rivalry sample yet"
+                    description="Rival cards will appear after this team logs completed games against opponents."
+                  />
+                )}
+              </div>
             </section>
 
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Shield}
+            <section>
+              <SectionHeading
                 title="Captain Contact"
+                icon={<Shield className="w-5 h-5 text-[var(--league-primary)]" />}
               />
-
+              <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
               {captain ? (
-                <div className="mt-4 flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <Image
                     src={captain.profile?.avatar_url || '/blank_player.png'}
                     alt={captain.profile?.full_name || 'Captain'}
@@ -527,33 +539,12 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   Public contact details are not available for this team.
                 </p>
               )}
+              </div>
             </section>
           </div>
         </div>
       </div>
     </SubscriptionWall>
-  );
-}
-
-function SectionHeader({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2">
-        <Icon className="h-5 w-5 text-[var(--league-primary)]" />
-        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">{title}</h2>
-      </div>
-      {description ? (
-        <p className="max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
-      ) : null}
-    </div>
   );
 }
 

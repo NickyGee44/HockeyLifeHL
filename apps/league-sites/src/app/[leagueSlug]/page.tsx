@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { ReactNode } from 'react';
-import { SubscriptionWall } from '@/components/shared';
+import { SubscriptionWall, SectionHeading } from '@/components/shared';
 import {
   Trophy,
-  ChevronRight,
   Camera,
+  BarChart3,
 } from 'lucide-react';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import {
@@ -593,24 +592,29 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </section>
 
             <section>
-              <StatLeaders
-                badges={homepageLeaderBadges}
-                isAllTime={false}
-                leagueSlug={leagueSlug}
-                mode="skaters"
-                rows={homepageLeaderRows}
+              <SectionHeading
+                title="League Leaders"
+                icon={<BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />}
               />
+              <div className="mt-4">
+                <StatLeaders
+                  badges={homepageLeaderBadges}
+                  hideTitle
+                  isAllTime={false}
+                  leagueSlug={leagueSlug}
+                  mode="skaters"
+                  rows={homepageLeaderRows}
+                />
+              </div>
             </section>
           </div>
 
-          <section className={`${panelClass} p-6 md:p-7`}>
+          <section>
             <SectionHeading
               title="Standings"
               icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/standings`}
-              cta="Full Standings"
             />
-            <div className="mt-6">
+            <div className={`${panelClass} mt-4 p-6 md:p-7`}>
               {divisions.length > 1 ? (
                 <DivisionStandingsWidget standings={standings} divisions={divisions} />
               ) : (
@@ -621,15 +625,14 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         </div>
 
         {hasAlbums && (
-          <section className={panelClass}>
+          <section>
             <SectionHeading
-              title="Galleries"
+              title="League Photos"
               icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/gallery`}
-              cta="View All Albums"
             />
 
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className={`${panelClass} mt-4`}>
+            <div className="grid gap-4 md:grid-cols-3">
               {albums.slice(0, 3).map((album) => (
                 <Link
                   key={album.id}
@@ -658,6 +661,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                   </div>
                 </Link>
               ))}
+            </div>
             </div>
           </section>
         )}
@@ -696,39 +700,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
     </div>
     </SubscriptionWall>
-  );
-}
-
-function SectionHeading({
-  title,
-  icon,
-  href,
-  cta,
-}: {
-  title: string;
-  icon: ReactNode;
-  href?: string;
-  cta?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <h2 className="flex items-center gap-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-        {icon}
-        {title}
-      </h2>
-      {href && cta && (
-        <Link
-          href={href}
-          className="group inline-flex items-center gap-1 text-sm text-[var(--league-primary)] transition-all duration-300"
-        >
-          <span className="relative">
-            {cta}
-            <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--league-primary)] transition-all duration-300 group-hover:w-full" />
-          </span>
-          <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-        </Link>
-      )}
-    </div>
   );
 }
 

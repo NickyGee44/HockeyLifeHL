@@ -15,6 +15,7 @@ interface BarChartPlayer {
 }
 
 interface TeamLeadersSectionProps {
+  hideTitle?: boolean;
   leadersByMetric: Record<TeamLeaderMetric, TeamLeaderCard[]>;
   barChartPlayers: BarChartPlayer[];
   leagueSlug: string;
@@ -37,6 +38,7 @@ const TAB_OPTIONS: [TeamLeaderMetric, string][] = [
 ];
 
 export function TeamLeadersSection({
+  hideTitle = false,
   leadersByMetric,
   barChartPlayers,
   leagueSlug,
@@ -57,12 +59,14 @@ export function TeamLeadersSection({
   return (
     <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
-          <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Team Leaders</h2>
-        </div>
+        {!hideTitle && (
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
+            <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Team Leaders</h2>
+          </div>
+        )}
 
-        <div className="flex items-center gap-3 sm:ml-auto">
+        <div className={`flex items-center gap-3 ${hideTitle ? '' : 'sm:ml-auto'}`}>
           <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
             {TAB_OPTIONS.map(([value, label]) => (
               <button

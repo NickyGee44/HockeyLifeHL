@@ -18,6 +18,7 @@ type StatsLeaderRow = UnifiedSkaterStatsRow | UnifiedGoalieStatsRow;
 
 interface StatLeadersProps {
   badges?: Record<string, PlayerBadge[]>;
+  hideTitle?: boolean;
   isAllTime: boolean;
   leagueSlug: string;
   mode: StatsMode;
@@ -94,7 +95,7 @@ function splitPlayerName(name: string) {
   };
 }
 
-export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatLeadersProps) {
+export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, mode, rows }: StatLeadersProps) {
   const metrics = getActiveMetrics(mode, isAllTime);
   const [selectedMetric, setSelectedMetric] = useState<LeaderMetric>(() => getDefaultMetric(mode));
 
@@ -127,13 +128,15 @@ export function StatLeaders({ badges, isAllTime, leagueSlug, mode, rows }: StatL
 
   return (
     <div className="league-shell-panel rounded-[30px] border border-[var(--color-border)] p-4 md:p-6">
-      <div>
-        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-          League Leaders
-        </h2>
-      </div>
+      {!hideTitle && (
+        <div>
+          <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+            League Leaders
+          </h2>
+        </div>
+      )}
 
-      <div className="mt-5 border-t border-[var(--color-border)] pt-5">
+      <div className={hideTitle ? '' : 'mt-5 border-t border-[var(--color-border)] pt-5'}>
         <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {metrics.map((metric) => {
             const Icon = metric.icon;
