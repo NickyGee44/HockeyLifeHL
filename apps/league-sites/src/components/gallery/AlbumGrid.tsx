@@ -58,11 +58,6 @@ export function AlbumGrid({ albums, leagueSlug }: AlbumGridProps) {
             <h3 className="text-lg font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">
               {album.title}
             </h3>
-            {album.description && (
-              <p className="text-sm text-[var(--color-text-secondary)] mt-1 line-clamp-2">
-                {album.description}
-              </p>
-            )}
           </div>
         </Link>
       ))}
