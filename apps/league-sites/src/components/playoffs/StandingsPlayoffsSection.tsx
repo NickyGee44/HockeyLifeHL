@@ -50,12 +50,29 @@ function SeedEntry({
   );
 }
 
-/* ── Grey shield placeholder (later rounds) ── */
+/* ── Shield badges (later rounds) ── */
 
-function ShieldPlaceholder() {
+function ShieldPlaceholder({
+  variant = 'grey',
+  size = 'md',
+}: {
+  variant?: 'grey' | 'gold';
+  size?: 'md' | 'lg';
+}) {
+  const isGold = variant === 'gold';
+  const className = size === 'lg' ? 'h-16 w-14' : 'h-12 w-10';
+  const fill = isGold ? 'rgba(211,162,72,0.22)' : 'rgba(255,255,255,0.08)';
+  const stroke = isGold ? 'rgba(226,185,92,0.75)' : 'rgba(255,255,255,0.18)';
+  const text = isGold ? 'text-[#f1d38b]' : 'text-white/28';
+
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.04]">
-      <span className="text-[9px] font-bold uppercase tracking-wider text-white/20">TBD</span>
+    <div className={`relative ${className}`}>
+      <svg viewBox="0 0 40 48" fill="none" className="h-full w-full drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]" aria-hidden="true">
+        <path d="M20 2L4 10V24C4 34 20 46 20 46C20 46 36 34 36 24V10L20 2Z" fill={fill} stroke={stroke} strokeWidth="1.5" />
+      </svg>
+      <span className={`absolute inset-0 flex items-center justify-center text-[9px] font-black uppercase tracking-[0.24em] ${text}`}>
+        TBD
+      </span>
     </div>
   );
 }
@@ -98,18 +115,20 @@ function FourTeamBracket({
   const seed2Y = 160;
   const seed3Y = 240;
   const shieldBY = 188;      /* vertically centered between seed2 & seed3 */
-  const trophyY = 108;       /* vertically centered between shieldA & shieldB */
-  const winnerY = 108;
+  const championshipY = 102; /* championship badge sits between the semifinal badges */
+  const trophyY = 102;       /* trophy sits just to the right of the championship badge */
+  const winnerY = 110;
 
   /* Horizontal positions */
   const seedX = 0;
   const lineStartX = 100;    /* right edge of seed entries */
-  const shieldX = 160;
-  const trophyX = 290;
-  const winnerX = 400;
+  const shieldX = 170;
+  const championshipX = 300;
+  const trophyX = 364;
+  const winnerX = 444;
 
   const bracketHeight = 280;
-  const bracketWidth = 468;
+  const bracketWidth = 520;
 
   return (
     <div className="relative" style={{ height: bracketHeight, width: bracketWidth, minWidth: bracketWidth }}>
@@ -122,7 +141,7 @@ function FourTeamBracket({
       </div>
       <div
         className="absolute text-[10px] font-bold uppercase tracking-[0.2em] text-white/30"
-        style={{ left: trophyX - 10, top: -22 }}
+        style={{ left: championshipX - 8, top: -22 }}
       >
         {finalLabel}
       </div>
@@ -149,18 +168,21 @@ function FourTeamBracket({
         <ShieldPlaceholder />
       </div>
 
-      {/* ── Trophy centerpiece ── */}
+      {/* ── Championship badge + trophy ── */}
+      <div className="absolute" style={{ left: championshipX, top: championshipY }}>
+        <ShieldPlaceholder variant="gold" size="lg" />
+      </div>
       <div className="absolute flex items-center justify-center" style={{ left: trophyX, top: trophyY }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/trophy.png"
-          alt="Championship"
-          className="h-16 w-16 object-contain drop-shadow-[0_4px_16px_rgba(255,215,0,0.45)]"
+          alt="Championship trophy"
+          className="h-[72px] w-[72px] object-contain drop-shadow-[0_8px_22px_rgba(255,215,0,0.55)]"
         />
       </div>
 
       {/* ── Winner shield placeholder (far right) ── */}
-      <div className="absolute" style={{ left: winnerX, top: winnerY + 2 }}>
+      <div className="absolute" style={{ left: winnerX, top: winnerY }}>
         <ShieldPlaceholder />
       </div>
 
@@ -190,17 +212,17 @@ function FourTeamBracket({
         {/* Bar midpoint → shield B */}
         <line x1={lineStartX} y1={shieldBY + 6} x2={shieldX} y2={shieldBY + 6} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
 
-        {/* Shield A → vertical bar to trophy */}
+        {/* Shield A / B → championship badge */}
         <line x1={shieldX + 52} y1={shieldAY + 6} x2={shieldX + 52} y2={shieldBY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
-        {/* Horizontal from shield A */}
         <line x1={shieldX + 48} y1={shieldAY + 6} x2={shieldX + 52} y2={shieldAY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
-        {/* Horizontal from shield B */}
         <line x1={shieldX + 48} y1={shieldBY + 6} x2={shieldX + 52} y2={shieldBY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
-        {/* Vertical bar midpoint → trophy */}
-        <line x1={shieldX + 52} y1={trophyY + 8} x2={trophyX} y2={trophyY + 8} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+        <line x1={shieldX + 52} y1={championshipY + 18} x2={championshipX} y2={championshipY + 18} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+
+        {/* Championship badge → trophy */}
+        <line x1={championshipX + 58} y1={championshipY + 18} x2={trophyX} y2={championshipY + 18} stroke="white" strokeOpacity={0.14} strokeWidth={1} />
 
         {/* Trophy → winner shield */}
-        <line x1={trophyX + 64} y1={winnerY + 8} x2={winnerX} y2={winnerY + 8} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+        <line x1={trophyX + 72} y1={winnerY + 14} x2={winnerX} y2={winnerY + 14} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
       </svg>
     </div>
   );
