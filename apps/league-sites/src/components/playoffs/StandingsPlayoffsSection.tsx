@@ -113,13 +113,13 @@ function FourTeamBracket({
 
   const node = 78;
   const midNode = 78;
-  const trophyW = 148;
+  const trophyW = 120;
   const winnerNode = 78;
 
   const seedX = 0;
-  const semiX = 188;
-  const trophyX = 364;
-  const winnerX = 530;
+  const semiX = 156;
+  const trophyX = 292;
+  const winnerX = 442;
 
   const seed1Y = 4;
   const seed4Y = 114;
@@ -128,7 +128,7 @@ function FourTeamBracket({
   const semi1Y = 60;
   const semi2Y = 304;
   const championY = 176;
-  const trophyY = 148;
+  const trophyY = 154;
   const winnerY = 184;
 
   const seedCenterX = seedX + node;
@@ -147,14 +147,14 @@ function FourTeamBracket({
   const winnerCenterY = winnerY + winnerNode / 2;
 
   const bracketHeight = 446;
-  const bracketWidth = 620;
+  const bracketWidth = 520;
 
   return (
     <div className="relative" style={{ height: bracketHeight, width: bracketWidth, minWidth: bracketWidth }}>
       <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: seedX, top: -24 }}>
         {semifinalLabel}
       </div>
-      <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: trophyX + 10, top: -24 }}>
+      <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: trophyX + 4, top: -24 }}>
         {finalLabel}
       </div>
 
@@ -180,7 +180,7 @@ function FourTeamBracket({
 
       <div className="absolute flex items-center justify-center" style={{ left: trophyX, top: trophyY }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/trophy.png" alt="Championship trophy" className="h-[148px] w-[148px] object-contain drop-shadow-[0_16px_36px_rgba(255,215,0,0.5)]" />
+        <img src="/trophy.png" alt="Championship trophy" className="h-[120px] w-[120px] object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.28)]" />
       </div>
       <div className="absolute" style={{ left: winnerX, top: winnerY }}>
         <ShieldPlaceholder />
@@ -198,10 +198,10 @@ function FourTeamBracket({
           <line x1={seedCenterX + 18} y1={seed2CenterY} x2={seedCenterX + 18} y2={seed3CenterY} />
           <line x1={seedCenterX + 18} y1={semi2CenterY} x2={semiCenterX} y2={semi2CenterY} />
 
-          <line x1={semiRightX} y1={semi1CenterY} x2={semiRightX + 24} y2={semi1CenterY} />
-          <line x1={semiRightX} y1={semi2CenterY} x2={semiRightX + 24} y2={semi2CenterY} />
-          <line x1={semiRightX + 24} y1={semi1CenterY} x2={semiRightX + 24} y2={semi2CenterY} />
-          <line x1={semiRightX + 24} y1={championCenterY} x2={trophyX - 18} y2={championCenterY} />
+          <line x1={semiRightX} y1={semi1CenterY} x2={semiRightX + 20} y2={semi1CenterY} />
+          <line x1={semiRightX} y1={semi2CenterY} x2={semiRightX + 20} y2={semi2CenterY} />
+          <line x1={semiRightX + 20} y1={semi1CenterY} x2={semiRightX + 20} y2={semi2CenterY} />
+          <line x1={semiRightX + 20} y1={championCenterY} x2={trophyX - 12} y2={championCenterY} />
 
           <line x1={trophyRightX} y1={winnerCenterY} x2={winnerLeftX} y2={winnerCenterY} />
         </g>
