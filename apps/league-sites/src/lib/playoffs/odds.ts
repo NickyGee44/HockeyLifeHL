@@ -73,6 +73,7 @@ export function calculatePlayoffOdds(
     strength: computeTeamStrength(team, avgPointsPerGame, avgAbsoluteGoalDiffPerGame),
   }));
 
+  const seasonProgress = calculateSeasonProgress(teams, seasonGames);
   const teamMap = new Map(teams.map((team) => [team.team_id, team]));
   const remainingGames = seasonGames
     .filter((game) => isRegularSeasonGame(game) && isUnplayedGame(game))
@@ -131,11 +132,20 @@ export function calculatePlayoffOdds(
     }
   }
 
-  return rankTeams(teams).map((team) => ({
-    teamId: team.team_id,
-    oddsOfFinishingFirst: (firstPlaceCounts.get(team.team_id) ?? 0) / SIMULATION_COUNT,
-    oddsOfMakingPlayoffs: (playoffCounts.get(team.team_id) ?? 0) / SIMULATION_COUNT,
-  }));
+  const rankedTeams = rankTeams(teams);
+  const baselineFirstPlaceOdds = rankedTeams.length > 0 ? 1 / rankedTeams.length : 0;
+  const baselinePlayoffOdds = getBaselinePlayoffOdds(rankedTeams, config);
+
+  return rankedTeams.map((team) => {
+    const rawFirstPlaceOdds = (firstPlaceCounts.get(team.team_id) ?? 0) / SIMULATION_COUNT;
+    const rawPlayoffOdds = (playoffCounts.get(team.team_id) ?? 0) / SIMULATION_COUNT;
+
+    return {
+      teamId: team.team_id,
+      oddsOfFinishingFirst: blendTowardBaseline(rawFirstPlaceOdds, baselineFirstPlaceOdds, seasonProgress),
+      oddsOfMakingPlayoffs: blendTowardBaseline(rawPlayoffOdds, baselinePlayoffOdds, seasonProgress),
+    };
+  });
 }
 
 function computeTeamStrength(team: TeamStanding, avgPointsPerGame: number, avgAbsoluteGoalDiffPerGame: number): number {
@@ -226,6 +236,66 @@ function rankTeams(teams: SimTeamState[]): SimTeamState[] {
 
 function incrementGamesPlayed(team: SimTeamState) {
   team.games_played += 1;
+}
+
+function calculateSeasonProgress(teams: SimTeamState[], seasonGames: ScheduleGame[]) {
+  const regularSeasonGames = seasonGames.filter((game) => isRegularSeasonGame(game));
+  if (regularSeasonGames.length === 0 || teams.length === 0) {
+    return 1;
+  }
+
+  const scheduledAppearances = new Map<string, number>();
+  for (const game of regularSeasonGames) {
+    const homeTeamId = game.home_team?.id;
+    const awayTeamId = game.away_team?.id;
+    if (homeTeamId) {
+      scheduledAppearances.set(homeTeamId, (scheduledAppearances.get(homeTeamId) ?? 0) + 1);
+    }
+    if (awayTeamId) {
+      scheduledAppearances.set(awayTeamId, (scheduledAppearances.get(awayTeamId) ?? 0) + 1);
+    }
+  }
+
+  const progressSamples = teams
+    .map((team) => {
+      const scheduledGames = scheduledAppearances.get(team.team_id) ?? 0;
+      const gamesPlayed = Math.max(getTeamGamesPlayed(team), 0);
+      if (scheduledGames <= 0) return null;
+      return gamesPlayed / scheduledGames;
+    })
+    .filter((value): value is number => value !== null);
+
+  if (progressSamples.length === 0) {
+    return 1;
+  }
+
+  const averageProgress = progressSamples.reduce((sum, value) => sum + value, 0) / progressSamples.length;
+  return clamp(averageProgress, 0, 1);
+}
+
+function getBaselinePlayoffOdds(teams: SimTeamState[], config: PlayoffOddsConfig) {
+  if (teams.length === 0) return 0;
+
+  if (config.useDivisionPlayoffs && (config.playoffTeamsPerDivision ?? 0) > 0) {
+    const divisions = new Map<string, number>();
+    for (const team of teams) {
+      const key = team.division_id ?? '__no_division__';
+      divisions.set(key, (divisions.get(key) ?? 0) + 1);
+    }
+
+    let baselineSum = 0;
+    for (const team of teams) {
+      const divisionSize = divisions.get(team.division_id ?? '__no_division__') ?? teams.length;
+      baselineSum += Math.min(config.playoffTeamsPerDivision ?? 0, divisionSize) / divisionSize;
+    }
+    return clamp(baselineSum / teams.length, 0, 1);
+  }
+
+  return clamp((config.playoffTeamsTotal ?? teams.length) / teams.length, 0, 1);
+}
+
+function blendTowardBaseline(value: number, baseline: number, confidence: number) {
+  return baseline + (value - baseline) * confidence;
 }
 
 function getTeamGamesPlayed(team: Pick<TeamStanding, 'games_played' | 'wins' | 'losses' | 'ties' | 'overtime_losses'>) {
