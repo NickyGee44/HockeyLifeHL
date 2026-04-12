@@ -49,6 +49,13 @@ function sanitizeError(error: unknown, context: string): string {
   return 'An unexpected error occurred. Please try again.';
 }
 
+function revalidateGamePaths(game: { league_id: string; season_id: string; id: string }) {
+  revalidatePath(`/dashboard/leagues/${game.league_id}/games`);
+  revalidatePath(`/dashboard/leagues/${game.league_id}/games/${game.id}`);
+  revalidatePath(`/dashboard/leagues/${game.league_id}/seasons/${game.season_id}/games`);
+  revalidatePath(`/dashboard/leagues/${game.league_id}/seasons/${game.season_id}/games/${game.id}`);
+}
+
 // ==============================================================================
 // TYPES
 // ==============================================================================
@@ -430,8 +437,7 @@ export async function updateGame(
       undefined
     );
 
-    revalidatePath(`/dashboard/games`);
-    revalidatePath(`/dashboard/games/${gameId}`);
+    revalidateGamePaths(currentGame);
 
     return { success: true, data: data as Game };
   } catch (error) {
@@ -524,8 +530,7 @@ export async function rescheduleGame(
       `Rescheduled from ${currentGame.scheduled_at}`
     );
 
-    revalidatePath(`/dashboard/games`);
-    revalidatePath(`/dashboard/games/${gameId}`);
+    revalidateGamePaths(currentGame);
 
     return { success: true, data: data as Game };
   } catch (error) {
@@ -611,8 +616,7 @@ export async function cancelGame(
       reason
     );
 
-    revalidatePath(`/dashboard/games`);
-    revalidatePath(`/dashboard/games/${gameId}`);
+    revalidateGamePaths(currentGame);
 
     return { success: true, data: data as Game };
   } catch (error) {
@@ -697,8 +701,7 @@ export async function postponeGame(
       reason
     );
 
-    revalidatePath(`/dashboard/games`);
-    revalidatePath(`/dashboard/games/${gameId}`);
+    revalidateGamePaths(currentGame);
 
     return { success: true, data: data as Game };
   } catch (error) {
