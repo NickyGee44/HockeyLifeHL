@@ -23,7 +23,7 @@ export const DASHBOARD_ROUTE_INVENTORY = [
   { route: '/', classification: 'canonical-workspace', canonicalPath: '/dashboard' },
   { route: '/admin', classification: 'public-supporting', canonicalPath: '/dashboard/admin' },
   { route: '/admin/migrations', classification: 'public-supporting', canonicalPath: '/dashboard/admin/migrations' },
-  { route: '/analytics', classification: 'candidate-delete', canonicalPath: '/dashboard/analytics' },
+  { route: '/analytics', classification: 'redirect-shim', canonicalPath: '/dashboard' },
   { route: '/captain/[teamId]', classification: 'detail-route', canonicalPath: '/dashboard/captain/[teamId]' },
   { route: '/company', classification: 'redirect-shim', canonicalPath: '/dashboard/settings' },
   { route: '/leagues', classification: 'canonical-workspace', canonicalPath: '/dashboard/leagues' },
@@ -85,7 +85,7 @@ export const DASHBOARD_ROUTE_INVENTORY = [
   { route: '/leagues/[id]/settings/scorekeepers', classification: 'canonical-settings', canonicalPath: '/dashboard/leagues/[id]/settings/scorekeepers' },
   { route: '/leagues/[id]/settings/venues', classification: 'canonical-settings', canonicalPath: '/dashboard/leagues/[id]/settings/venues' },
   { route: '/leagues/[id]/settings/waiver', classification: 'canonical-settings', canonicalPath: '/dashboard/leagues/[id]/settings/waiver' },
-  { route: '/leagues/[id]/social', classification: 'candidate-delete', canonicalPath: '/dashboard/leagues/[id]/social' },
+  { route: '/leagues/[id]/social', classification: 'public-supporting', canonicalPath: '/dashboard/leagues/[id]/social' },
   { route: '/leagues/[id]/sponsors', classification: 'public-supporting', canonicalPath: '/dashboard/leagues/[id]/sponsors' },
   { route: '/leagues/[id]/staff', classification: 'public-supporting', canonicalPath: '/dashboard/leagues/[id]/staff' },
   { route: '/leagues/[id]/teams', classification: 'redirect-shim', canonicalPath: '/dashboard/leagues/[id]/seasons/[seasonId]/teams' },
@@ -120,6 +120,12 @@ export const DASHBOARD_ROUTE_CLASSIFICATIONS = Object.fromEntries(
 
 
 export const DASHBOARD_REDIRECT_MAP = [
+  {
+    from: '/dashboard/analytics',
+    to: '/dashboard',
+    owner: 'dashboard landing and league/season entry router',
+    notes: 'Legacy analytics page is no longer a standalone workspace. Send traffic back through the canonical dashboard entry flow.',
+  },
   {
     from: '/dashboard/company',
     to: '/dashboard/settings',
@@ -213,6 +219,7 @@ export const DASHBOARD_REDIRECT_MAP = [
 ] as const satisfies readonly DashboardRouteRedirectMapEntry[];
 
 export const DASHBOARD_LEGACY_ROUTE_FAMILIES = [
+  '/dashboard/analytics',
   '/dashboard/company',
   '/dashboard/staffing',
   '/dashboard/seasons/',
