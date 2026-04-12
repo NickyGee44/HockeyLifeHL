@@ -45,8 +45,7 @@ export default async function LeagueIntegrationsPage({ params }: Props) {
           </p>
           <h1 className="mt-2 text-3xl font-black text-white">{league.name}</h1>
           <p className="mt-2 text-sm leading-6 text-neutral-400">
-            First-run connections stay here. Stripe and domain/email belong in onboarding.
-            QuickBooks remains a later finance task until the simplified league shell and season flow are live.
+            Manage the core connections tied to billing, branding, and your public league presence.
           </p>
         </div>
 
@@ -85,7 +84,7 @@ export default async function LeagueIntegrationsPage({ params }: Props) {
             href={`/${locale}/dashboard/leagues/${leagueId}/finance`}
             icon={<Landmark className="h-5 w-5" />}
             title="Finance Systems"
-            description="QuickBooks and deeper accounting links stay deferred until the simplified onboarding flow is complete."
+            description="Review billing status and finance configuration for this league."
             muted
           />
         </div>

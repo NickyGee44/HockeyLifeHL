@@ -310,7 +310,7 @@ export default async function SeasonDetailPage({ params }: Props) {
               description={
                 (scorekeepersResult.count ?? 0) + (refereesResult.count ?? 0) > 0
                   ? 'Officials or scorekeepers are already configured for game operations.'
-                  : 'Staffing can stay deferred until the schedule is closer to live.'
+                  : 'Add officials and scorekeepers once game operations are ready.'
               }
               icon={<CheckCircle2 className="h-4 w-4" />}
             />
@@ -320,7 +320,7 @@ export default async function SeasonDetailPage({ params }: Props) {
               description={
                 advancedStatsEnabled
                   ? 'Advanced stats are enabled for this season. Use More Tools in the shell when needed.'
-                  : 'Leave playoffs and deeper stats for later unless this season needs them immediately.'
+                  : 'Use playoffs and advanced stats only when this season needs them.'
               }
               icon={<Trophy className="h-4 w-4" />}
             />
