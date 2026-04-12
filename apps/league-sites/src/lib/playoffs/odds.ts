@@ -37,6 +37,7 @@ interface RemainingGame {
 }
 
 const SIMULATION_COUNT = 5000;
+const REGRESSION_GAMES = 8;
 
 export function calculatePlayoffOdds(
   standings: TeamStanding[],
@@ -54,9 +55,13 @@ export function calculatePlayoffOdds(
 
   const teamGamesPlayed = baseTeams.reduce((sum, team) => sum + getTeamGamesPlayed(team), 0);
   const totalPoints = baseTeams.reduce((sum, team) => sum + team.points, 0);
-  const totalGoalDiff = baseTeams.reduce((sum, team) => sum + team.goal_differential, 0);
   const avgPointsPerGame = teamGamesPlayed > 0 ? totalPoints / teamGamesPlayed : 1;
-  const avgGoalDiffPerGame = teamGamesPlayed > 0 ? totalGoalDiff / teamGamesPlayed : 0;
+  const avgAbsoluteGoalDiffPerGame = teamGamesPlayed > 0
+    ? baseTeams.reduce((sum, team) => {
+        const gamesPlayed = Math.max(getTeamGamesPlayed(team), 1);
+        return sum + Math.abs(team.goal_differential / gamesPlayed);
+      }, 0) / baseTeams.length
+    : 1;
   const tieRate = clamp(
     teamGamesPlayed > 0 ? baseTeams.reduce((sum, team) => sum + team.ties, 0) / teamGamesPlayed : 0.08,
     0,
@@ -65,7 +70,7 @@ export function calculatePlayoffOdds(
 
   const teams = baseTeams.map((team) => ({
     ...team,
-    strength: computeTeamStrength(team, avgPointsPerGame, avgGoalDiffPerGame),
+    strength: computeTeamStrength(team, avgPointsPerGame, avgAbsoluteGoalDiffPerGame),
   }));
 
   const teamMap = new Map(teams.map((team) => [team.team_id, team]));
@@ -133,24 +138,29 @@ export function calculatePlayoffOdds(
   }));
 }
 
-function computeTeamStrength(team: TeamStanding, avgPointsPerGame: number, avgGoalDiffPerGame: number): number {
+function computeTeamStrength(team: TeamStanding, avgPointsPerGame: number, avgAbsoluteGoalDiffPerGame: number): number {
   const gamesPlayed = Math.max(getTeamGamesPlayed(team), 1);
+  const reliability = gamesPlayed / (gamesPlayed + REGRESSION_GAMES);
   const pointsPerGame = team.points / gamesPlayed;
   const goalDiffPerGame = team.goal_differential / gamesPlayed;
   const winRate = (team.wins + team.ties * 0.5) / gamesPlayed;
 
   const normalizedPoints = avgPointsPerGame > 0 ? (pointsPerGame - avgPointsPerGame) / avgPointsPerGame : 0;
-  const goalDiffScale = Math.max(Math.abs(avgGoalDiffPerGame), 1.5);
+  const goalDiffScale = Math.max(avgAbsoluteGoalDiffPerGame, 1.5);
   const normalizedGoalDiff = goalDiffPerGame / goalDiffScale;
   const normalizedWinRate = winRate - 0.5;
 
-  return normalizedPoints * 1.15 + normalizedGoalDiff * 0.35 + normalizedWinRate * 0.5;
+  const rawStrength = normalizedPoints * 0.8 + normalizedGoalDiff * 0.25 + normalizedWinRate * 0.35;
+
+  // Early season needs heavy shrinkage toward league average, otherwise a 2-0 start
+  // turns into fake certainty. Confidence should grow only after enough games exist.
+  return rawStrength * reliability;
 }
 
 function simulateGame(homeTeam: SimTeamState, awayTeam: SimTeamState, tieRate: number, rng: () => number) {
-  const strengthGap = clamp(homeTeam.strength - awayTeam.strength, -3, 3);
+  const strengthGap = clamp(homeTeam.strength - awayTeam.strength, -1.75, 1.75);
   const decisiveProbability = 1 - tieRate;
-  const homeWinProbability = decisiveProbability / (1 + Math.exp(-strengthGap * 1.1));
+  const homeWinProbability = decisiveProbability / (1 + Math.exp(-strengthGap * 0.7));
   const awayWinProbability = decisiveProbability - homeWinProbability;
   const roll = rng();
 
