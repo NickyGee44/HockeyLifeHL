@@ -28,6 +28,16 @@ describe('dashboard navigation', () => {
       'league',
       'organization',
     ]);
+
+    const leagueSection = navigation.find((section) => section.id === 'league');
+    expect(leagueSection?.entries.map((entry) => entry.label)).toEqual([
+      'League Home',
+      'Current Season',
+      'League Setup',
+      'Website & Content',
+      'Finance',
+      'Settings',
+    ]);
   });
 
   it('auto-expands the proper season group for playoff routes', () => {
@@ -60,6 +70,23 @@ describe('dashboard navigation', () => {
         preferredSeasonId: null,
       })
     ).toBe('/en/dashboard/leagues/league-b/finance');
+  });
+
+  it('points Current Season at the active season workspace when one is selected', () => {
+    const navigation = buildDashboardNavigation({
+      locale: '',
+      leagueId: 'league-1',
+      seasonId: 'season-1',
+      isSubscribed: true,
+      captainTeams: [],
+      isPlatformAdmin: false,
+      t,
+    });
+
+    const items = flattenDashboardNavigation(navigation);
+    const currentSeasonItem = items.find((item) => item.id === 'league-current-season');
+
+    expect(currentSeasonItem?.href).toBe('/dashboard/leagues/league-1/seasons/season-1');
   });
 
   it('preserves the current season tool when switching leagues with a preferred season', () => {

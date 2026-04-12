@@ -96,7 +96,7 @@ interface DashboardMobileTabItem {
 
 const PRIMARY_ITEM_IDS_BY_SCOPE: Record<DashboardWorkspaceScope, string[]> = {
   season: ['season-home', 'season-registrations', 'season-teams-item', 'season-schedule-item', 'season-games'],
-  league: ['league-home', 'league-seasons', 'league-structure', 'league-finance', 'league-settings-home'],
+  league: ['league-home', 'league-current-season', 'league-setup-overview', 'league-website-overview', 'league-finance-home'],
   organization: ['org-home', 'org-leagues', 'org-staff', 'org-settings'],
 };
 
@@ -216,29 +216,47 @@ export function buildDashboardNavigation({
 
   if (leagueId) {
     const leagueHub = buildLeagueHubHref(locale, leagueId);
+    const currentSeasonHref = seasonId
+      ? buildSeasonWorkspaceHref(locale, leagueId, seasonId)
+      : buildLeagueSeasonsHref(locale, leagueId);
     const leagueEntries: Array<DashboardNavigationItem | DashboardNavigationGroup> = [
-      createItem('league-home', t('leagueOverview') || 'League Overview', leagueHub, Home, 'league'),
-      createItem('league-seasons', t('seasons') || 'Seasons', buildLeagueSeasonsHref(locale, leagueId), CalendarDays, 'league'),
-      createItem('league-structure', 'Teams & Divisions', `${leagueHub}/teams-divisions`, Users, 'league', {
-        matchPrefixes: [`${leagueHub}/teams-divisions`, `${leagueHub}/divisions`, `${leagueHub}/teams`],
+      createItem('league-home', 'League Home', leagueHub, Home, 'league'),
+      createItem('league-current-season', 'Current Season', currentSeasonHref, CalendarDays, 'league', {
+        matchPrefixes: seasonId
+          ? [
+              buildSeasonWorkspaceHref(locale, leagueId, seasonId),
+              `${leagueHub}/seasons`,
+            ]
+          : [buildLeagueSeasonsHref(locale, leagueId)],
       }),
-      createItem('league-finance', t('financials') || 'Financials', `${leagueHub}/finance`, Wallet, 'league', {
-        matchPrefixes: [`${leagueHub}/finance`, `${leagueHub}/payments`],
-        locked: !isSubscribed,
-      }),
-      createItem('league-settings-home', t('leagueSettings') || 'League Settings', `${leagueHub}/settings`, Settings, 'league', { locked: !isSubscribed }),
       {
         kind: 'group',
-        id: 'league-secondary',
-        label: 'League Tools',
+        id: 'league-setup',
+        label: 'League Setup',
+        icon: Users,
+        scope: 'league',
+        items: [
+          createItem('league-setup-overview', 'Teams & Divisions', `${leagueHub}/teams-divisions`, Users, 'league', {
+            matchPrefixes: [`${leagueHub}/teams-divisions`, `${leagueHub}/divisions`, `${leagueHub}/teams`],
+          }),
+          createItem('league-staff', t('staff') || 'Staff', `${leagueHub}/staff`, Flag, 'league', { locked: !isSubscribed }),
+          createItem('league-game-rules', t('gameRules') || 'Game Rules', `${leagueHub}/settings/game-rules`, ClipboardCheck, 'league', { locked: !isSubscribed }),
+          createItem('league-registration', t('registration') || 'Registration', `${leagueHub}/settings/registration`, ClipboardCheck, 'league', { locked: !isSubscribed }),
+          createItem('league-waiver', t('waiver') || 'Waiver', `${leagueHub}/settings/waiver`, FileText, 'league', { locked: !isSubscribed }),
+          createItem('league-venues', t('venues') || 'Venues', `${leagueHub}/settings/venues`, Globe, 'league', { locked: !isSubscribed }),
+          createItem('league-goalie-pool', t('goaliePool') || 'Goalie Pool', `${leagueHub}/settings/goalie-pool`, UserCircle2, 'league', { locked: !isSubscribed }),
+        ],
+      },
+      {
+        kind: 'group',
+        id: 'league-website-content',
+        label: 'Website & Content',
         icon: Globe,
         scope: 'league',
         items: [
-          createItem('league-billing', t('leagueBilling') || 'League Billing', `${leagueHub}/billing`, CreditCard, 'league'),
-          createItem('league-website', t('websiteEditor') || 'Website', `${leagueHub}/website`, Globe, 'league', {
+          createItem('league-website-overview', t('websiteEditor') || 'Website', `${leagueHub}/website`, Globe, 'league', {
             locked: !isSubscribed,
           }),
-          createItem('league-integrations', 'Integrations', `${leagueHub}/integrations`, Zap, 'league'),
           createItem('league-news', t('news') || 'News', `${leagueHub}/news`, Newspaper, 'league', { locked: !isSubscribed }),
           createItem('league-pages', t('pages') || 'Pages', `${leagueHub}/pages`, FileText, 'league', { locked: !isSubscribed }),
           createItem('league-sponsors', t('sponsors') || 'Sponsors', `${leagueHub}/sponsors`, Handshake, 'league', { locked: !isSubscribed }),
@@ -246,24 +264,34 @@ export function buildDashboardNavigation({
           createItem('league-events', t('events') || 'Events', `${leagueHub}/events`, PartyPopper, 'league', { locked: !isSubscribed }),
           createItem('league-awards', t('awards') || 'Awards', `${leagueHub}/awards`, Award, 'league', { locked: !isSubscribed }),
           createItem('league-contact-inbox', t('contactInbox') || 'Contact Inbox', `${leagueHub}/contact-inbox`, Mail, 'support', { locked: !isSubscribed }),
-          createItem('league-bugs', t('bugReports') || 'Bug Reports', `${leagueHub}/bugs`, Bug, 'support'),
+        ],
+      },
+      {
+        kind: 'group',
+        id: 'league-finance',
+        label: 'Finance',
+        icon: Wallet,
+        scope: 'league',
+        items: [
+          createItem('league-finance-home', 'Finance Overview', `${leagueHub}/finance`, Wallet, 'league', {
+            matchPrefixes: [`${leagueHub}/finance`, `${leagueHub}/payments`],
+            locked: !isSubscribed,
+          }),
+          createItem('league-billing', t('leagueBilling') || 'League Billing', `${leagueHub}/billing`, CreditCard, 'league'),
+          createItem('league-integrations', 'Integrations', `${leagueHub}/integrations`, Zap, 'league'),
         ],
       },
       {
         kind: 'group',
         id: 'league-settings',
-        label: t('leagueSettings') || 'Settings',
+        label: 'Settings',
         icon: Settings,
         scope: 'league',
         items: [
+          createItem('league-settings-home', t('leagueSettings') || 'League Settings', `${leagueHub}/settings`, Settings, 'league', { locked: !isSubscribed }),
           createItem('league-general', t('general') || 'General', `${leagueHub}/settings/general`, Settings, 'league', { locked: !isSubscribed }),
-          createItem('league-staff', t('staff') || 'Staff', `${leagueHub}/staff`, Flag, 'league', { locked: !isSubscribed }),
-          createItem('league-game-rules', t('gameRules') || 'Game Rules', `${leagueHub}/settings/game-rules`, ClipboardCheck, 'league', { locked: !isSubscribed }),
-          createItem('league-registration', t('registration') || 'Registration', `${leagueHub}/settings/registration`, ClipboardCheck, 'league', { locked: !isSubscribed }),
-          createItem('league-waiver', t('waiver') || 'Waiver', `${leagueHub}/settings/waiver`, FileText, 'league', { locked: !isSubscribed }),
-          createItem('league-venues', t('venues') || 'Venues', `${leagueHub}/settings/venues`, Globe, 'league', { locked: !isSubscribed }),
-          createItem('league-goalie-pool', t('goaliePool') || 'Goalie Pool', `${leagueHub}/settings/goalie-pool`, UserCircle2, 'league', { locked: !isSubscribed }),
           createItem('league-email-domain', t('emailDomain') || 'Email Domain', `${leagueHub}/settings/email-domain`, Mail, 'league', { locked: !isSubscribed }),
+          createItem('league-bugs', t('bugReports') || 'Bug Reports', `${leagueHub}/bugs`, Bug, 'support'),
         ],
       },
     ];
