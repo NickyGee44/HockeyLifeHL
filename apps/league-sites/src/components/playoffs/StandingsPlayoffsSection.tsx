@@ -90,29 +90,7 @@ function SeedEntry({
   );
 }
 
-function ShieldPlaceholder({
-  variant = 'grey',
-}: {
-  variant?: 'grey' | 'gold';
-}) {
-  if (variant === 'gold') {
-    return (
-      <div className="relative flex h-[92px] w-[76px] items-center justify-center">
-        <svg viewBox="0 0 52 64" fill="none" className="h-full w-full drop-shadow-[0_10px_24px_rgba(0,0,0,0.28)]" aria-hidden="true">
-          <path
-            d="M26 3L6 13V31C6 44 26 60 26 60C26 60 46 44 46 31V13L26 3Z"
-            fill="rgba(212,170,84,0.24)"
-            stroke="rgba(227,191,111,0.95)"
-            strokeWidth="2.2"
-          />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.24em] text-[#f1d38b]">
-          TBD
-        </span>
-      </div>
-    );
-  }
-
+function ShieldPlaceholder() {
   return (
     <BracketSquare>
       <ShieldGlyph />
@@ -135,16 +113,13 @@ function FourTeamBracket({
 
   const node = 78;
   const midNode = 78;
-  const champW = 76;
-  const champH = 92;
   const trophyW = 74;
   const winnerNode = 78;
 
   const seedX = 0;
   const semiX = 222;
-  const champX = 414;
-  const trophyX = 496;
-  const winnerX = 604;
+  const trophyX = 452;
+  const winnerX = 560;
 
   const seed1Y = 4;
   const seed4Y = 114;
@@ -159,8 +134,6 @@ function FourTeamBracket({
   const seedCenterX = seedX + node;
   const semiCenterX = semiX;
   const semiRightX = semiX + midNode;
-  const championCenterX = champX;
-  const championRightX = champX + champW;
   const trophyRightX = trophyX + trophyW;
   const winnerLeftX = winnerX;
 
@@ -170,18 +143,18 @@ function FourTeamBracket({
   const seed3CenterY = seed3Y + node / 2;
   const semi1CenterY = semi1Y + midNode / 2;
   const semi2CenterY = semi2Y + midNode / 2;
-  const championCenterY = championY + champH / 2;
+  const championCenterY = championY + winnerNode / 2;
   const winnerCenterY = winnerY + winnerNode / 2;
 
   const bracketHeight = 446;
-  const bracketWidth = 690;
+  const bracketWidth = 646;
 
   return (
     <div className="relative" style={{ height: bracketHeight, width: bracketWidth, minWidth: bracketWidth }}>
       <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: seedX, top: -24 }}>
         {semifinalLabel}
       </div>
-      <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: champX, top: -24 }}>
+      <div className="absolute text-[10px] font-bold uppercase tracking-[0.22em] text-white/34" style={{ left: trophyX - 22, top: -24 }}>
         {finalLabel}
       </div>
 
@@ -205,9 +178,6 @@ function FourTeamBracket({
         <ShieldPlaceholder />
       </div>
 
-      <div className="absolute" style={{ left: champX, top: championY }}>
-        <ShieldPlaceholder variant="gold" />
-      </div>
       <div className="absolute flex items-center justify-center" style={{ left: trophyX, top: trophyY }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/trophy.png" alt="Championship trophy" className="h-[74px] w-[74px] object-contain drop-shadow-[0_10px_28px_rgba(255,215,0,0.45)]" />
@@ -218,22 +188,21 @@ function FourTeamBracket({
 
       <svg className="pointer-events-none absolute inset-0" width={bracketWidth} height={bracketHeight} fill="none" xmlns="http://www.w3.org/2000/svg">
         <g stroke={BRACKET_GOLD} strokeOpacity="0.95" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
-          <line x1={seedCenterX} y1={seed1CenterY} x2={seedCenterX + 26} y2={seed1CenterY} />
-          <line x1={seedCenterX} y1={seed4CenterY} x2={seedCenterX + 26} y2={seed4CenterY} />
-          <line x1={seedCenterX + 26} y1={seed1CenterY} x2={seedCenterX + 26} y2={seed4CenterY} />
-          <line x1={seedCenterX + 26} y1={semi1CenterY} x2={semiCenterX} y2={semi1CenterY} />
+          <line x1={seedCenterX} y1={seed1CenterY} x2={seedCenterX + 18} y2={seed1CenterY} />
+          <line x1={seedCenterX} y1={seed4CenterY} x2={seedCenterX + 18} y2={seed4CenterY} />
+          <line x1={seedCenterX + 18} y1={seed1CenterY} x2={seedCenterX + 18} y2={seed4CenterY} />
+          <line x1={seedCenterX + 18} y1={semi1CenterY} x2={semiCenterX} y2={semi1CenterY} />
 
-          <line x1={seedCenterX} y1={seed2CenterY} x2={seedCenterX + 26} y2={seed2CenterY} />
-          <line x1={seedCenterX} y1={seed3CenterY} x2={seedCenterX + 26} y2={seed3CenterY} />
-          <line x1={seedCenterX + 26} y1={seed2CenterY} x2={seedCenterX + 26} y2={seed3CenterY} />
-          <line x1={seedCenterX + 26} y1={semi2CenterY} x2={semiCenterX} y2={semi2CenterY} />
+          <line x1={seedCenterX} y1={seed2CenterY} x2={seedCenterX + 18} y2={seed2CenterY} />
+          <line x1={seedCenterX} y1={seed3CenterY} x2={seedCenterX + 18} y2={seed3CenterY} />
+          <line x1={seedCenterX + 18} y1={seed2CenterY} x2={seedCenterX + 18} y2={seed3CenterY} />
+          <line x1={seedCenterX + 18} y1={semi2CenterY} x2={semiCenterX} y2={semi2CenterY} />
 
           <line x1={semiRightX} y1={semi1CenterY} x2={semiRightX + 32} y2={semi1CenterY} />
           <line x1={semiRightX} y1={semi2CenterY} x2={semiRightX + 32} y2={semi2CenterY} />
           <line x1={semiRightX + 32} y1={semi1CenterY} x2={semiRightX + 32} y2={semi2CenterY} />
-          <line x1={semiRightX + 32} y1={championCenterY} x2={championCenterX} y2={championCenterY} />
+          <line x1={semiRightX + 32} y1={championCenterY} x2={trophyX - 24} y2={championCenterY} />
 
-          <line x1={championRightX} y1={championCenterY} x2={trophyX} y2={championCenterY} />
           <line x1={trophyRightX} y1={winnerCenterY} x2={winnerLeftX} y2={winnerCenterY} />
         </g>
       </svg>
