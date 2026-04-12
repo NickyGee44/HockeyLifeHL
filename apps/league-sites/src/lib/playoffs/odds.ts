@@ -310,7 +310,7 @@ function getTeamGamesPlayed(team: Pick<TeamStanding, 'games_played' | 'wins' | '
 }
 
 function isRegularSeasonGame(game: ScheduleGame) {
-  return !game.game_type || game.game_type === 'regular_season';
+  return !game.game_type || game.game_type === 'regular' || game.game_type === 'regular_season';
 }
 
 function isUnplayedGame(game: ScheduleGame) {
