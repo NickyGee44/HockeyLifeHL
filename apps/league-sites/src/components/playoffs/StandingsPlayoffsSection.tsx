@@ -11,171 +11,197 @@ interface StandingsPlayoffsSectionProps {
 
 type PanelKey = 'preview' | 'odds';
 
-/* ── Bracket logo (no shields in round 1) ── */
+/* ── Seed entry (logo + seed label, no shield) ── */
 
-function BracketLogo({
-  name,
-  logoUrl,
-  size = 'lg',
+function SeedEntry({
+  seed,
 }: {
-  name: string;
-  logoUrl: string | null;
-  size?: 'lg' | 'sm';
+  seed: { teamName: string; logoUrl: string | null; rank: number } | null;
 }) {
-  const dim = size === 'lg' ? 'h-14 w-14' : 'h-10 w-10';
-  const text = size === 'lg' ? 'text-lg' : 'text-sm';
-
-  if (logoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logoUrl} alt={name} className={`${dim} object-contain`} />;
+  if (!seed) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex h-14 w-14 items-center justify-center">
+          <span className="text-xs text-white/30">TBD</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div
-      className={`${dim} flex items-center justify-center rounded-full ${text} font-black`}
-      style={{ backgroundColor: 'var(--league-primary)', color: 'var(--color-accent-text)' }}
-      aria-label={name}
-      title={name}
-    >
-      {name.charAt(0)}
-    </div>
-  );
-}
-
-/* ── First‑round matchup (no shields, bigger logos, connected lines) ── */
-
-function FirstRoundSeries({
-  series,
-  showOutgoingConnector,
-}: {
-  series: PlayoffPreview['rounds'][number]['series'][number];
-  showOutgoingConnector: boolean;
-}) {
-  return (
-    <div className="relative flex items-center" style={{ minHeight: 160 }}>
-      {/* Matchup column */}
-      <div className="relative flex flex-col items-center gap-10 pr-8">
-        {/* High seed */}
-        <div className="relative flex items-center">
-          <div className="flex h-14 w-14 items-center justify-center">
-            {series.highSeed ? (
-              <BracketLogo name={series.highSeed.teamName} logoUrl={series.highSeed.logoUrl} size="lg" />
-            ) : (
-              <span className="text-xs text-white/30">TBD</span>
-            )}
-          </div>
-          {series.highSeed && (
-            <span className="ml-2 whitespace-nowrap text-[11px] font-bold text-white/60">
-              #{series.highSeed.rank}
-            </span>
-          )}
-          {/* Horizontal connector from high seed */}
-          <div className="absolute left-full top-1/2 ml-2 h-px w-5 -translate-y-1/2 bg-gradient-to-r from-white/30 to-white/15" />
-        </div>
-
-        {/* Low seed */}
-        <div className="relative flex items-center">
-          <div className="flex h-14 w-14 items-center justify-center">
-            {series.lowSeed ? (
-              <BracketLogo name={series.lowSeed.teamName} logoUrl={series.lowSeed.logoUrl} size="lg" />
-            ) : (
-              <span className="text-xs text-white/30">BYE</span>
-            )}
-          </div>
-          {series.lowSeed && (
-            <span className="ml-2 whitespace-nowrap text-[11px] font-bold text-white/60">
-              #{series.lowSeed.rank}
-            </span>
-          )}
-          {/* Horizontal connector from low seed */}
-          <div className="absolute left-full top-1/2 ml-2 h-px w-5 -translate-y-1/2 bg-gradient-to-r from-white/30 to-white/15" />
-        </div>
-
-        {/* Vertical bar joining the two connectors */}
-        <div
-          className="absolute w-px bg-white/20"
-          style={{ right: -1, top: '50%', height: 'calc(50% + 28px)', transform: 'translateY(-50%)' }}
-        />
-        <div
-          className="absolute w-px bg-white/20"
-          style={{ right: -1, top: 'calc(25% - 2px)', height: 'calc(50% + 4px)' }}
-        />
-
-        {/* Outgoing horizontal connector to next round */}
-        {showOutgoingConnector && (
-          <div
-            className="absolute h-px w-6 bg-white/20"
-            style={{ right: -25, top: '50%', transform: 'translateY(-50%)' }}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── Later round placeholder node ── */
-
-function LaterRoundNode({
-  isChampionship,
-  showOutgoingConnector,
-}: {
-  isChampionship: boolean;
-  showOutgoingConnector: boolean;
-}) {
-  return (
-    <div className="relative flex items-center justify-center px-6" style={{ minHeight: 160 }}>
-      {/* Incoming connector */}
-      <div className="absolute left-0 top-1/2 h-px w-6 -translate-y-1/2 bg-white/20" />
-
-      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04]">
-        {isChampionship ? (
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center">
+        {seed.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/trophy.png"
-            alt="Championship"
-            className="h-10 w-10 object-contain drop-shadow-[0_4px_12px_rgba(255,215,0,0.4)]"
-          />
+          <img src={seed.logoUrl} alt={seed.teamName} className="h-14 w-14 object-contain" />
         ) : (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white/25">TBD</span>
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-black"
+            style={{ backgroundColor: 'var(--league-primary)', color: 'var(--color-accent-text)' }}
+            aria-label={seed.teamName}
+            title={seed.teamName}
+          >
+            {seed.teamName.charAt(0)}
+          </div>
         )}
       </div>
-
-      {/* Outgoing connector */}
-      {showOutgoingConnector && (
-        <div className="absolute right-0 top-1/2 h-px w-6 -translate-y-1/2 bg-white/20" />
-      )}
+      <span className="whitespace-nowrap text-[11px] font-bold text-white/50">#{seed.rank}</span>
     </div>
   );
 }
 
-/* ── Round column ── */
+/* ── Grey shield placeholder (later rounds) ── */
 
-function RoundColumn({
-  round,
-  isFirstRound,
-  isChampionship,
-  showOutgoingConnector,
-}: {
-  round: PlayoffPreview['rounds'][number];
-  isFirstRound: boolean;
-  isChampionship: boolean;
-  showOutgoingConnector: boolean;
-}) {
+function ShieldPlaceholder() {
   return (
-    <div className="flex flex-col justify-around gap-2" style={{ minWidth: isFirstRound ? 180 : 120 }}>
-      {/* Round label */}
-      <div className="mb-1 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
-        {round.label}
+    <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.04]">
+      <span className="text-[9px] font-bold uppercase tracking-wider text-white/20">TBD</span>
+    </div>
+  );
+}
+
+/* ── 4‑team bracket layout ── */
+
+function FourTeamBracket({
+  preview,
+}: {
+  preview: PlayoffPreview;
+}) {
+  const firstRound = preview.rounds[0];
+  if (!firstRound) return null;
+
+  const seriesA = firstRound.series[0]; // #1 vs #4
+  const seriesB = firstRound.series[1]; // #2 vs #3
+
+  /* Collect round labels */
+  const semifinalLabel = firstRound.label;
+  const finalLabel = preview.rounds[1]?.label ?? 'Final';
+
+  /*
+   * Layout geometry (fixed positions, absolute placement):
+   *
+   *   SEEDS (left)          SEMI SHIELDS (mid)        TROPHY (center)        WINNER (right)
+   *   ─────────────         ────────────────          ──────────────         ──────────────
+   *   Seed #1  ──┐
+   *              ├── shield A ──┐
+   *   Seed #4  ──┘              │
+   *                             ├── 🏆 ── shield W
+   *   Seed #2  ──┐              │
+   *              ├── shield B ──┘
+   *   Seed #3  ──┘
+   */
+
+  /* Vertical positions (px from top of bracket area) */
+  const seed1Y = 0;
+  const seed4Y = 80;
+  const shieldAY = 28;       /* vertically centered between seed1 & seed4 */
+  const seed2Y = 160;
+  const seed3Y = 240;
+  const shieldBY = 188;      /* vertically centered between seed2 & seed3 */
+  const trophyY = 108;       /* vertically centered between shieldA & shieldB */
+  const winnerY = 108;
+
+  /* Horizontal positions */
+  const seedX = 0;
+  const lineStartX = 100;    /* right edge of seed entries */
+  const shieldX = 160;
+  const trophyX = 290;
+  const winnerX = 400;
+
+  const bracketHeight = 280;
+  const bracketWidth = 468;
+
+  return (
+    <div className="relative" style={{ height: bracketHeight, width: bracketWidth, minWidth: bracketWidth }}>
+      {/* ── Round labels ── */}
+      <div
+        className="absolute text-[10px] font-bold uppercase tracking-[0.2em] text-white/30"
+        style={{ left: seedX, top: -22 }}
+      >
+        {semifinalLabel}
       </div>
-      {round.series.map((series) => (
-        <div key={`${round.roundNumber}-${series.seriesNumber}`} className="flex flex-1 items-center">
-          {isFirstRound ? (
-            <FirstRoundSeries series={series} showOutgoingConnector={showOutgoingConnector} />
-          ) : (
-            <LaterRoundNode isChampionship={isChampionship} showOutgoingConnector={showOutgoingConnector} />
-          )}
-        </div>
-      ))}
+      <div
+        className="absolute text-[10px] font-bold uppercase tracking-[0.2em] text-white/30"
+        style={{ left: trophyX - 10, top: -22 }}
+      >
+        {finalLabel}
+      </div>
+
+      {/* ── Seed entries (left column) ── */}
+      <div className="absolute" style={{ left: seedX, top: seed1Y }}>
+        <SeedEntry seed={seriesA?.highSeed ?? null} />
+      </div>
+      <div className="absolute" style={{ left: seedX, top: seed4Y }}>
+        <SeedEntry seed={seriesA?.lowSeed ?? null} />
+      </div>
+      <div className="absolute" style={{ left: seedX, top: seed2Y }}>
+        <SeedEntry seed={seriesB?.highSeed ?? null} />
+      </div>
+      <div className="absolute" style={{ left: seedX, top: seed3Y }}>
+        <SeedEntry seed={seriesB?.lowSeed ?? null} />
+      </div>
+
+      {/* ── Semifinal shield placeholders (middle column) ── */}
+      <div className="absolute" style={{ left: shieldX, top: shieldAY }}>
+        <ShieldPlaceholder />
+      </div>
+      <div className="absolute" style={{ left: shieldX, top: shieldBY }}>
+        <ShieldPlaceholder />
+      </div>
+
+      {/* ── Trophy centerpiece ── */}
+      <div className="absolute flex items-center justify-center" style={{ left: trophyX, top: trophyY }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/trophy.png"
+          alt="Championship"
+          className="h-16 w-16 object-contain drop-shadow-[0_4px_16px_rgba(255,215,0,0.45)]"
+        />
+      </div>
+
+      {/* ── Winner shield placeholder (far right) ── */}
+      <div className="absolute" style={{ left: winnerX, top: winnerY + 2 }}>
+        <ShieldPlaceholder />
+      </div>
+
+      {/* ── SVG connector lines ── */}
+      <svg
+        className="pointer-events-none absolute inset-0"
+        width={bracketWidth}
+        height={bracketHeight}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Seed #1 → vertical bar */}
+        <line x1={lineStartX} y1={seed1Y + 7} x2={lineStartX} y2={seed4Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+        {/* Horizontal from seed #1 */}
+        <line x1={lineStartX - 4} y1={seed1Y + 7} x2={lineStartX} y2={seed1Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+        {/* Horizontal from seed #4 */}
+        <line x1={lineStartX - 4} y1={seed4Y + 7} x2={lineStartX} y2={seed4Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+        {/* Bar midpoint → shield A */}
+        <line x1={lineStartX} y1={shieldAY + 6} x2={shieldX} y2={shieldAY + 6} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+
+        {/* Seed #2 → vertical bar */}
+        <line x1={lineStartX} y1={seed2Y + 7} x2={lineStartX} y2={seed3Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+        {/* Horizontal from seed #2 */}
+        <line x1={lineStartX - 4} y1={seed2Y + 7} x2={lineStartX} y2={seed2Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+        {/* Horizontal from seed #3 */}
+        <line x1={lineStartX - 4} y1={seed3Y + 7} x2={lineStartX} y2={seed3Y + 7} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+        {/* Bar midpoint → shield B */}
+        <line x1={lineStartX} y1={shieldBY + 6} x2={shieldX} y2={shieldBY + 6} stroke="white" strokeOpacity={0.15} strokeWidth={1} />
+
+        {/* Shield A → vertical bar to trophy */}
+        <line x1={shieldX + 52} y1={shieldAY + 6} x2={shieldX + 52} y2={shieldBY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+        {/* Horizontal from shield A */}
+        <line x1={shieldX + 48} y1={shieldAY + 6} x2={shieldX + 52} y2={shieldAY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+        {/* Horizontal from shield B */}
+        <line x1={shieldX + 48} y1={shieldBY + 6} x2={shieldX + 52} y2={shieldBY + 6} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+        {/* Vertical bar midpoint → trophy */}
+        <line x1={shieldX + 52} y1={trophyY + 8} x2={trophyX} y2={trophyY + 8} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+
+        {/* Trophy → winner shield */}
+        <line x1={trophyX + 64} y1={winnerY + 8} x2={winnerX} y2={winnerY + 8} stroke="white" strokeOpacity={0.12} strokeWidth={1} />
+      </svg>
     </div>
   );
 }
@@ -196,18 +222,8 @@ function PlayoffBrackets({ previews }: { previews: PlayoffPreview[] }) {
             </div>
           )}
 
-          <div className="overflow-x-auto rounded-xl border border-white/[0.06] bg-[#0d0f14] p-6 pb-4">
-            <div className="flex min-w-max items-stretch gap-1">
-              {preview.rounds.map((round, index) => (
-                <RoundColumn
-                  key={`${preview.divisionId ?? 'league'}-${round.roundNumber}`}
-                  round={round}
-                  isFirstRound={index === 0}
-                  isChampionship={index === preview.rounds.length - 1 && index > 0}
-                  showOutgoingConnector={index < preview.rounds.length - 1}
-                />
-              ))}
-            </div>
+          <div className="overflow-x-auto rounded-xl border border-white/[0.06] bg-[#0d0f14] px-8 pb-6 pt-10">
+            <FourTeamBracket preview={preview} />
           </div>
         </div>
       ))}
