@@ -81,15 +81,26 @@ describe('dashboard route inventory', () => {
     }
   });
 
+  it('marks weakly-owned dashboard leftovers as candidate-delete without removing them yet', () => {
+    const candidateDeleteRoutes = DASHBOARD_ROUTE_INVENTORY.filter((entry) => entry.classification === 'candidate-delete').map(
+      (entry) => entry.route
+    );
+
+    expect(candidateDeleteRoutes.sort()).toEqual([
+      '/analytics',
+      '/leagues/[id]/social',
+    ]);
+  });
+
   it('reports the expected classification totals', () => {
     expect(DASHBOARD_ROUTE_INVENTORY).toHaveLength(91);
     expect(DASHBOARD_ROUTE_CLASSIFICATION_COUNTS).toEqual({
       'canonical-workspace': 21,
       'canonical-settings': 17,
       'detail-route': 14,
-      'public-supporting': 25,
+      'public-supporting': 23,
       'redirect-shim': 14,
-      'candidate-delete': 0,
+      'candidate-delete': 2,
     });
   });
 });

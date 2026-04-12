@@ -170,7 +170,7 @@ export default async function LeagueDetailPage({ params }: Props) {
       ? `Open ${currentSeason.name}`
       : leagueChecklist.nextActionLabel || (currentSeason ? `Open ${currentSeason.name}` : 'Create first season');
 
-  const readinessCards = [
+  const primaryReadinessCards = [
     {
       eyebrow: 'Payments',
       title:
@@ -186,19 +186,6 @@ export default async function LeagueDetailPage({ params }: Props) {
         paymentSettings.stripeAccountStatus === 'connected' || paymentSettings.detailsSubmitted
           ? 'Review integrations'
           : 'Connect Stripe',
-    },
-    {
-      eyebrow: 'Email and Domain',
-      title:
-        domainSettings.customDomainName || websiteSettings.onboardingRequested
-          ? 'Branding is in progress'
-          : 'Domain and sender setup are still open',
-      description:
-        domainSettings.customDomainName
-          ? `Custom domain request: ${domainSettings.customDomainName}`
-          : 'Set a sender domain and website domain from one place when you are ready to publish outward.',
-      href: `/${locale}/dashboard/leagues/${leagueId}/settings/email-domain`,
-      cta: 'Open domain setup',
     },
     {
       eyebrow: 'Waivers',
@@ -220,6 +207,30 @@ export default async function LeagueDetailPage({ params }: Props) {
         ? buildSeasonWorkspaceHref(locale, leagueId, currentSeason.id, 'scorekeepers')
         : buildLeagueSeasonsHref(locale, leagueId),
       cta: currentSeason ? 'Open staffing tools' : 'Create season first',
+    },
+  ];
+
+  const secondaryWorkspaces = [
+    {
+      eyebrow: 'Content',
+      title: 'Social graphics workspace is ready',
+      description:
+        'Keep score cards, weekly recap concepts, standings graphics, and future social export flows in one league-scoped portal page.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/social`,
+      cta: 'Open social graphics',
+    },
+    {
+      eyebrow: 'Email and Domain',
+      title:
+        domainSettings.customDomainName || websiteSettings.onboardingRequested
+          ? 'Branding is in progress'
+          : 'Domain and sender setup are still open',
+      description:
+        domainSettings.customDomainName
+          ? `Custom domain request: ${domainSettings.customDomainName}`
+          : 'Set a sender domain and website domain from one place when you are ready to publish outward.',
+      href: `/${locale}/dashboard/leagues/${leagueId}/settings/email-domain`,
+      cta: 'Open domain setup',
     },
     {
       eyebrow: 'Migration',
@@ -342,7 +353,6 @@ export default async function LeagueDetailPage({ params }: Props) {
                   : 'Create the first season to unlock the operating workspace.'
               }
               icon={<Play className="h-4 w-4" />}
-              tone="primary"
             />
             <SummarySurface
               eyebrow="Connections"
@@ -375,8 +385,23 @@ export default async function LeagueDetailPage({ params }: Props) {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {readinessCards.map((card) => (
+            {primaryReadinessCards.map((card) => (
               <ReadinessCard key={card.eyebrow} {...card} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <div>
+            <h2 className="text-lg font-bold text-white">Supporting workspaces</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Secondary publishing and cleanup surfaces stay available here without crowding the core season workflow.
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {secondaryWorkspaces.map((card) => (
+              <ReadinessCard key={card.eyebrow} {...card} subtle />
             ))}
           </div>
         </section>
@@ -447,13 +472,11 @@ function SummarySurface({
   title,
   description,
   icon,
-  tone = 'default',
 }: {
   eyebrow: string;
   title: string;
   description: string;
   icon: React.ReactNode;
-  tone?: 'default' | 'primary';
 }) {
   return (
     <div
@@ -478,14 +501,17 @@ function ReadinessCard({
   description,
   href,
   cta,
+  subtle = false,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   href: string;
   cta: string;
+  subtle?: boolean;
 }) {
   return (
+<<<<<<< HEAD
     <div className="surface-premium p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
         {eyebrow}
@@ -495,6 +521,25 @@ function ReadinessCard({
       <Link
         href={href}
         className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-rink-400/20 bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
+=======
+    <div className={cn(
+      'rounded-xl border p-5',
+      subtle
+        ? 'border-white/[0.05] bg-white/[0.015]'
+        : 'border-white/[0.06] bg-white/[0.02]'
+    )}>
+      <p className="text-xs font-medium text-neutral-500">{eyebrow}</p>
+      <h3 className="mt-2 text-base font-bold text-white">{title}</h3>
+      <p className="mt-1 text-sm text-neutral-500">{description}</p>
+      <Link
+        href={href}
+        className={cn(
+          'mt-4 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors',
+          subtle
+            ? 'border-white/[0.06] bg-white/[0.02] text-neutral-400 hover:bg-white/[0.04]'
+            : 'border-white/[0.08] bg-white/[0.03] text-neutral-300 hover:bg-white/[0.06]'
+        )}
+>>>>>>> 41c8f6a3 (refactor: demote secondary dashboard surfaces)
       >
         {cta}
         <ArrowRight className="h-4 w-4" />

@@ -199,6 +199,12 @@ export function buildDashboardNavigation({
     createItem('org-settings', 'Organization Settings', '/dashboard/settings', Settings, 'organization'),
   ];
 
+  if (isPlatformAdmin) {
+    organizationEntries.push(
+      createItem('admin-home', 'Admin Dashboard', '/dashboard/admin', Zap, 'admin')
+    );
+  }
+
   const sections: DashboardNavigationSection[] = [
     {
       id: 'organization',
@@ -239,6 +245,8 @@ export function buildDashboardNavigation({
           createItem('league-gallery', t('gallery') || 'Gallery', `${leagueHub}/gallery`, Image, 'league', { locked: !isSubscribed }),
           createItem('league-events', t('events') || 'Events', `${leagueHub}/events`, PartyPopper, 'league', { locked: !isSubscribed }),
           createItem('league-awards', t('awards') || 'Awards', `${leagueHub}/awards`, Award, 'league', { locked: !isSubscribed }),
+          createItem('league-contact-inbox', t('contactInbox') || 'Contact Inbox', `${leagueHub}/contact-inbox`, Mail, 'support', { locked: !isSubscribed }),
+          createItem('league-bugs', t('bugReports') || 'Bug Reports', `${leagueHub}/bugs`, Bug, 'support'),
         ],
       },
       {
@@ -267,15 +275,6 @@ export function buildDashboardNavigation({
       entries: leagueEntries,
     });
 
-    sections.splice(1, 0, {
-      id: 'support',
-      label: 'Support',
-      scope: 'support',
-      entries: [
-        createItem('league-contact-inbox', t('contactInbox') || 'Contact Inbox', `${leagueHub}/contact-inbox`, Mail, 'support', { locked: !isSubscribed }),
-        createItem('league-bugs', t('bugReports') || 'Bug Reports', `${leagueHub}/bugs`, Bug, 'support'),
-      ],
-    });
   }
 
   if (leagueId && seasonId) {
@@ -350,17 +349,6 @@ export function buildDashboardNavigation({
           { badge: team.pending_requests_count }
         )
       ),
-    });
-  }
-
-  if (isPlatformAdmin) {
-    sections.push({
-      id: 'admin',
-      label: 'Admin',
-      scope: 'admin',
-      entries: [
-        createItem('admin-home', 'Admin Dashboard', '/dashboard/admin', Zap, 'admin'),
-      ],
     });
   }
 
