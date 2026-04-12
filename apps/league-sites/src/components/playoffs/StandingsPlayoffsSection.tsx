@@ -297,26 +297,40 @@ function PlayoffOddsTable({ standings, odds }: { standings: TeamStanding[]; odds
     return m;
   }, [odds]);
 
-  // Sort by make-playoffs odds descending, then first-place odds
+  const everyoneMakesPlayoffs = useMemo(
+    () => odds.length > 0 && odds.every((entry) => entry.oddsOfMakingPlayoffs >= 0.999),
+    [odds],
+  );
+
   const sortedStandings = useMemo(() => {
     return [...standings].sort((a, b) => {
       const oa = oddsMap.get(a.team_id);
       const ob = oddsMap.get(b.team_id);
-      const playoffDiff = (ob?.oddsOfMakingPlayoffs ?? 0) - (oa?.oddsOfMakingPlayoffs ?? 0);
-      if (playoffDiff !== 0) return playoffDiff;
+
+      if (!everyoneMakesPlayoffs) {
+        const playoffDiff = (ob?.oddsOfMakingPlayoffs ?? 0) - (oa?.oddsOfMakingPlayoffs ?? 0);
+        if (playoffDiff !== 0) return playoffDiff;
+      }
+
       return (ob?.oddsOfFinishingFirst ?? 0) - (oa?.oddsOfFinishingFirst ?? 0);
     });
-  }, [standings, oddsMap]);
+  }, [standings, oddsMap, everyoneMakesPlayoffs]);
 
   return (
     <div className="overflow-x-auto">
+      {everyoneMakesPlayoffs && (
+        <div className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-secondary)]">
+          All teams currently qualify, so 1st-place odds are the meaningful number.
+        </div>
+      )}
+
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-white/10 text-center text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
             <th className="px-4 py-3 text-center">Team</th>
             <th className="px-4 py-3 text-center">Record</th>
             <th className="px-4 py-3 text-center">1st Place</th>
-            <th className="px-4 py-3 text-center">Make Playoffs</th>
+            {!everyoneMakesPlayoffs && <th className="px-4 py-3 text-center">Make Playoffs</th>}
           </tr>
         </thead>
         <tbody>
@@ -340,10 +354,12 @@ function PlayoffOddsTable({ standings, odds }: { standings: TeamStanding[]; odds
                   <span className="font-semibold text-[var(--color-text-primary)]">{formatOdds(firstPct)}</span>
                   <OddsBar value={firstPct} color="var(--league-primary, #8f7a4b)" />
                 </td>
-                <td className="px-4 py-3 text-center">
-                  <span className="font-semibold text-[var(--color-text-primary)]">{formatOdds(playoffPct)}</span>
-                  <OddsBar value={playoffPct} color={playoffPct >= 0.5 ? '#4ade80' : playoffPct >= 0.2 ? '#facc15' : '#f87171'} />
-                </td>
+                {!everyoneMakesPlayoffs && (
+                  <td className="px-4 py-3 text-center">
+                    <span className="font-semibold text-[var(--color-text-primary)]">{formatOdds(playoffPct)}</span>
+                    <OddsBar value={playoffPct} color={playoffPct >= 0.5 ? '#4ade80' : playoffPct >= 0.2 ? '#facc15' : '#f87171'} />
+                  </td>
+                )}
               </tr>
             );
           })}

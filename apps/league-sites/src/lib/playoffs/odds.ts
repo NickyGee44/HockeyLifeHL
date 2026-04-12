@@ -38,6 +38,8 @@ interface RemainingGame {
 
 const SIMULATION_COUNT = 5000;
 const REGRESSION_GAMES = 8;
+const MAX_DECISIVE_WIN_SHARE = 0.8;
+const MIN_DECISIVE_WIN_SHARE = 0.2;
 
 export function calculatePlayoffOdds(
   standings: TeamStanding[],
@@ -170,7 +172,12 @@ function computeTeamStrength(team: TeamStanding, avgPointsPerGame: number, avgAb
 function simulateGame(homeTeam: SimTeamState, awayTeam: SimTeamState, tieRate: number, rng: () => number) {
   const strengthGap = clamp(homeTeam.strength - awayTeam.strength, -1.75, 1.75);
   const decisiveProbability = 1 - tieRate;
-  const homeWinProbability = decisiveProbability / (1 + Math.exp(-strengthGap * 0.7));
+  const decisiveHomeShare = clamp(
+    1 / (1 + Math.exp(-strengthGap * 0.7)),
+    MIN_DECISIVE_WIN_SHARE,
+    MAX_DECISIVE_WIN_SHARE,
+  );
+  const homeWinProbability = decisiveProbability * decisiveHomeShare;
   const awayWinProbability = decisiveProbability - homeWinProbability;
   const roll = rng();
 
