@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Download, ImageIcon, Sparkles, Trophy } from 'lucide-react';
+import { ArrowLeft, Download, ImageIcon, Shield, Sparkles, Trophy } from 'lucide-react';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 import { getStandings } from '@/lib/standings/actions';
 import { LeagueLogo } from '@/components/ui/league-logo';
@@ -26,12 +26,14 @@ type RawGameRow = {
     name: string;
     short_name: string | null;
     primary_color: string | null;
+    logo_url: string | null;
   } | null;
   away_team: {
     id: string;
     name: string;
     short_name: string | null;
     primary_color: string | null;
+    logo_url: string | null;
   } | null;
 };
 
@@ -47,6 +49,7 @@ type TeamSnapshot = {
   teamName: string;
   shortName: string;
   primaryColor: string | null;
+  logoDataUri: string | null;
 };
 
 type SeasonStandingsSnapshot = {
@@ -55,6 +58,60 @@ type SeasonStandingsSnapshot = {
     teamId: string;
     rank: number;
   }>;
+};
+
+type RawPlayerStatRow = {
+  season_id: string;
+  player_id: string;
+  team_id: string | null;
+  goals: number | null;
+  assists: number | null;
+  games: {
+    id: string;
+    scheduled_at: string;
+    status: string | null;
+    home_captain_verified: boolean | null;
+    away_captain_verified: boolean | null;
+  } | null;
+  profiles: {
+    full_name: string | null;
+    jersey_number: string | null;
+  } | null;
+  teams: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    primary_color: string | null;
+    logo_url: string | null;
+  } | null;
+};
+
+type RawGoalieStatRow = {
+  season_id: string;
+  player_id: string;
+  team_id: string | null;
+  goals_against: number | null;
+  saves: number | null;
+  shutout: boolean | null;
+  minutes_played: number | null;
+  games: {
+    id: string;
+    scheduled_at: string;
+    status: string | null;
+    home_captain_verified: boolean | null;
+    away_captain_verified: boolean | null;
+  } | null;
+  profiles: {
+    full_name: string | null;
+    jersey_number: string | null;
+  } | null;
+  teams: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    primary_color: string | null;
+    logo_url: string | null;
+  } | null;
 };
 
 export default async function LeagueSocialGraphicsPage({ params }: Props) {
@@ -85,35 +142,84 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
         away_score,
         round_number,
         game_number,
-        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color),
-        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color)
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url)
       `)
       .eq('league_id', leagueId)
       .eq('status', 'completed')
       .order('scheduled_at', { ascending: false }),
   ]);
 
-  if (!league) {
-    notFound();
-  }
+  if (!league) notFound();
 
   const seasonRows = seasons ?? [];
   const completedGames = (games ?? []) as RawGameRow[];
+  const seasonIds = seasonRows.map((season) => season.id);
 
-  const { data: standingsConfigs } = seasonRows.length
-    ? await supabase
-        .from('standings_config')
-        .select('season_id, points_win, points_loss, points_tie')
-        .in('season_id', seasonRows.map((season) => season.id))
-    : { data: [] };
+  const [{ data: standingsConfigs }, { data: playerStats }, { data: goalieStats }, leagueLogoDataUri] = await Promise.all([
+    seasonRows.length
+      ? supabase
+          .from('standings_config')
+          .select('season_id, points_win, points_loss, points_tie')
+          .in('season_id', seasonIds)
+      : Promise.resolve({ data: [] as RawStandingsConfigRow[] }),
+    seasonRows.length
+      ? supabase
+          .from('player_stats')
+          .select(`
+            season_id,
+            player_id,
+            team_id,
+            goals,
+            assists,
+            games:games!player_stats_game_id_fkey(id, scheduled_at, status, home_captain_verified, away_captain_verified),
+            profiles:profiles!player_stats_player_id_fkey(full_name, jersey_number),
+            teams:teams!player_stats_team_id_fkey(id, name, short_name, primary_color, logo_url)
+          `)
+          .eq('league_id', leagueId)
+          .in('season_id', seasonIds)
+      : Promise.resolve({ data: [] as RawPlayerStatRow[] }),
+    seasonRows.length
+      ? supabase
+          .from('goalie_stats')
+          .select(`
+            season_id,
+            player_id,
+            team_id,
+            goals_against,
+            saves,
+            shutout,
+            minutes_played,
+            games:games!goalie_stats_game_id_fkey(id, scheduled_at, status, home_captain_verified, away_captain_verified),
+            profiles:profiles!goalie_stats_player_id_fkey(full_name, jersey_number),
+            teams:teams!goalie_stats_team_id_fkey(id, name, short_name, primary_color, logo_url)
+          `)
+          .eq('league_id', leagueId)
+          .in('season_id', seasonIds)
+      : Promise.resolve({ data: [] as RawGoalieStatRow[] }),
+    urlToDataUri(league.logo_url),
+  ]);
 
-  const standingsConfigBySeason = new Map(
-    ((standingsConfigs ?? []) as RawStandingsConfigRow[]).map((row) => [row.season_id, row]),
-  );
+  const standingsConfigBySeason = new Map(((standingsConfigs ?? []) as RawStandingsConfigRow[]).map((row) => [row.season_id, row]));
+  const standingsBySeason = new Map(await Promise.all(seasonRows.map(async (season) => [season.id, await getStandings(season.id)] as const)));
 
-  const standingsBySeason = new Map(
-    await Promise.all(seasonRows.map(async (season) => [season.id, await getStandings(season.id)] as const)),
-  );
+  const logoUrls = new Set<string>();
+  for (const game of completedGames) {
+    if (game.home_team?.logo_url) logoUrls.add(game.home_team.logo_url);
+    if (game.away_team?.logo_url) logoUrls.add(game.away_team.logo_url);
+  }
+  for (const row of ((playerStats ?? []) as RawPlayerStatRow[])) {
+    if (row.teams?.logo_url) logoUrls.add(row.teams.logo_url);
+  }
+  for (const row of ((goalieStats ?? []) as RawGoalieStatRow[])) {
+    if (row.teams?.logo_url) logoUrls.add(row.teams.logo_url);
+  }
+
+  const teamLogoEntries = await Promise.all(Array.from(logoUrls).map(async (url) => [url, await urlToDataUri(url)] as const));
+  const teamLogoMap = new Map(teamLogoEntries);
+
+  const verifiedPlayerStats = ((playerStats ?? []) as RawPlayerStatRow[]).filter(isVerifiedStatRow);
+  const verifiedGoalieStats = ((goalieStats ?? []) as RawGoalieStatRow[]).filter(isVerifiedStatRow);
 
   const seasonData = seasonRows.map((season) => {
     const seasonGames = completedGames
@@ -133,6 +239,7 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
               name: game.home_team.name,
               shortName: game.home_team.short_name,
               primaryColor: game.home_team.primary_color,
+              logoDataUri: game.home_team.logo_url ? teamLogoMap.get(game.home_team.logo_url) ?? null : null,
             }
           : null,
         awayTeam: game.away_team
@@ -141,16 +248,13 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
               name: game.away_team.name,
               shortName: game.away_team.short_name,
               primaryColor: game.away_team.primary_color,
+              logoDataUri: game.away_team.logo_url ? teamLogoMap.get(game.away_team.logo_url) ?? null : null,
             }
           : null,
       }));
 
     const teamDirectory = buildTeamDirectory(seasonGames, standingsBySeason.get(season.id) ?? []);
-    const standingsSnapshots = buildStandingsSnapshots(
-      seasonGames,
-      teamDirectory,
-      standingsConfigBySeason.get(season.id),
-    );
+    const standingsSnapshots = buildStandingsSnapshots(seasonGames, teamDirectory, standingsConfigBySeason.get(season.id));
 
     return {
       id: season.id,
@@ -169,9 +273,14 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
         goalDiff: team.goalDiff,
         rank: team.rank,
         primaryColor: teamDirectory.get(team.teamId)?.primaryColor ?? null,
+        logoDataUri: teamDirectory.get(team.teamId)?.logoDataUri ?? null,
       })),
       standingsSnapshots,
       games: seasonGames,
+      playerLeaders: buildPlayerLeaders(verifiedPlayerStats.filter((row) => row.season_id === season.id), teamLogoMap),
+      goalieLeaders: buildGoalieLeaders(verifiedGoalieStats.filter((row) => row.season_id === season.id), teamLogoMap),
+      playerStatEntries: buildPlayerStatEntries(verifiedPlayerStats.filter((row) => row.season_id === season.id), teamLogoMap),
+      goalieStatEntries: buildGoalieStatEntries(verifiedGoalieStats.filter((row) => row.season_id === season.id), teamLogoMap),
     };
   });
 
@@ -210,7 +319,7 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
                   {league.name} creative workspace
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300">
-                  Generate real score cards, weekly recaps, and standings updates from completed games and live standings, then preview and download them on the spot.
+                  Generate branded final scores, recaps, standings, and leader graphics from real verified league data, then preview and export them on the spot.
                 </p>
               </div>
             </div>
@@ -223,21 +332,9 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
           </div>
 
           <div className="mt-6 grid gap-3 md:grid-cols-3">
-            <InfoMetric
-              label="Completed games"
-              value={String(totalGames)}
-              helper="Ready to turn into graphics"
-            />
-            <InfoMetric
-              label="Season coverage"
-              value={String(totalGraphicsReady)}
-              helper={`${seasonData.length} season${seasonData.length === 1 ? '' : 's'} loaded`}
-            />
-            <InfoMetric
-              label="Exports"
-              value="SVG + PNG"
-              helper="Post-ready downloads from the workspace"
-            />
+            <InfoMetric label="Completed games" value={String(totalGames)} helper="Ready to turn into graphics" />
+            <InfoMetric label="Season coverage" value={String(totalGraphicsReady)} helper={`${seasonData.length} season${seasonData.length === 1 ? '' : 's'} loaded`} />
+            <InfoMetric label="Exports" value="SVG + PNG" helper="Post-ready downloads from the workspace" />
           </div>
         </section>
 
@@ -251,19 +348,23 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
                 What this workspace does
               </span>
             </div>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              <StepRow title="Score cards" body="Pick any completed game in the selected week and export a branded final-score card." icon={<ImageIcon className="h-4 w-4" />} />
-              <StepRow title="Weekly recaps" body="Bundle more of the week into one recap graphic instead of truncating the feed after a handful of games." icon={<Download className="h-4 w-4" />} />
-              <StepRow title="Standings updates" body="Show live rankings with week-over-week movement so owners can post the story, not just the table." icon={<Trophy className="h-4 w-4" />} />
+            <div className="mt-4 grid gap-4 md:grid-cols-4 xl:grid-cols-7">
+              <StepRow title="Score cards" body="Branded final-score cards with logo support." icon={<ImageIcon className="h-4 w-4" />} />
+              <StepRow title="Weekly recap" body="Summarize a full completed slate cleanly." icon={<Download className="h-4 w-4" />} />
+              <StepRow title="Standings" body="Show live table movement with clearer hierarchy." icon={<Trophy className="h-4 w-4" />} />
+              <StepRow title="Weekly points" body="Highlight the week’s top point producers." icon={<Trophy className="h-4 w-4" />} />
+              <StepRow title="Season points" body="Show overall league leaders from season stats." icon={<Trophy className="h-4 w-4" />} />
+              <StepRow title="Goal scorers" body="Celebrate weekly finishing leaders." icon={<Trophy className="h-4 w-4" />} />
+              <StepRow title="Goalies" body="Feature the best weekly goalie performances." icon={<Shield className="h-4 w-4" />} />
             </div>
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Notes</p>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral-300">
-              <li>Built from real completed games only.</li>
+              <li>Built from real completed and verified games only.</li>
               <li>Week windows are grouped into deterministic seven-day buckets inside each season.</li>
-              <li>Owners can generate, regenerate, preview, and export SVG or PNG without leaving the dashboard.</li>
+              <li>League logo is embedded into every generated graphic.</li>
             </ul>
           </div>
         </section>
@@ -277,6 +378,7 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
             city: league.city,
             stateProvince: league.state_province,
             timezone: league.timezone,
+            logoDataUri: leagueLogoDataUri,
           }}
           seasons={seasonData}
         />
@@ -285,10 +387,14 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
   );
 }
 
+function isVerifiedStatRow(row: { games: { status: string | null; home_captain_verified: boolean | null; away_captain_verified: boolean | null } | null }) {
+  return row.games?.status === 'completed' && row.games?.home_captain_verified === true && row.games?.away_captain_verified === true;
+}
+
 function buildTeamDirectory(
   games: Array<{
-    homeTeam: { id: string; name: string; shortName: string | null; primaryColor: string | null } | null;
-    awayTeam: { id: string; name: string; shortName: string | null; primaryColor: string | null } | null;
+    homeTeam: { id: string; name: string; shortName: string | null; primaryColor: string | null; logoDataUri: string | null } | null;
+    awayTeam: { id: string; name: string; shortName: string | null; primaryColor: string | null; logoDataUri: string | null } | null;
   }>,
   standings: Awaited<ReturnType<typeof getStandings>>,
 ): Map<string, TeamSnapshot> {
@@ -300,6 +406,7 @@ function buildTeamDirectory(
       teamName: team.teamName,
       shortName: team.shortName,
       primaryColor: null,
+      logoDataUri: null,
     });
   }
 
@@ -310,6 +417,7 @@ function buildTeamDirectory(
         teamName: game.homeTeam.name,
         shortName: game.homeTeam.shortName || game.homeTeam.name,
         primaryColor: game.homeTeam.primaryColor,
+        logoDataUri: game.homeTeam.logoDataUri,
       });
     }
     if (game.awayTeam) {
@@ -318,6 +426,7 @@ function buildTeamDirectory(
         teamName: game.awayTeam.name,
         shortName: game.awayTeam.shortName || game.awayTeam.name,
         primaryColor: game.awayTeam.primaryColor,
+        logoDataUri: game.awayTeam.logoDataUri,
       });
     }
   }
@@ -440,6 +549,178 @@ function calculateStandings(
     .map((team, index) => ({ ...team, rank: index + 1 }));
 }
 
+function buildPlayerLeaders(rows: RawPlayerStatRow[], teamLogoMap: Map<string, string | null>) {
+  const map = new Map<string, {
+    playerId: string;
+    playerName: string;
+    jerseyNumber: string | null;
+    teamId: string | null;
+    teamName: string;
+    teamShortName: string;
+    teamPrimaryColor: string | null;
+    teamLogoDataUri: string | null;
+    gamesPlayed: number;
+    goals: number;
+    assists: number;
+    points: number;
+    gameDateKeys: Set<string>;
+  }>();
+
+  for (const row of rows) {
+    const key = row.player_id;
+    if (!map.has(key)) {
+      map.set(key, {
+        playerId: row.player_id,
+        playerName: row.profiles?.full_name ?? 'Unknown Player',
+        jerseyNumber: row.profiles?.jersey_number ?? null,
+        teamId: row.team_id,
+        teamName: row.teams?.name ?? 'Unknown Team',
+        teamShortName: row.teams?.short_name ?? row.teams?.name ?? 'Team',
+        teamPrimaryColor: row.teams?.primary_color ?? null,
+        teamLogoDataUri: row.teams?.logo_url ? teamLogoMap.get(row.teams.logo_url) ?? null : null,
+        gamesPlayed: 0,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        gameDateKeys: new Set<string>(),
+      });
+    }
+
+    const leader = map.get(key)!;
+    leader.goals += Number(row.goals) || 0;
+    leader.assists += Number(row.assists) || 0;
+    leader.points = leader.goals + leader.assists;
+    if (row.games?.id && !leader.gameDateKeys.has(row.games.id)) {
+      leader.gamesPlayed += 1;
+      leader.gameDateKeys.add(row.games.id);
+    }
+  }
+
+  return Array.from(map.values()).map(({ gameDateKeys: _ignore, ...leader }) => leader);
+}
+
+function buildPlayerStatEntries(rows: RawPlayerStatRow[], teamLogoMap: Map<string, string | null>) {
+  return rows
+    .map((row) => ({
+      gameId: row.games?.id ?? '',
+      scheduledAt: row.games?.scheduled_at ?? '',
+      playerId: row.player_id,
+      playerName: row.profiles?.full_name ?? 'Unknown Player',
+      jerseyNumber: row.profiles?.jersey_number ?? null,
+      teamId: row.team_id,
+      teamName: row.teams?.name ?? 'Unknown Team',
+      teamShortName: row.teams?.short_name ?? row.teams?.name ?? 'Team',
+      teamPrimaryColor: row.teams?.primary_color ?? null,
+      teamLogoDataUri: row.teams?.logo_url ? teamLogoMap.get(row.teams.logo_url) ?? null : null,
+      goals: Number(row.goals) || 0,
+      assists: Number(row.assists) || 0,
+      points: (Number(row.goals) || 0) + (Number(row.assists) || 0),
+    }))
+    .filter((row) => row.gameId);
+}
+
+function buildGoalieLeaders(rows: RawGoalieStatRow[], teamLogoMap: Map<string, string | null>) {
+  const map = new Map<string, {
+    playerId: string;
+    playerName: string;
+    jerseyNumber: string | null;
+    teamId: string | null;
+    teamName: string;
+    teamShortName: string;
+    teamPrimaryColor: string | null;
+    teamLogoDataUri: string | null;
+    gamesPlayed: number;
+    goalsAgainst: number;
+    saves: number;
+    shutouts: number;
+    minutesPlayed: number;
+    savePct: number;
+    gaa: number;
+    gameIds: Set<string>;
+  }>();
+
+  for (const row of rows) {
+    const key = row.player_id;
+    if (!map.has(key)) {
+      map.set(key, {
+        playerId: row.player_id,
+        playerName: row.profiles?.full_name ?? 'Unknown Goalie',
+        jerseyNumber: row.profiles?.jersey_number ?? null,
+        teamId: row.team_id,
+        teamName: row.teams?.name ?? 'Unknown Team',
+        teamShortName: row.teams?.short_name ?? row.teams?.name ?? 'Team',
+        teamPrimaryColor: row.teams?.primary_color ?? null,
+        teamLogoDataUri: row.teams?.logo_url ? teamLogoMap.get(row.teams.logo_url) ?? null : null,
+        gamesPlayed: 0,
+        goalsAgainst: 0,
+        saves: 0,
+        shutouts: 0,
+        minutesPlayed: 0,
+        savePct: 0,
+        gaa: 0,
+        gameIds: new Set<string>(),
+      });
+    }
+
+    const goalie = map.get(key)!;
+    goalie.goalsAgainst += Number(row.goals_against) || 0;
+    goalie.saves += Number(row.saves) || 0;
+    goalie.shutouts += row.shutout ? 1 : 0;
+    goalie.minutesPlayed += Number(row.minutes_played) || 0;
+    if (row.games?.id && !goalie.gameIds.has(row.games.id)) {
+      goalie.gamesPlayed += 1;
+      goalie.gameIds.add(row.games.id);
+    }
+  }
+
+  return Array.from(map.values()).map(({ gameIds: _ignore, ...goalie }) => {
+    const shotsAgainst = goalie.saves + goalie.goalsAgainst;
+    const savePct = shotsAgainst > 0 ? goalie.saves / shotsAgainst : 0;
+    const gaa = goalie.gamesPlayed > 0 ? goalie.goalsAgainst / goalie.gamesPlayed : 0;
+    return { ...goalie, savePct, gaa };
+  });
+}
+
+function buildGoalieStatEntries(rows: RawGoalieStatRow[], teamLogoMap: Map<string, string | null>) {
+  return rows
+    .map((row) => {
+      const goalsAgainst = Number(row.goals_against) || 0;
+      const saves = Number(row.saves) || 0;
+      const shotsAgainst = goalsAgainst + saves;
+      return {
+        gameId: row.games?.id ?? '',
+        scheduledAt: row.games?.scheduled_at ?? '',
+        playerId: row.player_id,
+        playerName: row.profiles?.full_name ?? 'Unknown Goalie',
+        jerseyNumber: row.profiles?.jersey_number ?? null,
+        teamId: row.team_id,
+        teamName: row.teams?.name ?? 'Unknown Team',
+        teamShortName: row.teams?.short_name ?? row.teams?.name ?? 'Team',
+        teamPrimaryColor: row.teams?.primary_color ?? null,
+        teamLogoDataUri: row.teams?.logo_url ? teamLogoMap.get(row.teams.logo_url) ?? null : null,
+        goalsAgainst,
+        saves,
+        shutouts: row.shutout ? 1 : 0,
+        minutesPlayed: Number(row.minutes_played) || 0,
+        savePct: shotsAgainst > 0 ? saves / shotsAgainst : 0,
+      };
+    })
+    .filter((row) => row.gameId);
+}
+
+async function urlToDataUri(url: string | null) {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const contentType = response.headers.get('content-type') || 'image/png';
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 function startOfDay(input: string) {
@@ -448,15 +729,7 @@ function startOfDay(input: string) {
   return date;
 }
 
-function InfoMetric({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-}) {
+function InfoMetric({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
     <div className="rounded-2xl border border-white/[0.10] bg-black/20 p-4 backdrop-blur-xl">
       <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">{label}</p>
