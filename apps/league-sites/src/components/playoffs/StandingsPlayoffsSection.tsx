@@ -4,10 +4,12 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { TeamStanding } from '@/lib/types';
 import type { PlayoffPreview } from '@/lib/playoffs/preview';
+import type { TeamPlayoffOdds } from '@/lib/playoffs/odds';
 
 interface StandingsPlayoffsSectionProps {
   previews: PlayoffPreview[];
   standings: TeamStanding[];
+  odds: TeamPlayoffOdds[];
 }
 
 type PanelKey = 'preview' | 'odds';
@@ -267,7 +269,45 @@ function OddsTeamLogo({
   );
 }
 
-function PlayoffOddsTable({ standings }: { standings: TeamStanding[] }) {
+function formatOdds(value: number): string {
+  const percentage = value * 100;
+  if (percentage <= 0) return '<1%';
+  if (percentage >= 100) return '100%';
+  if (percentage >= 10) return `${Math.round(percentage)}%`;
+  return `${percentage.toFixed(1)}%`;
+}
+
+function OddsBar({ value, color }: { value: number; color: string }) {
+  const percentage = value * 100;
+
+  return (
+    <div className="mx-auto h-1.5 w-16 rounded-full bg-white/8">
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${Math.max(2, Math.min(100, percentage))}%`, backgroundColor: color }}
+      />
+    </div>
+  );
+}
+
+function PlayoffOddsTable({ standings, odds }: { standings: TeamStanding[]; odds: TeamPlayoffOdds[] }) {
+  const oddsMap = useMemo(() => {
+    const m = new Map<string, TeamPlayoffOdds>();
+    for (const o of odds) m.set(o.teamId, o);
+    return m;
+  }, [odds]);
+
+  // Sort by make-playoffs odds descending, then first-place odds
+  const sortedStandings = useMemo(() => {
+    return [...standings].sort((a, b) => {
+      const oa = oddsMap.get(a.team_id);
+      const ob = oddsMap.get(b.team_id);
+      const playoffDiff = (ob?.oddsOfMakingPlayoffs ?? 0) - (oa?.oddsOfMakingPlayoffs ?? 0);
+      if (playoffDiff !== 0) return playoffDiff;
+      return (ob?.oddsOfFinishingFirst ?? 0) - (oa?.oddsOfFinishingFirst ?? 0);
+    });
+  }, [standings, oddsMap]);
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
@@ -275,24 +315,38 @@ function PlayoffOddsTable({ standings }: { standings: TeamStanding[] }) {
           <tr className="border-b border-white/10 text-center text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
             <th className="px-4 py-3 text-center">Team</th>
             <th className="px-4 py-3 text-center">Record</th>
-            <th className="px-4 py-3 text-center">Odds of Finishing 1st</th>
-            <th className="px-4 py-3 text-center">Odds of Making Playoffs</th>
+            <th className="px-4 py-3 text-center">1st Place</th>
+            <th className="px-4 py-3 text-center">Make Playoffs</th>
           </tr>
         </thead>
         <tbody>
-          {standings.map((team, index) => (
-            <tr key={team.team_id} className="border-b border-white/5 last:border-b-0">
-              <td className="px-4 py-3">
-                <div className="flex items-center justify-center gap-3">
-                  <OddsTeamLogo name={team.team_name} logoUrl={team.team_logo} rank={index + 1} />
-                  <span className="hidden min-w-0 truncate font-semibold text-[var(--color-text-primary)] sm:inline">{team.team_name}</span>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-center font-semibold text-[var(--color-text-primary)]">{team.wins}-{team.losses}-{team.ties}</td>
-              <td className="px-4 py-3 text-center font-semibold text-[var(--color-text-primary)]">100%</td>
-              <td className="px-4 py-3 text-center font-semibold text-[var(--color-text-primary)]">100%</td>
-            </tr>
-          ))}
+          {sortedStandings.map((team, index) => {
+            const teamOdds = oddsMap.get(team.team_id);
+            const firstPct = teamOdds?.oddsOfFinishingFirst ?? 0;
+            const playoffPct = teamOdds?.oddsOfMakingPlayoffs ?? 0;
+
+            return (
+              <tr key={team.team_id} className="border-b border-white/5 last:border-b-0">
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <OddsTeamLogo name={team.team_name} logoUrl={team.team_logo} rank={index + 1} />
+                    <span className="hidden min-w-0 truncate font-semibold text-[var(--color-text-primary)] sm:inline">{team.team_name}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-center font-semibold text-[var(--color-text-primary)]">
+                  {team.wins}-{team.losses}-{team.ties}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className="font-semibold text-[var(--color-text-primary)]">{formatOdds(firstPct)}</span>
+                  <OddsBar value={firstPct} color="var(--league-primary, #8f7a4b)" />
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className="font-semibold text-[var(--color-text-primary)]">{formatOdds(playoffPct)}</span>
+                  <OddsBar value={playoffPct} color={playoffPct >= 0.5 ? '#4ade80' : playoffPct >= 0.2 ? '#facc15' : '#f87171'} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -301,15 +355,15 @@ function PlayoffOddsTable({ standings }: { standings: TeamStanding[] }) {
 
 /* ── Main section ── */
 
-export function StandingsPlayoffsSection({ previews, standings }: StandingsPlayoffsSectionProps) {
+export function StandingsPlayoffsSection({ previews, standings, odds }: StandingsPlayoffsSectionProps) {
   const [activePanel, setActivePanel] = useState<PanelKey>('preview');
 
   const panels = useMemo(
     () => ({
       preview: <PlayoffBrackets previews={previews} />,
-      odds: <PlayoffOddsTable standings={standings} />,
+      odds: <PlayoffOddsTable standings={standings} odds={odds} />,
     }),
-    [previews, standings],
+    [odds, previews, standings],
   );
 
   return (

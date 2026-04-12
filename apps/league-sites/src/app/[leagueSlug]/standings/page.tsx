@@ -10,6 +10,7 @@ import { filterPublicStandings } from '@/lib/publicSiteVisibility';
 import { SeasonCompletionArc } from '@/components/shared/SeasonCompletionArc';
 import { StandingsPlayoffsSection } from '@/components/playoffs/StandingsPlayoffsSection';
 import { buildPlayoffPreview, type PlayoffPreview } from '@/lib/playoffs/preview';
+import { calculatePlayoffOdds, type TeamPlayoffOdds } from '@/lib/playoffs/odds';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 interface StandingsPageProps {
@@ -75,6 +76,11 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
         })()
     : [];
 
+  // Compute real playoff odds via Monte Carlo simulation
+  const playoffOdds: TeamPlayoffOdds[] = hasConfiguredPlayoffs && standings.length > 1
+    ? calculatePlayoffOdds(standings, seasonGames, previewConfig)
+    : [];
+
   return (
     <SubscriptionWall>
     <div className="container mx-auto px-4 py-12 animate-fade-in">
@@ -115,7 +121,7 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
       )}
 
       {playoffPreviews.length > 0 && (
-        <StandingsPlayoffsSection standings={standings} previews={playoffPreviews} />
+        <StandingsPlayoffsSection standings={standings} previews={playoffPreviews} odds={playoffOdds} />
       )}
 
       {/* Season Completion Arc — baseline sits flush against sponsor bar */}
