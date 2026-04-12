@@ -2,48 +2,38 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ArrowRight, CalendarRange, ImageIcon, Sparkles, Trophy } from 'lucide-react';
-import { LeagueLogo } from '@/components/ui/league-logo';
+import { ArrowLeft, Download, ImageIcon, Sparkles, Trophy } from 'lucide-react';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
+import { getStandings } from '@/lib/standings/actions';
+import { LeagueLogo } from '@/components/ui/league-logo';
+import { SocialGraphicsWorkspace } from './SocialGraphicsWorkspace';
 
 type Props = {
   params: Promise<{ locale: string; id: string }>;
 };
 
-type TemplateCard = {
-  eyebrow: string;
-  title: string;
-  description: string;
-  accent: string;
-  icon: ReactNode;
+type RawGameRow = {
+  id: string;
+  season_id: string;
+  scheduled_at: string;
+  location: string | null;
+  home_score: number | null;
+  away_score: number | null;
+  round_number: number | null;
+  game_number: number | null;
+  home_team: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    primary_color: string | null;
+  } | null;
+  away_team: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    primary_color: string | null;
+  } | null;
 };
-
-const templateCards: TemplateCard[] = [
-  {
-    eyebrow: 'Game Result',
-    title: 'Score cards',
-    description:
-      'Single-game result graphics for final scores, logos, venue context, and fast post-game sharing.',
-    accent: 'from-cyan-500/20 to-sky-500/5',
-    icon: <ImageIcon className="h-4 w-4" />,
-  },
-  {
-    eyebrow: 'Weekly Story',
-    title: 'Weekly recap',
-    description:
-      'Multi-game roundups that package the week into one clean visual recap surface for social.',
-    accent: 'from-fuchsia-500/20 to-pink-500/5',
-    icon: <CalendarRange className="h-4 w-4" />,
-  },
-  {
-    eyebrow: 'Standings Push',
-    title: 'Standings updates',
-    description:
-      'Table-driven standings graphics that spotlight movement, points, and goal differential.',
-    accent: 'from-amber-500/20 to-yellow-500/5',
-    icon: <Trophy className="h-4 w-4" />,
-  },
-];
 
 export default async function LeagueSocialGraphicsPage({ params }: Props) {
   const { locale, id: leagueId } = await params;
@@ -51,15 +41,98 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
 
   const { supabase } = await requireLeagueDashboardAccess({ leagueId, locale });
 
-  const { data: league, error } = await supabase
-    .from('leagues')
-    .select('id, name, logo_url, primary_color, secondary_color, city, state_province, timezone')
-    .eq('id', leagueId)
-    .single();
+  const [{ data: league }, { data: seasons }, { data: games }] = await Promise.all([
+    supabase
+      .from('leagues')
+      .select('id, name, logo_url, primary_color, secondary_color, city, state_province, timezone')
+      .eq('id', leagueId)
+      .single(),
+    supabase
+      .from('seasons')
+      .select('id, name, status, start_date')
+      .eq('league_id', leagueId)
+      .order('start_date', { ascending: false }),
+    supabase
+      .from('games')
+      .select(`
+        id,
+        season_id,
+        scheduled_at,
+        location,
+        home_score,
+        away_score,
+        round_number,
+        game_number,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color)
+      `)
+      .eq('league_id', leagueId)
+      .eq('status', 'completed')
+      .order('scheduled_at', { ascending: false }),
+  ]);
 
-  if (error || !league) {
+  if (!league) {
     notFound();
   }
+
+  const seasonRows = seasons ?? [];
+  const completedGames = (games ?? []) as RawGameRow[];
+
+  const standingsBySeason = new Map(
+    await Promise.all(
+      seasonRows.map(async (season) => [season.id, await getStandings(season.id)] as const),
+    ),
+  );
+
+  const seasonData = seasonRows.map((season) => ({
+    id: season.id,
+    name: season.name,
+    status: season.status,
+    standings: (standingsBySeason.get(season.id) ?? []).map((team) => ({
+      teamId: team.teamId,
+      teamName: team.teamName,
+      shortName: team.shortName,
+      points: team.points,
+      wins: team.wins,
+      losses: team.losses,
+      ties: team.ties,
+      goalsFor: team.goalsFor,
+      goalsAgainst: team.goalsAgainst,
+      goalDiff: team.goalDiff,
+      rank: team.rank,
+    })),
+    games: completedGames
+      .filter((game) => game.season_id === season.id)
+      .map((game) => ({
+        id: game.id,
+        seasonId: game.season_id,
+        scheduledAt: game.scheduled_at,
+        location: game.location,
+        homeScore: game.home_score ?? 0,
+        awayScore: game.away_score ?? 0,
+        roundNumber: game.round_number,
+        gameNumber: game.game_number,
+        homeTeam: game.home_team
+          ? {
+              id: game.home_team.id,
+              name: game.home_team.name,
+              shortName: game.home_team.short_name,
+              primaryColor: game.home_team.primary_color,
+            }
+          : null,
+        awayTeam: game.away_team
+          ? {
+              id: game.away_team.id,
+              name: game.away_team.name,
+              shortName: game.away_team.short_name,
+              primaryColor: game.away_team.primary_color,
+            }
+          : null,
+      })),
+  }));
+
+  const totalGraphicsReady = seasonData.filter((season) => season.games.length > 0).length;
+  const totalGames = completedGames.length;
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -93,8 +166,7 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
                   {league.name} creative workspace
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300">
-                  Review the core graphic directions for score cards, weekly recaps, and standings
-                  updates in one league-scoped workspace.
+                  Generate real score cards, weekly recaps, and standings updates from completed games and live standings, then preview and download them on the spot.
                 </p>
               </div>
             </div>
@@ -108,83 +180,62 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
 
           <div className="mt-6 grid gap-3 md:grid-cols-3">
             <InfoMetric
-              label="League"
-              value={league.name}
-              helper={league.city ? `${league.city}${league.state_province ? `, ${league.state_province}` : ''}` : 'Location optional'}
+              label="Completed games"
+              value={String(totalGames)}
+              helper="Ready to turn into graphics"
             />
             <InfoMetric
-              label="Template lanes"
-              value="3 live directions"
-              helper="Score cards, recaps, standings"
+              label="Season coverage"
+              value={String(totalGraphicsReady)}
+              helper={`${seasonData.length} season${seasonData.length === 1 ? '' : 's'} loaded`}
             />
             <InfoMetric
-              label="Workspace"
-              value="Social graphics"
-              helper="Score cards, recaps, standings"
+              label="Exports"
+              value="SVG downloads"
+              helper="Vector output for posting or editing"
             />
           </div>
         </section>
 
-        <section className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                Template library
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Current social directions</h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Use these template lanes as the starting point for league-branded graphics.
-              </p>
+        <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+            <div className="flex items-center gap-2 text-neutral-400">
+              <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">
+                <Sparkles className="h-4 w-4" />
+              </span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+                What this workspace does
+              </span>
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {templateCards.map((card) => (
-                <div
-                  key={card.title}
-                  className={`rounded-3xl border border-white/[0.08] bg-gradient-to-br ${card.accent} p-[1px]`}
-                >
-                  <div className="h-full rounded-[calc(1.5rem-1px)] bg-neutral-950/90 p-5 backdrop-blur">
-                    <div className="flex items-center gap-2 text-neutral-400">
-                      <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{card.icon}</span>
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
-                        {card.eyebrow}
-                      </span>
-                    </div>
-                    <h3 className="mt-4 text-lg font-bold text-white">{card.title}</h3>
-                    <p className="mt-2 text-sm leading-7 text-neutral-400">{card.description}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              <StepRow title="Score cards" body="Pick any completed game in the selected week and export a branded final-score card." icon={<ImageIcon className="h-4 w-4" />} />
+              <StepRow title="Weekly recaps" body="Bundle a week of final scores into one consistent roundup graphic for league channels." icon={<Download className="h-4 w-4" />} />
+              <StepRow title="Standings updates" body="Turn the live standings table into a clean rankings graphic without leaving the league dashboard." icon={<Trophy className="h-4 w-4" />} />
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="surface-premium p-6">
-              <div className="flex items-center gap-2 text-neutral-400">
-                <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
-                  Included lanes
-                </span>
-              </div>
-              <h3 className="mt-4 text-xl font-bold text-white">Built for repeatable league graphics</h3>
-              <div className="mt-4 space-y-3 text-sm text-neutral-300">
-                <StepRow title="Score cards" body="Use final-score visuals for same-night posting after games wrap." />
-                <StepRow title="Weekly recaps" body="Package multiple results into one clean story for league channels." />
-                <StepRow title="Standings updates" body="Highlight movement, points, and momentum with one consistent system." />
-              </div>
-            </div>
-
-            <Link
-              href={`/${locale}/dashboard/leagues/${leagueId}`}
-              className="inline-flex items-center gap-2 rounded-2xl border border-rink-400/20 bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
-            >
-              Back to league hub
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Notes</p>
+            <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral-300">
+              <li>Built from real completed games only.</li>
+              <li>Week windows are grouped into deterministic seven-day buckets inside each season.</li>
+              <li>Exports are SVG so owners can post immediately or refine in design tools later.</li>
+            </ul>
           </div>
         </section>
+
+        <SocialGraphicsWorkspace
+          league={{
+            id: league.id,
+            name: league.name,
+            primaryColor: league.primary_color,
+            secondaryColor: league.secondary_color,
+            city: league.city,
+            stateProvince: league.state_province,
+            timezone: league.timezone,
+          }}
+          seasons={seasonData}
+        />
       </div>
     </div>
   );
@@ -208,11 +259,14 @@ function InfoMetric({
   );
 }
 
-function StepRow({ title, body }: { title: string; body: string }) {
+function StepRow({ title, body, icon }: { title: string; body: string; icon: ReactNode }) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
-      <p className="font-semibold text-white">{title}</p>
-      <p className="mt-1 leading-6 text-neutral-400">{body}</p>
+      <div className="flex items-center gap-2 text-rink-300">
+        {icon}
+        <p className="font-semibold text-white">{title}</p>
+      </div>
+      <p className="mt-2 leading-6 text-neutral-400">{body}</p>
     </div>
   );
 }
