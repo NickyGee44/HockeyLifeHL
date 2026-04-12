@@ -49,6 +49,38 @@ describe('dashboard route inventory', () => {
     }
   });
 
+  it('keeps season-owned workflow routes canonical and legacy season routes as shims', () => {
+    const canonicalRoutes = new Set(
+      DASHBOARD_ROUTE_INVENTORY
+        .filter((entry) => entry.classification === 'canonical-workspace')
+        .map((entry) => entry.route)
+    );
+    const redirectRoutes = new Set(
+      DASHBOARD_ROUTE_INVENTORY
+        .filter((entry) => entry.classification === 'redirect-shim')
+        .map((entry) => entry.route)
+    );
+
+    for (const route of [
+      '/leagues/[id]/seasons/[seasonId]/draft',
+      '/leagues/[id]/seasons/[seasonId]/ratings',
+      '/leagues/[id]/seasons/[seasonId]/standings',
+      '/leagues/[id]/seasons/[seasonId]/eligibility',
+    ]) {
+      expect(canonicalRoutes.has(route)).toBe(true);
+    }
+
+    for (const route of [
+      '/leagues/[id]/draft',
+      '/leagues/[id]/ratings',
+      '/seasons/[seasonId]/schedule',
+      '/seasons/[seasonId]/standings',
+      '/seasons/[seasonId]/eligibility',
+    ]) {
+      expect(redirectRoutes.has(route)).toBe(true);
+    }
+  });
+
   it('reports the expected classification totals', () => {
     expect(DASHBOARD_ROUTE_INVENTORY).toHaveLength(91);
     expect(DASHBOARD_ROUTE_CLASSIFICATION_COUNTS).toEqual({
