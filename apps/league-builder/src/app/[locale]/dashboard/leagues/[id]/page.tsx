@@ -249,7 +249,7 @@ export default async function LeagueDetailPage({ params }: Props) {
       eyebrow: 'Content',
       title: 'Social graphics workspace is ready',
       description:
-        'Keep score cards, weekly recap concepts, standings graphics, and future social export flows in one league-scoped portal page.',
+        'Keep score cards, weekly recaps, and standings graphics in one league-scoped workspace.',
       href: `/${locale}/dashboard/leagues/${leagueId}/social`,
       cta: 'Open social graphics',
     },

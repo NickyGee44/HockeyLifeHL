@@ -2,15 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarRange,
-  ImageIcon,
-  LayoutTemplate,
-  Sparkles,
-  Trophy,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarRange, ImageIcon, Sparkles, Trophy } from 'lucide-react';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import { requireLeagueDashboardAccess } from '@/lib/auth/league-dashboard-access';
 
@@ -50,14 +42,6 @@ const templateCards: TemplateCard[] = [
       'Table-driven standings graphics that spotlight movement, points, and goal differential.',
     accent: 'from-amber-500/20 to-yellow-500/5',
     icon: <Trophy className="h-4 w-4" />,
-  },
-  {
-    eyebrow: 'Template System',
-    title: 'Portal foundation',
-    description:
-      'This first pass gives leagues one discoverable workspace before generation, exports, and posting flows are wired in.',
-    accent: 'from-emerald-500/20 to-teal-500/5',
-    icon: <LayoutTemplate className="h-4 w-4" />,
   },
 ];
 
@@ -109,17 +93,13 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
                   {league.name} creative workspace
                 </h1>
                 <p className="mt-2 max-w-3xl text-sm leading-7 text-neutral-300">
-                  This is the new portal surface for league social graphics. It gives admins one
-                  place to review template directions for score cards, weekly recaps, and standings
-                  creative before the full generation and posting flow is wired in.
+                  Review the core graphic directions for score cards, weekly recaps, and standings
+                  updates in one league-scoped workspace.
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-rink-400/20 bg-rink-500/10 px-3 py-1.5 text-sm font-semibold text-rink-200">
-                Phase 1 live
-              </span>
               <span className="rounded-full border border-white/[0.10] bg-white/[0.05] px-3 py-1.5 text-sm font-semibold text-neutral-300">
                 {league.timezone || 'Timezone not set'}
               </span>
@@ -138,9 +118,9 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
               helper="Score cards, recaps, standings"
             />
             <InfoMetric
-              label="Portal status"
-              value="Built into dashboard"
-              helper="Generation wiring is next"
+              label="Workspace"
+              value="Social graphics"
+              helper="Score cards, recaps, standings"
             />
           </div>
         </section>
@@ -153,7 +133,7 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
               </p>
               <h2 className="mt-2 text-2xl font-bold text-white">Current social directions</h2>
               <p className="mt-1 text-sm text-neutral-400">
-                These are the first design lanes now anchored in the portal so the next generation step has a real home.
+                Use these template lanes as the starting point for league-branded graphics.
               </p>
             </div>
 
@@ -185,25 +165,14 @@ export default async function LeagueSocialGraphicsPage({ params }: Props) {
                   <Sparkles className="h-4 w-4" />
                 </span>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
-                  Why this page exists
+                  Included lanes
                 </span>
               </div>
-              <h3 className="mt-4 text-xl font-bold text-white">Stop losing social work in chat</h3>
-              <p className="mt-2 text-sm leading-7 text-neutral-400">
-                The job for this first pass is simple: give league admins a real dashboard destination
-                for social graphics work. That means a stable route, league context, and a visible
-                template system before we add full generation, export, and posting actions.
-              </p>
-            </div>
-
-            <div className="surface-premium p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                Next build steps
-              </p>
+              <h3 className="mt-4 text-xl font-bold text-white">Built for repeatable league graphics</h3>
               <div className="mt-4 space-y-3 text-sm text-neutral-300">
-                <StepRow title="Template previews" body="Show live image previews or generated samples inside the page instead of external files." />
-                <StepRow title="Generation actions" body="Add per-template generate/regenerate controls with league and game context prefilled." />
-                <StepRow title="Export + posting" body="Connect finished graphics to download, queue, and social distribution paths." />
+                <StepRow title="Score cards" body="Use final-score visuals for same-night posting after games wrap." />
+                <StepRow title="Weekly recaps" body="Package multiple results into one clean story for league channels." />
+                <StepRow title="Standings updates" body="Highlight movement, points, and momentum with one consistent system." />
               </div>
             </div>
 
