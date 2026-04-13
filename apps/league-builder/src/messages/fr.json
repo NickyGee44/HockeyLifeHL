@@ -953,6 +953,9 @@
     "saving": "Enregistrement...",
     "generalSettings": "Parametres generaux",
     "updateInfo": "Modifier les informations de base pour {name}",
+    "recapTone": "Ton des recaps IA",
+    "recapToneDescription": "Choisissez le style d'ecriture des recaps de matchs generes automatiquement. Necessite le module IA News.",
+    "recapToneSaved": "Ton des recaps mis a jour",
     "waiver": {
       "title": "Paramètres de décharge",
       "description": "Gérer la décharge de responsabilité et voir les accords signés",

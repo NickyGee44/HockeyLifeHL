@@ -404,6 +404,7 @@ function revalidateLeagueSiteGameResultPaths(
       `/${leagueSlug}/schedule`,
       `/${leagueSlug}/scores`,
       `/${leagueSlug}/standings`,
+      `/${leagueSlug}/playoffs`,
       `/${leagueSlug}/stats`,
       `/${leagueSlug}/teams`,
       ...teamSlugs.filter(Boolean).map((teamSlug) => `/${leagueSlug}/teams/${teamSlug}`),

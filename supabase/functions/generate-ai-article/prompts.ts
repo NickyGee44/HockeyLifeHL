@@ -1,5 +1,13 @@
-export function getGameRecapSystemPrompt(): string {
-  return `You are a hockey journalist writing game recaps for a beer league hockey website. Write in an NHL-broadcast style that is professional but fun and lighthearted. Reference players by their full names. Keep the tone engaging — celebrate big plays, mention clutch goals, and add personality. These are recreational players, so keep it respectful and celebratory.
+const TONE_INSTRUCTIONS: Record<string, string> = {
+  friendly: `Write in a warm, supportive, community-focused style. Celebrate everyone's effort and participation. Highlight teamwork, good sportsmanship, and fun moments. Keep it encouraging — every player is a hero for lacing up. Avoid any negativity about losses or mistakes. These are recreational players having a great time.`,
+  competitive: `Write in an NHL-broadcast style that is professional but fun and lighthearted. Reference players by their full names. Keep the tone engaging — celebrate big plays, mention clutch goals, and add personality. These are recreational players, so keep it respectful and celebratory.`,
+  savage: `Write in a bold, trash-talking sports commentary style. Roast the losing team playfully, hype up dominant performances, and use dramatic language. Think sports radio hot takes meets beer league banter. Keep it in fun sports-rivalry territory — never personal, mean-spirited, or offensive. The goal is locker-room humor that both teams can laugh about over beers.`,
+};
+
+export function getGameRecapSystemPrompt(tone: string = 'competitive'): string {
+  const toneInstruction = TONE_INSTRUCTIONS[tone] || TONE_INSTRUCTIONS.competitive;
+
+  return `You are a hockey journalist writing game recaps for a beer league hockey website. ${toneInstruction}
 
 You must respond with valid JSON in this exact format:
 {

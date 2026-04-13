@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
 import { Input, Textarea, FormField, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@hockey-life/ui';
-import { updateLeagueSettings } from '@/lib/actions/league-settings';
+import { updateLeagueSettings, updateRecapTone, type RecapTone } from '@/lib/actions/league-settings';
 
 const TIMEZONES = [
   { value: 'America/New_York', label: 'Eastern Time (ET)' },
@@ -29,6 +29,12 @@ const COUNTRIES = [
   { value: 'Other', label: 'Other' },
 ];
 
+const RECAP_TONES = [
+  { value: 'friendly', label: 'Friendly', description: 'Warm and supportive — celebrates everyone' },
+  { value: 'competitive', label: 'Competitive', description: 'NHL broadcast style — professional but fun' },
+  { value: 'savage', label: 'Savage', description: 'Bold trash talk — playful roasts and hot takes' },
+] as const;
+
 interface GeneralSettingsFormProps {
   leagueId: string;
   initialData: {
@@ -40,6 +46,7 @@ interface GeneralSettingsFormProps {
     timezone: string;
     contact_email: string;
     contact_phone: string;
+    recap_tone: string;
   };
 }
 
@@ -197,6 +204,39 @@ export function GeneralSettingsForm({ leagueId, initialData }: GeneralSettingsFo
               placeholder="(555) 123-4567"
             />
           </FormField>
+        </div>
+      </div>
+
+      {/* AI Recap Tone */}
+      <div className="bg-white/[0.04] border border-white/10 backdrop-blur-xl rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-white mb-2">{t('recapTone')}</h2>
+        <p className="text-sm text-neutral-400 mb-6">
+          {t('recapToneDescription')}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {RECAP_TONES.map((tone) => (
+            <button
+              key={tone.value}
+              type="button"
+              onClick={async () => {
+                handleChange('recap_tone', tone.value);
+                const result = await updateRecapTone(leagueId, tone.value as RecapTone);
+                if (result.success) {
+                  toast.success(t('recapToneSaved'));
+                } else {
+                  toast.error(result.error || 'Failed to update recap tone');
+                }
+              }}
+              className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition-all ${
+                formData.recap_tone === tone.value
+                  ? 'border-rink-500 bg-rink-500/10 ring-1 ring-rink-500/30'
+                  : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+              }`}
+            >
+              <span className="text-sm font-semibold text-white">{tone.label}</span>
+              <span className="text-xs text-neutral-400">{tone.description}</span>
+            </button>
+          ))}
         </div>
       </div>
 
