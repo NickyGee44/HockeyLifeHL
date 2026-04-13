@@ -56,6 +56,72 @@ function revalidateGamePaths(game: { league_id: string; season_id: string; id: s
   revalidatePath(`/dashboard/leagues/${game.league_id}/seasons/${game.season_id}/games/${game.id}`);
 }
 
+function shouldRevalidatePublicGameResultPaths(
+  before: Pick<Game, 'status' | 'home_score' | 'away_score'>,
+  after: Pick<Game, 'status' | 'home_score' | 'away_score'>,
+) {
+  const beforeCompleted = before.status === 'completed';
+  const afterCompleted = after.status === 'completed';
+  const scoreChanged = before.home_score !== after.home_score || before.away_score !== after.away_score;
+
+  return beforeCompleted !== afterCompleted || (afterCompleted && scoreChanged);
+}
+
+async function revalidatePublicLeagueResultPaths(
+  serviceClient: Awaited<ReturnType<typeof createServiceRoleClient>>,
+  game: Pick<Game, 'league_id' | 'home_team_id' | 'away_team_id'>,
+) {
+  const { data: league } = await serviceClient
+    .from('leagues')
+    .select('slug')
+    .eq('id', game.league_id)
+    .maybeSingle();
+
+  if (!league?.slug) {
+    return;
+  }
+
+  const teamIds = [game.home_team_id, game.away_team_id].filter(Boolean);
+  const { data: teams } = teamIds.length
+    ? await serviceClient
+        .from('teams')
+        .select('slug')
+        .in('id', teamIds)
+    : { data: [] };
+
+  const paths = Array.from(
+    new Set([
+      `/${league.slug}`,
+      `/${league.slug}/schedule`,
+      `/${league.slug}/scores`,
+      `/${league.slug}/standings`,
+      `/${league.slug}/stats`,
+      `/${league.slug}/teams`,
+      ...(teams ?? [])
+        .map((team) => team.slug)
+        .filter(Boolean)
+        .map((teamSlug) => `/${league.slug}/teams/${teamSlug}`),
+    ]),
+  );
+
+  const leagueSitesUrl = process.env.LEAGUE_SITES_URL || 'http://localhost:3001';
+
+  try {
+    await fetch(`${leagueSitesUrl}/api/revalidate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug: league.slug,
+        secret: process.env.REVALIDATION_SECRET,
+        type: 'game_result',
+        paths,
+      }),
+    });
+  } catch (error) {
+    console.warn('[games] Failed to trigger league-sites revalidation:', error);
+  }
+}
+
 // ==============================================================================
 // TYPES
 // ==============================================================================
@@ -438,6 +504,10 @@ export async function updateGame(
     );
 
     revalidateGamePaths(currentGame);
+
+    if (shouldRevalidatePublicGameResultPaths(currentGame as Game, data as Game)) {
+      await revalidatePublicLeagueResultPaths(serviceClient, currentGame as Game);
+    }
 
     return { success: true, data: data as Game };
   } catch (error) {

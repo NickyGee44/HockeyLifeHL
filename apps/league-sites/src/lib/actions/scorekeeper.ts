@@ -1,6 +1,7 @@
 'use server';
 
 import { createServiceRoleClient, createAuthClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { cookies, headers } from 'next/headers';
 import { randomBytes } from 'crypto';
 
@@ -393,13 +394,42 @@ function buildCaptainVerificationUrl(leagueSlug: string, token: string): string 
   return `${baseUrl}${buildCaptainVerificationPath(leagueSlug, token)}`;
 }
 
+function revalidateLeagueSiteGameResultPaths(
+  leagueSlug: string,
+  teamSlugs: Array<string | null | undefined> = [],
+) {
+  const paths = Array.from(
+    new Set([
+      `/${leagueSlug}`,
+      `/${leagueSlug}/schedule`,
+      `/${leagueSlug}/scores`,
+      `/${leagueSlug}/standings`,
+      `/${leagueSlug}/stats`,
+      `/${leagueSlug}/teams`,
+      ...teamSlugs.filter(Boolean).map((teamSlug) => `/${leagueSlug}/teams/${teamSlug}`),
+    ]),
+  );
+
+  for (const path of paths) {
+    revalidatePath(path);
+  }
+
+  revalidatePath(`/${leagueSlug}`, 'layout');
+}
+
 async function finalizeCompletedGameStats(
   supabase: ReturnType<typeof createServiceRoleClient>,
   gameId: string,
 ): Promise<void> {
   const { data: gameBeforeFinalize, error: gameLookupError } = await supabase
     .from('games')
-    .select('status')
+    .select(`
+      status,
+      league_id,
+      leagues(slug),
+      home_team:teams!games_home_team_id_fkey(slug),
+      away_team:teams!games_away_team_id_fkey(slug)
+    `)
     .eq('id', gameId)
     .single();
 
@@ -428,6 +458,21 @@ async function finalizeCompletedGameStats(
   await recalculateGameDerivedState(supabase, gameId);
 
   if (!wasCompleted) {
+    const leagueRelation = Array.isArray(gameBeforeFinalize.leagues)
+      ? gameBeforeFinalize.leagues[0]
+      : gameBeforeFinalize.leagues;
+    const homeTeamRelation = Array.isArray(gameBeforeFinalize.home_team)
+      ? gameBeforeFinalize.home_team[0]
+      : gameBeforeFinalize.home_team;
+    const awayTeamRelation = Array.isArray(gameBeforeFinalize.away_team)
+      ? gameBeforeFinalize.away_team[0]
+      : gameBeforeFinalize.away_team;
+    const leagueSlug = leagueRelation?.slug ?? null;
+
+    if (leagueSlug) {
+      revalidateLeagueSiteGameResultPaths(leagueSlug, [homeTeamRelation?.slug, awayTeamRelation?.slug]);
+    }
+
     supabase.functions.invoke('generate-ai-article', {
       body: { action: 'game_recap', game_id: gameId },
     }).catch(() => {});
