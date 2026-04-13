@@ -62,9 +62,10 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
     notFound();
   }
 
-  // Get current season if no filter specified
+  // Treat ?season=all as the explicit career/all-time view.
   const currentSeason = await getCurrentSeason(league.id);
-  const seasonId = seasonFilter || currentSeason?.id;
+  const isCareerView = seasonFilter === 'all';
+  const seasonId = isCareerView ? undefined : (seasonFilter || currentSeason?.id);
 
   // Use profile ID (player_id) for stats queries, not the URL param
   const profileId = player.player_id;

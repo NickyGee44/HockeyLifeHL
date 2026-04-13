@@ -257,13 +257,25 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     </div>
                   </div>
 
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 space-y-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                       {team.name}
                     </p>
                     <p className="text-3xl font-black text-[var(--color-text-primary)] md:text-4xl">
                       {teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : 'No games yet'}
                     </p>
+                    <div className="flex flex-wrap justify-center gap-2 xl:justify-start">
+                      <HeroPill label="Rank" value={teamRank ? `#${teamRank}` : '-'} />
+                      <HeroPill label="Win %" value={winPctDisplay} />
+                      <HeroPill label="Streak" value={teamStreak} />
+                      <HeroPill label="GF" value={teamStats?.goals_for ?? '-'} />
+                      <HeroPill label="GA" value={teamStats?.goals_against ?? '-'} />
+                      <HeroPill
+                        label="Diff"
+                        value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
+                        accent={Boolean(teamStats && teamStats.goal_differential > 0)}
+                      />
+                    </div>
                     {championshipSummary.count > 0 && championshipSummary.latestTitleSeasonName ? (
                       <p className="max-w-sm text-sm leading-6 text-[var(--color-text-secondary)]">
                         Latest championship: {championshipSummary.latestTitleSeasonName}{championshipSummary.latestTitleLabel ? ` (${championshipSummary.latestTitleLabel})` : ''}.
@@ -272,29 +284,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-5">
-                  <div
-                    className="overflow-hidden rounded-[22px] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl"
-                    style={{
-                      background: 'color-mix(in srgb, var(--league-primary) 8%, rgba(0,0,0,0.40))',
-                    }}
-                  >
-                    <div className="grid grid-cols-3 divide-x divide-white/10">
-                      <HeroMetric label="Win %" value={winPctDisplay} accent />
-                      <HeroMetric label="Rank" value={teamRank ? `#${teamRank}` : '-'} accent />
-                      <HeroMetric label="Streak" value={teamStreak} />
-                    </div>
-                    <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
-                      <HeroMetric label="GF" value={teamStats?.goals_for ?? '-'} />
-                      <HeroMetric label="GA" value={teamStats?.goals_against ?? '-'} />
-                      <HeroMetric
-                        label="Diff"
-                        value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
-                        accent={Boolean(teamStats && teamStats.goal_differential > 0)}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <div className="hidden xl:block" />
               </div>
             </div>
           </section>
@@ -548,13 +538,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   );
 }
 
-function HeroMetric({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+function HeroPill({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
-    <div className="px-3 py-3 text-center">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
-      <p className={`mt-1 text-xl font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 backdrop-blur-sm">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</span>
+      <span className={`text-sm font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
         {value}
-      </p>
+      </span>
     </div>
   );
 }
