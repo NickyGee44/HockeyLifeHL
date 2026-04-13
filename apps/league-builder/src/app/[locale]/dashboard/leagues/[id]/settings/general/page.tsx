@@ -29,6 +29,14 @@ export default async function GeneralSettingsPage({ params }: Props) {
     notFound();
   }
 
+  // Fetch recap_tone separately (column added by migration, not yet in generated types)
+  const { data: toneRow } = await supabase
+    .from('leagues')
+    .select('recap_tone' as any)
+    .eq('id', leagueId)
+    .single();
+  const recapTone = (toneRow as any)?.recap_tone || 'competitive';
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -58,6 +66,7 @@ export default async function GeneralSettingsPage({ params }: Props) {
             timezone: league.timezone || '',
             contact_email: league.contact_email || '',
             contact_phone: league.contact_phone || '',
+            recap_tone: recapTone,
           }}
         />
       </div>

@@ -163,6 +163,21 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     // Standings are optional context, don't fail on this
   }
 
+  // Fetch league recap tone
+  let recapTone = 'competitive';
+  try {
+    const { data: leagueSettings } = await supabase
+      .from('leagues')
+      .select('recap_tone')
+      .eq('id', game.league_id)
+      .single();
+    if (leagueSettings?.recap_tone) {
+      recapTone = leagueSettings.recap_tone;
+    }
+  } catch {
+    // Default to competitive
+  }
+
   return {
     league_id: game.league_id,
     season_id: game.season_id,
@@ -177,6 +192,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     homeGoalie,
     awayGoalie,
     standings,
+    recapTone,
   };
 }
 

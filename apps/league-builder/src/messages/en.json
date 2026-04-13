@@ -953,6 +953,9 @@
     "saving": "Saving...",
     "generalSettings": "General Settings",
     "updateInfo": "Update basic information for {name}",
+    "recapTone": "AI Recap Tone",
+    "recapToneDescription": "Choose the writing style for auto-generated game recaps. Requires the AI News add-on.",
+    "recapToneSaved": "Recap tone updated",
     "waiver": {
       "title": "Waiver Settings",
       "description": "Manage liability waiver and view signed agreements",
