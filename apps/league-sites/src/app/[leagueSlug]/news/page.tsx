@@ -33,25 +33,16 @@ export default async function NewsPage({ params }: NewsPageProps) {
     <SubscriptionWall>
     <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-6xl">
-        <section className="league-reading-panel mb-8 rounded-[32px] p-6 md:p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                League coverage
-              </p>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-4xl">
-                {league.name} news
-              </h1>
-              <p className="mt-3 max-w-2xl text-sm text-[var(--color-text-secondary)] md:text-base">
-                Recaps, announcements, and league stories in a readable, image-led feed.
-              </p>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/85 px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)]">
-              <Newspaper className="h-4 w-4 text-[var(--league-primary)]" />
-              {articles.length} {articles.length === 1 ? 'story' : 'stories'}
-            </div>
+        <div className="mb-6 flex items-center gap-3 text-[var(--color-text-primary)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/85 text-[var(--league-primary)]">
+            <Newspaper className="h-5 w-5" />
           </div>
-        </section>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">
+              {league.name} News
+            </h1>
+          </div>
+        </div>
 
         {/* Articles */}
         {articles.length > 0 ? (

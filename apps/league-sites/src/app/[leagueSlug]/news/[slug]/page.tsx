@@ -118,7 +118,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="mb-4 inline-flex items-center rounded-full bg-[var(--league-primary)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-accent-text)]">
                 {article.type === 'game_recap' ? 'Game recap' : article.type === 'weekly_wrap' ? 'Weekly wrap' : 'News'}
               </div>
-              <h1 className="max-w-4xl text-2xl font-extrabold leading-[1.15] text-white sm:text-3xl md:text-[2.75rem] md:leading-[1.12]">
+              <h1 className="max-w-4xl break-words text-2xl font-extrabold leading-[1.15] text-white sm:text-3xl md:text-[2.75rem] md:leading-[1.12]">
                 {article.title}
               </h1>
               <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/72">

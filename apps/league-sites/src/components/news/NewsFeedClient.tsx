@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { NewsArticle } from '@/lib/types';
 import { NewsList } from './NewsList';
 
-type FilterType = 'all' | 'news' | 'game_recap' | 'weekly_wrap';
+type FilterType = 'all' | 'news' | 'game_recap';
 
 interface NewsFeedClientProps {
   articles: NewsArticle[];
@@ -14,10 +14,9 @@ interface NewsFeedClientProps {
 }
 
 const FILTERS: Array<{ key: FilterType; label: string }> = [
-  { key: 'all', label: 'All stories' },
-  { key: 'game_recap', label: 'Game recaps' },
+  { key: 'all', label: 'All' },
+  { key: 'game_recap', label: 'Recaps' },
   { key: 'news', label: 'News' },
-  { key: 'weekly_wrap', label: 'Weekly wraps' },
 ];
 
 export function NewsFeedClient({ articles, leagueSlug, leagueName, leagueLogoUrl }: NewsFeedClientProps) {
@@ -25,14 +24,16 @@ export function NewsFeedClient({ articles, leagueSlug, leagueName, leagueLogoUrl
 
   const filteredArticles = useMemo(() => {
     if (activeFilter === 'all') return articles;
+    if (activeFilter === 'game_recap') {
+      return articles.filter((article) => article.type === 'game_recap' || article.type === 'weekly_wrap');
+    }
     return articles.filter((article) => article.type === activeFilter);
   }, [activeFilter, articles]);
 
   const filterCounts = useMemo(() => ({
     all: articles.length,
     news: articles.filter((article) => article.type === 'news').length,
-    game_recap: articles.filter((article) => article.type === 'game_recap').length,
-    weekly_wrap: articles.filter((article) => article.type === 'weekly_wrap').length,
+    game_recap: articles.filter((article) => article.type === 'game_recap' || article.type === 'weekly_wrap').length,
   }), [articles]);
 
   return (
