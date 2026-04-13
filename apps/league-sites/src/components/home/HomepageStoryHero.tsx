@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { League, LeagueStats, NewsArticle, Season } from '@/lib/types';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
+import { EditorialHeroImage } from '@/components/news/EditorialHeroImage';
 
 const HERO_AUTOPLAY_MS = 7000;
 const HERO_MANUAL_HOLD_MS = 12000;
@@ -321,10 +322,11 @@ export function HomepageStoryHero({
           >
             {hasEditorialStage ? (
               activeSlide.imageUrl ? (
-                <img
+                <EditorialHeroImage
                   src={activeSlide.imageUrl}
                   alt={activeSlide.title}
-                  className="h-full w-full object-cover"
+                  foregroundClassName="object-contain object-right"
+                  backgroundClassName="object-cover opacity-24"
                 />
               ) : (
                 <HeroStageFallback

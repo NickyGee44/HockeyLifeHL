@@ -6,6 +6,7 @@ import { SubscriptionWall } from '@/components/shared';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 import { RichArticleContent } from '@/components/news/RichArticleContent';
+import { EditorialHeroImage } from '@/components/news/EditorialHeroImage';
 import { buildArticleMentions } from '@/lib/articles/linkify';
 import { getArticleLinkContext, getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
@@ -100,10 +101,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <article className="league-reading-panel overflow-hidden rounded-[32px]">
           <div className="relative aspect-[16/7.2] min-h-[280px]">
             {article.image_url ? (
-              <img
+              <EditorialHeroImage
                 src={article.image_url}
                 alt={article.title}
-                className="h-full w-full object-cover"
+                foregroundClassName="object-contain object-center sm:object-right"
+                backgroundClassName="object-cover opacity-24"
               />
             ) : (
               <LeagueNewsFallbackArtwork
