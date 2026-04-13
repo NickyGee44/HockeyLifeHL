@@ -35,6 +35,10 @@ export function validatePersonalInfoStep(
     errors.push('Date of birth is required.');
   }
 
+  if (!valuePresent(data.phone)) {
+    errors.push('Phone number is required.');
+  }
+
   if (data.registration_intent === 'return_to_previous_team') {
     if (!valuePresent(data.previous_team_id || '')) {
       errors.push('Please choose the team you are returning to.');
@@ -49,14 +53,6 @@ export function validatePersonalInfoStep(
     }
   } else if (data.registration_type === 'team_registration' && !valuePresent(data.team_id || '')) {
     errors.push('Team selection is required for team registration.');
-  }
-
-  if (!valuePresent(data.emergency_contact_name)) {
-    errors.push('Emergency contact name is required.');
-  }
-
-  if (!valuePresent(data.emergency_contact_phone)) {
-    errors.push('Emergency contact phone is required.');
   }
 
   return { valid: errors.length === 0, errors };

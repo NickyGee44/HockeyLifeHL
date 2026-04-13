@@ -320,7 +320,7 @@ export function StepPersonalInfo({
         </div>
         <div>
           <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
-            Phone Number
+            Phone Number *
           </label>
           <input
             type="tel"
@@ -339,7 +339,7 @@ export function StepPersonalInfo({
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
-              Contact Name *
+              Contact Name
             </label>
             <input
               type="text"
@@ -351,7 +351,7 @@ export function StepPersonalInfo({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
-                Contact Phone *
+                Contact Phone
               </label>
               <input
                 type="tel"
