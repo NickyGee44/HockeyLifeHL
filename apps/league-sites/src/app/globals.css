@@ -339,15 +339,13 @@ body::after {
 .league-site-main > * {
   position: relative;
   z-index: 1;
-  /* Scroll-reveal: start slightly faded and shifted, reveal on intersection */
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  opacity: 1;
+  transform: none;
 }
 
 .league-site-main > .in-view {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 .league-home-light .card,
@@ -2057,4 +2055,13 @@ html[data-scorekeeper-mode='true'] .league-site-chrome {
 
 html[data-scorekeeper-mode='true'] .league-site-main {
   min-height: 100vh;
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 1024px) {
+  body::before,
+  body::after,
+  .league-site-main::before,
+  .league-home-shell::before {
+    display: none;
+  }
 }
