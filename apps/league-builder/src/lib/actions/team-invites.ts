@@ -25,12 +25,47 @@ export interface TeamInvite {
   createdAt: string;
 }
 
+function buildLeaguePublicBaseUrl(league?: {
+  slug?: string | null;
+  subdomain?: string | null;
+  custom_domain?: string | null;
+  custom_domain_verified?: boolean | null;
+}) {
+  const defaultSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca').replace(/\/$/, '');
+
+  if (league?.custom_domain && league.custom_domain_verified) {
+    return /^https?:\/\//i.test(league.custom_domain)
+      ? league.custom_domain.replace(/\/$/, '')
+      : `https://${league.custom_domain}`.replace(/\/$/, '');
+  }
+
+  if (league?.subdomain) {
+    return `https://${league.subdomain}.beerleaguehockey.ca`;
+  }
+
+  if (league?.slug) {
+    return `https://${league.slug}.beerleaguehockey.ca`;
+  }
+
+  return defaultSiteUrl;
+}
+
+function isHockeyLifeLeague(league?: {
+  name?: string | null;
+  slug?: string | null;
+  subdomain?: string | null;
+}) {
+  return league?.slug === 'hockey-life'
+    || league?.subdomain === 'hockey-life'
+    || league?.name === 'Hockey Life';
+}
+
 function buildTeamInviteEmail(params: {
   teamName: string;
   seasonName: string;
   leagueName: string;
   invitedByName: string;
-  signupUrl: string;
+  actionUrl: string;
   inviteStatus: 'pending' | 'auto_added';
   message?: string | null;
   expiresAt?: string;
@@ -38,13 +73,14 @@ function buildTeamInviteEmail(params: {
   primaryColor?: string | null;
   secondaryColor?: string | null;
   accentColor?: string | null;
+  isHockeyLifeInvite?: boolean;
 }) {
   const {
     teamName,
     seasonName,
     leagueName,
     invitedByName,
-    signupUrl,
+    actionUrl,
     inviteStatus,
     message,
     expiresAt,
@@ -52,6 +88,7 @@ function buildTeamInviteEmail(params: {
     primaryColor,
     secondaryColor,
     accentColor,
+    isHockeyLifeInvite = false,
   } = params;
 
   const details = [
@@ -75,9 +112,12 @@ function buildTeamInviteEmail(params: {
   const intro =
     inviteStatus === 'auto_added'
       ? `<p>You were added to the <strong>${teamName}</strong> roster for the <strong>${seasonName}</strong> season.</p>
-         <p>Sign in to BeerLeagueHockey.ca with this email to review your team details, waivers, schedule, and payments.</p>`
-      : `<p>You’ve been invited to join <strong>${teamName}</strong> for the <strong>${seasonName}</strong> season.</p>
-         <p>Create your account or sign in with this email to get started with waivers, registration, and payments.</p>`;
+         <p>Sign in with this email to review your team details, waivers, schedule, and payments.</p>`
+      : isHockeyLifeInvite
+        ? `<p>You’ve been invited to join <strong>${teamName}</strong> for the <strong>${seasonName}</strong> season.</p>
+           <p>Your Hockey Life player profile is already in the system. Create your account with this email and use your <strong>full name exactly as it appears in Hockey Life</strong> so your player record matches cleanly.</p>`
+        : `<p>You’ve been invited to join <strong>${teamName}</strong> for the <strong>${seasonName}</strong> season.</p>
+           <p>Create your account or sign in with this email to get started with waivers, registration, and payments.</p>`;
 
   const content = `
     <p>Hi there,</p>
@@ -85,19 +125,29 @@ function buildTeamInviteEmail(params: {
     ${createDetailsList(details)}
     ${message ? createInfoBox(`<strong>Message from ${invitedByName}</strong><br>${message}`) : ''}
     ${inviteStatus === 'pending'
-      ? createInfoBox('Use the same email address this invite was sent to when you create your account so league staff can match your invite quickly.')
+      ? createInfoBox(
+          isHockeyLifeInvite
+            ? 'Use the same email address this invite was sent to, and enter your full name exactly as it appears in Hockey Life. Trouble matching? Contact Matt Grossi at 647-456-1920.'
+            : 'Use the same email address this invite was sent to when you create your account so league staff can match your invite quickly.'
+        )
       : ''}
   `;
 
   return getBaseEmailTemplate({
-    title: inviteStatus === 'auto_added' ? `You were added to ${teamName}` : `Invitation to join ${teamName}`,
+    title: inviteStatus === 'auto_added'
+      ? `You were added to ${teamName}`
+      : isHockeyLifeInvite
+        ? 'Set up your Hockey Life account'
+        : `Invitation to join ${teamName}`,
     preheader:
       inviteStatus === 'auto_added'
         ? `You were added to ${teamName} in ${leagueName}`
-        : `Join ${teamName} for the ${seasonName} season`,
+        : isHockeyLifeInvite
+          ? 'Your Hockey Life profile is already in the system'
+          : `Join ${teamName} for the ${seasonName} season`,
     content,
-    buttonText: inviteStatus === 'auto_added' ? 'Open Dashboard' : 'Create Account or Sign In',
-    buttonUrl: signupUrl,
+    buttonText: inviteStatus === 'auto_added' ? 'Open Dashboard' : isHockeyLifeInvite ? 'Set Up Hockey Life Account' : 'Create Account or Sign In',
+    buttonUrl: actionUrl,
     footerNote: 'If you were not expecting this invite, you can ignore this email.',
     leagueName,
     leagueLogo: leagueLogo || undefined,
@@ -142,6 +192,10 @@ export async function sendTeamInvite(
       league_id,
       leagues (
         name,
+        slug,
+        subdomain,
+        custom_domain,
+        custom_domain_verified,
         logo_url,
         primary_color,
         secondary_color,
@@ -242,12 +296,14 @@ export async function sendTeamInvite(
     return { success: false, error: 'Failed to send invite' };
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca').replace(/\/$/, '');
-  const signupUrl = `${siteUrl}/en/signup?teamInvite=${invite.id}`;
   const leagueBranding = Array.isArray(team.leagues) ? team.leagues[0] : team.leagues;
   const inviterName = inviter?.full_name || 'Your league administrator';
   const seasonName = season?.name || 'upcoming season';
   const leagueName = leagueBranding?.name || 'Beer League Hockey';
+  const baseLeagueUrl = buildLeaguePublicBaseUrl(leagueBranding || undefined);
+  const isHockeyLifeInvite = isHockeyLifeLeague(leagueBranding || undefined);
+  const signupUrl = `${baseLeagueUrl}/register?teamInvite=${invite.id}`;
+  const dashboardUrl = `${baseLeagueUrl}/me`;
 
   // If the player already has an account, auto-accept the invite and add to roster
   if (existingProfile) {
@@ -288,7 +344,7 @@ export async function sendTeamInvite(
         seasonName,
         leagueName,
         invitedByName: inviterName,
-        signupUrl,
+        actionUrl: dashboardUrl,
         inviteStatus: 'auto_added',
         message: message || null,
         expiresAt: undefined,
@@ -296,6 +352,7 @@ export async function sendTeamInvite(
         primaryColor: leagueBranding?.primary_color || null,
         secondaryColor: leagueBranding?.secondary_color || null,
         accentColor: leagueBranding?.accent_color || null,
+        isHockeyLifeInvite,
       }),
       tags: [
         { name: 'type', value: 'team_invite' },
@@ -305,13 +362,13 @@ export async function sendTeamInvite(
   } else {
     await sendEmail({
       to: email.toLowerCase().trim(),
-      subject: `You’ve been invited to join ${team.name}`,
+      subject: isHockeyLifeInvite ? 'Set up your Hockey Life account' : `You’ve been invited to join ${team.name}`,
       html: buildTeamInviteEmail({
         teamName: team.name,
         seasonName,
         leagueName,
         invitedByName: inviterName,
-        signupUrl,
+        actionUrl: signupUrl,
         inviteStatus: 'pending',
         message: message || null,
         expiresAt: invite.expires_at || undefined,
@@ -319,6 +376,7 @@ export async function sendTeamInvite(
         primaryColor: leagueBranding?.primary_color || null,
         secondaryColor: leagueBranding?.secondary_color || null,
         accentColor: leagueBranding?.accent_color || null,
+        isHockeyLifeInvite,
       }),
       tags: [
         { name: 'type', value: 'team_invite' },
