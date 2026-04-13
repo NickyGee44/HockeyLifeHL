@@ -154,6 +154,7 @@ describe('captain self-scoring', () => {
   const mockCreateServiceRoleClient = createServiceRoleClient as jest.MockedFunction<
     typeof createServiceRoleClient
   >;
+  const hoursFromNowIso = (hours: number) => new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -344,6 +345,9 @@ describe('captain self-scoring', () => {
   });
 
   it('reuses an existing active captain session for the same game', async () => {
+    const scheduledAtIso = hoursFromNowIso(2);
+    const existingSessionExpiresAtIso = hoursFromNowIso(6);
+
     const authClient: any = {
       auth: {
         getUser: jest.fn().mockResolvedValue({ data: { user: { id: 'captain-1' } } }),
@@ -377,7 +381,7 @@ describe('captain self-scoring', () => {
             league_id: 'league-1',
             home_team_id: 'team-home',
             away_team_id: 'team-away',
-            scheduled_at: '2026-03-30T19:00:00.000Z',
+            scheduled_at: scheduledAtIso,
             status: 'in_progress',
             leagues: { slug: 'hlhl', settings: { self_scorekeeper_enabled: true } },
           },
@@ -388,7 +392,7 @@ describe('captain self-scoring', () => {
         type: 'select',
         target: 'scorekeeper_sessions',
         result: {
-          data: { token: 'EXISTINGTOKEN', expires_at: '2026-03-30T23:59:00.000Z' },
+          data: { token: 'EXISTINGTOKEN', expires_at: existingSessionExpiresAtIso },
           error: null,
         },
       },
@@ -408,7 +412,7 @@ describe('captain self-scoring', () => {
   });
 
   it('auto-verifies the initiating captain team and issues only the opponent link', async () => {
-    const futureIso = '2026-03-30T22:00:00.000Z';
+    const futureIso = hoursFromNowIso(2);
 
     const { client, steps } = createMockClient([
       {
@@ -483,7 +487,7 @@ describe('captain self-scoring', () => {
   });
 
   it('keeps assigned scorekeeper flow on two-captain verification', async () => {
-    const futureIso = '2026-03-30T22:00:00.000Z';
+    const futureIso = hoursFromNowIso(2);
 
     const { client, steps } = createMockClient([
       {
