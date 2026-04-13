@@ -27,7 +27,7 @@ function safeStringCompare(a: string, b: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { slug, secret, type: _type = 'branding' } = body;
+    const { slug, secret, type: _type = 'branding', paths: requestedPaths } = body;
 
     // Verify the revalidation secret (fail closed — require secret to be configured)
     const revalidationSecret = process.env.REVALIDATION_SECRET;
@@ -52,16 +52,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Revalidate the league's pages based on type
-    const paths = [
+    const defaultPaths = [
       `/${slug}`, // Home page
       `/${slug}/schedule`,
+      `/${slug}/scores`,
       `/${slug}/standings`,
       `/${slug}/teams`,
       `/${slug}/stats`,
       `/${slug}/about`,
       `/${slug}/contact`,
     ];
+
+    const scopedRequestedPaths = Array.isArray(requestedPaths)
+      ? requestedPaths.filter(
+          (path): path is string => typeof path === 'string' && path.startsWith(`/${slug}`),
+        )
+      : [];
+
+    const paths = Array.from(new Set(scopedRequestedPaths.length > 0 ? scopedRequestedPaths : defaultPaths));
 
     // Revalidate all league pages
     for (const path of paths) {
