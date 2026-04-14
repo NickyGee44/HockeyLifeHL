@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getLeagueBySlug } from '@/lib/data';
+import { getPublicCaptainInvitePreview } from '@/lib/captain/invite-preview';
 import {
   getLeagueRegistrationData,
   getSeasonRegistrationPaymentConfig,
@@ -54,6 +55,20 @@ I have read this waiver, understand its contents, and sign it voluntarily.`;
 interface RegisterPageProps {
   params: Promise<{ leagueSlug: string }>;
   searchParams?: Promise<{ captainInvite?: string }>;
+}
+
+function getLeagueBaseUrl(league: any, leagueSlug: string) {
+  if (league?.custom_domain && league?.custom_domain_verified) {
+    return /^https?:\/\//i.test(league.custom_domain)
+      ? league.custom_domain
+      : `https://${league.custom_domain}`;
+  }
+
+  if (league?.subdomain) {
+    return `https://${league.subdomain}.beerleaguehockey.ca`;
+  }
+
+  return `https://${leagueSlug}.beerleaguehockey.ca`;
 }
 
 export default async function RegisterPage({ params, searchParams }: RegisterPageProps) {
@@ -277,16 +292,60 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
   );
 }
 
-export async function generateMetadata({ params }: RegisterPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: RegisterPageProps): Promise<Metadata> {
   const { leagueSlug } = await params;
+  const { captainInvite } = (await searchParams) ?? {};
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) {
     return { title: 'Register - Not Found' };
   }
 
+  const defaultTitle = `Register | ${league.name}`;
+  const defaultDescription = `Register as a player for ${league.name}`;
+
+  if (!captainInvite) {
+    return {
+      title: defaultTitle,
+      description: defaultDescription,
+    };
+  }
+
+  const invitePreview = await getPublicCaptainInvitePreview(captainInvite);
+  if (!invitePreview || (invitePreview.leagueSlug && invitePreview.leagueSlug !== leagueSlug)) {
+    return {
+      title: defaultTitle,
+      description: defaultDescription,
+    };
+  }
+
+  const baseUrl = getLeagueBaseUrl(league, leagueSlug).replace(/\/$/, '');
+  const inviteImageUrl = `${baseUrl}/${leagueSlug}/register/invite-image?captainInvite=${captainInvite}`;
+  const title = invitePreview.shareTitle;
+  const description = invitePreview.shareText;
+
   return {
-    title: `Register | ${league.name}`,
-    description: `Register as a player for ${league.name}`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: invitePreview.registrationUrl,
+      images: [
+        {
+          url: inviteImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${invitePreview.branding.name} player invite`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [inviteImageUrl],
+    },
   };
 }

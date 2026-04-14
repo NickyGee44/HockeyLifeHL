@@ -1,5 +1,7 @@
 'use server';
 
+import { getPublicCaptainInvitePreview, type CaptainInvitePreview } from '@/lib/captain/invite-preview';
+export type { CaptainInvitePreview } from '@/lib/captain/invite-preview';
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 const LEGACY_EMAIL_DOMAIN = 'captaininvite.hockeylifehl.com';
@@ -12,19 +14,6 @@ export interface ExistingInviteCandidate {
   email: string | null;
   position: string | null;
   playerType: 'regular' | 'sub' | 'part_time';
-}
-
-export interface CaptainInvitePreview {
-  inviteId: string;
-  registrationUrl: string;
-  sharePhone: string | null;
-  shareTitle: string;
-  shareText: string;
-  branding: {
-    name: string;
-    logoUrl: string | null;
-    kind: 'team' | 'league';
-  };
 }
 
 async function verifyCaptain(teamId: string) {
@@ -64,56 +53,6 @@ function normalizePhone(phone: string | null | undefined) {
 
 function legacyInviteEmail(id: string) {
   return `captaininvite_${id}@${LEGACY_EMAIL_DOMAIN}`;
-}
-
-async function buildPreview(serviceSupabase: ReturnType<typeof createServiceRoleClient>, inviteId: string) {
-  const { data: invite } = await (serviceSupabase as any)
-    .from('captain_player_invites')
-    .select(`
-      id,
-      share_phone,
-      invitee_name,
-      registration_path,
-      brand_scope,
-      teams (name, logo_url),
-      leagues (name, logo_url, slug, subdomain, custom_domain, custom_domain_verified)
-    `)
-    .eq('id', inviteId)
-    .single();
-
-  if (!invite) {
-    throw new Error('Invite not found');
-  }
-
-  const team = Array.isArray(invite.teams) ? invite.teams[0] : invite.teams;
-  const league = Array.isArray(invite.leagues) ? invite.leagues[0] : invite.leagues;
-
-  const baseUrl = league?.custom_domain && league?.custom_domain_verified
-    ? (/^https?:\/\//i.test(league.custom_domain) ? league.custom_domain : `https://${league.custom_domain}`)
-    : league?.subdomain
-      ? `https://${league.subdomain}.beerleaguehockey.ca`
-      : league?.slug
-        ? `https://${league.slug}.beerleaguehockey.ca`
-        : (process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca');
-
-  const registrationUrl = `${String(baseUrl).replace(/\/$/, '')}${invite.registration_path}`;
-  const brandingKind = invite.brand_scope === 'league' ? 'league' : 'team';
-  const brandingName = brandingKind === 'league' ? (league?.name || 'League') : (team?.name || 'Team');
-  const brandingLogoUrl = brandingKind === 'league' ? (league?.logo_url || null) : (team?.logo_url || null);
-  const inviteeName = invite.invitee_name || 'there';
-
-  return {
-    inviteId,
-    registrationUrl,
-    sharePhone: invite.share_phone || null,
-    shareTitle: `${brandingName} player invite`,
-    shareText: `Hi ${inviteeName}, welcome to ${brandingName}! Finish your Hockey Life registration here: ${registrationUrl}`,
-    branding: {
-      name: brandingName,
-      logoUrl: brandingLogoUrl,
-      kind: brandingKind,
-    },
-  } satisfies CaptainInvitePreview;
 }
 
 export async function getCaptainInviteWizardData(teamId: string, seasonId: string) {
@@ -297,7 +236,11 @@ export async function createCaptainPlayerInvite(input: {
     .update({ registration_path: `/${league.slug}/register?captainInvite=${invite.id}` })
     .eq('id', invite.id);
 
-  const preview = await buildPreview(serviceSupabase, invite.id);
+  const preview = await getPublicCaptainInvitePreview(invite.id);
+  if (!preview) {
+    return { success: false as const, error: 'Failed to build invite preview' };
+  }
+
   return { success: true as const, data: preview };
 }
 
