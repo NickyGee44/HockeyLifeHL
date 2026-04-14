@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { safeRedirectPath } from '@/lib/auth/safe-redirect';
+import { consumeCaptainInvite } from '@/lib/actions/captain-player-invites';
 
 /**
  * Auth Callback Route for League Sites
@@ -52,6 +53,12 @@ export async function GET(request: NextRequest) {
       );
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (authUser) {
+        const captainInviteId = cookieStore.get('captain_player_invite')?.value;
+        if (captainInviteId) {
+          await consumeCaptainInvite(captainInviteId, authUser.id);
+          cookieStore.delete('captain_player_invite');
+        }
+
         const { data: profile } = await serviceSupabase
           .from('profiles')
           .select('pending_legacy_match_ids')
