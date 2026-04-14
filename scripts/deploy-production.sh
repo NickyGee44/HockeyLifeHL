@@ -87,16 +87,25 @@ cd ../..
 echo -e "${GREEN}Build successful!${NC}"
 
 # Step 5: Deploy to Vercel production
-echo -e "\n${YELLOW}Step 5: Deploying to Vercel (PRODUCTION)${NC}"
+echo -e "\n${YELLOW}Step 5: Vercel production release lane${NC}"
 
-if command -v vercel &> /dev/null; then
-  vercel --prod --yes || {
-    echo -e "${RED}Vercel deployment failed.${NC}"
-    exit 1
-  }
+echo -e "${CYAN}This repo uses Vercel Git auto-deploy on the production branch.${NC}"
+echo -e "${CYAN}Do not also run a manual CLI production deploy for the same commit unless you intentionally need an emergency one-off release.${NC}"
+
+if [ "${ALLOW_MANUAL_VERCEL_PROD:-0}" != "1" ]; then
+  echo -e "${YELLOW}Skipping manual 'vercel --prod' to avoid duplicate production deployments.${NC}"
+  echo -e "${YELLOW}Normal path: push the production branch and let Vercel auto-deploy.${NC}"
+  echo -e "${YELLOW}Override only for exceptional recovery work: ALLOW_MANUAL_VERCEL_PROD=1 ./scripts/deploy-production.sh${NC}"
 else
-  echo -e "${RED}Vercel CLI not found. Install with: pnpm add -g vercel${NC}"
-  exit 1
+  if command -v vercel &> /dev/null; then
+    vercel --prod --yes || {
+      echo -e "${RED}Vercel deployment failed.${NC}"
+      exit 1
+    }
+  else
+    echo -e "${RED}Vercel CLI not found. Install with: pnpm add -g vercel${NC}"
+    exit 1
+  fi
 fi
 
 # Step 6: Post-deployment verification
