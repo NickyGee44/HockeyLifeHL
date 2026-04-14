@@ -8,6 +8,8 @@ import {
   getLeagueWaiver,
   getRegistrationJourneyData,
 } from '@/lib/actions/registration';
+import { getCaptainInvitePrefill } from '@/lib/actions/captain-player-invites';
+import { CaptainInviteCookieBridge } from '@/components/registration/CaptainInviteCookieBridge';
 import { RegistrationWizard } from '@/components/registration';
 import { Check, Clock, XCircle } from 'lucide-react';
 import {
@@ -51,10 +53,12 @@ I have read this waiver, understand its contents, and sign it voluntarily.`;
 
 interface RegisterPageProps {
   params: Promise<{ leagueSlug: string }>;
+  searchParams?: Promise<{ captainInvite?: string }>;
 }
 
-export default async function RegisterPage({ params }: RegisterPageProps) {
+export default async function RegisterPage({ params, searchParams }: RegisterPageProps) {
   const { leagueSlug } = await params;
+  const { captainInvite } = (await searchParams) ?? {};
 
   // Get league data with seasons and teams
   const league = await getLeagueRegistrationData(leagueSlug);
@@ -198,7 +202,11 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
     );
   }
 
-  const initialData = draftResult.success ? (draftResult.data ?? null) : null;
+  const captainInvitePrefill = captainInvite
+    ? await getCaptainInvitePrefill(captainInvite)
+    : null;
+  const inviteInitialData = captainInvitePrefill?.success ? captainInvitePrefill.data : null;
+  const initialData = draftResult.success ? (draftResult.data ?? inviteInitialData) : inviteInitialData;
   const waiver =
     waiverResult.success && waiverResult.data
       ? waiverResult.data
@@ -224,6 +232,7 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
 
   return (
     <div className="py-8">
+      <CaptainInviteCookieBridge inviteId={captainInvite || null} />
       {/* Team registration entry point */}
       <div className="max-w-2xl mx-auto px-4 mb-4 text-center">
         <p className="text-sm text-[var(--color-text-muted)]">

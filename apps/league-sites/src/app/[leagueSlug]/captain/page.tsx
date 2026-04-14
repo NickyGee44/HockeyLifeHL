@@ -22,6 +22,7 @@ import {
 import { RosterManager } from '@/components/captain/RosterManager';
 import { TeamAttendance } from '@/components/captain/TeamAttendance';
 import { SubInviteModal } from '@/components/captain/SubInviteModal';
+import { InvitePlayerWizard } from '@/components/captain/InvitePlayerWizard';
 import { getOrCreateCaptainScorekeeperSession } from '@/lib/actions/scorekeeper';
 import {
   getTeamRoster,
@@ -63,6 +64,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const [nextLineupGame, setNextLineupGame] = useState<UpcomingLineupGame | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [subInviteGameId, setSubInviteGameId] = useState<string | null>(null);
+  const [inviteWizardOpen, setInviteWizardOpen] = useState(false);
   const [startingScore, setStartingScore] = useState(false);
   const [scoreError, setScoreError] = useState<string | null>(null);
 
@@ -470,6 +472,21 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         )}
       </div>
 
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Roster tools</h2>
+          <p className="text-sm text-[var(--color-text-secondary)]">Invite a new or existing player, then send their registration link.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setInviteWizardOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/10 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/20"
+        >
+          <Users className="h-4 w-4" />
+          Invite player
+        </button>
+      </div>
+
       {/* Roster Manager (editable roster + join requests) */}
       <RosterManager
         teamId={currentTeam.team_id}
@@ -487,6 +504,16 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           onRequestSub={(gameId) => setSubInviteGameId(gameId)}
         />
       </div>
+
+      <InvitePlayerWizard
+        isOpen={inviteWizardOpen}
+        onClose={() => {
+          setInviteWizardOpen(false);
+          fetchRosterData();
+        }}
+        teamId={currentTeam.team_id}
+        seasonId={league?.current_season_id || ''}
+      />
 
       {/* Sub Invite Modal */}
       {subInviteGameId && currentTeam.team && (
