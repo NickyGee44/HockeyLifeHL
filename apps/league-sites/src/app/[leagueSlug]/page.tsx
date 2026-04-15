@@ -520,13 +520,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         opensAt: (registrationSeason as any).registration_opens_at ?? null,
         closesAt: registrationSeason.registration_closes_at ?? null,
       }
-    : homepagePhotoHighlight
-      ? {
-          type: 'gallery' as const,
-          title: 'Latest gallery',
-          highlight: homepagePhotoHighlight,
-        }
-      : null;
+    : null;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -569,7 +563,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         leadersDescription=""
         scoringLeaders={[]}
         goalieLeaders={[]}
-        spotlight={seasonSpotlight?.type === 'registration' ? null : seasonSpotlight}
+        spotlight={null}
       />
 
       <div className="mx-auto max-w-[1400px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
