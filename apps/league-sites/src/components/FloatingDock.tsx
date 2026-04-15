@@ -504,7 +504,7 @@ export function FloatingDock({
     <>
       {/* Spacer so content isn't hidden behind dock */}
       <div className="h-32 lg:hidden" />
-      {mounted ? createPortal(dock, document.body) : dock}
+      {mounted ? createPortal(dock, document.body) : null}
     </>
   );
 }
