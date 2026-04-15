@@ -325,8 +325,8 @@ export function HomepageStoryHero({
                 <EditorialHeroImage
                   src={activeSlide.imageUrl}
                   alt={activeSlide.title}
-                  foregroundClassName="object-contain object-right"
-                  backgroundClassName="object-cover opacity-24"
+                  mode="hero"
+                  backgroundClassName="object-cover object-center"
                 />
               ) : (
                 <HeroStageFallback
@@ -358,7 +358,7 @@ export function HomepageStoryHero({
       <div
         className={`relative mx-auto flex max-w-[1440px] px-4 py-5 sm:px-5 md:px-6 xl:px-8 ${
           hasEditorialStage
-            ? 'min-h-[480px] items-end md:min-h-[620px] md:py-8 xl:py-10'
+            ? 'min-h-[420px] items-end md:min-h-[620px] md:py-8 xl:py-10'
             : 'min-h-[300px] items-center md:min-h-[380px] md:py-5 xl:py-6'
         }`}
       >

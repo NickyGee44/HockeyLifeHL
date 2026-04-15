@@ -4,6 +4,7 @@ interface EditorialHeroImageProps {
   imageClassName?: string;
   foregroundClassName?: string;
   backgroundClassName?: string;
+  mode?: 'layered' | 'hero';
 }
 
 export function EditorialHeroImage({
@@ -12,7 +13,20 @@ export function EditorialHeroImage({
   imageClassName = 'h-full w-full',
   foregroundClassName = 'object-contain object-right',
   backgroundClassName = 'object-cover opacity-28',
+  mode = 'layered',
 }: EditorialHeroImageProps) {
+  if (mode === 'hero') {
+    return (
+      <div className={`relative h-full w-full overflow-hidden ${imageClassName}`}>
+        <img
+          src={src}
+          alt={alt}
+          className={`h-full w-full ${backgroundClassName}`}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`relative h-full w-full overflow-hidden ${imageClassName}`}>
       <img
