@@ -1,12 +1,10 @@
 import Link from 'next/link';
-import { ArrowRight, Camera, ChevronRight, Clock3, Trophy } from 'lucide-react';
+import { ArrowRight, Camera, Clock3 } from 'lucide-react';
 import { HomepageLeadersTabs } from '@/components/home/HomepageLeadersTabs';
 import type {
   GoalieStatsWithDivision,
   HomepageSeasonLeader,
-  RecentGame,
 } from '@/lib/types';
-import { formatLeagueShortDate } from '@/lib/league-timezone';
 
 interface GallerySpotlight {
   title: string;
@@ -24,20 +22,13 @@ interface RegistrationSpotlight {
   closesAt?: string | null;
 }
 
-interface ResultsSpotlight {
-  type: 'results';
-  title: string;
-  href: string;
-  games: RecentGame[];
-}
-
 interface GallerySpotlightCard {
   type: 'gallery';
   title: string;
   highlight: GallerySpotlight;
 }
 
-type HomepageSeasonSpotlight = RegistrationSpotlight | ResultsSpotlight | GallerySpotlightCard;
+type HomepageSeasonSpotlight = RegistrationSpotlight | GallerySpotlightCard;
 
 interface HomepageSeasonBandProps {
   leagueSlug: string;
@@ -160,68 +151,6 @@ function RegistrationCard({ spotlight }: { spotlight: RegistrationSpotlight }) {
   );
 }
 
-function ResultsCard({ leagueSlug, spotlight, timezone }: { leagueSlug: string; spotlight: ResultsSpotlight; timezone?: string | null }) {
-  return (
-    <section className="league-shell-panel self-start rounded-[28px] border border-[var(--color-border)] px-4 py-4 md:px-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            Recent Scores
-          </p>
-          <h3 className="mt-1.5 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
-            {spotlight.title}
-          </h3>
-        </div>
-        <div className="rounded-xl bg-[var(--league-primary)]/12 p-2 text-[var(--league-primary)]">
-          <Trophy className="h-4.5 w-4.5" />
-        </div>
-      </div>
-
-      <div className="mt-4 space-y-2.5">
-        {spotlight.games.slice(0, 2).map((game) => (
-          <Link
-            key={game.id}
-            href={`/${leagueSlug}/games/${game.id}`}
-            className="flex items-center gap-2.5 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)]/72 px-3 py-3 transition-colors duration-200 hover:border-[var(--league-primary)]"
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              <MiniTeamLogo name={game.away_team?.name || 'Away'} logoUrl={game.away_team?.logo} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{game.away_team?.name || 'Away'}</p>
-                <p className="truncate text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                  {formatLeagueShortDate(game.scheduled_at, timezone)}
-                </p>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-lg font-black leading-none text-[var(--color-text-primary)]">{game.away_score ?? '-'}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">AT</p>
-              <p className="mt-1 text-lg font-black leading-none text-[var(--color-text-primary)]">{game.home_score ?? '-'}</p>
-            </div>
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2.5">
-              <div className="min-w-0 text-right">
-                <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{game.home_team?.name || 'Home'}</p>
-                <p className="truncate text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                  {game.venue || 'League venue'}
-                </p>
-              </div>
-              <MiniTeamLogo name={game.home_team?.name || 'Home'} logoUrl={game.home_team?.logo} />
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      <Link
-        href={spotlight.href}
-        className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--league-primary)]"
-      >
-        All Scores
-        <ChevronRight className="h-4 w-4" />
-      </Link>
-    </section>
-  );
-}
-
 function GalleryCard({ spotlight }: { spotlight: GallerySpotlightCard }) {
   return (
     <section className="relative self-start overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -275,8 +204,6 @@ export function HomepageSeasonBand({
         {spotlight &&
           (spotlight.type === 'registration' ? (
             <RegistrationCard spotlight={spotlight} />
-          ) : spotlight.type === 'results' ? (
-            <ResultsCard leagueSlug={leagueSlug} spotlight={spotlight} timezone={timezone} />
           ) : (
             <GalleryCard spotlight={spotlight} />
           ))}

@@ -147,7 +147,7 @@ export async function GET(
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                   <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '0.08em', color: preview.branding.accentColor }}>HL</div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Beer League Hockey</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>BLH Platform</div>
                 </div>
               )}
             </div>
@@ -171,7 +171,7 @@ export async function GET(
                 Registration Link Ready
               </div>
               <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.08 }}>
-                {preview.inviteeName === 'there' ? 'Complete your signup on Hockey Life' : `${preview.inviteeName}, complete your signup on Hockey Life`}
+                {preview.inviteeName === 'there' ? 'Complete your signup on Beer League Hockey' : `${preview.inviteeName}, complete your signup on Beer League Hockey`}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

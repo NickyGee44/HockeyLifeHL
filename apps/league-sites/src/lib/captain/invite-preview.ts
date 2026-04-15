@@ -24,7 +24,7 @@ export interface CaptainInvitePreview {
 const DEFAULT_PRIMARY = '#153A6B';
 const DEFAULT_SECONDARY = '#081A33';
 const DEFAULT_ACCENT = '#D4AF66';
-const PLATFORM_BRAND_NAME = 'Hockey Life';
+const PLATFORM_BRAND_NAME = 'Beer League Hockey';
 
 function resolveBaseUrl(league: any) {
   if (league?.custom_domain && league?.custom_domain_verified) {
@@ -120,8 +120,8 @@ export async function getPublicCaptainInvitePreview(inviteId: string): Promise<C
     : `${teamName} player invite`;
 
   const shareText = branding.kind === 'league'
-    ? `Hi ${inviteeName}, you've been invited to join the ${leagueName} spare player pool on Hockey Life. Finish your registration here: ${registrationUrl}`
-    : `Hi ${inviteeName}, welcome to ${teamName}! Finish your Hockey Life registration here: ${registrationUrl}`;
+    ? `Hi ${inviteeName}, you've been invited to join the ${leagueName} spare player pool on Beer League Hockey. Finish your registration here: ${registrationUrl}`
+    : `Hi ${inviteeName}, welcome to ${teamName}! Finish your Beer League Hockey registration here: ${registrationUrl}`;
 
   return {
     inviteId,

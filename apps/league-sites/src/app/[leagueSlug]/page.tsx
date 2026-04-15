@@ -520,20 +520,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         opensAt: (registrationSeason as any).registration_opens_at ?? null,
         closesAt: registrationSeason.registration_closes_at ?? null,
       }
-    : recentGames.length > 0
+    : homepagePhotoHighlight
       ? {
-          type: 'results' as const,
-          title: 'Latest finals from around the rink',
-          href: `/${leagueSlug}/scores`,
-          games: recentGames.slice(0, 2),
+          type: 'gallery' as const,
+          title: 'Latest gallery',
+          highlight: homepagePhotoHighlight,
         }
-      : homepagePhotoHighlight
-        ? {
-            type: 'gallery' as const,
-            title: 'Latest gallery',
-            highlight: homepagePhotoHighlight,
-          }
-        : null;
+      : null;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
