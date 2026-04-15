@@ -64,6 +64,7 @@ export async function GET(
       >
         <div
           style={{
+            display: 'flex',
             position: 'absolute',
             inset: 0,
             background: 'radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 34%), radial-gradient(circle at bottom left, rgba(212,175,102,0.20), transparent 28%)',
@@ -71,6 +72,7 @@ export async function GET(
         />
         <div
           style={{
+            display: 'flex',
             position: 'absolute',
             right: -140,
             top: -120,
@@ -83,6 +85,7 @@ export async function GET(
         />
         <div
           style={{
+            display: 'flex',
             position: 'absolute',
             right: 110,
             bottom: -110,
@@ -117,13 +120,13 @@ export async function GET(
                   color: preview.branding.accentColor,
                 }}
               >
-                <span>Player Invite</span>
-                <span style={{ width: 64, height: 2, background: `${preview.branding.accentColor}` }} />
-                <span style={{ color: 'rgba(255,255,255,0.82)', letterSpacing: '0.08em' }}>{preview.leagueName}</span>
+                <span style={{ display: 'flex' }}>Player Invite</span>
+                <span style={{ display: 'flex', width: 64, height: 2, background: `${preview.branding.accentColor}` }} />
+                <span style={{ display: 'flex', color: 'rgba(255,255,255,0.82)', letterSpacing: '0.08em' }}>{preview.leagueName}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ fontSize: 68, fontWeight: 800, lineHeight: 1.02 }}>{preview.branding.name}</div>
-                <div style={{ fontSize: 30, color: 'rgba(255,255,255,0.84)', lineHeight: 1.2 }}>{preview.branding.subtitle}</div>
+                <div style={{ display: 'flex', fontSize: 68, fontWeight: 800, lineHeight: 1.02 }}>{preview.branding.name}</div>
+                <div style={{ display: 'flex', fontSize: 30, color: 'rgba(255,255,255,0.84)', lineHeight: 1.2 }}>{preview.branding.subtitle}</div>
               </div>
             </div>
 
@@ -146,8 +149,8 @@ export async function GET(
                 <img src={logoDataUrl} alt={preview.branding.name} style={{ width: '78%', height: '78%', objectFit: 'contain' }} />
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: '0.08em', color: preview.branding.accentColor }}>HL</div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>BLH Platform</div>
+                  <div style={{ display: 'flex', fontSize: 34, fontWeight: 800, letterSpacing: '0.08em', color: preview.branding.accentColor }}>HL</div>
+                  <div style={{ display: 'flex', fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>BLH Platform</div>
                 </div>
               )}
             </div>
@@ -167,16 +170,16 @@ export async function GET(
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 24, fontWeight: 700, color: preview.branding.accentColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              <div style={{ display: 'flex', fontSize: 24, fontWeight: 700, color: preview.branding.accentColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 Registration Link Ready
               </div>
-              <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.08 }}>
+              <div style={{ display: 'flex', fontSize: 44, fontWeight: 800, lineHeight: 1.08 }}>
                 {preview.inviteeName === 'there' ? 'Complete your signup on Beer League Hockey' : `${preview.inviteeName}, complete your signup on Beer League Hockey`}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 14, height: 14, borderRadius: 999, background: preview.branding.accentColor }} />
-              <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.82)' }}>
+              <div style={{ display: 'flex', width: 14, height: 14, borderRadius: 999, background: preview.branding.accentColor }} />
+              <div style={{ display: 'flex', fontSize: 26, color: 'rgba(255,255,255,0.82)' }}>
                 Tap the shared link to join {isLeagueBranding ? `${preview.leagueName}'s spare list` : preview.teamName}
               </div>
             </div>

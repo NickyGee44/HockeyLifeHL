@@ -67,6 +67,7 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
       player_id,
       position,
       player_type,
+      leadership_role,
       player:player_id(id, full_name, phone, email, is_legacy_import)
     `)
     .eq('team_id', teamId)
@@ -80,13 +81,21 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
     return { success: false as const, error: 'Failed to load invite data' };
   }
 
-  const existingPlayers = ((rows || []) as any[])
-    .map((row) => {
+  const enrichedRows = await Promise.all(
+    ((rows || []) as any[]).map(async (row) => {
       const player = Array.isArray(row.player) ? row.player[0] : row.player;
       const normalizedEmail = String(player?.email || '').trim().toLowerCase();
       const isPlaceholderEmail = !normalizedEmail
         || normalizedEmail.includes(LEGACY_EMAIL_DOMAIN)
         || normalizedEmail.startsWith('legacy_');
+
+      let hasAuthAccount = false;
+      try {
+        const authLookup = await (serviceSupabase as any).auth.admin.getUserById(row.player_id);
+        hasAuthAccount = !authLookup?.error && !!authLookup?.data?.user;
+      } catch {
+        hasAuthAccount = false;
+      }
 
       return {
         rosterId: row.id,
@@ -96,11 +105,15 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
         email: player?.email || null,
         position: row.position || null,
         playerType: row.player_type || 'regular',
-        isUnlinked: player?.is_legacy_import === true || isPlaceholderEmail,
+        leadershipRole: row.leadership_role || null,
+        isUnlinked: !hasAuthAccount || player?.is_legacy_import === true || isPlaceholderEmail,
       };
     })
-    .filter((row) => row.isUnlinked)
-    .map(({ isUnlinked: _ignored, ...row }) => row)
+  );
+
+  const existingPlayers = enrichedRows
+    .filter((row) => row.isUnlinked && !row.leadershipRole)
+    .map(({ isUnlinked: _ignored, leadershipRole: _role, ...row }) => row)
     .sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
 
   return { success: true as const, data: { existingPlayers } };
