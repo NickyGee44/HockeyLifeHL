@@ -305,14 +305,17 @@ export function HomepageStoryHero({
       ];
 
   return (
-    <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="relative mx-auto flex max-w-[1440px] items-center justify-center px-4 pb-7 pt-9 sm:px-5 sm:pb-8 sm:pt-10 md:px-6 md:pb-10 md:pt-12 xl:px-8">
-        <div className="flex items-center justify-center">
+    <div className="border-b border-[var(--color-border)] bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_88%,white_12%)_100%)]">
+      <div className="relative mx-auto flex max-w-[1440px] items-center justify-center overflow-hidden px-4 pb-10 pt-12 sm:px-5 sm:pb-12 sm:pt-14 md:px-6 md:pb-14 md:pt-16 xl:px-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/8" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-3xl sm:h-44 sm:w-44 md:h-52 md:w-52" />
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--color-accent)]/10 blur-[88px] sm:h-64 sm:w-64 md:h-72 md:w-72" />
+        <div className="relative flex items-center justify-center">
           {league.logo_url ? (
             <img
               src={league.logo_url}
               alt={`${league.name} logo`}
-              className="h-24 w-24 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.24)] sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36"
+              className="h-28 w-28 object-contain drop-shadow-[0_22px_52px_rgba(0,0,0,0.28)] sm:h-32 sm:w-32 md:h-36 md:w-36 lg:h-40 lg:w-40"
             />
           ) : (
             <span className="text-5xl font-black text-[var(--color-text-primary)] md:text-6xl">{league.name.charAt(0)}</span>
