@@ -120,8 +120,8 @@ export async function getPublicCaptainInvitePreview(inviteId: string): Promise<C
     : `${teamName} player invite`;
 
   const shareText = branding.kind === 'league'
-    ? `Hi ${inviteeName}, you've been invited to join the ${leagueName} spare player pool on Beer League Hockey. Finish your registration here: ${registrationUrl}`
-    : `Hi ${inviteeName}, welcome to ${teamName}! Finish your Beer League Hockey registration here: ${registrationUrl}`;
+    ? `Hi ${inviteeName}, you've been invited to join the ${leagueName} spare player pool on Beer League Hockey. Finish your registration to get started.`
+    : `Hi ${inviteeName}, welcome to ${teamName}! Finish your Beer League Hockey registration to get started.`;
 
   return {
     inviteId,

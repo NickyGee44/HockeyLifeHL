@@ -322,7 +322,9 @@ export async function generateMetadata({ params, searchParams }: RegisterPagePro
   const baseUrl = getLeagueBaseUrl(league, leagueSlug).replace(/\/$/, '');
   const inviteImageUrl = `${baseUrl}/${leagueSlug}/register/invite-image?captainInvite=${captainInvite}`;
   const title = invitePreview.shareTitle;
-  const description = invitePreview.shareText;
+  const description = invitePreview.branding.kind === 'league'
+    ? `Join the ${invitePreview.leagueName} spare player pool on Beer League Hockey.`
+    : `Complete your registration for ${invitePreview.teamName} on Beer League Hockey.`;
 
   return {
     title,
