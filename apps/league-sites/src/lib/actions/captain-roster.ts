@@ -13,6 +13,7 @@ export interface RosterPlayer {
     id: string;
     full_name: string | null;
     email: string | null;
+    phone: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -85,7 +86,7 @@ export async function getTeamRoster(
       position,
       leadership_role,
       player_type,
-      profile:profiles(id, full_name, email, avatar_url)
+      profile:profiles(id, full_name, email, phone, avatar_url)
     `
     )
     .eq('team_id', teamId)
@@ -157,6 +158,53 @@ export async function updatePlayerPosition(
 
   if (error) {
     console.error('Failed to update position:', error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function updateRosterPlayerDetails(
+  teamId: string,
+  rosterId: string,
+  details: {
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const supabase = await createClient();
+
+  const { data: rosterEntry, error: rosterError } = await supabase
+    .from('team_rosters')
+    .select('player_id')
+    .eq('id', rosterId)
+    .eq('team_id', teamId)
+    .single();
+
+  if (rosterError || !rosterEntry?.player_id) {
+    return { success: false, error: 'Player not found on roster' };
+  }
+
+  const payload = {
+    full_name: details.full_name.trim() || null,
+    email: details.email?.trim() || null,
+    phone: details.phone?.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update(payload)
+    .eq('id', rosterEntry.player_id);
+
+  if (error) {
+    console.error('Failed to update player details:', error);
     return { success: false, error: error.message };
   }
 

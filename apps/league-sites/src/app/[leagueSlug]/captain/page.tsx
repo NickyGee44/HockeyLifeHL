@@ -41,6 +41,7 @@ interface TeamStats {
   ties: number;
   points: number;
   division_rank: number | null;
+  division_name: string | null;
 }
 
 interface UpcomingLineupGame {
@@ -108,18 +109,30 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       await fetchRosterData();
 
       // Fetch team stats (actual RPC: get_team_standings)
-      const { data: standings } = await supabase.rpc('get_team_standings', {
-        check_league_id: currentTeam.team.league_id,
-        check_season_id: league?.current_season_id || null,
-      });
+      const [{ data: standings }, { data: leagueTeams }] = await Promise.all([
+        supabase.rpc('get_team_standings', {
+          check_league_id: currentTeam.team.league_id,
+          check_season_id: league?.current_season_id || null,
+        }),
+        supabase
+          .from('teams')
+          .select('id, division_id')
+          .eq('league_id', currentTeam.team.league_id),
+      ]);
 
       if (standings) {
         const myTeam = standings.find((s: any) => s.team_id === currentTeam.team_id);
         if (myTeam) {
-          // Calculate division rank
-          const divisionTeams = standings.filter(
-            (s: any) => myTeam.division_id ? s.division_id === myTeam.division_id : true
+          const divisionIdByTeam = new Map(
+            (leagueTeams || []).map((team: any) => [team.id, team.division_id ?? null])
           );
+
+          // Calculate division rank from real team division membership, not RPC rows.
+          const divisionTeams = standings.filter((s: any) => {
+            if (!currentTeam.team?.division_id) return true;
+            return divisionIdByTeam.get(s.team_id) === currentTeam.team.division_id;
+          });
+
           divisionTeams.sort((a: any, b: any) => {
             const pointsDiff = Number(b.points || 0) - Number(a.points || 0);
             if (pointsDiff !== 0) return pointsDiff;
@@ -129,17 +142,18 @@ export default function CaptainPage({ params }: CaptainPageProps) {
             if (goalDiff !== 0) return goalDiff;
             const goalsForDiff = Number(b.goals_for || 0) - Number(a.goals_for || 0);
             if (goalsForDiff !== 0) return goalsForDiff;
-            return String(a.team_name || '').localeCompare(String(b.team_name || ''));
+            return String(a.team_id || '').localeCompare(String(b.team_id || ''));
           });
-          const divisionRank =
-            divisionTeams.findIndex((s: any) => s.team_id === currentTeam.team_id) + 1;
+
+          const divisionRank = divisionTeams.findIndex((s: any) => s.team_id === currentTeam.team_id) + 1;
 
           setTeamStats({
             wins: Number(myTeam.wins || 0),
             losses: Number(myTeam.losses || 0),
             ties: Number(myTeam.ties || 0),
             points: Number(myTeam.points || 0),
-            division_rank: divisionRank,
+            division_rank: divisionRank || null,
+            division_name: null,
           });
         }
       }
@@ -276,67 +290,68 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
   const record = `${teamStats?.wins || 0}-${teamStats?.losses || 0}-${teamStats?.ties || 0}`;
   const captainNavItems = [
+    selfScorekeeperEnabled && nextLineupGame
+      ? {
+          type: 'button' as const,
+          label: startingScore ? 'Starting...' : 'Score Game',
+          icon: PlayCircle,
+          tone: 'bg-emerald-400/15 border-emerald-300/30 text-emerald-50',
+          onClick: handleStartScoring,
+          disabled: startingScore,
+        }
+      : null,
     nextLineupGame
       ? {
+          type: 'link' as const,
           href: `/${leagueSlug}/captain/lineups/${nextLineupGame.id}`,
-          label: 'Lineup',
+          label: 'Open Lineup Studio',
           icon: Calendar,
           tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
         }
       : null,
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/duties`,
       label: 'Game Duties',
       icon: CheckCircle2,
       tone: 'bg-[var(--league-primary)]/10 border-[var(--league-primary)]/20 text-[var(--league-primary)]',
     },
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/goalies`,
       label: 'Goalies',
       icon: Goal,
       tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
     },
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/fees`,
       label: 'Team Fees',
       icon: DollarSign,
       tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
     },
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/player-payments`,
       label: 'Player Payments',
       icon: Users,
       tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
     },
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/team-return`,
       label: 'Team Return',
       icon: Mail,
       tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
     },
-    {
-      href: `/${leagueSlug}/schedule?team=${currentTeam.team_id}`,
-      label: 'Schedule',
-      icon: Calendar,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
-    },
-    {
-      href: `/${leagueSlug}/teams/${currentTeam.team.slug}`,
-      label: 'Team Page',
-      icon: Users,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
-    },
-    {
-      href: `/${leagueSlug}/standings`,
-      label: 'Standings',
-      icon: Trophy,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
-    },
   ].filter(Boolean) as Array<{
-    href: string;
+    type: 'link' | 'button';
+    href?: string;
     label: string;
     icon: typeof Calendar;
     tone: string;
+    onClick?: () => void;
+    disabled?: boolean;
   }>;
 
   return (
@@ -366,11 +381,28 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         <div className="flex flex-wrap gap-2">
           {captainNavItems.map((item) => {
             const Icon = item.icon;
+            const className = `inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors hover:opacity-90 ${item.tone}`;
+
+            if (item.type === 'button') {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.onClick}
+                  disabled={item.disabled}
+                  className={`${className} disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </button>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
-                href={item.href}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors hover:opacity-90 ${item.tone}`}
+                href={item.href!}
+                className={className}
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
@@ -410,80 +442,6 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         />
       </div>
 
-      <div className="mb-8">
-        {nextLineupGame ? (
-          <div className="rounded-3xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(34,211,238,0.16),rgba(15,23,42,0.92))] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/80">
-                  Tonight&apos;s Lineup
-                </p>
-                <h2 className="mt-3 text-2xl font-bold text-white">
-                  Build your card for {nextLineupGame.opponentName}
-                </h2>
-                <p className="mt-2 text-sm text-cyan-50/80">
-                  Drag skaters onto the ice, publish the lineup, and share it to the room before puck drop.
-                </p>
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-cyan-50/85">
-                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                    {new Intl.DateTimeFormat(undefined, {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    }).format(new Date(nextLineupGame.scheduled_at))}
-                  </span>
-                  {nextLineupGame.location && (
-                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                      {nextLineupGame.location}
-                    </span>
-                  )}
-                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                    {nextLineupGame.status === 'in_progress' ? 'Live now' : 'Upcoming'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {selfScorekeeperEnabled && (
-                  <button
-                    type="button"
-                    onClick={handleStartScoring}
-                    disabled={startingScore}
-                    className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-semibold text-emerald-50 transition-colors hover:bg-emerald-400/25 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {startingScore ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <PlayCircle className="h-4 w-4" />
-                    )}
-                    {startingScore ? 'Starting...' : 'Score Game'}
-                  </button>
-                )}
-                <Link
-                  href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
-                  className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15"
-                >
-                  Open lineup studio
-                </Link>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
-              Tonight&apos;s Lineup
-            </p>
-            <h2 className="mt-3 text-xl font-bold text-[var(--color-text-primary)]">
-              No current game ready for lineup setup
-            </h2>
-            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              As soon as your next scheduled game is available, you&apos;ll be able to build and publish a lineup card here.
-            </p>
-          </div>
-        )}
-      </div>
-
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Roster tools</h2>
@@ -512,6 +470,8 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         <TeamAttendance
           teamId={currentTeam.team_id}
           roster={roster}
+          leagueId={currentTeam.team.league_id}
+          seasonId={league?.current_season_id || null}
           leagueSlug={leagueSlug}
           onRequestSub={(gameId) => setSubInviteGameId(gameId)}
         />

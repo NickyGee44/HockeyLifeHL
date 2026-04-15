@@ -15,10 +15,12 @@ import {
   UserPlus,
   Clock,
   AlertTriangle,
+  Phone,
 } from 'lucide-react';
 import {
   updatePlayerJerseyNumber,
   updatePlayerPosition,
+  updateRosterPlayerDetails,
   removePlayerFromRoster,
   approveJoinRequest,
   rejectJoinRequest,
@@ -28,6 +30,15 @@ import {
 import { updatePlayerType } from '@/lib/actions/sub-invitations';
 
 const POSITIONS = ['Forward', 'Defense', 'Goalie'] as const;
+
+function shortPosition(position: string | null | undefined) {
+  const normalized = (position || '').trim().toLowerCase();
+  if (!normalized) return '-';
+  if (normalized.startsWith('g')) return 'G';
+  if (normalized.startsWith('d')) return 'D';
+  if (normalized.startsWith('f')) return 'F';
+  return normalized.charAt(0).toUpperCase();
+}
 
 interface RosterManagerProps {
   teamId: string;
@@ -250,16 +261,16 @@ function RosterTable({
                 Player
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                #
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Position
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Type
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
+              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Email
+              </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
+                Phone
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Role
@@ -302,13 +313,16 @@ function EditableRosterRow({
   onUpdate: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [editingField, setEditingField] = useState<'jersey' | 'position' | 'player_type' | null>(null);
+  const [editingField, setEditingField] = useState<'jersey' | 'position' | 'player_type' | 'details' | null>(null);
   const [jerseyValue, setJerseyValue] = useState(
     player.jersey_number?.toString() ?? ''
   );
   const [positionValue, setPositionValue] = useState(player.position ?? '');
   const [playerTypeValue, setPlayerTypeValue] = useState<'regular' | 'sub' | 'part_time'>(player.player_type ?? 'regular');
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [detailName, setDetailName] = useState(player.profile?.full_name ?? '');
+  const [detailEmail, setDetailEmail] = useState(player.profile?.email ?? '');
+  const [detailPhone, setDetailPhone] = useState(player.profile?.phone ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const name = player.profile?.full_name || 'Unknown Player';
@@ -362,6 +376,23 @@ function EditableRosterRow({
     });
   };
 
+  const handleSaveDetails = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await updateRosterPlayerDetails(teamId, player.id, {
+        full_name: detailName,
+        email: detailEmail || null,
+        phone: detailPhone || null,
+      });
+      if (result.success) {
+        setEditingField(null);
+        onUpdate();
+      } else {
+        setError(result.error || 'Failed to update details');
+      }
+    });
+  };
+
   const handleRemove = () => {
     setError(null);
     startTransition(async () => {
@@ -380,6 +411,9 @@ function EditableRosterRow({
     setJerseyValue(player.jersey_number?.toString() ?? '');
     setPositionValue(player.position ?? '');
     setPlayerTypeValue(player.player_type ?? 'regular');
+    setDetailName(player.profile?.full_name ?? '');
+    setDetailEmail(player.profile?.email ?? '');
+    setDetailPhone(player.profile?.phone ?? '');
     setError(null);
   };
 
@@ -388,65 +422,66 @@ function EditableRosterRow({
       <tr className="hover:bg-[var(--color-surface-hover)] transition-colors">
         {/* Player name */}
         <td className="px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Image
-              src={player.profile?.avatar_url || '/blank_player.png'}
-              alt={name}
-              width={36}
-              height={36}
-              className="rounded-full object-cover"
-            />
-            <span className="font-medium text-[var(--color-text-primary)]">{name}</span>
-          </div>
-        </td>
-
-        {/* Jersey number */}
-        <td className="px-4 py-3 text-center">
-          {editingField === 'jersey' ? (
-            <div className="flex items-center justify-center gap-1">
+          {editingField === 'details' ? (
+            <div className="space-y-2">
               <input
-                type="number"
-                min="0"
-                max="99"
-                value={jerseyValue}
-                onChange={(e) => setJerseyValue(e.target.value)}
-                className="w-14 px-2 py-1 text-center text-sm bg-[var(--color-surface-hover)] border border-[var(--league-primary)] rounded text-[var(--color-text-primary)] focus:outline-none"
+                value={detailName}
+                onChange={(e) => setDetailName(e.target.value)}
+                className="w-full rounded-lg border border-[var(--league-primary)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none"
+                placeholder="Full name"
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSaveJersey();
-                  if (e.key === 'Escape') cancelEdit();
-                }}
                 disabled={isPending}
               />
-              <button
-                onClick={handleSaveJersey}
+              <input
+                value={detailEmail}
+                onChange={(e) => setDetailEmail(e.target.value)}
+                className="w-full rounded-lg border border-[var(--league-primary)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none"
+                placeholder="Email"
                 disabled={isPending}
-                className="p-1 text-green-400 hover:bg-green-500/10 rounded"
-              >
-                {isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Check className="w-3.5 h-3.5" />
-                )}
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] rounded"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              />
+              <input
+                value={detailPhone}
+                onChange={(e) => setDetailPhone(e.target.value)}
+                className="w-full rounded-lg border border-[var(--league-primary)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none"
+                placeholder="Phone"
+                disabled={isPending}
+              />
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleSaveDetails}
+                  disabled={isPending}
+                  className="p-1 text-green-400 hover:bg-green-500/10 rounded"
+                >
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] rounded"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           ) : (
-            <button
-              onClick={() => setEditingField('jersey')}
-              className="group inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--color-surface-hover)] transition-colors"
-              title="Edit jersey number"
-            >
-              <span className="font-mono font-bold text-[var(--color-text-primary)]">
-                {player.jersey_number ?? '-'}
-              </span>
-              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="relative h-10 w-10 shrink-0">
+                <Image
+                  src={player.profile?.avatar_url || '/blank_player.png'}
+                  alt={name}
+                  width={40}
+                  height={40}
+                  className="rounded-full object-cover"
+                />
+                <button
+                  onClick={() => setEditingField('jersey')}
+                  className="absolute -bottom-1 -right-1 inline-flex min-w-[22px] items-center justify-center rounded-full bg-[var(--league-primary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-accent-text)] shadow"
+                  title="Edit jersey number"
+                >
+                  {player.jersey_number ?? '-'}
+                </button>
+              </div>
+              <span className="font-medium text-[var(--color-text-primary)]">{name}</span>
+            </div>
           )}
         </td>
 
@@ -493,7 +528,7 @@ function EditableRosterRow({
               title="Edit position"
             >
               <span className="text-[var(--color-text-secondary)]">
-                {player.position || '-'}
+                {shortPosition(player.position)}
               </span>
               <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
@@ -546,18 +581,29 @@ function EditableRosterRow({
         </td>
 
         {/* Email */}
-        <td className="px-4 py-3">
+        <td className="px-4 py-3 text-center">
           {player.profile?.email ? (
             <a
               href={`mailto:${player.profile.email}`}
-              className="text-[var(--league-primary)] hover:underline flex items-center gap-1 text-sm"
+              className="inline-flex text-[var(--league-primary)] hover:text-[var(--league-primary)]/80"
+              title={`Email ${name}`}
             >
-              <Mail className="w-3.5 h-3.5" />
-              {player.profile.email}
+              <Mail className="w-4 h-4" />
             </a>
-          ) : (
-            <span className="text-[var(--color-text-muted)]">-</span>
-          )}
+          ) : null}
+        </td>
+
+        {/* Phone */}
+        <td className="px-4 py-3 text-center">
+          {player.profile?.phone ? (
+            <a
+              href={`tel:${player.profile.phone}`}
+              className="inline-flex text-[var(--league-primary)] hover:text-[var(--league-primary)]/80"
+              title={`Call ${name}`}
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+          ) : null}
         </td>
 
         {/* Role */}
@@ -600,18 +646,27 @@ function EditableRosterRow({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setShowRemoveConfirm(true)}
-              disabled={hasLeadershipRole}
-              className="p-2 text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title={
-                hasLeadershipRole
-                  ? 'Cannot remove captains or alternates'
-                  : 'Remove from roster'
-              }
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center justify-center gap-1">
+              <button
+                onClick={() => setEditingField('details')}
+                className="p-2 text-[var(--color-text-muted)] hover:text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
+                title="Edit player details"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowRemoveConfirm(true)}
+                disabled={hasLeadershipRole}
+                className="p-2 text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title={
+                  hasLeadershipRole
+                    ? 'Cannot remove captains or alternates'
+                    : 'Remove from roster'
+                }
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </td>
       </tr>
