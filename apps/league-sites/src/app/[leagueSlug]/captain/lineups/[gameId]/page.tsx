@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { use } from 'react';
 import { AlertCircle, ArrowLeft, Loader2, Shield } from 'lucide-react';
 import { useLeague } from '@/hooks/useLeague';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
-import { CaptainLineupEditor } from '@/components/lineups/CaptainLineupEditor';
+import Link from 'next/link';
+import { CaptainGameDayPage } from '@/components/captain/CaptainGameDayPage';
 
 export default function CaptainLineupPage({
   params,
@@ -26,7 +26,7 @@ export default function CaptainLineupPage({
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="space-y-4 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--league-primary)]" />
-          <p className="text-[var(--color-text-secondary)]">Loading lineup studio...</p>
+          <p className="text-[var(--color-text-secondary)]">Loading Game Day...</p>
         </div>
       </div>
     );
@@ -38,7 +38,7 @@ export default function CaptainLineupPage({
         <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-6 text-center">
           <AlertCircle className="mx-auto h-10 w-10 text-amber-300" />
           <h1 className="mt-4 text-2xl font-black text-white">No team found</h1>
-          <p className="mt-3 text-sm leading-6 text-amber-100/85">You need an active team before you can build a game-day lineup.</p>
+          <p className="mt-3 text-sm leading-6 text-amber-100/85">You need an active team before you can access Game Day.</p>
           <Link
             href={`/${leagueSlug}/captain`}
             className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white"
@@ -57,7 +57,7 @@ export default function CaptainLineupPage({
         <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-6 text-center">
           <Shield className="mx-auto h-10 w-10 text-amber-300" />
           <h1 className="mt-4 text-2xl font-black text-white">Captain access required</h1>
-          <p className="mt-3 text-sm leading-6 text-amber-100/85">Only captains and alternate captains can manage game-day lineups.</p>
+          <p className="mt-3 text-sm leading-6 text-amber-100/85">Only captains and alternate captains can manage Game Day.</p>
           <Link
             href={`/${leagueSlug}/captain`}
             className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white"
@@ -71,9 +71,9 @@ export default function CaptainLineupPage({
   }
 
   return (
-    <CaptainLineupEditor
+    <CaptainGameDayPage
       leagueSlug={leagueSlug}
-      gameId={gameId}
+      requestedGameId={gameId}
       teamId={currentTeam.team_id}
       canManage={canManage}
     />

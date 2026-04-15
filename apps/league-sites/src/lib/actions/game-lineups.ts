@@ -63,10 +63,52 @@ function buildRosterSnapshot(rosterRows: any[] | null, checkins: Map<string, Lin
       jerseyNumber: row.jersey_number ?? null,
       position: row.position ?? null,
       availability: checkins.get(row.player_id) ?? 'no_response',
+      isSub: false,
     } satisfies LineupRosterPlayer;
   });
 
   return roster.length > 0 ? roster : [];
+}
+
+async function loadAcceptedSubSnapshotForGameTeam(
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+  teamId: string,
+  checkins: Map<string, LineupAvailability>,
+  existingRosterIds: Set<string>
+) {
+  const { data: acceptedSubs } = await (serviceSupabase.from('sub_invitations') as any)
+    .select(`
+      invited_player_id,
+      invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url)
+    `)
+    .eq('game_id', gameId)
+    .eq('team_id', teamId)
+    .eq('status', 'accepted');
+
+  const subs: LineupRosterPlayer[] = [];
+
+  for (const row of acceptedSubs || []) {
+    if (!row.invited_player_id || existingRosterIds.has(row.invited_player_id)) {
+      continue;
+    }
+
+    const profile = Array.isArray(row.invited_player_profile)
+      ? row.invited_player_profile[0]
+      : row.invited_player_profile;
+
+    subs.push({
+      playerId: row.invited_player_id,
+      fullName: profile?.full_name ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
+      jerseyNumber: null,
+      position: null,
+      availability: checkins.get(row.invited_player_id) ?? 'confirmed',
+      isSub: true,
+    });
+  }
+
+  return subs;
 }
 
 async function loadRosterSnapshotForGameTeam(
@@ -100,7 +142,16 @@ async function loadRosterSnapshotForGameTeam(
     checkins.set(row.player_id, status);
   }
 
-  return buildRosterSnapshot(rosterResult.data || null, checkins);
+  const roster = buildRosterSnapshot(rosterResult.data || null, checkins);
+  const acceptedSubs = await loadAcceptedSubSnapshotForGameTeam(
+    serviceSupabase,
+    gameId,
+    teamId,
+    checkins,
+    new Set(roster.map((player) => player.playerId)),
+  );
+
+  return [...roster, ...acceptedSubs];
 }
 
 async function verifyGameLineupManagerAccess(

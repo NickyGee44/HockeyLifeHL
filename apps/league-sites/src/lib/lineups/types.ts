@@ -8,6 +8,7 @@ export interface LineupRosterPlayer {
   jerseyNumber: number | null;
   position: string | null;
   availability: LineupAvailability;
+  isSub?: boolean;
 }
 
 export interface LineupPlacedPlayer {
