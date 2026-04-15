@@ -47,6 +47,10 @@ export async function GET(
   const logoDataUrl = await toDataUrl(
     isLeagueBranding ? platformLogoUrl : (preview.branding.logoUrl || platformLogoUrl),
   );
+  const inviteHeading = preview.inviteeName === 'there'
+    ? 'Complete your signup on Beer League Hockey'
+    : `${preview.inviteeName}, complete your signup on Beer League Hockey`;
+  const inviteTarget = isLeagueBranding ? `${preview.leagueName}'s spare list` : preview.teamName;
 
   return new ImageResponse(
     (
@@ -55,104 +59,60 @@ export async function GET(
           width: '100%',
           height: '100%',
           display: 'flex',
-          position: 'relative',
-          overflow: 'hidden',
+          alignItems: 'stretch',
+          justifyContent: 'space-between',
+          padding: '48px',
           background: `linear-gradient(135deg, ${preview.branding.secondaryColor} 0%, ${preview.branding.primaryColor} 52%, #050b16 100%)`,
           color: 'white',
-          fontFamily: 'Inter, Arial, sans-serif',
+          fontFamily: 'Arial, sans-serif',
         }}
       >
         <div
           style={{
             display: 'flex',
-            position: 'absolute',
-            inset: 0,
-            background: 'radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 34%), radial-gradient(circle at bottom left, rgba(212,175,102,0.20), transparent 28%)',
-          }}
-        />
-        <div
-          style={{
-            display: 'flex',
-            position: 'absolute',
-            right: -140,
-            top: -120,
-            width: 520,
-            height: 520,
-            borderRadius: '999px',
-            border: '2px solid rgba(255,255,255,0.08)',
-            opacity: 0.6,
-          }}
-        />
-        <div
-          style={{
-            display: 'flex',
-            position: 'absolute',
-            right: 110,
-            bottom: -110,
-            width: 340,
-            height: 340,
-            borderRadius: '999px',
-            border: `2px solid ${preview.branding.accentColor}55`,
-            opacity: 0.55,
-          }}
-        />
-
-        <div
-          style={{
-            display: 'flex',
+            width: '70%',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            width: '100%',
-            padding: '56px 60px',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 760 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  fontSize: 24,
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: preview.branding.accentColor,
-                }}
-              >
-                <span style={{ display: 'flex' }}>Player Invite</span>
-                <span style={{ display: 'flex', width: 64, height: 2, background: `${preview.branding.accentColor}` }} />
-                <span style={{ display: 'flex', color: 'rgba(255,255,255,0.82)', letterSpacing: '0.08em' }}>{preview.leagueName}</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', fontSize: 68, fontWeight: 800, lineHeight: 1.02 }}>{preview.branding.name}</div>
-                <div style={{ display: 'flex', fontSize: 30, color: 'rgba(255,255,255,0.84)', lineHeight: 1.2 }}>{preview.branding.subtitle}</div>
-              </div>
-            </div>
-
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             <div
               style={{
                 display: 'flex',
-                width: 220,
-                height: 220,
-                borderRadius: 36,
-                background: isLeagueBranding ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 24px 80px rgba(0,0,0,0.28)',
-                overflow: 'hidden',
+                fontSize: 22,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                color: preview.branding.accentColor,
+                marginBottom: '22px',
               }}
             >
-              {logoDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoDataUrl} alt={preview.branding.name} style={{ width: '78%', height: '78%', objectFit: 'contain' }} />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-                  <div style={{ display: 'flex', fontSize: 34, fontWeight: 800, letterSpacing: '0.08em', color: preview.branding.accentColor }}>HL</div>
-                  <div style={{ display: 'flex', fontSize: 18, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>BLH Platform</div>
-                </div>
-              )}
+              Player Invite
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 64,
+                fontWeight: 800,
+                lineHeight: '1.0',
+                marginBottom: '16px',
+              }}
+            >
+              {preview.branding.name}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 28,
+                color: 'rgba(255,255,255,0.84)',
+              }}
+            >
+              {preview.branding.subtitle}
             </div>
           </div>
 
@@ -160,30 +120,75 @@ export async function GET(
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 20,
-              padding: '28px 34px',
-              borderRadius: 30,
-              background: 'rgba(7, 15, 28, 0.68)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.26)',
-              maxWidth: 900,
+              background: 'rgba(7, 15, 28, 0.7)',
+              borderRadius: '24px',
+              padding: '28px',
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', fontSize: 24, fontWeight: 700, color: preview.branding.accentColor, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                Registration Link Ready
-              </div>
-              <div style={{ display: 'flex', fontSize: 44, fontWeight: 800, lineHeight: 1.08 }}>
-                {preview.inviteeName === 'there' ? 'Complete your signup on Beer League Hockey' : `${preview.inviteeName}, complete your signup on Beer League Hockey`}
-              </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 20,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: preview.branding.accentColor,
+                marginBottom: '14px',
+              }}
+            >
+              Registration Link Ready
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ display: 'flex', width: 14, height: 14, borderRadius: 999, background: preview.branding.accentColor }} />
-              <div style={{ display: 'flex', fontSize: 26, color: 'rgba(255,255,255,0.82)' }}>
-                Tap the shared link to join {isLeagueBranding ? `${preview.leagueName}'s spare list` : preview.teamName}
-              </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 38,
+                fontWeight: 800,
+                lineHeight: '1.1',
+                marginBottom: '16px',
+              }}
+            >
+              {inviteHeading}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 24,
+                color: 'rgba(255,255,255,0.82)',
+              }}
+            >
+              {`Tap the shared link to join ${inviteTarget}`}
             </div>
           </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            width: 240,
+            marginLeft: '32px',
+            borderRadius: '28px',
+            background: isLeagueBranding ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          {logoDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoDataUrl} alt={preview.branding.name} style={{ width: '72%', height: '72%', objectFit: 'contain' }} />
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 42,
+                fontWeight: 800,
+                color: preview.branding.accentColor,
+              }}
+            >
+              HL
+            </div>
+          )}
         </div>
       </div>
     ),
