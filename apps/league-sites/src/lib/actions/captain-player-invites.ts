@@ -83,6 +83,11 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
   const existingPlayers = ((rows || []) as any[])
     .map((row) => {
       const player = Array.isArray(row.player) ? row.player[0] : row.player;
+      const normalizedEmail = String(player?.email || '').trim().toLowerCase();
+      const isPlaceholderEmail = !normalizedEmail
+        || normalizedEmail.includes(LEGACY_EMAIL_DOMAIN)
+        || normalizedEmail.startsWith('legacy_');
+
       return {
         rosterId: row.id,
         playerId: row.player_id,
@@ -91,11 +96,12 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
         email: player?.email || null,
         position: row.position || null,
         playerType: row.player_type || 'regular',
-        isLegacyImport: player?.is_legacy_import === true || String(player?.email || '').includes(LEGACY_EMAIL_DOMAIN) || String(player?.email || '').startsWith('legacy_'),
+        isUnlinked: player?.is_legacy_import === true || isPlaceholderEmail,
       };
     })
-    .filter((row) => row.isLegacyImport)
-    .map(({ isLegacyImport: _ignored, ...row }) => row);
+    .filter((row) => row.isUnlinked)
+    .map(({ isUnlinked: _ignored, ...row }) => row)
+    .sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
 
   return { success: true as const, data: { existingPlayers } };
 }
