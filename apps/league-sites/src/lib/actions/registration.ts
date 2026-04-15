@@ -54,6 +54,7 @@ type ActionResult<T = void> = Promise<
 
 export interface RegistrationDraftData {
   current_step: number;
+  season_id?: string | null;
   registration_type: 'team_registration' | 'free_agent' | 'individual';
   registration_intent?: RegistrationIntent;
   team_id?: string | null;

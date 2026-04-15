@@ -260,6 +260,7 @@ export async function getCaptainInvitePrefill(inviteId: string) {
     success: true as const,
     data: {
       current_step: 1,
+      season_id: invite.season_id,
       full_name: invite.invitee_name || '',
       phone: invite.share_phone || '',
       primary_position: invite.position || '',

@@ -93,9 +93,19 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
     );
   }
 
-  // Find active season with open registration
+  const captainInvitePrefill = captainInvite
+    ? await getCaptainInvitePrefill(captainInvite)
+    : null;
+  const inviteInitialData = captainInvitePrefill?.success ? captainInvitePrefill.data : null;
+
+  // Find active season with open registration, but allow valid captain invites
+  // to target their explicit season even if public registration is closed.
   const now = new Date();
-  const activeSeason = pickRegistrationSeason((league.seasons as any[]) || [], now);
+  const openSeason = pickRegistrationSeason((league.seasons as any[]) || [], now);
+  const inviteSeason = inviteInitialData?.season_id
+    ? ((league.seasons as any[]) || []).find((season: any) => season.id === inviteInitialData.season_id) || null
+    : null;
+  const activeSeason = inviteSeason || openSeason;
 
   if (!activeSeason) {
     return (
@@ -217,10 +227,6 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
     );
   }
 
-  const captainInvitePrefill = captainInvite
-    ? await getCaptainInvitePrefill(captainInvite)
-    : null;
-  const inviteInitialData = captainInvitePrefill?.success ? captainInvitePrefill.data : null;
   const initialData = draftResult.success ? (draftResult.data ?? inviteInitialData) : inviteInitialData;
   const waiver =
     waiverResult.success && waiverResult.data

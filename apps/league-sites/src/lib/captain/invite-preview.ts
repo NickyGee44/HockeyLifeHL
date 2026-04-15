@@ -82,6 +82,8 @@ export async function getPublicCaptainInvitePreview(inviteId: string): Promise<C
       share_phone,
       invitee_name,
       registration_path,
+      created_at,
+      updated_at,
       brand_scope,
       player_type,
       position,
@@ -109,7 +111,11 @@ export async function getPublicCaptainInvitePreview(inviteId: string): Promise<C
   const league = Array.isArray(invite.leagues) ? invite.leagues[0] : invite.leagues;
   const baseUrl = resolveBaseUrl(league);
   const registrationPath = invite.registration_path || `/${league?.slug || ''}/register?captainInvite=${invite.id}`;
-  const registrationUrl = `${String(baseUrl).replace(/\/$/, '')}${registrationPath.startsWith('/') ? registrationPath : `/${registrationPath}`}`;
+  const shareVersion = String((invite.updated_at || invite.created_at || '').slice(0, 19).replace(/[^0-9]/g, '') || '1');
+  const registrationUrlBase = `${String(baseUrl).replace(/\/$/, '')}${registrationPath.startsWith('/') ? registrationPath : `/${registrationPath}`}`;
+  const registrationUrl = registrationUrlBase.includes('?')
+    ? `${registrationUrlBase}&preview=${shareVersion}`
+    : `${registrationUrlBase}?preview=${shareVersion}`;
   const inviteeName = invite.invitee_name || 'there';
   const branding = buildBranding(invite, team, league);
   const leagueName = league?.name || 'League';
