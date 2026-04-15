@@ -305,65 +305,80 @@ export function HomepageStoryHero({
       ];
 
   return (
-    <section
-      className="relative isolate overflow-hidden border-b border-[var(--color-border)]"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="absolute inset-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSlide.id}
-            className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.04 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {hasEditorialStage ? (
-              activeSlide.imageUrl ? (
-                <EditorialHeroImage
-                  src={activeSlide.imageUrl}
-                  alt={activeSlide.title}
-                  mode="hero"
-                  backgroundClassName="object-cover object-center"
-                />
-              ) : (
-                <HeroStageFallback
-                  leagueName={league.name}
-                  leagueLogoUrl={league.logo_url}
-                />
-              )
-            ) : (
-              <img
-                src={NO_STORY_HERO_IMAGE}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-        <div className={`absolute inset-0 ${heroOverlayClass}`} />
-        <div className={`absolute inset-0 ${heroGlowClass}`} />
+    <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="relative mx-auto flex max-w-[1440px] items-center justify-center px-4 pb-7 pt-9 sm:px-5 sm:pb-8 sm:pt-10 md:px-6 md:pb-10 md:pt-12 xl:px-8">
+        <div className="flex items-center justify-center">
+          {league.logo_url ? (
+            <img
+              src={league.logo_url}
+              alt={`${league.name} logo`}
+              className="h-24 w-24 object-contain drop-shadow-[0_18px_40px_rgba(0,0,0,0.24)] sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36"
+            />
+          ) : (
+            <span className="text-5xl font-black text-[var(--color-text-primary)] md:text-6xl">{league.name.charAt(0)}</span>
+          )}
+        </div>
       </div>
 
-      {hasEditorialStage && (
-        <Link
-          href={activeSlide.href}
-          aria-label={activeSlide.title}
-          className="absolute inset-0 z-0"
-        />
-      )}
-
-      <div
-        className={`relative mx-auto flex max-w-[1440px] px-4 py-5 sm:px-5 md:px-6 xl:px-8 ${
-          hasEditorialStage
-            ? 'min-h-[420px] items-end md:min-h-[620px] md:py-8 xl:py-10'
-            : 'min-h-[300px] items-center md:min-h-[380px] md:py-5 xl:py-6'
-        }`}
+      <section
+        className="relative isolate overflow-hidden"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
+        <div className="absolute inset-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSlide.id}
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {hasEditorialStage ? (
+                activeSlide.imageUrl ? (
+                  <EditorialHeroImage
+                    src={activeSlide.imageUrl}
+                    alt={activeSlide.title}
+                    mode="hero"
+                    backgroundClassName="object-cover object-center"
+                  />
+                ) : (
+                  <HeroStageFallback
+                    leagueName={league.name}
+                    leagueLogoUrl={league.logo_url}
+                  />
+                )
+              ) : (
+                <img
+                  src={NO_STORY_HERO_IMAGE}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+          <div className={`absolute inset-0 ${heroOverlayClass}`} />
+          <div className={`absolute inset-0 ${heroGlowClass}`} />
+        </div>
+
+        {hasEditorialStage && (
+          <Link
+            href={activeSlide.href}
+            aria-label={activeSlide.title}
+            className="absolute inset-0 z-0"
+          />
+        )}
+
         <div
-          className={`grid w-full gap-5 ${
+          className={`relative mx-auto flex max-w-[1440px] px-4 py-5 sm:px-5 md:px-6 xl:px-8 ${
+            hasEditorialStage
+              ? 'min-h-[336px] items-end md:min-h-[620px] md:py-8 xl:py-10'
+              : 'min-h-[300px] items-center md:min-h-[380px] md:py-5 xl:py-6'
+          }`}
+        >
+          <div
+            className={`grid w-full gap-5 ${
             showInfoCard
               ? hasEditorialStage
                 ? 'items-end lg:grid-cols-[minmax(0,1.45fr)_340px] xl:grid-cols-[minmax(0,1.55fr)_360px]'
@@ -575,9 +590,10 @@ export function HomepageStoryHero({
               </motion.div>
             </div>
           ) : null}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
