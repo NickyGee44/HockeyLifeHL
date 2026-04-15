@@ -356,10 +356,10 @@ export function HomepageStoryHero({
       )}
 
       <div
-        className={`relative mx-auto flex max-w-[1440px] px-4 py-6 sm:px-5 md:px-6 xl:px-8 ${
+        className={`relative mx-auto flex max-w-[1440px] px-4 py-5 sm:px-5 md:px-6 xl:px-8 ${
           hasEditorialStage
-            ? 'min-h-[560px] items-end md:min-h-[620px] md:py-8 xl:py-10'
-            : 'min-h-[320px] items-center md:min-h-[380px] md:py-5 xl:py-6'
+            ? 'min-h-[480px] items-end md:min-h-[620px] md:py-8 xl:py-10'
+            : 'min-h-[300px] items-center md:min-h-[380px] md:py-5 xl:py-6'
         }`}
       >
         <div
@@ -381,25 +381,25 @@ export function HomepageStoryHero({
                   exit={{ opacity: 0, y: -18 }}
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                 >
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/14 bg-black/28 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/88 backdrop-blur-sm">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/24 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/84 backdrop-blur-sm">
                     <Newspaper className="h-3.5 w-3.5" />
                     {activeSlide.eyebrow}
                   </div>
-                  <div className="mt-5 max-w-3xl">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/62">
+                  <div className="mt-4 max-w-3xl md:mt-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60 md:text-xs">
                       {activeSlide.dateLabel}
                     </p>
-                    <h1 className="mt-3 max-w-3xl text-4xl font-black leading-[0.92] tracking-tight text-white text-balance sm:text-5xl lg:text-6xl xl:text-[4.35rem]">
+                    <h1 className="mt-2 max-w-[14ch] text-[2.35rem] font-black leading-[0.94] tracking-[-0.04em] text-white text-balance sm:max-w-3xl sm:text-5xl lg:text-6xl xl:text-[4.35rem]">
                       {activeSlide.title}
                     </h1>
-                    <p className="mt-4 max-w-2xl text-sm leading-6 text-white/78 sm:text-base sm:leading-7">
+                    <p className="mt-4 hidden max-w-2xl text-sm leading-6 text-white/78 md:block md:text-base md:leading-7">
                       {activeSlide.snippet}
                     </p>
                   </div>
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <div className="mt-5 flex flex-wrap items-center gap-3 md:mt-6">
                     <Link
                       href={activeSlide.href}
-                      className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
                     >
                       {activeSlide.cta}
                       <ArrowRight className="h-4 w-4" />
@@ -407,7 +407,7 @@ export function HomepageStoryHero({
                     {hasStorySlides && (
                       <Link
                         href={`/${leagueSlug}/news`}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-black/18 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur-sm transition-colors duration-200 hover:border-white/32 hover:text-white"
+                        className="hidden items-center gap-2 rounded-full border border-white/16 bg-black/18 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur-sm transition-colors duration-200 hover:border-white/32 hover:text-white md:inline-flex"
                       >
                         All News
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -419,7 +419,7 @@ export function HomepageStoryHero({
 
               {hasMultipleSlides && (
                 <div
-                  className="relative z-20 mt-7 flex flex-wrap items-center gap-3"
+                  className="relative z-20 mt-5 flex flex-col gap-3 md:mt-7"
                   onFocusCapture={() => setIsFocusPaused(true)}
                   onBlurCapture={(event) => {
                     if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
@@ -427,45 +427,61 @@ export function HomepageStoryHero({
                     }
                   }}
                 >
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => jumpToSlide(activeIndex - 1)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/22 text-white/86 backdrop-blur-sm transition-colors duration-200 hover:border-white/30 hover:text-white"
-                      aria-label="Previous story"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => jumpToSlide(activeIndex + 1)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/22 text-white/86 backdrop-blur-sm transition-colors duration-200 hover:border-white/30 hover:text-white"
-                      aria-label="Next story"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                  <div className="flex items-center gap-3 md:hidden">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55">
+                      {String(activeIndex + 1).padStart(2, '0')}
+                    </span>
+                    <span className="relative h-px flex-1 overflow-hidden rounded-full bg-white/18">
+                      <span
+                        className="absolute inset-y-0 left-0 rounded-full bg-white/72 transition-all duration-200"
+                        style={{ width: `${((activeIndex + progress) / slides.length) * 100}%` }}
+                      />
+                    </span>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/38">
+                      {String(slides.length).padStart(2, '0')}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {slides.map((slide, index) => (
+                  <div className="hidden flex-wrap items-center gap-3 md:flex">
+                    <div className="flex items-center gap-2">
                       <button
-                        key={slide.id}
                         type="button"
-                        onClick={() => jumpToSlide(index)}
-                        className="group inline-flex items-center gap-2"
-                        aria-label={`Go to story ${index + 1}`}
+                        onClick={() => jumpToSlide(activeIndex - 1)}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/22 text-white/86 backdrop-blur-sm transition-colors duration-200 hover:border-white/30 hover:text-white"
+                        aria-label="Previous story"
                       >
-                        <span className="relative h-[3px] w-10 overflow-hidden rounded-full bg-white/18">
-                          <span
-                            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-200 ${
-                              activeIndex === index ? 'bg-white' : 'bg-white/0'
-                            }`}
-                            style={{
-                              width: activeIndex === index ? `${Math.max(progress * 100, 6)}%` : '0%',
-                            }}
-                          />
-                        </span>
+                        <ChevronLeft className="h-4 w-4" />
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => jumpToSlide(activeIndex + 1)}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/22 text-white/86 backdrop-blur-sm transition-colors duration-200 hover:border-white/30 hover:text-white"
+                        aria-label="Next story"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {slides.map((slide, index) => (
+                        <button
+                          key={slide.id}
+                          type="button"
+                          onClick={() => jumpToSlide(index)}
+                          className="group inline-flex items-center gap-2"
+                          aria-label={`Go to story ${index + 1}`}
+                        >
+                          <span className="relative h-[3px] w-10 overflow-hidden rounded-full bg-white/18">
+                            <span
+                              className={`absolute inset-y-0 left-0 rounded-full transition-all duration-200 ${
+                                activeIndex === index ? 'bg-white' : 'bg-white/0'
+                              }`}
+                              style={{
+                                width: activeIndex === index ? `${Math.max(progress * 100, 6)}%` : '0%',
+                              }}
+                            />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
