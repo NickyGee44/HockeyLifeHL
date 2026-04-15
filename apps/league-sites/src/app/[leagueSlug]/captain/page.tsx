@@ -80,8 +80,10 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   const fetchRosterData = useCallback(async () => {
     if (!teamId) return;
 
+    const currentSeasonId = league?.current_season_id ?? null;
+
     const [rosterResult, requestsResult] = await Promise.all([
-      getTeamRoster(teamId),
+      getTeamRoster(teamId, currentSeasonId),
       getJoinRequests(teamId),
     ]);
 
@@ -91,7 +93,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     if (requestsResult.success && requestsResult.data) {
       setJoinRequests(requestsResult.data);
     }
-  }, [teamId]);
+  }, [league?.current_season_id, teamId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,7 +110,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       // Fetch team stats (actual RPC: get_team_standings)
       const { data: standings } = await supabase.rpc('get_team_standings', {
         check_league_id: currentTeam.team.league_id,
-        check_season_id: null,
+        check_season_id: league?.current_season_id || null,
       });
 
       if (standings) {
@@ -116,17 +118,27 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         if (myTeam) {
           // Calculate division rank
           const divisionTeams = standings.filter(
-            (s: any) => s.division_id === myTeam.division_id
+            (s: any) => myTeam.division_id ? s.division_id === myTeam.division_id : true
           );
-          divisionTeams.sort((a: any, b: any) => b.points - a.points);
+          divisionTeams.sort((a: any, b: any) => {
+            const pointsDiff = Number(b.points || 0) - Number(a.points || 0);
+            if (pointsDiff !== 0) return pointsDiff;
+            const winsDiff = Number(b.wins || 0) - Number(a.wins || 0);
+            if (winsDiff !== 0) return winsDiff;
+            const goalDiff = Number(b.goal_differential || 0) - Number(a.goal_differential || 0);
+            if (goalDiff !== 0) return goalDiff;
+            const goalsForDiff = Number(b.goals_for || 0) - Number(a.goals_for || 0);
+            if (goalsForDiff !== 0) return goalsForDiff;
+            return String(a.team_name || '').localeCompare(String(b.team_name || ''));
+          });
           const divisionRank =
             divisionTeams.findIndex((s: any) => s.team_id === currentTeam.team_id) + 1;
 
           setTeamStats({
-            wins: myTeam.wins || 0,
-            losses: myTeam.losses || 0,
-            ties: myTeam.ties || 0,
-            points: myTeam.points || 0,
+            wins: Number(myTeam.wins || 0),
+            losses: Number(myTeam.losses || 0),
+            ties: Number(myTeam.ties || 0),
+            points: Number(myTeam.points || 0),
             division_rank: divisionRank,
           });
         }

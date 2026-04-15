@@ -65,7 +65,8 @@ async function verifyCaptainRole(
 }
 
 export async function getTeamRoster(
-  teamId: string
+  teamId: string,
+  seasonId?: string | null,
 ): Promise<{ success: boolean; data?: RosterPlayer[]; error?: string }> {
   const auth = await verifyCaptainRole(teamId);
   if (!auth.authorized) {
@@ -74,7 +75,7 @@ export async function getTeamRoster(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('team_rosters')
     .select(
       `
@@ -89,8 +90,13 @@ export async function getTeamRoster(
     )
     .eq('team_id', teamId)
     .eq('status', 'active')
-    .is('end_date', null)
-    .order('jersey_number', { ascending: true, nullsFirst: false });
+    .is('end_date', null);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query.order('jersey_number', { ascending: true, nullsFirst: false });
 
   if (error) {
     console.error('Failed to get team roster:', error);
