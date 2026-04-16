@@ -4339,21 +4339,11 @@ export async function getVenueObjects(leagueId: string): Promise<{
  * Fetch venues for a league (for venue filter)
  */
 export async function getVenues(leagueId: string): Promise<string[]> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('games')
-    .select('location')
-    .eq('league_id', leagueId)
-    .not('location', 'is', null);
-
-  if (error || !data) {
-    return [];
-  }
-
-  // Get unique venues
-  const venues = [...new Set(data.map((g: { location: string | null }) => g.location).filter(Boolean))] as string[];
-  return venues.sort();
+  const venueObjects = await getVenueObjects(leagueId);
+  return venueObjects
+    .map((venue) => venue.name)
+    .filter((name): name is string => Boolean(name))
+    .sort((a, b) => a.localeCompare(b));
 }
 
 /**

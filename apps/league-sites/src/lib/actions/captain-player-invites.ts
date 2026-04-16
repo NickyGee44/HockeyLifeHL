@@ -65,24 +65,37 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
     .select(`
       id,
       player_id,
+      season_id,
+      joined_at,
+      created_at,
       position,
       player_type,
       leadership_role,
       player:player_id(id, full_name, phone, email, is_legacy_import)
     `)
     .eq('team_id', teamId)
-    .eq('season_id', seasonId)
     .eq('status', 'active')
     .is('end_date', null)
-    .order('position')
-    .order('joined_at');
+    .order('joined_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false, nullsFirst: false });
 
   if (error) {
     return { success: false as const, error: 'Failed to load invite data' };
   }
 
+  const latestRosterByPlayer = new Map<string, any>();
+  for (const row of (rows || []) as any[]) {
+    const existing = latestRosterByPlayer.get(row.player_id);
+    const rowMatchesSeason = row.season_id === seasonId;
+    const existingMatchesSeason = existing?.season_id === seasonId;
+
+    if (!existing || (rowMatchesSeason && !existingMatchesSeason)) {
+      latestRosterByPlayer.set(row.player_id, row);
+    }
+  }
+
   const enrichedRows = await Promise.all(
-    ((rows || []) as any[]).map(async (row) => {
+    Array.from(latestRosterByPlayer.values()).map(async (row) => {
       const player = Array.isArray(row.player) ? row.player[0] : row.player;
       const normalizedEmail = String(player?.email || '').trim().toLowerCase();
       const isPlaceholderEmail = !normalizedEmail
