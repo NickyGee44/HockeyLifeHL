@@ -285,8 +285,8 @@ export function CaptainGameDayPage({
           <section className="space-y-4">
             <SectionHeading
               icon={<SquarePen className="h-5 w-5 text-[var(--league-primary)]" />}
-              title="Lineup"
-              description={`${currentData.lineup.status === 'published' ? 'Published' : 'Draft'} lineup with ${currentData.lineup.layout.placedPlayers.length} players placed.`}
+              title="Live Snapshot"
+              description={`${currentData.lineup.status === 'published' ? 'Published' : 'Draft'} lineup preview. Use the action tiles to edit lineup or attendance in modals.`}
             />
             <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)] md:p-7">
               <TeamLineupView
@@ -296,42 +296,6 @@ export function CaptainGameDayPage({
                 secondaryColor={teamSecondaryColor}
                 availabilityMap={availabilityMap}
               />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <SectionHeading
-              icon={<Users className="h-5 w-5 text-[var(--league-primary)]" />}
-              title="Attendance"
-              description="Full team attendance for the resolved game, including accepted subs."
-            />
-            <div className="overflow-hidden rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)]">
-              <div className="divide-y divide-[var(--color-border)]">
-                {currentData.attendance.map((player) => (
-                  <div
-                    key={player.playerId}
-                    className="flex items-center justify-between gap-3 px-4 py-3 md:px-6"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] md:text-base">
-                          {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}
-                          {player.fullName}
-                        </p>
-                        {player.isSub ? (
-                          <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300">
-                            Sub
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-[var(--color-text-secondary)]">
-                        {player.position || 'Skater'}
-                      </p>
-                    </div>
-                    <AttendanceStatusBadge status={player.status} />
-                  </div>
-                ))}
-              </div>
             </div>
           </section>
         </div>
