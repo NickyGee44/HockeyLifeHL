@@ -115,6 +115,36 @@ type LegacyPlayerRow = {
   imported_from: string | null;
 };
 
+export type PlayerCareerSeasonRow = {
+  season_id: string;
+  season_name: string;
+  sort_date: string | null;
+  team_id: string | null;
+  team_name: string | null;
+  position: string | null;
+  games_played: number;
+  team_games: number;
+  attendance_pct: number;
+  goals: number;
+  assists: number;
+  points: number;
+  goals_per_game: number;
+  points_per_game: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  saves: number;
+  goals_against: number;
+  save_percentage: number | null;
+  goals_against_average: number | null;
+  shutouts: number;
+};
+
+function roundCareerMetric(value: number, digits = 1) {
+  if (!Number.isFinite(value)) return 0;
+  return Number(value.toFixed(digits));
+}
+
 function supportsLegacyAllTimeStats(leagueSlug?: string): boolean {
   return Boolean(leagueSlug && LEGACY_ALL_TIME_LEAGUE_SLUGS.has(leagueSlug.toLowerCase()));
 }
@@ -4454,6 +4484,405 @@ export function summarizePlayerCareerTotals(
     penalty_minutes: totals.penalty_minutes,
     plus_minus: 0,
   } as PlayerStats;
+}
+
+function emojiForHotFact(text: string) {
+  const normalized = text.toLowerCase();
+  if (normalized.includes('milestone') || normalized.includes('pace') || normalized.includes('tracking')) return '🔥';
+  if (normalized.includes('league') || normalized.includes('team')) return '👀';
+  if (normalized.includes('bounce') || normalized.includes('jump') || normalized.includes('surge')) return '📈';
+  if (normalized.includes('wall') || normalized.includes('save') || normalized.includes('shutout')) return '🧱';
+  return '🌶️';
+}
+
+function buildDeterministicPlayerCareerHotFact(input: {
+  playerName: string;
+  seasons: PlayerCareerSeasonRow[];
+  isGoalie: boolean;
+}) {
+  const { playerName, seasons, isGoalie } = input;
+  if (seasons.length === 0) {
+    return `🌶️ ${playerName} is still waiting for the stat sheet to catch up.`;
+  }
+
+  const latest = seasons[seasons.length - 1];
+  const previous = seasons.length > 1 ? seasons[seasons.length - 2] : null;
+
+  if (isGoalie) {
+    const careerWins = seasons.reduce((sum, season) => sum + season.wins, 0);
+    const careerSaves = seasons.reduce((sum, season) => sum + season.saves, 0);
+
+    if (careerWins > 0 && careerWins % 5 === 0) {
+      return `🔥 ${playerName} just hit ${careerWins} career wins, which is a pretty loud way to keep the crease.`;
+    }
+
+    if (previous && latest.save_percentage != null && previous.save_percentage != null) {
+      const swing = roundCareerMetric(latest.save_percentage - previous.save_percentage, 1);
+      if (Math.abs(swing) >= 2) {
+        return swing > 0
+          ? `📈 ${playerName} bumped the save rate by ${swing} points from ${previous.season_name} to ${latest.season_name}, and shooters definitely noticed.`
+          : `🥶 ${playerName}'s save rate slipped ${Math.abs(swing)} points from ${previous.season_name} to ${latest.season_name}, so next season has a revenge arc baked in.`;
+      }
+    }
+
+    if (careerSaves >= 100 && careerSaves % 100 <= 15) {
+      return `🧱 ${playerName} is sitting on ${careerSaves} career saves, basically one busy night away from another round number.`;
+    }
+
+    if (latest.shutouts > 0) {
+      return `👀 ${playerName} posted ${latest.shutouts} shutout${latest.shutouts === 1 ? '' : 's'} in ${latest.season_name}, which is a rude amount of silence for shooters.`;
+    }
+
+    return `🌶️ ${playerName} has stacked ${careerWins} wins and ${careerSaves} saves so far, which is a decent way to make life miserable in net.`;
+  }
+
+  const careerPoints = seasons.reduce((sum, season) => sum + season.points, 0);
+  const careerGoals = seasons.reduce((sum, season) => sum + season.goals, 0);
+
+  if (careerPoints >= 10 && careerPoints % 25 <= 3) {
+    return `🔥 ${playerName} is already at ${careerPoints} career points, and the next milestone is basically on the doorstep.`;
+  }
+
+  if (previous) {
+    const pointJump = latest.points - previous.points;
+    if (Math.abs(pointJump) >= 5) {
+      return pointJump > 0
+        ? `📈 ${playerName} popped for ${pointJump} more points in ${latest.season_name} than ${previous.season_name}, which is not exactly subtle.`
+        : `🌶️ ${playerName} cooled off by ${Math.abs(pointJump)} points in ${latest.season_name}, so the bounce-back watch is officially on.`;
+    }
+
+    const attendanceSwing = roundCareerMetric(latest.attendance_pct - previous.attendance_pct, 1);
+    if (Math.abs(attendanceSwing) >= 15) {
+      return attendanceSwing > 0
+        ? `👏 ${playerName} showed up way more in ${latest.season_name}, with attendance up ${attendanceSwing} points from the year before.`
+        : `👀 ${playerName}'s attendance dipped ${Math.abs(attendanceSwing)} points in ${latest.season_name}, which definitely hit the box score rhythm.`;
+    }
+  }
+
+  if (careerGoals >= 10 && careerGoals % 10 <= 2) {
+    return `🥅 ${playerName} has ${careerGoals} career goals and is sniffing another clean milestone already.`;
+  }
+
+  return `🌶️ ${playerName} has piled up ${careerPoints} points in ${seasons.length} season${seasons.length === 1 ? '' : 's'}, which travels pretty well.`;
+}
+
+export async function generatePlayerCareerHotFact(input: {
+  playerName: string;
+  seasons: PlayerCareerSeasonRow[];
+  isGoalie: boolean;
+}): Promise<string> {
+  const { playerName, seasons, isGoalie } = input;
+  const ordered = [...seasons].sort((left, right) => {
+    const leftTime = left.sort_date ? new Date(left.sort_date).getTime() : 0;
+    const rightTime = right.sort_date ? new Date(right.sort_date).getTime() : 0;
+    return leftTime - rightTime;
+  });
+
+  const fallback = buildDeterministicPlayerCareerHotFact({ playerName, seasons: ordered, isGoalie });
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || ordered.length === 0) {
+    return fallback;
+  }
+
+  try {
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey });
+    const compactSeasons = ordered.map((season) => ({
+      season: season.season_name,
+      team: season.team_name,
+      gp: season.games_played,
+      attendance_pct: season.attendance_pct,
+      goals: season.goals,
+      assists: season.assists,
+      points: season.points,
+      gpg: season.goals_per_game,
+      ppg: season.points_per_game,
+      wins: season.wins,
+      losses: season.losses,
+      ties: season.ties,
+      saves: season.saves,
+      goals_against: season.goals_against,
+      save_percentage: season.save_percentage,
+      gaa: season.goals_against_average,
+      shutouts: season.shutouts,
+    }));
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.9,
+      max_tokens: 80,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You write one short hockey stat blurb. Sound human, a little spicy, never robotic. Output plain text only, 1 sentence, under 24 words, start with an emoji.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            playerName,
+            playerType: isGoalie ? 'goalie' : 'skater',
+            seasons: compactSeasons,
+            instruction:
+              'Use only the provided stats. Mention a milestone, trend, upcoming chase, or team/league rank style insight if supported. Do not invent facts.',
+          }),
+        },
+      ],
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) {
+      return fallback;
+    }
+
+    const hasEmojiPrefix = /^\p{Extended_Pictographic}/u.test(content) || /^[\u2600-\u27BF]/u.test(content);
+    return hasEmojiPrefix ? content : `${emojiForHotFact(content)} ${content}`;
+  } catch {
+    return fallback;
+  }
+}
+
+async function loadTeamNameMap(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamIds: Array<string | null | undefined>,
+) {
+  const ids = [...new Set(teamIds.filter((teamId): teamId is string => Boolean(teamId)))];
+  if (ids.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const { data } = await supabase.from('teams').select('id, name').in('id', ids);
+  return new Map((data || []).map((team) => [team.id, team.name]));
+}
+
+async function loadTeamGameCountsBySeasonTeam(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  leagueId: string,
+  seasonIds: string[],
+  teamIds: Array<string | null | undefined>,
+) {
+  const normalizedTeamIds = [...new Set(teamIds.filter((teamId): teamId is string => Boolean(teamId)))];
+  if (seasonIds.length === 0 || normalizedTeamIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const { data } = await supabase
+    .from('games')
+    .select('id, season_id, home_team_id, away_team_id')
+    .eq('league_id', leagueId)
+    .in('season_id', seasonIds)
+    .in('status', [...PLAYED_GAME_STATUSES])
+    .or(`home_team_id.in.(${normalizedTeamIds.join(',')}),away_team_id.in.(${normalizedTeamIds.join(',')})`);
+
+  const counts = new Map<string, Set<string>>();
+  for (const game of data || []) {
+    const season = game.season_id;
+    if (!season || !game.id) continue;
+    for (const teamId of [game.home_team_id, game.away_team_id]) {
+      if (!teamId || !normalizedTeamIds.includes(teamId)) continue;
+      const key = `${season}:${teamId}`;
+      const games = counts.get(key) || new Set<string>();
+      games.add(game.id);
+      counts.set(key, games);
+    }
+  }
+
+  return new Map([...counts.entries()].map(([key, games]) => [key, games.size]));
+}
+
+export async function getPlayerCareerStatsTimeline(
+  leagueId: string,
+  playerId: string,
+  isGoalie: boolean,
+): Promise<PlayerCareerSeasonRow[]> {
+  const supabase = await createClient();
+  const seasons = await getSeasons(leagueId);
+  const seasonNameById = new Map(seasons.map((season) => [season.id, season.name]));
+  const seasonSortById = new Map(seasons.map((season) => [season.id, season.start_date ?? null]));
+
+  if (isGoalie) {
+    const { data: rawRows, error } = await supabase
+      .from('goalie_stats')
+      .select('season_id, team_id, saves, goals_against, game_result, shutout')
+      .eq('player_id', playerId);
+
+    if (error) {
+      return [];
+    }
+
+    const rows = (rawRows || []) as Array<{
+      season_id: string | null;
+      team_id: string | null;
+      saves: number | null;
+      goals_against: number | null;
+      game_result: string | null;
+      shutout: boolean | null;
+    }>;
+
+    const activeSeasonIds = [...new Set(rows.map((row) => row.season_id).filter((seasonId): seasonId is string => Boolean(seasonId)))];
+    const [confirmedBuckets, fallbackBuckets] = await Promise.all([
+      Promise.all(activeSeasonIds.map((seasonId) => getConfirmedCheckinAppearanceRows(supabase, { seasonId, playerIds: [playerId] }))),
+      Promise.all(activeSeasonIds.map((seasonId) => getFallbackRosterAppearanceRows(supabase, { seasonId, playerIds: [playerId] }))),
+    ]);
+    const confirmedCheckins = confirmedBuckets.flat();
+    const fallbackAppearances = fallbackBuckets.flat();
+
+    const teamNames = await loadTeamNameMap(supabase, rows.map((row) => row.team_id));
+    const teamGameCountBySeasonTeam = await loadTeamGameCountsBySeasonTeam(supabase, leagueId, activeSeasonIds, [
+      ...rows.map((row) => row.team_id),
+      ...confirmedCheckins.map((row) => row.team_id),
+      ...fallbackAppearances.map((row) => row.team_id),
+    ]);
+
+    const appearancesBySeasonTeam = new Map<string, Set<string>>();
+    for (const row of [...confirmedCheckins, ...fallbackAppearances]) {
+      const game = Array.isArray(row.game) ? row.game[0] : row.game;
+      if (!row.game_id || !row.team_id || !game?.season_id) continue;
+      const key = `${game.season_id}:${row.team_id}`;
+      const games = appearancesBySeasonTeam.get(key) || new Set<string>();
+      games.add(row.game_id);
+      appearancesBySeasonTeam.set(key, games);
+    }
+
+    const seasonMap = new Map<string, PlayerCareerSeasonRow>();
+    for (const row of rows) {
+      if (!row.season_id) continue;
+      const key = `${row.season_id}:${row.team_id || 'unknown'}`;
+      const existing = seasonMap.get(key) || {
+        season_id: row.season_id,
+        season_name: seasonNameById.get(row.season_id) || 'Unknown Season',
+        sort_date: seasonSortById.get(row.season_id) || null,
+        team_id: row.team_id,
+        team_name: row.team_id ? (teamNames.get(row.team_id) || null) : null,
+        position: 'Goalie',
+        games_played: 0,
+        team_games: 0,
+        attendance_pct: 0,
+        goals: 0,
+        assists: 0,
+        points: 0,
+        goals_per_game: 0,
+        points_per_game: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        saves: 0,
+        goals_against: 0,
+        save_percentage: null,
+        goals_against_average: null,
+        shutouts: 0,
+      };
+
+      existing.games_played += 1;
+      existing.saves += row.saves || 0;
+      existing.goals_against += row.goals_against || 0;
+      existing.shutouts += row.shutout ? 1 : 0;
+      if (row.game_result === 'W') existing.wins += 1;
+      else if (row.game_result === 'L') existing.losses += 1;
+      else if (row.game_result === 'T') existing.ties += 1;
+      seasonMap.set(key, existing);
+    }
+
+    return [...seasonMap.values()]
+      .map((season) => {
+        const key = `${season.season_id}:${season.team_id || 'unknown'}`;
+        const appearanceGames = appearancesBySeasonTeam.get(key)?.size || 0;
+        const gamesPlayed = Math.max(season.games_played, appearanceGames);
+        const teamGames = season.team_id ? (teamGameCountBySeasonTeam.get(key) || gamesPlayed) : gamesPlayed;
+        const shotsAgainst = season.saves + season.goals_against;
+        return {
+          ...season,
+          games_played: gamesPlayed,
+          team_games: teamGames,
+          attendance_pct: teamGames > 0 ? roundCareerMetric((gamesPlayed / teamGames) * 100, 1) : 0,
+          save_percentage: shotsAgainst > 0 ? roundCareerMetric((season.saves / shotsAgainst) * 100, 1) : null,
+          goals_against_average: gamesPlayed > 0 ? roundCareerMetric(season.goals_against / gamesPlayed, 2) : null,
+        };
+      })
+      .sort((left, right) => new Date(left.sort_date || 0).getTime() - new Date(right.sort_date || 0).getTime());
+  }
+
+  const { data: seasonRows, error } = await supabase
+    .from('player_season_stats')
+    .select('season_id, team_id, team_name, position, games_played, goals, assists, points')
+    .eq('player_id', playerId);
+
+  if (error) {
+    return [];
+  }
+
+  const rows = (seasonRows || []) as Array<{
+    season_id: string | null;
+    team_id: string | null;
+    team_name: string | null;
+    position: string | null;
+    games_played: number | null;
+    goals: number | null;
+    assists: number | null;
+    points: number | null;
+  }>;
+
+  const activeSeasonIds = [...new Set(rows.map((row) => row.season_id).filter((seasonId): seasonId is string => Boolean(seasonId)))];
+  const [confirmedBuckets, fallbackBuckets] = await Promise.all([
+    Promise.all(activeSeasonIds.map((seasonId) => getConfirmedCheckinAppearanceRows(supabase, { seasonId, playerIds: [playerId] }))),
+    Promise.all(activeSeasonIds.map((seasonId) => getFallbackRosterAppearanceRows(supabase, { seasonId, playerIds: [playerId] }))),
+  ]);
+  const confirmedCheckins = confirmedBuckets.flat();
+  const fallbackAppearances = fallbackBuckets.flat();
+
+  const teamNames = await loadTeamNameMap(supabase, rows.map((row) => row.team_id));
+  const teamGameCountBySeasonTeam = await loadTeamGameCountsBySeasonTeam(supabase, leagueId, activeSeasonIds, [
+    ...rows.map((row) => row.team_id),
+    ...confirmedCheckins.map((row) => row.team_id),
+    ...fallbackAppearances.map((row) => row.team_id),
+  ]);
+
+  const appearancesBySeasonTeam = new Map<string, Set<string>>();
+  for (const row of [...confirmedCheckins, ...fallbackAppearances]) {
+    const game = Array.isArray(row.game) ? row.game[0] : row.game;
+    if (!row.game_id || !row.team_id || !game?.season_id) continue;
+    const key = `${game.season_id}:${row.team_id}`;
+    const games = appearancesBySeasonTeam.get(key) || new Set<string>();
+    games.add(row.game_id);
+    appearancesBySeasonTeam.set(key, games);
+  }
+
+  return rows
+    .filter((row) => Boolean(row.season_id))
+    .map((row) => {
+      const season = row.season_id as string;
+      const key = `${season}:${row.team_id || 'unknown'}`;
+      const gamesPlayed = Math.max(row.games_played || 0, appearancesBySeasonTeam.get(key)?.size || 0);
+      const teamGames = row.team_id ? (teamGameCountBySeasonTeam.get(key) || gamesPlayed) : gamesPlayed;
+      const goals = row.goals || 0;
+      const assists = row.assists || 0;
+      const points = row.points ?? (goals + assists);
+      return {
+        season_id: season,
+        season_name: seasonNameById.get(season) || 'Unknown Season',
+        sort_date: seasonSortById.get(season) || null,
+        team_id: row.team_id,
+        team_name: row.team_name || (row.team_id ? teamNames.get(row.team_id) || null : null),
+        position: row.position,
+        games_played: gamesPlayed,
+        team_games: teamGames,
+        attendance_pct: teamGames > 0 ? roundCareerMetric((gamesPlayed / teamGames) * 100, 1) : 0,
+        goals,
+        assists,
+        points,
+        goals_per_game: gamesPlayed > 0 ? roundCareerMetric(goals / gamesPlayed, 2) : 0,
+        points_per_game: gamesPlayed > 0 ? roundCareerMetric(points / gamesPlayed, 2) : 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        saves: 0,
+        goals_against: 0,
+        save_percentage: null,
+        goals_against_average: null,
+        shutouts: 0,
+      };
+    })
+    .sort((left, right) => new Date(left.sort_date || 0).getTime() - new Date(right.sort_date || 0).getTime());
 }
 
 export async function getPlayerCareerStats(

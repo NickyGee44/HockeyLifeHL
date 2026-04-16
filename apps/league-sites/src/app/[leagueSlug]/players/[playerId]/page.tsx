@@ -13,8 +13,10 @@ import {
   getCurrentSeason,
   getPlayerBadges,
   getPlayerArticles,
+  getPlayerCareerStatsTimeline,
   getPlayerGoalieMatchups,
   getGoaliePlayerMatchups,
+  generatePlayerCareerHotFact,
 } from '@/lib/data';
 import { PlayerHeader } from '@/components/player/PlayerHeader';
 import { PlayerBadgesSection } from '@/components/player/PlayerBadgesSection';
@@ -22,6 +24,7 @@ import { PlayerStatsCards } from '@/components/player/PlayerStatsCards';
 import { PlayerGameLog } from '@/components/player/PlayerGameLog';
 import { SeasonSelector } from '@/components/player/SeasonSelector';
 import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
+import { PlayerCareerStatsSection } from '@/components/player/PlayerCareerStatsSection';
 import { PlayerMatchups } from '@/components/player/PlayerMatchups';
 import { isAggregateOnlySeasonView } from '@/lib/imported-aggregate-season-overrides';
 import { countChampionshipBadges, summarizePlayerCareerAchievements } from '@/lib/career-achievements';
@@ -73,7 +76,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const isGoalie = player.position === 'G' || player.position === 'Goalie';
 
   // Fetch data in parallel
-  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData] = await Promise.all([
+  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData, careerTimeline] = await Promise.all([
     getSeasons(league.id),
     getPlayerCareerStats(profileId, seasonId),
     getPlayerGameLog(profileId, seasonId, 20),
@@ -83,6 +86,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
     isGoalie
       ? getGoaliePlayerMatchups(profileId, seasonId)
       : getPlayerGoalieMatchups(profileId, seasonId),
+    getPlayerCareerStatsTimeline(league.id, profileId, isGoalie),
   ]);
 
   const playerName = player.profile?.full_name || 'Unknown Player';
@@ -103,6 +107,11 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   }));
   const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
   const showPerGameHistory = !isAggregateOnlySeasonView(seasonId, currentSeasonName);
+  const careerHotFact = await generatePlayerCareerHotFact({
+    playerName,
+    seasons: careerTimeline,
+    isGoalie,
+  });
 
   return (
     <SubscriptionWall>
@@ -157,6 +166,12 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
             </p>
           </div>
         )}
+
+        <PlayerCareerStatsSection
+          seasons={careerTimeline}
+          isGoalie={isGoalie}
+          hotFact={careerHotFact}
+        />
 
         {/* Game Log */}
         {showPerGameHistory && (
