@@ -148,7 +148,9 @@ async function loadAttendancePlayers(
     rosterQuery = rosterQuery.eq('season_id', seasonId);
   }
 
-  const [rosterResult, checkinResult, acceptedSubsResult] = await Promise.all([
+  // Only include subs the captain has actually invited to THIS game.
+  // Pending + accepted = invited; declined/expired are excluded.
+  const [rosterResult, checkinResult, invitedSubsResult] = await Promise.all([
     rosterQuery,
     (supabase.from('game_checkins') as any)
       .select('player_id, status')
@@ -157,11 +159,12 @@ async function loadAttendancePlayers(
     (supabase.from('sub_invitations') as any)
       .select(`
         invited_player_id,
+        status,
         invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url)
       `)
       .eq('game_id', gameId)
       .eq('team_id', teamId)
-      .eq('status', 'accepted'),
+      .in('status', ['pending', 'accepted']),
   ]);
 
   const checkins = new Map<string, CaptainAttendanceStatus>();
@@ -188,20 +191,25 @@ async function loadAttendancePlayers(
     });
   }
 
-  for (const row of acceptedSubsResult.data || []) {
+  for (const row of invitedSubsResult.data || []) {
     if (!row.invited_player_id || seen.has(row.invited_player_id)) continue;
     const profile = Array.isArray(row.invited_player_profile)
       ? row.invited_player_profile[0]
       : row.invited_player_profile;
 
     seen.add(row.invited_player_id);
+    // Accepted subs are auto-confirmed via game_checkins; pending invites
+    // default to no_response until the sub responds or the captain overrides.
+    const fallbackStatus: CaptainAttendanceStatus =
+      row.status === 'accepted' ? 'confirmed' : 'no_response';
+
     players.push({
       playerId: row.invited_player_id,
       fullName: profile?.full_name ?? 'Player',
       avatarUrl: profile?.avatar_url ?? null,
       jerseyNumber: null,
       position: null,
-      status: checkins.get(row.invited_player_id) ?? 'confirmed',
+      status: checkins.get(row.invited_player_id) ?? fallbackStatus,
       isSub: true,
     });
   }

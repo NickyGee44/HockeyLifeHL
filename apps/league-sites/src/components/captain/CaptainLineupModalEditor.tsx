@@ -11,6 +11,7 @@ import {
   isGoaliePosition,
   type GameTeamLineupLayout,
   type GameTeamLineupStatus,
+  type LineupPlacedPlayer,
   type LineupRosterPlayer,
 } from '@/lib/lineups/types';
 
@@ -48,6 +49,15 @@ function classifyPlayer(player: LineupRosterPlayer): SlotType {
   return 'forward';
 }
 
+// Captain's chosen slot is encoded by coord bands, not player.position —
+// this lets a forward be placed into a defence slot on purpose.
+function deriveSlotFromCoord(coord: { x: number; y: number } | undefined): SlotType | null {
+  if (!coord) return null;
+  if (coord.y >= 86) return 'goalie';
+  if (coord.y >= 50) return 'defence';
+  return 'forward';
+}
+
 function slotLabel(type: SlotType) {
   if (type === 'goalie') return 'Goalie';
   if (type === 'defence') return 'Defence';
@@ -78,6 +88,7 @@ export function CaptainLineupModalEditor({
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [savingDraft, startSaveDraft] = useTransition();
   const [publishing, startPublish] = useTransition();
 
@@ -86,6 +97,7 @@ export function CaptainLineupModalEditor({
     setStatus(initialStatus);
     setDirty(false);
     setError(null);
+    setSelectedPlayerId(null);
   }, [initialLayout, initialStatus]);
 
   const eligible = useMemo(
@@ -104,21 +116,37 @@ export function CaptainLineupModalEditor({
     return map;
   }, [eligible]);
 
-  const placedPlayers = useMemo(
+  const placedEntries = useMemo(
     () =>
       layout.placedPlayers
-        .map((entry) => eligibleById.get(entry.playerId))
-        .filter((player): player is LineupRosterPlayer => Boolean(player)),
+        .map((entry) => {
+          const player = eligibleById.get(entry.playerId);
+          if (!player) return null;
+          const slot = deriveSlotFromCoord(entry) ?? classifyPlayer(player);
+          return { player, entry, slot };
+        })
+        .filter(
+          (value): value is { player: LineupRosterPlayer; entry: LineupPlacedPlayer; slot: SlotType } =>
+            value !== null,
+        ),
     [layout.placedPlayers, eligibleById],
   );
 
-  const placedForwards = placedPlayers.filter((p) => classifyPlayer(p) === 'forward');
-  const placedDefence = placedPlayers.filter((p) => classifyPlayer(p) === 'defence');
-  const placedGoalies = placedPlayers.filter((p) => classifyPlayer(p) === 'goalie');
+  const placedBySlot = useMemo(() => {
+    const buckets: Record<SlotType, typeof placedEntries> = {
+      forward: [],
+      defence: [],
+      goalie: [],
+    };
+    for (const item of placedEntries) {
+      buckets[item.slot].push(item);
+    }
+    return buckets;
+  }, [placedEntries]);
 
   const placedIds = useMemo(
-    () => new Set(placedPlayers.map((p) => p.playerId)),
-    [placedPlayers],
+    () => new Set(placedEntries.map((item) => item.player.playerId)),
+    [placedEntries],
   );
 
   const unassigned = useMemo(
@@ -126,29 +154,40 @@ export function CaptainLineupModalEditor({
     [eligible, placedIds],
   );
 
-  const placePlayer = (player: LineupRosterPlayer) => {
-    const slotType = classifyPlayer(player);
-    let coords: { x: number; y: number };
+  const selectedPlayer = selectedPlayerId ? eligibleById.get(selectedPlayerId) ?? null : null;
 
-    if (slotType === 'goalie') {
-      if (placedGoalies.length >= GOALIE_SLOTS) {
-        setError('Goalie slot is already filled. Tap the goalie jersey to remove them first.');
-        return;
-      }
-      coords = GOALIE_COORDS;
-    } else if (slotType === 'defence') {
-      if (placedDefence.length >= DEFENCE_SLOTS) {
-        setError('All defence slots are filled. Remove a defender to make room.');
-        return;
-      }
-      coords = DEFENCE_COORDS[placedDefence.length];
-    } else {
-      if (placedForwards.length >= FORWARD_SLOTS) {
-        setError('All forward slots are filled. Remove a forward to make room.');
-        return;
-      }
-      coords = FORWARD_COORDS[placedForwards.length];
+  const toggleSelect = (playerId: string) => {
+    setError(null);
+    setSelectedPlayerId((current) => (current === playerId ? null : playerId));
+  };
+
+  const placeSelectedInSection = (slotType: SlotType) => {
+    if (!selectedPlayerId) {
+      setError('Select a player from Unassigned Roster first, then tap an empty slot.');
+      return;
     }
+
+    const player = eligibleById.get(selectedPlayerId);
+    if (!player) {
+      setSelectedPlayerId(null);
+      return;
+    }
+
+    const maxSlots = slotType === 'forward' ? FORWARD_SLOTS : slotType === 'defence' ? DEFENCE_SLOTS : GOALIE_SLOTS;
+    // Count existing players in this section, ignoring the selected player if they're already placed.
+    const occupants = placedBySlot[slotType].filter((item) => item.player.playerId !== selectedPlayerId);
+
+    if (occupants.length >= maxSlots) {
+      setError(`${slotLabel(slotType)} slots are full. Remove someone first.`);
+      return;
+    }
+
+    const coord =
+      slotType === 'goalie'
+        ? GOALIE_COORDS
+        : slotType === 'defence'
+          ? DEFENCE_COORDS[occupants.length]
+          : FORWARD_COORDS[occupants.length];
 
     setError(null);
     setSavedAt(null);
@@ -156,13 +195,38 @@ export function CaptainLineupModalEditor({
     setLayout((prev) => ({
       ...prev,
       placedPlayers: [
-        ...prev.placedPlayers.filter((entry) => entry.playerId !== player.playerId),
-        { playerId: player.playerId, x: coords.x, y: coords.y },
+        ...prev.placedPlayers.filter((entry) => entry.playerId !== selectedPlayerId),
+        { playerId: selectedPlayerId, x: coord.x, y: coord.y },
       ],
     }));
+    setSelectedPlayerId(null);
   };
 
-  const removePlayer = (playerId: string) => {
+  const handleJerseyClick = (playerId: string) => {
+    // If a different player is currently selected, swap them into this slot.
+    if (selectedPlayerId && selectedPlayerId !== playerId) {
+      const existingEntry = layout.placedPlayers.find((entry) => entry.playerId === playerId);
+      if (!existingEntry) {
+        return;
+      }
+
+      setError(null);
+      setSavedAt(null);
+      setDirty(true);
+      setLayout((prev) => ({
+        ...prev,
+        placedPlayers: [
+          ...prev.placedPlayers.filter(
+            (entry) => entry.playerId !== playerId && entry.playerId !== selectedPlayerId,
+          ),
+          { playerId: selectedPlayerId, x: existingEntry.x, y: existingEntry.y },
+        ],
+      }));
+      setSelectedPlayerId(null);
+      return;
+    }
+
+    // Otherwise just remove the tapped player from the lineup.
     setError(null);
     setSavedAt(null);
     setDirty(true);
@@ -214,30 +278,29 @@ export function CaptainLineupModalEditor({
     });
   };
 
-  const skaterDisplay = placedPlayers
-    .filter((p) => classifyPlayer(p) !== 'goalie')
-    .map((p) => ({
-      playerId: p.playerId,
-      name: p.fullName ?? 'Player',
-      jerseyNumber: p.jerseyNumber,
-      position: p.position,
+  // Force display position to match the captain's chosen slot, so a forward
+  // intentionally placed into a defence slot lands in the defence bucket.
+  const skaterDisplay = placedEntries
+    .filter((item) => item.slot !== 'goalie')
+    .map((item) => ({
+      playerId: item.player.playerId,
+      name: item.player.fullName ?? 'Player',
+      jerseyNumber: item.player.jerseyNumber,
+      position: item.slot === 'defence' ? 'D' : 'C',
     }));
 
-  const goalieDisplay = placedGoalies.map((p) => ({
-    playerId: p.playerId,
-    name: p.fullName ?? 'Player',
-    jerseyNumber: p.jerseyNumber,
-    position: p.position,
+  const goalieDisplay = placedBySlot.goalie.map((item) => ({
+    playerId: item.player.playerId,
+    name: item.player.fullName ?? 'Player',
+    jerseyNumber: item.player.jerseyNumber,
+    position: 'G',
   }));
 
   const availabilityMap: Record<string, 'confirmed' | 'tentative' | 'out'> = {};
-  for (const player of placedPlayers) {
-    if (
-      player.availability === 'confirmed' ||
-      player.availability === 'tentative' ||
-      player.availability === 'out'
-    ) {
-      availabilityMap[player.playerId] = player.availability;
+  for (const item of placedEntries) {
+    const availability = item.player.availability;
+    if (availability === 'confirmed' || availability === 'tentative' || availability === 'out') {
+      availabilityMap[item.player.playerId] = availability;
     }
   }
 
@@ -292,7 +355,9 @@ export function CaptainLineupModalEditor({
             Lineup Card
           </h3>
           <p className="text-xs text-[var(--color-text-muted)]">
-            Tap a jersey to remove
+            {selectedPlayer
+              ? `Tap an empty slot to place ${selectedPlayer.fullName ?? 'player'}`
+              : 'Select a player, then tap a slot'}
           </p>
         </div>
         <TeamLineupView
@@ -301,7 +366,9 @@ export function CaptainLineupModalEditor({
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
           availabilityMap={availabilityMap}
-          onPlayerClick={removePlayer}
+          onPlayerClick={handleJerseyClick}
+          onEmptySlotClick={selectedPlayerId ? placeSelectedInSection : undefined}
+          highlightEmptySlots={Boolean(selectedPlayerId)}
           removeAffordance
         />
       </div>
@@ -326,21 +393,18 @@ export function CaptainLineupModalEditor({
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {unassigned.map((player) => {
-              const slotType = classifyPlayer(player);
-              const isFull =
-                (slotType === 'forward' && placedForwards.length >= FORWARD_SLOTS) ||
-                (slotType === 'defence' && placedDefence.length >= DEFENCE_SLOTS) ||
-                (slotType === 'goalie' && placedGoalies.length >= GOALIE_SLOTS);
+              const suggestedSlot = classifyPlayer(player);
+              const isSelected = selectedPlayerId === player.playerId;
 
               return (
                 <li key={player.playerId}>
                   <button
                     type="button"
-                    onClick={() => placePlayer(player)}
-                    disabled={isFull}
+                    onClick={() => toggleSelect(player.playerId)}
+                    aria-pressed={isSelected}
                     className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors ${
-                      isFull
-                        ? 'cursor-not-allowed border-[var(--color-border)] bg-[var(--color-background)]/40 text-[var(--color-text-muted)]'
+                      isSelected
+                        ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/15 text-[var(--color-text-primary)] ring-2 ring-[var(--league-primary)]/40'
                         : 'border-[var(--color-border)] bg-[var(--color-background)]/70 text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/40 hover:bg-[var(--color-background-elevated)]'
                     }`}
                   >
@@ -359,8 +423,8 @@ export function CaptainLineupModalEditor({
                         ) : null}
                       </span>
                       <span className="mt-0.5 block text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                        {slotLabel(slotType)}
-                        {isFull ? ' • Slots full' : ''}
+                        {slotLabel(suggestedSlot)}
+                        {isSelected ? ' • Selected — tap a slot' : ''}
                       </span>
                     </span>
                   </button>

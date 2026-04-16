@@ -9,6 +9,8 @@ interface LineupPlayer {
   position?: string | null;
 }
 
+type LineupSlotType = 'forward' | 'defence' | 'goalie';
+
 interface TeamLineupViewProps {
   skaters: LineupPlayer[];
   goalies: LineupPlayer[];
@@ -16,6 +18,8 @@ interface TeamLineupViewProps {
   secondaryColor: string;
   availabilityMap?: Record<string, 'confirmed' | 'tentative' | 'out'>;
   onPlayerClick?: (playerId: string) => void;
+  onEmptySlotClick?: (slotType: LineupSlotType) => void;
+  highlightEmptySlots?: boolean;
   removeAffordance?: boolean;
 }
 
@@ -53,6 +57,8 @@ export function TeamLineupView({
   secondaryColor,
   availabilityMap = {},
   onPlayerClick,
+  onEmptySlotClick,
+  highlightEmptySlots = false,
   removeAffordance = false,
 }: TeamLineupViewProps) {
   const defenders = skaters.filter((p) => isDefence(p.position));
@@ -77,6 +83,8 @@ export function TeamLineupView({
               secondaryColor={secondaryColor}
               availability={player ? availabilityMap[player.playerId] : undefined}
               onPlayerClick={onPlayerClick}
+              onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('forward') : undefined}
+              highlightEmpty={highlightEmptySlots}
               removeAffordance={removeAffordance}
             />
           ))}
@@ -97,6 +105,8 @@ export function TeamLineupView({
                 secondaryColor={secondaryColor}
                 availability={player ? availabilityMap[player.playerId] : undefined}
                 onPlayerClick={onPlayerClick}
+                onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('defence') : undefined}
+                highlightEmpty={highlightEmptySlots}
                 removeAffordance={removeAffordance}
               />
             ))}
@@ -114,6 +124,8 @@ export function TeamLineupView({
               secondaryColor={secondaryColor}
               availability={goalie ? availabilityMap[goalie.playerId] : undefined}
               onPlayerClick={onPlayerClick}
+              onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('goalie') : undefined}
+              highlightEmpty={highlightEmptySlots}
               removeAffordance={removeAffordance}
             />
           </div>
@@ -129,6 +141,8 @@ function JerseySlot({
   secondaryColor,
   availability,
   onPlayerClick,
+  onEmptyClick,
+  highlightEmpty = false,
   removeAffordance = false,
 }: {
   player: LineupPlayer | null;
@@ -136,6 +150,8 @@ function JerseySlot({
   secondaryColor: string;
   availability?: 'confirmed' | 'tentative' | 'out';
   onPlayerClick?: (playerId: string) => void;
+  onEmptyClick?: () => void;
+  highlightEmpty?: boolean;
   removeAffordance?: boolean;
 }) {
   if (player && onPlayerClick) {
@@ -158,6 +174,21 @@ function JerseySlot({
             <X className="h-3.5 w-3.5" />
           </span>
         ) : null}
+      </button>
+    );
+  }
+
+  if (!player && onEmptyClick) {
+    return (
+      <button
+        type="button"
+        onClick={onEmptyClick}
+        className={`flex flex-col items-center rounded-2xl p-1 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
+          highlightEmpty ? 'animate-pulse hover:scale-[1.03]' : 'hover:scale-[1.03]'
+        }`}
+        aria-label="Place selected player"
+      >
+        <EmptyJersey primaryColor={primaryColor} emphasize={highlightEmpty} />
       </button>
     );
   }
@@ -344,21 +375,30 @@ function AvailabilityBadge({ availability }: { availability?: 'confirmed' | 'ten
   );
 }
 
-function EmptyJersey({ primaryColor }: { primaryColor: string }) {
+function EmptyJersey({
+  primaryColor,
+  emphasize = false,
+}: {
+  primaryColor: string;
+  emphasize?: boolean;
+}) {
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
-      <svg viewBox="0 0 280 240" className="h-auto w-full opacity-40">
+      <svg
+        viewBox="0 0 280 240"
+        className={`h-auto w-full ${emphasize ? 'opacity-90' : 'opacity-40'}`}
+      >
         <path
           d={JERSEY_PATH}
-          fill="none"
+          fill={emphasize ? `color-mix(in srgb, ${primaryColor} 14%, transparent)` : 'none'}
           stroke={primaryColor}
-          strokeWidth="3"
+          strokeWidth={emphasize ? '4' : '3'}
           strokeDasharray="6 4"
           strokeLinejoin="round"
         />
       </svg>
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl text-[var(--color-text-muted)]">+</span>
+        <span className={`text-3xl font-bold ${emphasize ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-muted)]'}`}>+</span>
       </div>
     </div>
   );

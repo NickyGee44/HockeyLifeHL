@@ -357,69 +357,64 @@ export function FloatingDock({
 
             {/* Utility row */}
             <div className="mt-1 flex items-center gap-1 border-t border-white/[0.08] px-4 pt-2 pb-3">
-              {mounted && (
-                <button
-                  type="button"
-                  onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
-                  aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setMoreOpen(false);
-                  window.dispatchEvent(new CustomEvent('open-bug-report'));
-                }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
-                aria-label="Report a bug"
-              >
-                <Bug className="h-[18px] w-[18px]" />
-              </button>
-              {user && (
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-[18px] w-[18px]" />
-                </button>
-              )}
               {user && isCaptain && (
                 <Link
                   href={`/${leagueSlug}/captain`}
                   onClick={() => setMoreOpen(false)}
-                  className="ml-auto flex h-10 min-w-[40px] items-center justify-center px-1"
-                  aria-label={currentTeam?.is_captain ? 'Captain dashboard' : 'Assistant captain dashboard'}
+                  className="inline-flex h-9 items-center gap-2 rounded-full border pl-1 pr-3 transition-colors hover:bg-white/[0.04]"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${captainSecondary} 55%, transparent)`,
+                    background: `color-mix(in srgb, ${captainPrimary} 10%, transparent)`,
+                  }}
+                  aria-label={currentTeam?.is_captain ? 'Captain dashboard' : 'Alternate captain dashboard'}
                 >
                   <span
-                    className="relative inline-flex h-9 min-w-[34px] items-center justify-center px-[7px] text-[22px] font-black uppercase leading-none tracking-[-0.02em]"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-black leading-none text-white"
                     style={{
-                      color: captainPrimary,
-                      WebkitTextStroke: `3px ${captainSecondary}`,
-                      textShadow: `
-                        0 0 0 #ffffff,
-                        1px 0 0 #ffffff,
-                        -1px 0 0 #ffffff,
-                        0 1px 0 #ffffff,
-                        0 -1px 0 #ffffff,
-                        1px 1px 0 #ffffff,
-                        -1px 1px 0 #ffffff,
-                        1px -1px 0 #ffffff,
-                        -1px -1px 0 #ffffff,
-                        0 2px 8px color-mix(in srgb, ${captainSecondary} 30%, transparent)
-                      `,
-                      fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-                      transform: 'translateY(-0.5px)',
+                      backgroundColor: captainPrimary,
+                      boxShadow: `inset 0 0 0 1.5px ${captainSecondary}`,
                     }}
                   >
                     {currentTeam?.is_captain ? 'C' : 'A'}
                   </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
+                    {currentTeam?.is_captain ? 'Captain' : 'Alternate'}
+                  </span>
                 </Link>
               )}
+              <div className="ml-auto flex items-center gap-1">
+                {mounted && (
+                  <button
+                    type="button"
+                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+                    aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                  >
+                    {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    window.dispatchEvent(new CustomEvent('open-bug-report'));
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+                  aria-label="Report a bug"
+                >
+                  <Bug className="h-[18px] w-[18px]" />
+                </button>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400"
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="h-[18px] w-[18px]" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

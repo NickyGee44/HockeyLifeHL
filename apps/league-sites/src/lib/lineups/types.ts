@@ -203,12 +203,13 @@ export function normalizeLineupLayout(
   }
 
   const inputRecord = input as Record<string, unknown>;
+  const hasExplicitPlacements = Array.isArray(inputRecord.placedPlayers);
   const eligibleRoster = sortLineupRoster(roster).filter(isEligibleLineupPlayer);
   const rosterIds = new Set(eligibleRoster.map((player) => player.playerId));
   const seen = new Set<string>();
 
-  const placedPlayers = Array.isArray(inputRecord.placedPlayers)
-    ? inputRecord.placedPlayers
+  const placedPlayers = hasExplicitPlacements
+    ? (inputRecord.placedPlayers as unknown[])
         .map((entry) => {
           if (!entry || typeof entry !== 'object') return null;
           const record = entry as Record<string, unknown>;
@@ -228,12 +229,14 @@ export function normalizeLineupLayout(
           } satisfies LineupPlacedPlayer;
         })
         .filter((entry): entry is LineupPlacedPlayer => entry !== null)
-    : [];
+    : null;
 
+  // Respect an explicit empty placements array (captain cleared the ice) —
+  // only fall back to defaults when the caller sent no placedPlayers field at all.
   return {
     version: DEFAULT_LINEUP_VERSION,
     roster: eligibleRoster,
-    placedPlayers: placedPlayers.length > 0 ? placedPlayers : fallback.placedPlayers,
+    placedPlayers: placedPlayers ?? fallback.placedPlayers,
   };
 }
 
