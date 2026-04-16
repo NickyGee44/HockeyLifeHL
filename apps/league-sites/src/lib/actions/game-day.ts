@@ -20,8 +20,6 @@ type RelevantGameRow = {
   status: ScheduleGame['status'];
   home_team_id: string;
   away_team_id: string;
-  home_attendance_locked_at: string | null;
-  away_attendance_locked_at: string | null;
   home_team: any;
   away_team: any;
 };
@@ -273,8 +271,6 @@ async function loadCaptainGameDayData(
       status,
       home_team_id,
       away_team_id,
-      home_attendance_locked_at,
-      away_attendance_locked_at,
       home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color),
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color)
     `;
@@ -380,11 +376,6 @@ async function loadCaptainGameDayData(
       ? normalizeGameTeam(resolvedGame.away_team).name
       : normalizeGameTeam(resolvedGame.home_team).name;
 
-  const attendanceLockedAt =
-    resolvedGame.home_team_id === teamId
-      ? resolvedGame.home_attendance_locked_at
-      : resolvedGame.away_attendance_locked_at;
-
   return {
     success: true,
     data: {
@@ -400,8 +391,8 @@ async function loadCaptainGameDayData(
       opponentName,
       scoreSelfEnabled,
       scoreDisabledReason,
-      attendanceLocked: Boolean(attendanceLockedAt),
-      attendanceLockedAt,
+      attendanceLocked: false,
+      attendanceLockedAt: null,
       counts,
       rosterPlayerIds: attendance.filter((player) => !player.isSub).map((player) => player.playerId),
     },

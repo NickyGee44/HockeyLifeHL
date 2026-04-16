@@ -274,8 +274,6 @@ async function lookupSessionByToken(
         scheduled_at,
         home_team_id,
         away_team_id,
-        home_attendance_locked_at,
-        away_attendance_locked_at,
         home_team:teams!games_home_team_id_fkey(name),
         away_team:teams!games_away_team_id_fkey(name)
       )
@@ -306,18 +304,11 @@ async function lookupSessionByToken(
     scheduled_at: string;
     home_team_id: string;
     away_team_id: string;
-    home_attendance_locked_at: string | null;
-    away_attendance_locked_at: string | null;
     home_team: { name: string } | null;
     away_team: { name: string } | null;
   };
 
-  const attendanceLocked =
-    (data.initiating_team_type === 'home'
-      ? game?.home_attendance_locked_at
-      : data.initiating_team_type === 'away'
-        ? game?.away_attendance_locked_at
-        : null) !== null;
+  const attendanceLocked = false;
 
   return {
     sessionId: data.id,
