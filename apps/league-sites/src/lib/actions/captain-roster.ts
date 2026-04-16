@@ -1,5 +1,6 @@
 'use server';
 
+import { getTeamRosterStats } from '@/lib/data';
 import { createAuthClient as createClient } from '@/lib/supabase/server';
 
 export interface RosterPlayer {
@@ -30,6 +31,10 @@ export interface JoinRequest {
     full_name: string | null;
     email: string | null;
   } | null;
+}
+
+export interface SubRosterPlayer extends RosterPlayer {
+  games_played: number;
 }
 
 async function verifyCaptainRole(
@@ -110,6 +115,29 @@ export async function getTeamRoster(
   }));
 
   return { success: true, data: roster };
+}
+
+export async function getTeamSubsWhoPlayed(
+  teamId: string,
+  seasonId?: string | null,
+): Promise<{ success: boolean; data?: SubRosterPlayer[]; error?: string }> {
+  const rosterResult = await getTeamRoster(teamId, seasonId);
+  if (!rosterResult.success || !rosterResult.data) {
+    return { success: false, error: rosterResult.error || 'Failed to fetch roster' };
+  }
+
+  const statsByPlayer = await getTeamRosterStats(teamId, seasonId ?? undefined);
+
+  const subs = rosterResult.data
+    .filter((player) => player.player_type === 'sub')
+    .map((player) => ({
+      ...player,
+      games_played: statsByPlayer[player.player_id]?.games_played ?? 0,
+    }))
+    .filter((player) => player.games_played > 0)
+    .sort((a, b) => b.games_played - a.games_played || (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''));
+
+  return { success: true, data: subs };
 }
 
 export async function updatePlayerJerseyNumber(

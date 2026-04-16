@@ -22,9 +22,11 @@ import { RosterManager } from '@/components/captain/RosterManager';
 import { InvitePlayerWizard } from '@/components/captain/InvitePlayerWizard';
 import {
   getTeamRoster,
+  getTeamSubsWhoPlayed,
   getJoinRequests,
   type RosterPlayer,
   type JoinRequest,
+  type SubRosterPlayer,
 } from '@/lib/actions/captain-roster';
 import { getCaptainTeamReturnRequests } from '@/lib/actions/team-return';
 
@@ -65,6 +67,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     league?.current_season_id
   );
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
+  const [subs, setSubs] = useState<SubRosterPlayer[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [nextLineupGame, setNextLineupGame] = useState<UpcomingLineupGame | null>(null);
@@ -81,13 +84,17 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
     const currentSeasonId = league?.current_season_id ?? null;
 
-    const [rosterResult, requestsResult] = await Promise.all([
+    const [rosterResult, subsResult, requestsResult] = await Promise.all([
       getTeamRoster(teamId, currentSeasonId),
+      getTeamSubsWhoPlayed(teamId, currentSeasonId),
       getJoinRequests(teamId),
     ]);
 
     if (rosterResult.success && rosterResult.data) {
       setRoster(rosterResult.data);
+    }
+    if (subsResult.success && subsResult.data) {
+      setSubs(subsResult.data);
     }
     if (requestsResult.success && requestsResult.data) {
       setJoinRequests(requestsResult.data);
@@ -279,6 +286,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     );
   }
 
+  const regularRoster = roster.filter((player) => player.player_type === 'regular');
   const record = `${teamStats?.wins || 0}-${teamStats?.losses || 0}-${teamStats?.ties || 0}`;
   const rankLabel = teamStats?.division_rank ? `#${teamStats.division_rank}` : '-';
   const nextGameDateLabel = nextLineupGame
@@ -334,42 +342,34 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center gap-4">
-        <Link
-          href={`/${leagueSlug}/me`}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
-        </Link>
-        <div className="flex-1 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)]">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-              {currentTeam.team.logo ? (
-                <Image
-                  src={currentTeam.team.logo}
-                  alt={currentTeam.team.name}
-                  width={64}
-                  height={64}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <Shield className="h-7 w-7 text-[var(--league-primary)]" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-                Captains Home
-              </h1>
-              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                {currentTeam.team.name}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-text-secondary)] sm:text-sm">
-                <span>Record: {record}</span>
-                <span>Rank: {rankLabel}</span>
-                <span>Next Opponent: {nextLineupGame?.opponentName ?? 'TBD'}</span>
-                <span>Next Game: {nextGameDateLabel}</span>
-                <span>Players on Roster: {roster.length}</span>
-              </div>
+      <div className="mb-8 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)]">
+        <div className="flex items-center gap-5">
+          <div className="flex h-48 w-48 shrink-0 items-center justify-center overflow-hidden">
+            {currentTeam.team.logo ? (
+              <Image
+                src={currentTeam.team.logo}
+                alt={currentTeam.team.name}
+                width={192}
+                height={192}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <Shield className="h-16 w-16 text-[var(--league-primary)]" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+              Captains Home
+            </h1>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              {currentTeam.team.name}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-text-secondary)] sm:text-sm">
+              <span>Record: {record}</span>
+              <span>Rank: {rankLabel}</span>
+              <span>Next Opponent: {nextLineupGame?.opponentName ?? 'TBD'}</span>
+              <span>Next Game: {nextGameDateLabel}</span>
+              <span>Players on Roster: {regularRoster.length}</span>
             </div>
           </div>
         </div>
@@ -411,6 +411,35 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           );
         })}
       </div>
+
+      {subs.length > 0 && (
+        <div className="mb-8 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Subs</h2>
+            <span className="text-sm text-[var(--color-text-secondary)]">{subs.length} played this season</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[var(--color-surface-hover)]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Player</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Position</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Games</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {subs.map((player) => (
+                  <tr key={player.id} className="hover:bg-[var(--color-surface-hover)] transition-colors">
+                    <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">{player.profile?.full_name || 'Unknown Player'}</td>
+                    <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">{player.position || '-'}</td>
+                    <td className="px-4 py-3 text-center text-[var(--color-text-primary)]">{player.games_played}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Roster Manager (editable roster + join requests) */}
       <RosterManager
