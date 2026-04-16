@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChevronLeft, ChevronRight, Sparkles, TrendingUp } from 'lucide-react';
 import type { PlayerCareerSeasonRow } from '@/lib/data';
 
 type MetricConfig = {
@@ -15,7 +16,7 @@ const skaterMetrics: MetricConfig[] = [
   { key: 'goals', label: 'Goals', valueKey: 'goals' },
   { key: 'assists', label: 'Assists', valueKey: 'assists' },
   { key: 'points', label: 'Points', valueKey: 'points' },
-  { key: 'attendance', label: 'Attendance %', valueKey: 'attendance_pct', formatter: (value) => `${value ?? 0}%` },
+  { key: 'attendance', label: 'Attendance', valueKey: 'attendance_pct', formatter: (value) => `${value ?? 0}%` },
   { key: 'gpg', label: 'GPG', valueKey: 'goals_per_game', formatter: (value) => formatDecimal(value, 2) },
   { key: 'ppg', label: 'PPG', valueKey: 'points_per_game', formatter: (value) => formatDecimal(value, 2) },
 ];
@@ -26,21 +27,24 @@ const goalieMetrics: MetricConfig[] = [
   { key: 'gaa', label: 'GAA', valueKey: 'goals_against_average', formatter: (value) => formatDecimal(value, 2) },
   { key: 'saves', label: 'Saves', valueKey: 'saves' },
   { key: 'shutouts', label: 'Shutouts', valueKey: 'shutouts' },
-  { key: 'attendance', label: 'Attendance %', valueKey: 'attendance_pct', formatter: (value) => `${value ?? 0}%` },
+  { key: 'attendance', label: 'Attendance', valueKey: 'attendance_pct', formatter: (value) => `${value ?? 0}%` },
 ];
 
 export function PlayerCareerStatsSection({
   seasons,
   isGoalie,
-  hotFact,
+  hotFacts,
 }: {
   seasons: PlayerCareerSeasonRow[];
   isGoalie: boolean;
-  hotFact: string;
+  hotFacts: string[];
 }) {
   const metrics = isGoalie ? goalieMetrics : skaterMetrics;
   const [selectedMetric, setSelectedMetric] = useState(metrics[0]?.key ?? 'goals');
+  const [activeHotFactIndex, setActiveHotFactIndex] = useState(0);
   const activeMetric = metrics.find((metric) => metric.key === selectedMetric) ?? metrics[0];
+  const boundedHotFacts = hotFacts.slice(0, 5);
+  const activeHotFact = boundedHotFacts[activeHotFactIndex] ?? boundedHotFacts[0] ?? '';
 
   const chartData = useMemo(
     () =>
@@ -57,9 +61,14 @@ export function PlayerCareerStatsSection({
 
   return (
     <section className="mb-6">
-      <div className="mb-3">
-        <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Career Stats</h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">Flat career trendline by season.</p>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-[var(--league-primary)]" />
+            <h2 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">Career Stats</h2>
+          </div>
+          <p className="text-sm text-[var(--color-text-secondary)]">Flat career trendline by season.</p>
+        </div>
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2">
@@ -109,22 +118,30 @@ export function PlayerCareerStatsSection({
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
-        {seasons.map((season) => {
-          const metricValue = season[activeMetric.valueKey] as number | null;
-          return (
-            <div key={`${season.season_id}-${season.team_id ?? 'team'}`} className="rounded-2xl border border-[var(--color-border)]/70 px-3 py-2">
-              <div className="truncate text-xs font-semibold text-[var(--color-text-secondary)]">{season.season_name}</div>
-              <div className="mt-1 text-base font-bold text-[var(--color-text-primary)]">
-                {activeMetric.formatter ? activeMetric.formatter(metricValue ?? 0) : metricValue ?? 0}
-              </div>
-              <div className="text-[11px] text-[var(--color-text-muted)]">GP {season.games_played}{season.team_games > 0 ? ` · Team ${season.team_games}` : ''}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="mt-3 text-sm font-medium text-[var(--color-text-primary)]">{hotFact}</p>
+      {boundedHotFacts.length > 0 && (
+        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[var(--color-border)]/70 px-3 py-2.5">
+          <Sparkles className="h-4 w-4 shrink-0 text-[var(--league-primary)]" />
+          <button
+            type="button"
+            onClick={() => setActiveHotFactIndex((current) => (current - 1 + boundedHotFacts.length) % boundedHotFacts.length)}
+            className="rounded-full p-1 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
+            aria-label="Previous hot take"
+            disabled={boundedHotFacts.length <= 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <p className="min-w-0 flex-1 text-sm font-medium text-[var(--color-text-primary)]">{activeHotFact}</p>
+          <button
+            type="button"
+            onClick={() => setActiveHotFactIndex((current) => (current + 1) % boundedHotFacts.length)}
+            className="rounded-full p-1 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
+            aria-label="Next hot take"
+            disabled={boundedHotFacts.length <= 1}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </section>
   );
 }

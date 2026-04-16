@@ -4566,11 +4566,11 @@ function buildDeterministicPlayerCareerHotFact(input: {
   return `🌶️ ${playerName} has piled up ${careerPoints} points in ${seasons.length} season${seasons.length === 1 ? '' : 's'}, which travels pretty well.`;
 }
 
-export async function generatePlayerCareerHotFact(input: {
+export async function generatePlayerCareerHotFacts(input: {
   playerName: string;
   seasons: PlayerCareerSeasonRow[];
   isGoalie: boolean;
-}): Promise<string> {
+}): Promise<string[]> {
   const { playerName, seasons, isGoalie } = input;
   const ordered = [...seasons].sort((left, right) => {
     const leftTime = left.sort_date ? new Date(left.sort_date).getTime() : 0;
@@ -4578,68 +4578,87 @@ export async function generatePlayerCareerHotFact(input: {
     return leftTime - rightTime;
   });
 
-  const fallback = buildDeterministicPlayerCareerHotFact({ playerName, seasons: ordered, isGoalie });
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || ordered.length === 0) {
-    return fallback;
+  if (ordered.length === 0) {
+    return [];
   }
 
-  try {
-    const OpenAI = (await import('openai')).default;
-    const openai = new OpenAI({ apiKey });
-    const compactSeasons = ordered.map((season) => ({
-      season: season.season_name,
-      team: season.team_name,
-      gp: season.games_played,
-      attendance_pct: season.attendance_pct,
-      goals: season.goals,
-      assists: season.assists,
-      points: season.points,
-      gpg: season.goals_per_game,
-      ppg: season.points_per_game,
-      wins: season.wins,
-      losses: season.losses,
-      ties: season.ties,
-      saves: season.saves,
-      goals_against: season.goals_against,
-      save_percentage: season.save_percentage,
-      gaa: season.goals_against_average,
-      shutouts: season.shutouts,
-    }));
+  const facts: string[] = [];
+  const pushFact = (fact?: string | null) => {
+    const trimmed = fact?.trim();
+    if (!trimmed || facts.includes(trimmed) || facts.length >= 5) return;
+    facts.push(trimmed);
+  };
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.9,
-      max_tokens: 80,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You write one short hockey stat blurb. Sound human, a little spicy, never robotic. Output plain text only, 1 sentence, under 24 words, start with an emoji.',
-        },
-        {
-          role: 'user',
-          content: JSON.stringify({
-            playerName,
-            playerType: isGoalie ? 'goalie' : 'skater',
-            seasons: compactSeasons,
-            instruction:
-              'Use only the provided stats. Mention a milestone, trend, upcoming chase, or team/league rank style insight if supported. Do not invent facts.',
-          }),
-        },
-      ],
-    });
+  pushFact(buildDeterministicPlayerCareerHotFact({ playerName, seasons: ordered, isGoalie }));
 
-    const content = response.choices[0]?.message?.content?.trim();
-    if (!content) {
-      return fallback;
+  const latest = ordered[ordered.length - 1];
+  const previous = ordered.length > 1 ? ordered[ordered.length - 2] : null;
+
+  if (isGoalie) {
+    const careerWins = ordered.reduce((sum, season) => sum + season.wins, 0);
+    const careerShutouts = ordered.reduce((sum, season) => sum + season.shutouts, 0);
+
+    if (latest.wins >= 10) {
+      pushFact(`🥅 ${playerName} stacked ${latest.wins} wins in ${latest.season_name}, which is starter behavior all the way down.`);
     }
+    if (latest.save_percentage != null && latest.save_percentage >= 90) {
+      pushFact(`🧱 ${playerName} posted a ${roundCareerMetric(latest.save_percentage, 1)}% save rate in ${latest.season_name}, and shooters probably still hate it.`);
+    }
+    if (previous) {
+      const winJump = latest.wins - previous.wins;
+      if (Math.abs(winJump) >= 3) {
+        pushFact(
+          winJump > 0
+            ? `📈 ${playerName} banked ${winJump} more wins in ${latest.season_name} than ${previous.season_name}, which is a real year-over-year jump.`
+            : `👀 ${playerName} came back to earth by ${Math.abs(winJump)} wins in ${latest.season_name}, so the rebound story is right there.`
+        );
+      }
+    }
+    if (careerWins >= 10) {
+      pushFact(`🏁 ${playerName} is up to ${careerWins} career wins, and the next round-number checkpoint is already in the windshield.`);
+    }
+    if (careerShutouts > 0) {
+      pushFact(`🚫 ${playerName} has ${careerShutouts} career shutout${careerShutouts === 1 ? '' : 's'}, which always plays.`);
+    }
+  } else {
+    const careerGoals = ordered.reduce((sum, season) => sum + season.goals, 0);
+    const careerAssists = ordered.reduce((sum, season) => sum + season.assists, 0);
+    const careerPoints = ordered.reduce((sum, season) => sum + season.points, 0);
 
-    const hasEmojiPrefix = /^\p{Extended_Pictographic}/u.test(content) || /^[\u2600-\u27BF]/u.test(content);
-    return hasEmojiPrefix ? content : `${emojiForHotFact(content)} ${content}`;
-  } catch {
-    return fallback;
+    if (latest.points >= 20) {
+      pushFact(`🔥 ${playerName} put up ${latest.points} points in ${latest.season_name}, which is the kind of season that travels in every rink.`);
+    }
+    if (latest.goals >= 10) {
+      pushFact(`🥅 ${playerName} buried ${latest.goals} goals in ${latest.season_name}, so goalies definitely knew the scouting report.`);
+    }
+    if (previous) {
+      const pointJump = latest.points - previous.points;
+      if (Math.abs(pointJump) >= 5) {
+        pushFact(
+          pointJump > 0
+            ? `📈 ${playerName} popped for ${pointJump} more points in ${latest.season_name} than ${previous.season_name}, not exactly a quiet leap.`
+            : `🌶️ ${playerName} dropped ${Math.abs(pointJump)} points from ${previous.season_name} to ${latest.season_name}, so the bounce-back angle writes itself.`
+        );
+      }
+
+      const attendanceSwing = roundCareerMetric(latest.attendance_pct - previous.attendance_pct, 1);
+      if (Math.abs(attendanceSwing) >= 15) {
+        pushFact(
+          attendanceSwing > 0
+            ? `👏 ${playerName} showed up way more in ${latest.season_name}, with attendance up ${attendanceSwing} points from the year before.`
+            : `🗓️ ${playerName}'s attendance slid ${Math.abs(attendanceSwing)} points in ${latest.season_name}, and that changes the rhythm in a hurry.`
+        );
+      }
+    }
+    if (careerPoints >= 25) {
+      pushFact(`🏒 ${playerName} is sitting on ${careerPoints} career points, with ${careerGoals} goals and ${careerAssists} assists baked into the tab.`);
+    }
+    if (careerGoals >= 10 && careerGoals % 10 <= 2) {
+      pushFact(`🎯 ${playerName} has ${careerGoals} career goals and is hovering right around another clean milestone.`);
+    }
   }
+
+  return facts.slice(0, 5);
 }
 
 async function loadTeamNameMap(
@@ -4696,9 +4715,16 @@ export async function getPlayerCareerStatsTimeline(
   isGoalie: boolean,
 ): Promise<PlayerCareerSeasonRow[]> {
   const supabase = await createClient();
-  const seasons = await getSeasons(leagueId);
+  const serviceSupabase = createServiceRoleClient();
+  const { data: seasonRecords } = await supabase
+    .from('seasons')
+    .select('id, name, start_date')
+    .eq('league_id', leagueId)
+    .order('start_date', { ascending: false });
+  const seasons = (seasonRecords || []) as Array<{ id: string; name: string; start_date: string | null }>;
   const seasonNameById = new Map(seasons.map((season) => [season.id, season.name]));
   const seasonSortById = new Map(seasons.map((season) => [season.id, season.start_date ?? null]));
+  const historicalBaselineSeason = seasons.find((season) => isHistoricalCareerBaselineSeasonName(season.name));
 
   if (isGoalie) {
     const { data: rawRows, error } = await supabase
@@ -4783,8 +4809,60 @@ export async function getPlayerCareerStatsTimeline(
       seasonMap.set(key, existing);
     }
 
+    if (historicalBaselineSeason) {
+      const { data: baselineStats } = await serviceSupabase
+        .from('player_career_baselines')
+        .select('games_played, wins, losses, ties, saves, goals_against, shutouts, save_percentage, goals_against_average')
+        .eq('player_id', playerId)
+        .maybeSingle();
+
+      if (baselineStats) {
+        const baselineGames = Number(baselineStats.games_played || 0);
+        const baselineSaves = Number(baselineStats.saves || 0);
+        const baselineGoalsAgainst = Number(baselineStats.goals_against || 0);
+        const shotsAgainst = baselineSaves + baselineGoalsAgainst;
+
+        seasonMap.set(`${historicalBaselineSeason.id}:baseline`, {
+          season_id: historicalBaselineSeason.id,
+          season_name: historicalBaselineSeason.name,
+          sort_date: historicalBaselineSeason.start_date ?? null,
+          team_id: null,
+          team_name: null,
+          position: 'Goalie',
+          games_played: baselineGames,
+          team_games: baselineGames,
+          attendance_pct: baselineGames > 0 ? 100 : 0,
+          goals: 0,
+          assists: 0,
+          points: 0,
+          goals_per_game: 0,
+          points_per_game: 0,
+          wins: Number(baselineStats.wins || 0),
+          losses: Number(baselineStats.losses || 0),
+          ties: Number(baselineStats.ties || 0),
+          saves: baselineSaves,
+          goals_against: baselineGoalsAgainst,
+          save_percentage: baselineStats.save_percentage != null
+            ? roundCareerMetric(Number(baselineStats.save_percentage), 1)
+            : shotsAgainst > 0
+              ? roundCareerMetric((baselineSaves / shotsAgainst) * 100, 1)
+              : null,
+          goals_against_average: baselineStats.goals_against_average != null
+            ? roundCareerMetric(Number(baselineStats.goals_against_average), 2)
+            : baselineGames > 0
+              ? roundCareerMetric(baselineGoalsAgainst / baselineGames, 2)
+              : null,
+          shutouts: Number(baselineStats.shutouts || 0),
+        });
+      }
+    }
+
     return [...seasonMap.values()]
       .map((season) => {
+        if (season.season_id === historicalBaselineSeason?.id) {
+          return season;
+        }
+
         const key = `${season.season_id}:${season.team_id || 'unknown'}`;
         const appearanceGames = appearancesBySeasonTeam.get(key)?.size || 0;
         const gamesPlayed = Math.max(season.games_played, appearanceGames);
@@ -4847,7 +4925,7 @@ export async function getPlayerCareerStatsTimeline(
     appearancesBySeasonTeam.set(key, games);
   }
 
-  return rows
+  const timelineRows = rows
     .filter((row) => Boolean(row.season_id))
     .map((row) => {
       const season = row.season_id as string;
@@ -4881,7 +4959,49 @@ export async function getPlayerCareerStatsTimeline(
         goals_against_average: null,
         shutouts: 0,
       };
-    })
+    });
+
+  if (historicalBaselineSeason) {
+    const { data: baselineStats } = await serviceSupabase
+      .from('player_career_baselines')
+      .select('games_played, goals, assists, points')
+      .eq('player_id', playerId)
+      .maybeSingle();
+
+    if (baselineStats) {
+      const gamesPlayed = Number(baselineStats.games_played || 0);
+      const goals = Number(baselineStats.goals || 0);
+      const assists = Number(baselineStats.assists || 0);
+      const points = Number(baselineStats.points ?? (goals + assists));
+      timelineRows.push({
+        season_id: historicalBaselineSeason.id,
+        season_name: historicalBaselineSeason.name,
+        sort_date: historicalBaselineSeason.start_date ?? null,
+        team_id: null,
+        team_name: null,
+        position: null,
+        games_played: gamesPlayed,
+        team_games: gamesPlayed,
+        attendance_pct: gamesPlayed > 0 ? 100 : 0,
+        goals,
+        assists,
+        points,
+        goals_per_game: gamesPlayed > 0 ? roundCareerMetric(goals / gamesPlayed, 2) : 0,
+        points_per_game: gamesPlayed > 0 ? roundCareerMetric(points / gamesPlayed, 2) : 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        saves: 0,
+        goals_against: 0,
+        save_percentage: null,
+        goals_against_average: null,
+        shutouts: 0,
+      });
+    }
+  }
+
+  return timelineRows
+    .filter((row) => row.games_played > 0 || row.points > 0 || row.wins > 0 || row.saves > 0)
     .sort((left, right) => new Date(left.sort_date || 0).getTime() - new Date(right.sort_date || 0).getTime());
 }
 
