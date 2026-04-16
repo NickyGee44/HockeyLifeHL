@@ -112,42 +112,36 @@ export function TeamRosterToggle({
 
   return (
     <div>
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
-            {title}
-          </h2>
-          <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
-            {skaters.length} skaters
-          </span>
-          <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
-            {goalies.length} goalie{goalies.length === 1 ? '' : 's'}
-          </span>
-        </div>
-        <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
+          {title}
+        </h2>
+        <div className="inline-flex items-center self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]">
           <button
+            type="button"
             onClick={() => setView('lineup')}
-            className={`inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition-colors ${
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
               view === 'lineup'
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
             }`}
             aria-label="Lineup view"
+            title="Lineup view"
           >
             <JerseyIcon className="h-4 w-4" />
-            <span>Lineup</span>
           </button>
           <button
+            type="button"
             onClick={() => setView('stats')}
-            className={`inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-semibold transition-colors ${
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
               view === 'stats'
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
             }`}
             aria-label="Stats view"
+            title="Stats view"
           >
             <List className="h-4 w-4" />
-            <span>Stats</span>
           </button>
         </div>
       </div>

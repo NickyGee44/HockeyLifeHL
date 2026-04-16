@@ -387,7 +387,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                       emptyTitle="No skater statistics yet"
                       emptyDescription="Skater stats will populate once official games are recorded."
                     >
-                      {skaters.map((player) => {
+                      {skaters.filter((player) => !isSubRosterPlayer(player)).map((player) => {
                         const stats = rosterStatsByPlayer[player.player_id];
                         const gp = stats?.games_played ?? 0;
                         return (
@@ -426,7 +426,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                           emptyTitle="No goalie statistics yet"
                           emptyDescription="Goalie stats will appear once this team has official goaltending entries."
                         >
-                          {goalies.map((goalie) => {
+                          {goalies.filter((goalie) => !isSubRosterPlayer(goalie)).map((goalie) => {
                             const stats = rosterStatsByPlayer[goalie.player_id];
                             const gp = stats?.games_played ?? 0;
                             return (

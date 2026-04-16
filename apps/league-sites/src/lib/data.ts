@@ -839,6 +839,7 @@ export type TeamRosterStatsByPlayer = Record<string, {
 }>;
 
 const PLAYED_GAME_STATUSES = ['in_progress', 'pending_verification', 'completed'] as const;
+const COMPLETED_GAME_STATUSES = ['completed'] as const;
 
 type ConfirmedCheckinAppearanceRow = {
   player_id: string;
@@ -873,13 +874,16 @@ async function getConfirmedCheckinAppearanceRows(
     teamId?: string;
     teamIds?: string[];
     playerIds?: string[];
+    gameStatuses?: readonly string[];
   },
 ): Promise<ConfirmedCheckinAppearanceRow[]> {
+  const gameStatuses = options.gameStatuses ?? PLAYED_GAME_STATUSES;
+
   let query = supabase
     .from('game_checkins')
     .select('player_id, team_id, game_id, game:games!inner(id, season_id, scheduled_at, league_id, status, home_team_id, away_team_id, home_score, away_score)')
     .eq('status', 'confirmed')
-    .in('game.status', [...PLAYED_GAME_STATUSES]);
+    .in('game.status', [...gameStatuses]);
 
   if (options.leagueId) {
     query = query.eq('game.league_id', options.leagueId);
@@ -914,11 +918,14 @@ async function getFallbackRosterAppearanceRows(
     teamId?: string;
     teamIds?: string[];
     playerIds?: string[];
+    gameStatuses?: readonly string[];
   },
 ): Promise<ConfirmedCheckinAppearanceRow[]> {
   if (!options.seasonId) {
     return [];
   }
+
+  const gameStatuses = options.gameStatuses ?? PLAYED_GAME_STATUSES;
 
   let rosterQuery = supabase
     .from('team_rosters')
@@ -955,7 +962,7 @@ async function getFallbackRosterAppearanceRows(
       .from('games')
       .select('id, season_id, scheduled_at, status, home_team_id, away_team_id, home_score, away_score')
       .eq('season_id', options.seasonId)
-      .in('status', [...PLAYED_GAME_STATUSES])
+      .in('status', [...gameStatuses])
       .or(teamFilter),
     supabase
       .from('game_checkins')
@@ -1082,8 +1089,16 @@ export async function getTeamRosterStats(
   const [{ data: skaterRows }, { data: goalieRows }, confirmedCheckins, fallbackAppearances] = await Promise.all([
     skaterQuery,
     goalieQuery,
-    getConfirmedCheckinAppearanceRows(supabase, { teamId, seasonId }),
-    getFallbackRosterAppearanceRows(supabase, { teamId, seasonId }),
+    getConfirmedCheckinAppearanceRows(supabase, {
+      teamId,
+      seasonId,
+      gameStatuses: COMPLETED_GAME_STATUSES,
+    }),
+    getFallbackRosterAppearanceRows(supabase, {
+      teamId,
+      seasonId,
+      gameStatuses: COMPLETED_GAME_STATUSES,
+    }),
   ]);
 
   const accumulator: Record<string, RosterStatsAccumulator> = {};
