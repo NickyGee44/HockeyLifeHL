@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getCaptainGameLineupEditorData } from '@/lib/actions/game-lineups';
+import type { LineupAvailability } from '@/lib/lineups/types';
 import type { CheckinStatus } from '@/lib/actions/checkins';
 import type { GameLineupEditorData } from '@/lib/lineups/types';
 
@@ -118,6 +119,104 @@ function selectRelevantGame(games: RelevantGameRow[], now: Date) {
     .sort((left, right) => new Date(left.scheduled_at).getTime() - new Date(right.scheduled_at).getTime())[0] ?? null;
 }
 
+function normalizeAvailability(value: string | null | undefined): CaptainAttendanceStatus {
+  if (value === 'confirmed' || value === 'tentative' || value === 'out') {
+    return value;
+  }
+  return 'no_response';
+}
+
+async function loadAttendancePlayers(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+  teamId: string,
+  seasonId?: string | null,
+): Promise<GameDayAttendancePlayer[]> {
+  let rosterQuery = (supabase.from('team_rosters') as any)
+    .select(`
+      player_id,
+      jersey_number,
+      position,
+      season_id,
+      profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
+    `)
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .is('end_date', null);
+
+  if (seasonId) {
+    rosterQuery = rosterQuery.eq('season_id', seasonId);
+  }
+
+  const [rosterResult, checkinResult, acceptedSubsResult] = await Promise.all([
+    rosterQuery,
+    (supabase.from('game_checkins') as any)
+      .select('player_id, status')
+      .eq('game_id', gameId)
+      .eq('team_id', teamId),
+    (supabase.from('sub_invitations') as any)
+      .select(`
+        invited_player_id,
+        invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url)
+      `)
+      .eq('game_id', gameId)
+      .eq('team_id', teamId)
+      .eq('status', 'accepted'),
+  ]);
+
+  const checkins = new Map<string, CaptainAttendanceStatus>();
+  for (const row of checkinResult.data || []) {
+    checkins.set(row.player_id, normalizeAvailability(row.status));
+  }
+
+  const players: GameDayAttendancePlayer[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rosterResult.data || []) {
+    const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+    if (!row.player_id || seen.has(row.player_id)) continue;
+    seen.add(row.player_id);
+
+    players.push({
+      playerId: row.player_id,
+      fullName: profile?.full_name ?? 'Player',
+      avatarUrl: profile?.avatar_url ?? null,
+      jerseyNumber: row.jersey_number ?? null,
+      position: row.position ?? null,
+      status: checkins.get(row.player_id) ?? 'no_response',
+      isSub: false,
+    });
+  }
+
+  for (const row of acceptedSubsResult.data || []) {
+    if (!row.invited_player_id || seen.has(row.invited_player_id)) continue;
+    const profile = Array.isArray(row.invited_player_profile)
+      ? row.invited_player_profile[0]
+      : row.invited_player_profile;
+
+    seen.add(row.invited_player_id);
+    players.push({
+      playerId: row.invited_player_id,
+      fullName: profile?.full_name ?? 'Player',
+      avatarUrl: profile?.avatar_url ?? null,
+      jerseyNumber: null,
+      position: null,
+      status: checkins.get(row.invited_player_id) ?? 'confirmed',
+      isSub: true,
+    });
+  }
+
+  return players.sort((left, right) => {
+    if (left.isSub !== right.isSub) return Number(left.isSub) - Number(right.isSub);
+    if (left.jerseyNumber !== null && right.jerseyNumber !== null && left.jerseyNumber !== right.jerseyNumber) {
+      return left.jerseyNumber - right.jerseyNumber;
+    }
+    if (left.jerseyNumber !== null && right.jerseyNumber === null) return -1;
+    if (left.jerseyNumber === null && right.jerseyNumber !== null) return 1;
+    return left.fullName.localeCompare(right.fullName);
+  });
+}
+
 export async function getCaptainGameDayData(
   teamId: string,
   _requestedGameId?: string,
@@ -209,15 +308,12 @@ export async function getCaptainGameDayData(
         : 'Scoring is only available for scheduled or live games.')
     : 'This league requires an assigned scorekeeper.';
 
-  const attendance: GameDayAttendancePlayer[] = lineupResult.data.lineup.layout.roster.map((player) => ({
-    playerId: player.playerId,
-    fullName: player.fullName ?? 'Player',
-    avatarUrl: player.avatarUrl,
-    jerseyNumber: player.jerseyNumber,
-    position: player.position,
-    status: player.availability,
-    isSub: player.isSub === true,
-  }));
+  const attendance = await loadAttendancePlayers(
+    supabase,
+    resolvedGame.id,
+    teamId,
+    resolvedGame.season_id ?? operationalSeason?.id ?? null,
+  );
 
   const counts = attendance.reduce(
     (summary, player) => {

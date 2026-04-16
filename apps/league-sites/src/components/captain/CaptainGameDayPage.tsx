@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -538,10 +539,26 @@ function Overlay({
   children: ReactNode;
   fullScreen?: boolean;
 }) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div className="fixed inset-0 z-[120]">
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  if (!open || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] isolate">
       <div className="absolute inset-0 bg-black/78 backdrop-blur-md transition-opacity" onClick={onClose} />
       <div className="relative flex min-h-full items-center justify-center px-3 py-6 sm:px-4">
         <div className={`${fullScreen ? 'h-[min(92vh,980px)] w-full max-w-6xl' : 'w-full max-w-3xl'} relative`}>
@@ -565,7 +582,8 @@ function Overlay({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
