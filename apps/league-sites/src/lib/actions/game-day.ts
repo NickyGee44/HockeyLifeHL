@@ -231,7 +231,7 @@ async function loadAttendancePlayers(
 
 export async function getCaptainGameDayData(
   teamId: string,
-  _requestedGameId?: string,
+  requestedGameId?: string,
 ): Promise<{ success: true; data: CaptainGameDayData | null } | { success: false; error: string }> {
   const access = await verifyCaptainAccess(teamId);
   if (!access.authorized) {
@@ -268,8 +268,7 @@ export async function getCaptainGameDayData(
     .order('created_at', { ascending: false });
 
   const operationalSeason = pickOperationalSeason(seasons || []);
-  let gamesQuery = (supabase.from('games') as any)
-    .select(`
+  const gameSelect = `
       id,
       league_id,
       season_id,
@@ -284,19 +283,38 @@ export async function getCaptainGameDayData(
       away_attendance_locked_at,
       home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color),
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color)
-    `)
-    .eq('league_id', team.league_id)
-    .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-    .in('status', ['scheduled', 'in_progress'])
-    .order('scheduled_at', { ascending: true })
-    .limit(12);
+    `;
 
-  if (operationalSeason?.id) {
-    gamesQuery = gamesQuery.eq('season_id', operationalSeason.id);
+  let resolvedGame: RelevantGameRow | null = null;
+
+  if (requestedGameId) {
+    const { data: requestedGame } = await (supabase.from('games') as any)
+      .select(gameSelect)
+      .eq('id', requestedGameId)
+      .eq('league_id', team.league_id)
+      .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
+      .in('status', ['scheduled', 'in_progress'])
+      .maybeSingle();
+
+    resolvedGame = (requestedGame as RelevantGameRow | null) ?? null;
   }
 
-  const { data: gameRows } = await gamesQuery;
-  const resolvedGame = selectRelevantGame((gameRows || []) as RelevantGameRow[], new Date());
+  if (!resolvedGame) {
+    let gamesQuery = (supabase.from('games') as any)
+      .select(gameSelect)
+      .eq('league_id', team.league_id)
+      .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
+      .in('status', ['scheduled', 'in_progress'])
+      .order('scheduled_at', { ascending: true })
+      .limit(12);
+
+    if (operationalSeason?.id) {
+      gamesQuery = gamesQuery.eq('season_id', operationalSeason.id);
+    }
+
+    const { data: gameRows } = await gamesQuery;
+    resolvedGame = selectRelevantGame((gameRows || []) as RelevantGameRow[], new Date());
+  }
 
   if (!resolvedGame) {
     return {
