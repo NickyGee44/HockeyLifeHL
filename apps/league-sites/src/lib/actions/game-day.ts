@@ -174,6 +174,12 @@ async function loadAttendancePlayers(
     checkins.set(row.player_id, normalizeAvailability(row.status));
   }
 
+  const invitedSubIds = new Set(
+    ((invitedSubsResult.data || []) as Array<{ invited_player_id: string | null }>)
+      .map((row) => row.invited_player_id)
+      .filter((playerId): playerId is string => Boolean(playerId)),
+  );
+
   const players: GameDayAttendancePlayer[] = [];
   const seen = new Set<string>();
 
@@ -189,7 +195,7 @@ async function loadAttendancePlayers(
       jerseyNumber: row.jersey_number ?? null,
       position: row.position ?? null,
       status: checkins.get(row.player_id) ?? 'no_response',
-      isSub: false,
+      isSub: invitedSubIds.has(row.player_id),
     });
   }
 

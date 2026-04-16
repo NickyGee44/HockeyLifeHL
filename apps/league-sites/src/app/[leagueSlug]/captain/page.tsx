@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, use } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
@@ -12,10 +13,10 @@ import {
   Loader2,
   AlertCircle,
   Calendar,
-  Trophy,
   DollarSign,
   Mail,
   Goal,
+  UserPlus,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
 import { InvitePlayerWizard } from '@/components/captain/InvitePlayerWizard';
@@ -46,6 +47,14 @@ interface UpcomingLineupGame {
   location: string | null;
   status: string;
   opponentName: string;
+}
+
+interface CaptainActionItem {
+  type: 'link' | 'button';
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  icon: typeof Calendar;
 }
 
 export default function CaptainPage({ params }: CaptainPageProps) {
@@ -271,14 +280,22 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   }
 
   const record = `${teamStats?.wins || 0}-${teamStats?.losses || 0}-${teamStats?.ties || 0}`;
-  const captainNavItems = [
+  const rankLabel = teamStats?.division_rank ? `#${teamStats.division_rank}` : '-';
+  const nextGameDateLabel = nextLineupGame
+    ? new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(new Date(nextLineupGame.scheduled_at))
+    : 'No game scheduled';
+  const captainActionItems = [
     nextLineupGame
       ? {
           type: 'link' as const,
           href: `/${leagueSlug}/captain/lineups/${nextLineupGame.id}`,
           label: 'Game Day',
           icon: Calendar,
-          tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
         }
       : null,
     {
@@ -286,21 +303,24 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       href: `/${leagueSlug}/captain/goalies`,
       label: 'Goalies',
       icon: Goal,
-      tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
     },
     {
       type: 'link' as const,
       href: `/${leagueSlug}/captain/fees`,
       label: 'Team Fees',
       icon: DollarSign,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
     },
     {
       type: 'link' as const,
       href: `/${leagueSlug}/captain/player-payments`,
       label: 'Player Payments',
       icon: Users,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
+    },
+    {
+      type: 'button' as const,
+      label: 'Invite Player',
+      icon: UserPlus,
+      onClick: () => setInviteWizardOpen(true),
     },
     hasPendingTeamReturn
       ? {
@@ -308,97 +328,88 @@ export default function CaptainPage({ params }: CaptainPageProps) {
           href: `/${leagueSlug}/captain/team-return`,
           label: 'Team Return',
           icon: Mail,
-          tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
         }
       : null,
-  ].filter(Boolean) as Array<{
-    type: 'link';
-    href: string;
-    label: string;
-    icon: typeof Calendar;
-    tone: string;
-  }>;
+  ].filter(Boolean) as CaptainActionItem[];
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="mb-8 flex items-center gap-4">
         <Link
           href={`/${leagueSlug}/me`}
           className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-amber-400" />
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-              Captain Dashboard
-            </h1>
+        <div className="flex-1 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)]">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+              {currentTeam.team.logo ? (
+                <Image
+                  src={currentTeam.team.logo}
+                  alt={currentTeam.team.name}
+                  width={64}
+                  height={64}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <Shield className="h-7 w-7 text-[var(--league-primary)]" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+                Captains Home
+              </h1>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                {currentTeam.team.name}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-text-secondary)] sm:text-sm">
+                <span>Record: {record}</span>
+                <span>Rank: {rankLabel}</span>
+                <span>Next Opponent: {nextLineupGame?.opponentName ?? 'TBD'}</span>
+                <span>Next Game: {nextGameDateLabel}</span>
+                <span>Players on Roster: {roster.length}</span>
+              </div>
+            </div>
           </div>
-          <p className="text-[var(--color-text-secondary)]">
-            Manage your team: {currentTeam.team.name}
-          </p>
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-        <div className="flex flex-wrap gap-2">
-          {captainNavItems.map((item) => {
-            const Icon = item.icon;
-            const className = `inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors hover:opacity-90 ${item.tone}`;
+      <div className="relative z-40 mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {captainActionItems.map((item) => {
+          const Icon = item.icon;
+          const content = (
+            <>
+              <div className="flex h-full flex-col items-center justify-center gap-2">
+                <div className="rounded-[20px] border border-white/10 bg-black/20 p-3 text-[var(--league-primary)]">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-black uppercase tracking-[0.12em] sm:text-base">{item.label}</p>
+              </div>
+            </>
+          );
 
+          const className = 'relative z-40 min-h-[108px] rounded-[24px] border border-white/10 bg-white/[0.05] px-4 py-3 text-center text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] transition-all backdrop-blur-xl hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08]';
+
+          if (item.type === 'button') {
             return (
-              <Link
-                key={item.href}
-                href={item.href}
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.onClick}
                 className={className}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
+                {content}
+              </button>
             );
-          })}
-        </div>
-      </div>
+          }
 
-      {/* Team Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          icon={<Users className="w-5 h-5 text-[var(--league-primary)]" />}
-          value={roster.length}
-          label="Players"
-        />
-        <StatCard
-          icon={<Trophy className="w-5 h-5 text-amber-400" />}
-          value={record}
-          label="Record"
-        />
-        <StatCard
-          icon={<DollarSign className="w-5 h-5 text-green-400" />}
-          value={teamStats?.points || 0}
-          label="Points"
-        />
-        <StatCard
-          icon={<Calendar className="w-5 h-5 text-blue-400" />}
-          value={teamStats?.division_rank ? `#${teamStats.division_rank}` : '-'}
-          label="Division Rank"
-        />
-      </div>
-
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Roster tools</h2>
-          <p className="text-sm text-[var(--color-text-secondary)]">Invite a new or existing player, then send their registration link.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setInviteWizardOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/10 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/20"
-        >
-          <Users className="h-4 w-4" />
-          Invite player
-        </button>
+          return (
+            <Link key={item.href} href={item.href!} className={className}>
+              {content}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Roster Manager (editable roster + join requests) */}
@@ -422,26 +433,3 @@ export default function CaptainPage({ params }: CaptainPageProps) {
   );
 }
 
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string | number;
-  label: string;
-}) {
-  return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-hover)] flex items-center justify-center">
-          {icon}
-        </div>
-        <div>
-          <p className="text-xl font-bold text-[var(--color-text-primary)]">{value}</p>
-          <p className="text-sm text-[var(--color-text-secondary)]">{label}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
