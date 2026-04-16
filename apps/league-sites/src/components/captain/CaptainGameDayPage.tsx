@@ -247,13 +247,13 @@ export function CaptainGameDayPage({
             />
           </section>
 
-          <section className="space-y-4">
+          <section className="relative z-40 space-y-4">
             <SectionHeading
               icon={<ClipboardList className="h-5 w-5 text-[var(--league-primary)]" />}
               title="Action Tiles"
               description="Everything important for the current game, without the old studio on the main page."
             />
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="relative z-40 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <ActionTile
                 icon={<SquarePen className="h-5 w-5" />}
                 title="Set Lineup"
@@ -482,7 +482,7 @@ function ActionTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-[26px] border p-5 text-left transition-all ${
+      className={`relative z-40 rounded-[26px] border p-5 text-left transition-all ${
         disabled
           ? 'cursor-not-allowed border-slate-700 bg-slate-900/60 text-slate-400'
           : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)] hover:border-[var(--league-primary)]/40 hover:bg-[var(--color-background-elevated)]'
