@@ -229,17 +229,11 @@ async function loadAttendancePlayers(
   });
 }
 
-export async function getCaptainGameDayData(
+async function loadCaptainGameDayData(
+  supabase: ReturnType<typeof createServiceRoleClient>,
   teamId: string,
   requestedGameId?: string,
 ): Promise<{ success: true; data: CaptainGameDayData | null } | { success: false; error: string }> {
-  const access = await verifyCaptainAccess(teamId);
-  if (!access.authorized) {
-    return { success: false, error: access.error };
-  }
-
-  const { supabase } = access;
-
   const { data: team } = await (supabase.from('teams') as any)
     .select(`
       id,
@@ -412,6 +406,26 @@ export async function getCaptainGameDayData(
       rosterPlayerIds: attendance.filter((player) => !player.isSub).map((player) => player.playerId),
     },
   };
+}
+
+export async function getCaptainGameDayDataForAuthorizedTeam(
+  teamId: string,
+  requestedGameId?: string,
+): Promise<{ success: true; data: CaptainGameDayData | null } | { success: false; error: string }> {
+  const supabase = createServiceRoleClient();
+  return loadCaptainGameDayData(supabase, teamId, requestedGameId);
+}
+
+export async function getCaptainGameDayData(
+  teamId: string,
+  requestedGameId?: string,
+): Promise<{ success: true; data: CaptainGameDayData | null } | { success: false; error: string }> {
+  const access = await verifyCaptainAccess(teamId);
+  if (!access.authorized) {
+    return { success: false, error: access.error };
+  }
+
+  return loadCaptainGameDayData(access.supabase, teamId, requestedGameId);
 }
 
 export async function lockCaptainGameAttendance(input: {

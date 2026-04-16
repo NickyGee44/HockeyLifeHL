@@ -37,6 +37,7 @@ type CaptainGameDayPageProps = {
   requestedGameId: string;
   teamId: string;
   canManage: boolean;
+  initialData: CaptainGameDayData | null;
 };
 
 export function CaptainGameDayPage({
@@ -44,10 +45,11 @@ export function CaptainGameDayPage({
   requestedGameId,
   teamId,
   canManage,
+  initialData,
 }: CaptainGameDayPageProps) {
   const router = useRouter();
-  const [data, setData] = useState<CaptainGameDayData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<CaptainGameDayData | null>(initialData);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [showLineupEditor, setShowLineupEditor] = useState(false);
   const [showAttendanceEditor, setShowAttendanceEditor] = useState(false);
@@ -60,6 +62,12 @@ export function CaptainGameDayPage({
 
     async function loadGameDay() {
       if (!canManage) {
+        setIsLoading(false);
+        return;
+      }
+
+      if (refreshToken === 0 && initialData) {
+        setData(initialData);
         setIsLoading(false);
         return;
       }
@@ -89,7 +97,7 @@ export function CaptainGameDayPage({
     return () => {
       cancelled = true;
     };
-  }, [canManage, leagueSlug, requestedGameId, router, teamId, refreshToken]);
+  }, [canManage, initialData, leagueSlug, requestedGameId, router, teamId, refreshToken]);
 
   const placedIds = useMemo(
     () => new Set(data?.lineup.layout.placedPlayers.map((player) => player.playerId) ?? []),

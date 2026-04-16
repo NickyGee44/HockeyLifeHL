@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ArrowLeft, Shield } from 'lucide-react';
 import { CaptainGameDayPage } from '@/components/captain/CaptainGameDayPage';
+import { getCaptainGameDayDataForAuthorizedTeam } from '@/lib/actions/game-day';
 import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 function RouteMessage({
@@ -113,12 +114,26 @@ export default async function CaptainLineupPage({
     );
   }
 
+  const gameDayResult = await getCaptainGameDayDataForAuthorizedTeam(matchedTeamId, gameId);
+
+  if (!gameDayResult.success) {
+    return (
+      <RouteMessage
+        leagueSlug={leagueSlug}
+        title="Could not load Game Day"
+        body={gameDayResult.error}
+        icon={<AlertCircle className="mx-auto h-10 w-10 text-amber-300" />}
+      />
+    );
+  }
+
   return (
     <CaptainGameDayPage
       leagueSlug={leagueSlug}
       requestedGameId={gameId}
       teamId={matchedTeamId}
       canManage
+      initialData={gameDayResult.data}
     />
   );
 }
