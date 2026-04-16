@@ -300,20 +300,28 @@ export async function getCaptainGameDayData(
   }
 
   if (!resolvedGame) {
-    let gamesQuery = (supabase.from('games') as any)
-      .select(gameSelect)
-      .eq('league_id', team.league_id)
-      .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
-      .in('status', ['scheduled', 'in_progress'])
-      .order('scheduled_at', { ascending: true })
-      .limit(12);
+    const loadRelevantGames = async (seasonId?: string | null) => {
+      let gamesQuery = (supabase.from('games') as any)
+        .select(gameSelect)
+        .eq('league_id', team.league_id)
+        .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
+        .in('status', ['scheduled', 'in_progress'])
+        .order('scheduled_at', { ascending: true })
+        .limit(12);
 
-    if (operationalSeason?.id) {
-      gamesQuery = gamesQuery.eq('season_id', operationalSeason.id);
+      if (seasonId) {
+        gamesQuery = gamesQuery.eq('season_id', seasonId);
+      }
+
+      const { data: gameRows } = await gamesQuery;
+      return selectRelevantGame((gameRows || []) as RelevantGameRow[], new Date());
+    };
+
+    resolvedGame = await loadRelevantGames(operationalSeason?.id ?? null);
+
+    if (!resolvedGame && operationalSeason?.id) {
+      resolvedGame = await loadRelevantGames(null);
     }
-
-    const { data: gameRows } = await gamesQuery;
-    resolvedGame = selectRelevantGame((gameRows || []) as RelevantGameRow[], new Date());
   }
 
   if (!resolvedGame) {
