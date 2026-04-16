@@ -187,6 +187,15 @@ export interface Player {
   position: 'C' | 'LW' | 'RW' | 'D' | 'G' | 'Forward' | 'Defense' | 'Goalie' | null;
   leadership_role: 'captain' | 'alternate_captain' | null;
   is_goalie?: boolean;
+  /**
+   * Roster membership classification from `team_rosters.player_type`.
+   * Only 'regular' counts as a real roster slot on the team page lineup view;
+   * 'sub', 'spare', and 'part_time' are treated as spares (see the sort in
+   * `splitRosterByRole` and the jersey-slot filter in `TeamLineupView`).
+   * Synthetic entries (players found via stats but no roster row) leave this
+   * undefined and are also treated as spares.
+   */
+  player_type?: string | null;
   // Computed properties for backwards compatibility
   is_captain?: boolean;
   is_alternate?: boolean;

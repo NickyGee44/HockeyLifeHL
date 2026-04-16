@@ -369,12 +369,14 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   name: player.profile?.full_name || 'Unknown',
                   jerseyNumber: player.jersey_number,
                   position: player.position,
+                  isSub: isSubRosterPlayer(player),
                 }))}
                 goalies={goalies.map((goalie) => ({
                   playerId: goalie.player_id,
                   name: goalie.profile?.full_name || 'Unknown',
                   jerseyNumber: goalie.jersey_number,
                   position: 'G',
+                  isSub: isSubRosterPlayer(goalie),
                 }))}
                 availabilityGameId={nextTeamGame?.id ?? null}
                 availabilityTeamId={team.id}
@@ -668,6 +670,18 @@ function normalizeLeaderTab(value: string | undefined): TeamLeaderMetric {
 
 function formatRecord(wins: number, losses: number, ties: number) {
   return `${wins}-${losses}-${ties}`;
+}
+
+/**
+ * Matches the spare detection used by `splitRosterByRole` (team-page.ts): any
+ * roster row classified as 'sub', 'spare', or 'part_time' is a spare. Synthetic
+ * entries (player with stats but no roster row) leave player_type undefined and
+ * are also treated as spares. Real roster players have player_type === 'regular'.
+ */
+function isSubRosterPlayer(player: { player_type?: string | null }): boolean {
+  const playerType = (player.player_type ?? '').toLowerCase();
+  if (playerType === 'regular') return false;
+  return true;
 }
 
 function formatGoalDifferential(value: number) {

@@ -7,6 +7,8 @@ interface LineupPlayer {
   name: string;
   jerseyNumber: number | null;
   position?: string | null;
+  /** When true, this player is a spare and must not occupy a jersey slot. */
+  isSub?: boolean;
 }
 
 type LineupSlotType = 'forward' | 'defence' | 'goalie';
@@ -65,8 +67,15 @@ export function TeamLineupView({
   forwardSlots = DEFAULT_FORWARD_SLOTS,
   defenceSlots = DEFAULT_DEFENCE_SLOTS,
 }: TeamLineupViewProps) {
-  const defenders = skaters.filter((p) => isDefence(p.position));
-  const forwards = skaters.filter((p) => !isDefence(p.position));
+  // Jersey slots are reserved exclusively for real roster players. Spares
+  // (isSub === true) never replace a rostered teammate — if a rostered player
+  // is marked out for an upcoming game, their jersey stays and goes grey via
+  // the 'out' availability treatment below.
+  const rosterSkaters = skaters.filter((p) => !p.isSub);
+  const rosterGoalies = goalies.filter((p) => !p.isSub);
+
+  const defenders = rosterSkaters.filter((p) => isDefence(p.position));
+  const forwards = rosterSkaters.filter((p) => !isDefence(p.position));
 
   // Forwards are always laid out 3-across with a minimum of 2 rows; defence is
   // always 2-across. Slot counts may grow when there are extra attendees.
@@ -75,7 +84,7 @@ export function TeamLineupView({
 
   const forwardLineup = Array.from({ length: forwardCapacity }, (_, i) => forwards[i] || null);
   const defenceLineup = Array.from({ length: defenceCapacity }, (_, i) => defenders[i] || null);
-  const goalie = goalies[0] || null;
+  const goalie = rosterGoalies[0] || null;
 
   return (
     <div className="mt-2 space-y-8">
