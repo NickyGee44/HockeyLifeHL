@@ -21,6 +21,8 @@ interface TeamMembership {
     logo: string | null;
     league_id: string;
     division_id: string | null;
+    primary_color: string | null;
+    secondary_color: string | null;
   } | null;
   jersey_number: number | null;
   position: string | null;
@@ -89,7 +91,7 @@ export function usePlayerProfile(
           position,
           leadership_role,
           season_id,
-          team:teams(id, name, slug, logo_url, league_id, division_id)
+          team:teams(id, name, slug, logo_url, league_id, division_id, primary_color, secondary_color)
         `)
         .eq('player_id', user.id)
         .eq('status', 'active')
@@ -123,6 +125,8 @@ export function usePlayerProfile(
             logo: rawTeam.logo_url || null,
             league_id: rawTeam.league_id,
             division_id: rawTeam.division_id,
+            primary_color: rawTeam.primary_color || null,
+            secondary_color: rawTeam.secondary_color || null,
           } : null,
           jersey_number: item.jersey_number,
           position: item.position,

@@ -165,6 +165,8 @@ export function FloatingDock({
     ? pathname.startsWith(`/${leagueSlug}/teams/${teamSlug}`)
     : pathname === `/${leagueSlug}/teams`;
   const isCaptain = Boolean(currentTeam?.is_captain || currentTeam?.is_alternate);
+  const captainPrimary = currentTeam?.team?.primary_color || 'var(--league-primary)';
+  const captainSecondary = currentTeam?.team?.secondary_color || 'var(--league-secondary-safe)';
 
   const captainItems: MoreMenuItem[] = isCaptain
     ? [
@@ -354,7 +356,7 @@ export function FloatingDock({
             )}
 
             {/* Utility row */}
-            <div className="mt-1 flex items-center justify-center gap-1 border-t border-white/[0.08] px-4 pt-2 pb-3">
+            <div className="mt-1 flex items-center gap-1 border-t border-white/[0.08] px-4 pt-2 pb-3">
               {mounted && (
                 <button
                   type="button"
@@ -390,16 +392,28 @@ export function FloatingDock({
                 <Link
                   href={`/${leagueSlug}/captain`}
                   onClick={() => setMoreOpen(false)}
-                  className="flex h-10 min-w-[40px] items-center justify-center rounded-xl px-2 transition-colors hover:bg-[var(--league-primary)]/15"
+                  className="ml-auto flex h-10 min-w-[40px] items-center justify-center px-1"
                   aria-label={currentTeam?.is_captain ? 'Captain dashboard' : 'Assistant captain dashboard'}
                 >
                   <span
-                    className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-full border px-2 text-[11px] font-black leading-none tracking-[0.12em]"
+                    className="relative inline-flex h-9 min-w-[34px] items-center justify-center px-[7px] text-[22px] font-black uppercase leading-none tracking-[-0.02em]"
                     style={{
-                      color: 'var(--league-primary)',
-                      borderColor: 'color-mix(in srgb, var(--league-primary) 45%, rgba(255,255,255,0.16))',
-                      background: 'linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 22%, transparent) 0%, color-mix(in srgb, var(--league-secondary-safe) 18%, transparent) 100%)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                      color: captainPrimary,
+                      WebkitTextStroke: `3px ${captainSecondary}`,
+                      textShadow: `
+                        0 0 0 #ffffff,
+                        1px 0 0 #ffffff,
+                        -1px 0 0 #ffffff,
+                        0 1px 0 #ffffff,
+                        0 -1px 0 #ffffff,
+                        1px 1px 0 #ffffff,
+                        -1px 1px 0 #ffffff,
+                        1px -1px 0 #ffffff,
+                        -1px -1px 0 #ffffff,
+                        0 2px 8px color-mix(in srgb, ${captainSecondary} 30%, transparent)
+                      `,
+                      fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                      transform: 'translateY(-0.5px)',
                     }}
                   >
                     {currentTeam?.is_captain ? 'C' : 'A'}
