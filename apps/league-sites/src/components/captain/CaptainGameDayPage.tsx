@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
-import { CaptainLineupEditor } from '@/components/lineups/CaptainLineupEditor';
+import { CaptainLineupModalEditor } from '@/components/captain/CaptainLineupModalEditor';
 import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import { TeamLineupView } from '@/components/team/TeamLineupView';
 import {
@@ -307,14 +307,16 @@ export function CaptainGameDayPage({
           setShowLineupEditor(false);
           refreshData();
         }}
-        fullScreen
         title="Set Lineup"
       >
-        <CaptainLineupEditor
+        <CaptainLineupModalEditor
           leagueSlug={leagueSlug}
           gameId={currentData.resolvedGameId!}
           teamId={teamId}
-          canManage={canManage}
+          initialLayout={currentData.lineup.layout}
+          initialStatus={currentData.lineup.status}
+          primaryColor={teamPrimaryColor}
+          secondaryColor={teamSecondaryColor}
         />
       </Overlay>
 

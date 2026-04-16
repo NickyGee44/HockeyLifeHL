@@ -15,6 +15,8 @@ interface TeamLineupViewProps {
   primaryColor: string;
   secondaryColor: string;
   availabilityMap?: Record<string, 'confirmed' | 'tentative' | 'out'>;
+  onPlayerClick?: (playerId: string) => void;
+  removeAffordance?: boolean;
 }
 
 const FORWARD_SLOTS = 6;
@@ -50,6 +52,8 @@ export function TeamLineupView({
   primaryColor,
   secondaryColor,
   availabilityMap = {},
+  onPlayerClick,
+  removeAffordance = false,
 }: TeamLineupViewProps) {
   const defenders = skaters.filter((p) => isDefence(p.position));
   const forwards = skaters.filter((p) => !isDefence(p.position));
@@ -72,6 +76,8 @@ export function TeamLineupView({
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
               availability={player ? availabilityMap[player.playerId] : undefined}
+              onPlayerClick={onPlayerClick}
+              removeAffordance={removeAffordance}
             />
           ))}
         </div>
@@ -90,6 +96,8 @@ export function TeamLineupView({
                 primaryColor={primaryColor}
                 secondaryColor={secondaryColor}
                 availability={player ? availabilityMap[player.playerId] : undefined}
+                onPlayerClick={onPlayerClick}
+                removeAffordance={removeAffordance}
               />
             ))}
           </div>
@@ -105,6 +113,8 @@ export function TeamLineupView({
               primaryColor={primaryColor}
               secondaryColor={secondaryColor}
               availability={goalie ? availabilityMap[goalie.playerId] : undefined}
+              onPlayerClick={onPlayerClick}
+              removeAffordance={removeAffordance}
             />
           </div>
         </div>
@@ -118,12 +128,40 @@ function JerseySlot({
   primaryColor,
   secondaryColor,
   availability,
+  onPlayerClick,
+  removeAffordance = false,
 }: {
   player: LineupPlayer | null;
   primaryColor: string;
   secondaryColor: string;
   availability?: 'confirmed' | 'tentative' | 'out';
+  onPlayerClick?: (playerId: string) => void;
+  removeAffordance?: boolean;
 }) {
+  if (player && onPlayerClick) {
+    return (
+      <button
+        type="button"
+        onClick={() => onPlayerClick(player.playerId)}
+        className="group relative flex flex-col items-center rounded-2xl p-1 transition-transform hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
+        aria-label={`Remove ${player.name} from lineup`}
+      >
+        <Jersey
+          name={getLastName(player.name)}
+          number={player.jerseyNumber}
+          primaryColor={primaryColor}
+          secondaryColor={secondaryColor}
+          availability={availability}
+        />
+        {removeAffordance ? (
+          <span className="pointer-events-none absolute -top-1 -right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white opacity-0 ring-2 ring-white/40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            <X className="h-3.5 w-3.5" />
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center">
       {player ? (
