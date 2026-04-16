@@ -7,6 +7,8 @@ import {
   AlertCircle,
   ArrowLeft,
   CalendarDays,
+  Check,
+  CircleHelp,
   ClipboardList,
   Loader2,
   Shield,
@@ -539,24 +541,27 @@ function Overlay({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative mx-auto h-full ${fullScreen ? 'max-w-none' : 'flex max-w-3xl items-center justify-center px-4'}`}>
-        <div className={`${fullScreen ? 'h-full w-full' : 'w-full'} relative`}>
-          <div className={`absolute right-4 top-4 z-[60] flex items-center gap-3 ${fullScreen ? '' : 'top-5'}`}>
-            <div className="rounded-full border border-white/10 bg-black/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
-              {title}
+    <div className="fixed inset-0 z-[120]">
+      <div className="absolute inset-0 bg-black/78 backdrop-blur-md transition-opacity" onClick={onClose} />
+      <div className="relative flex min-h-full items-center justify-center px-3 py-6 sm:px-4">
+        <div className={`${fullScreen ? 'h-[min(92vh,980px)] w-full max-w-6xl' : 'w-full max-w-3xl'} relative`}>
+          <div className="pointer-events-none absolute -inset-3 rounded-[38px] bg-[var(--league-primary)]/12 blur-2xl" />
+          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[var(--color-surface)] shadow-[0_40px_120px_-38px_rgba(0,0,0,0.95)]">
+            <div className="flex items-center justify-between gap-3 border-b border-white/8 bg-black/25 px-5 py-4 backdrop-blur-sm sm:px-6">
+              <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+                {title}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-white/10 bg-black/35 p-2 text-white transition-colors hover:bg-black/60"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-white/10 bg-black/45 p-2 text-white transition-colors hover:bg-black/65"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className={fullScreen ? 'h-full overflow-y-auto bg-[var(--color-background)] pt-16' : 'relative mt-20 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[0_36px_90px_-44px_rgba(0,0,0,0.9)]'}>
-            {children}
+            <div className={fullScreen ? 'max-h-[calc(92vh-72px)] overflow-y-auto bg-[var(--color-background)]' : 'max-h-[calc(92vh-72px)] overflow-y-auto bg-[var(--color-surface)] p-5 sm:p-6'}>
+              {children}
+            </div>
           </div>
         </div>
       </div>
@@ -619,7 +624,7 @@ function AttendanceEditorModal({
     <Overlay open={open} onClose={onClose} title="Edit Attendance">
       <div className="space-y-4">
         <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-          Update attendance for the current game. Changes save immediately.
+          Update attendance for the current game. Tap an icon to change each player instantly.
         </p>
         {error ? (
           <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-300">
@@ -653,28 +658,57 @@ function AttendanceEditorModal({
                   <Loader2 className="h-4 w-4 animate-spin text-[var(--league-primary)]" />
                 ) : null}
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {(['confirmed', 'out', 'tentative', 'no_response'] as CaptainAttendanceStatus[]).map((status) => (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {([
+                  {
+                    status: 'confirmed' as CaptainAttendanceStatus,
+                    label: 'In',
+                    icon: Check,
+                    active: 'border-emerald-400/30 bg-emerald-400/14 text-emerald-300',
+                  },
+                  {
+                    status: 'out' as CaptainAttendanceStatus,
+                    label: 'Out',
+                    icon: X,
+                    active: 'border-rose-400/30 bg-rose-400/14 text-rose-300',
+                  },
+                  {
+                    status: 'tentative' as CaptainAttendanceStatus,
+                    label: 'Unsure',
+                    icon: CircleHelp,
+                    active: 'border-amber-400/30 bg-amber-400/14 text-amber-300',
+                  },
+                ]).map(({ status, label, icon: Icon, active }) => (
                   <button
                     key={status}
                     type="button"
                     disabled={savingPlayerId === player.playerId}
                     onClick={() => setStatus(player.playerId, status)}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
+                    aria-label={label}
+                    title={label}
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border transition-colors ${
                       player.status === status
-                        ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/14 text-[var(--league-primary)]'
+                        ? active
                         : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
-                    {status === 'confirmed'
-                      ? 'In'
-                      : status === 'out'
-                        ? 'Out'
-                        : status === 'tentative'
-                          ? 'Unsure'
-                          : 'No Response'}
+                    <Icon className="h-4 w-4" />
                   </button>
                 ))}
+                <button
+                  type="button"
+                  disabled={savingPlayerId === player.playerId}
+                  onClick={() => setStatus(player.playerId, 'no_response')}
+                  aria-label="No response"
+                  title="No response"
+                  className={`inline-flex min-w-[96px] items-center justify-center rounded-xl border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+                    player.status === 'no_response'
+                      ? 'border-slate-400/30 bg-slate-400/12 text-slate-200'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                  }`}
+                >
+                  No response
+                </button>
               </div>
             </div>
           ))}

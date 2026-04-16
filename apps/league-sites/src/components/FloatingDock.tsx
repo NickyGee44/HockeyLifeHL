@@ -376,18 +376,6 @@ export function FloatingDock({
               >
                 <Bug className="h-[18px] w-[18px]" />
               </button>
-              {user && isCaptain && (
-                <Link
-                  href={`/${leagueSlug}/captain`}
-                  onClick={() => setMoreOpen(false)}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-[var(--league-primary)]/15 hover:text-[var(--league-primary)]"
-                  aria-label={currentTeam?.is_captain ? 'Captain dashboard' : 'Assistant captain dashboard'}
-                >
-                  <span className="text-base font-black leading-none tracking-tight">
-                    {currentTeam?.is_captain ? 'C' : 'A'}
-                  </span>
-                </Link>
-              )}
               {user && (
                 <button
                   type="button"
@@ -397,6 +385,26 @@ export function FloatingDock({
                 >
                   <LogOut className="h-[18px] w-[18px]" />
                 </button>
+              )}
+              {user && isCaptain && (
+                <Link
+                  href={`/${leagueSlug}/captain`}
+                  onClick={() => setMoreOpen(false)}
+                  className="flex h-10 min-w-[40px] items-center justify-center rounded-xl px-2 transition-colors hover:bg-[var(--league-primary)]/15"
+                  aria-label={currentTeam?.is_captain ? 'Captain dashboard' : 'Assistant captain dashboard'}
+                >
+                  <span
+                    className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-full border px-2 text-[11px] font-black leading-none tracking-[0.12em]"
+                    style={{
+                      color: 'var(--league-primary)',
+                      borderColor: 'color-mix(in srgb, var(--league-primary) 45%, rgba(255,255,255,0.16))',
+                      background: 'linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 22%, transparent) 0%, color-mix(in srgb, var(--league-secondary-safe) 18%, transparent) 100%)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    {currentTeam?.is_captain ? 'C' : 'A'}
+                  </span>
+                </Link>
               )}
             </div>
           </div>
