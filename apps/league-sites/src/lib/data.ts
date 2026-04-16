@@ -4968,61 +4968,35 @@ export async function getPlayerCareerStatsTimeline(
       .eq('player_id', playerId)
       .maybeSingle();
 
-    if (baselineStats) {
+    if (baselineStats && timelineRows.length === 0) {
       const gamesPlayed = Number(baselineStats.games_played || 0);
       const goals = Number(baselineStats.goals || 0);
       const assists = Number(baselineStats.assists || 0);
       const points = Number(baselineStats.points ?? (goals + assists));
-      const winter2026Index = timelineRows.findIndex((row) => row.season_id === HLHL_WINTER_2026_SEASON_ID);
-
-      if (winter2026Index >= 0) {
-        const existingRow = timelineRows[winter2026Index];
-        timelineRows[winter2026Index] = {
-          ...existingRow,
-          games_played: Math.max(existingRow.games_played, gamesPlayed),
-          team_games: Math.max(existingRow.team_games, gamesPlayed),
-          attendance_pct:
-            Math.max(existingRow.team_games, gamesPlayed) > 0
-              ? roundCareerMetric((Math.max(existingRow.games_played, gamesPlayed) / Math.max(existingRow.team_games, gamesPlayed)) * 100, 1)
-              : existingRow.attendance_pct,
-          goals: Math.max(existingRow.goals, goals),
-          assists: Math.max(existingRow.assists, assists),
-          points: Math.max(existingRow.points, points),
-          goals_per_game:
-            Math.max(existingRow.games_played, gamesPlayed) > 0
-              ? roundCareerMetric(Math.max(existingRow.goals, goals) / Math.max(existingRow.games_played, gamesPlayed), 2)
-              : 0,
-          points_per_game:
-            Math.max(existingRow.games_played, gamesPlayed) > 0
-              ? roundCareerMetric(Math.max(existingRow.points, points) / Math.max(existingRow.games_played, gamesPlayed), 2)
-              : 0,
-        };
-      } else {
-        timelineRows.push({
-          season_id: HLHL_WINTER_2026_SEASON_ID,
-          season_name: seasonNameById.get(HLHL_WINTER_2026_SEASON_ID) || 'Winter 2026',
-          sort_date: seasonSortById.get(HLHL_WINTER_2026_SEASON_ID) || (historicalBaselineSeason.start_date ?? null),
-          team_id: null,
-          team_name: null,
-          position: null,
-          games_played: gamesPlayed,
-          team_games: gamesPlayed,
-          attendance_pct: gamesPlayed > 0 ? 100 : 0,
-          goals,
-          assists,
-          points,
-          goals_per_game: gamesPlayed > 0 ? roundCareerMetric(goals / gamesPlayed, 2) : 0,
-          points_per_game: gamesPlayed > 0 ? roundCareerMetric(points / gamesPlayed, 2) : 0,
-          wins: 0,
-          losses: 0,
-          ties: 0,
-          saves: 0,
-          goals_against: 0,
-          save_percentage: null,
-          goals_against_average: null,
-          shutouts: 0,
-        });
-      }
+      timelineRows.push({
+        season_id: HLHL_WINTER_2026_SEASON_ID,
+        season_name: seasonNameById.get(HLHL_WINTER_2026_SEASON_ID) || 'Winter 2026',
+        sort_date: seasonSortById.get(HLHL_WINTER_2026_SEASON_ID) || (historicalBaselineSeason.start_date ?? null),
+        team_id: null,
+        team_name: null,
+        position: null,
+        games_played: gamesPlayed,
+        team_games: gamesPlayed,
+        attendance_pct: gamesPlayed > 0 ? 100 : 0,
+        goals,
+        assists,
+        points,
+        goals_per_game: gamesPlayed > 0 ? roundCareerMetric(goals / gamesPlayed, 2) : 0,
+        points_per_game: gamesPlayed > 0 ? roundCareerMetric(points / gamesPlayed, 2) : 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        saves: 0,
+        goals_against: 0,
+        save_percentage: null,
+        goals_against_average: null,
+        shutouts: 0,
+      });
     }
   }
 
