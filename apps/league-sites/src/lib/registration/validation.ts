@@ -100,5 +100,5 @@ export function canSubmitRegistration(
 ): boolean {
   if (registrationFeeCents <= 0) return true;
   if (paymentMode !== 'required') return true;
-  return data.payment_status === 'completed';
+  return data.payment_status === 'completed' || data.payment_status === 'alternate_method';
 }

@@ -20,6 +20,7 @@ interface StepPaymentProps {
   leagueId: string;
   seasonId: string;
   leagueSlug: string;
+  allowAlternatePaymentBypass?: boolean;
   onUpdate: (updates: Partial<RegistrationDraftData>) => void;
   onNext?: () => void;
 }
@@ -35,14 +36,17 @@ export function StepPayment({
   leagueId,
   seasonId,
   leagueSlug,
+  allowAlternatePaymentBypass = false,
   onUpdate,
   onNext,
 }: StepPaymentProps) {
   const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const isPaid = formData.payment_status === 'completed';
+  const isAlternateMethod = formData.payment_status === 'alternate_method';
   const isOptionalPayment = paymentMode === 'optional';
   const isTeamContribution = paymentMode === 'team_contribution';
+  const canBypassWithAlternateMethod = allowAlternatePaymentBypass && paymentMode === 'required';
 
   const formatCurrency = (cents: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
@@ -97,7 +101,18 @@ export function StepPayment({
     }
   };
 
-  if (isPaid) {
+  const handleAlternateMethod = () => {
+    onUpdate({
+      payment_status: 'alternate_method',
+      payment_intent_id: '',
+      amount_cents: 0,
+    });
+    if (onNext) {
+      setTimeout(() => onNext(), 150);
+    }
+  };
+
+  if (isPaid || isAlternateMethod) {
     return (
       <div className="space-y-6">
         <div>
@@ -108,9 +123,13 @@ export function StepPayment({
         </div>
         <div className="flex flex-col items-center justify-center p-8 bg-green-500/10 rounded-xl border border-green-500/20">
           <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
-          <p className="text-green-400 text-center text-lg font-medium">Payment Complete</p>
+          <p className="text-green-400 text-center text-lg font-medium">
+            {isAlternateMethod ? 'Alternate Payment Selected' : 'Payment Complete'}
+          </p>
           <p className="text-[var(--color-text-secondary)] text-center mt-2">
-            {formatCurrency(totalChargeCents || registrationFee)} has been processed.
+            {isAlternateMethod
+              ? 'This registration will bypass online checkout so payment can be handled outside the app.'
+              : `${formatCurrency(totalChargeCents || registrationFee)} has been processed.`}
           </p>
         </div>
       </div>
@@ -200,15 +219,17 @@ export function StepPayment({
           <p className="mt-3 text-xs text-[var(--color-text-muted)]">
             Payments are securely processed by Stripe.
           </p>
-          {(isOptionalPayment || isTeamContribution) && (
+          {(isOptionalPayment || isTeamContribution || canBypassWithAlternateMethod) && (
             <button
               type="button"
-              onClick={handleSkip}
+              onClick={canBypassWithAlternateMethod ? handleAlternateMethod : handleSkip}
               className="mt-3 text-sm font-medium text-[var(--league-primary)] hover:underline"
             >
-              {isTeamContribution
-                ? 'Skip for now and let my captain track it manually'
-                : 'Skip for now and let my team handle payment'}
+              {canBypassWithAlternateMethod
+                ? 'Pay via Alternate Method'
+                : isTeamContribution
+                  ? 'Skip for now and let my captain track it manually'
+                  : 'Skip for now and let my team handle payment'}
             </button>
           )}
         </div>

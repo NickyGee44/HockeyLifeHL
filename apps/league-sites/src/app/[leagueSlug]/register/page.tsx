@@ -228,6 +228,8 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
   }
 
   const initialData = draftResult.success ? (draftResult.data ?? inviteInitialData) : inviteInitialData;
+  const invitePreview = captainInvite ? await getPublicCaptainInvitePreview(captainInvite) : null;
+  const allowAlternatePaymentBypass = invitePreview?.branding.kind === 'league';
   const waiver =
     waiverResult.success && waiverResult.data
       ? waiverResult.data
@@ -293,6 +295,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
         previousTeams={journeyData.previousTeams}
         confirmedTeamIds={journeyData.confirmedTeamIds}
         teamReturnStatuses={journeyData.teamReturnStatuses}
+        allowAlternatePaymentBypass={allowAlternatePaymentBypass}
       />
     </div>
   );

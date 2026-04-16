@@ -856,8 +856,9 @@ export async function submitPlayerRegistration(
       paymentSettings.feeBasis
     );
     let amountPaidCents = 0;
+    const usedAlternatePaymentMethod = data.payment_status === 'alternate_method';
 
-    if (paymentMode === 'required' && data.payment_status !== 'completed') {
+    if (paymentMode === 'required' && data.payment_status !== 'completed' && !usedAlternatePaymentMethod) {
       return {
         success: false,
         error: 'Payment is required for this registration. Please complete payment before submitting.',
@@ -914,7 +915,7 @@ export async function submitPlayerRegistration(
       data.amount_cents = expectedPaymentQuote.totalChargeCents;
       amountPaidCents = expectedFeeCents;
     } else {
-      data.payment_status = 'not_required';
+      data.payment_status = usedAlternatePaymentMethod ? 'alternate_method' : 'not_required';
       data.amount_cents = 0;
       data.payment_intent_id = undefined;
     }
