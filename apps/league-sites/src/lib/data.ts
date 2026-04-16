@@ -1079,10 +1079,11 @@ export async function getTeamRosterStats(
     goalieQuery = goalieQuery.eq('season_id', seasonId);
   }
 
-  const [{ data: skaterRows }, { data: goalieRows }, confirmedCheckins] = await Promise.all([
+  const [{ data: skaterRows }, { data: goalieRows }, confirmedCheckins, fallbackAppearances] = await Promise.all([
     skaterQuery,
     goalieQuery,
     getConfirmedCheckinAppearanceRows(supabase, { teamId, seasonId }),
+    getFallbackRosterAppearanceRows(supabase, { teamId, seasonId }),
   ]);
 
   const accumulator: Record<string, RosterStatsAccumulator> = {};
@@ -1138,6 +1139,11 @@ export async function getTeamRosterStats(
   }
 
   for (const row of confirmedCheckins) {
+    const entry = ensure(row.player_id);
+    entry.confirmed_checkin_game_ids.add(row.game_id);
+  }
+
+  for (const row of fallbackAppearances) {
     const entry = ensure(row.player_id);
     entry.confirmed_checkin_game_ids.add(row.game_id);
   }

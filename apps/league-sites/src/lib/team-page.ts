@@ -111,6 +111,45 @@ export function partitionTeamSchedule(
   return { upcomingGames, pastGames };
 }
 
+function isSparePlayer(player: Player): boolean {
+  const playerType = (player as { player_type?: string | null }).player_type?.toLowerCase?.() ?? '';
+  return playerType === 'sub' || playerType === 'spare' || playerType === 'part_time';
+}
+
+function compareRosterPlayers(
+  left: Player,
+  right: Player,
+  rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
+  goalieMode: boolean,
+) {
+  const leftSpare = isSparePlayer(left);
+  const rightSpare = isSparePlayer(right);
+  if (leftSpare !== rightSpare) return Number(leftSpare) - Number(rightSpare);
+
+  const leftJersey = left.jersey_number ?? Number.MAX_SAFE_INTEGER;
+  const rightJersey = right.jersey_number ?? Number.MAX_SAFE_INTEGER;
+  if (leftJersey !== rightJersey) return leftJersey - rightJersey;
+
+  const leftStats = rosterStatsByPlayer[left.player_id];
+  const rightStats = rosterStatsByPlayer[right.player_id];
+
+  if (goalieMode) {
+    const byWins = (rightStats?.wins ?? 0) - (leftStats?.wins ?? 0);
+    if (byWins !== 0) return byWins;
+
+    const bySavePct = (rightStats?.save_percentage ?? 0) - (leftStats?.save_percentage ?? 0);
+    if (bySavePct !== 0) return bySavePct;
+  } else {
+    const byPoints = (rightStats?.points ?? 0) - (leftStats?.points ?? 0);
+    if (byPoints !== 0) return byPoints;
+
+    const byGoals = (rightStats?.goals ?? 0) - (leftStats?.goals ?? 0);
+    if (byGoals !== 0) return byGoals;
+  }
+
+  return (left.profile?.full_name || '').localeCompare(right.profile?.full_name || '');
+}
+
 export function splitRosterByRole(
   roster: Player[],
   rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
@@ -124,29 +163,8 @@ export function splitRosterByRole(
     return Boolean(player.is_goalie || isGoaliePosition(player.position) || stats?.is_goalie);
   });
 
-  skaters.sort((left, right) => {
-    const leftStats = rosterStatsByPlayer[left.player_id];
-    const rightStats = rosterStatsByPlayer[right.player_id];
-    const byPoints = (rightStats?.points ?? 0) - (leftStats?.points ?? 0);
-    if (byPoints !== 0) return byPoints;
-
-    const byGoals = (rightStats?.goals ?? 0) - (leftStats?.goals ?? 0);
-    if (byGoals !== 0) return byGoals;
-
-    return (left.profile?.full_name || '').localeCompare(right.profile?.full_name || '');
-  });
-
-  goalies.sort((left, right) => {
-    const leftStats = rosterStatsByPlayer[left.player_id];
-    const rightStats = rosterStatsByPlayer[right.player_id];
-    const byWins = (rightStats?.wins ?? 0) - (leftStats?.wins ?? 0);
-    if (byWins !== 0) return byWins;
-
-    const bySavePct = (rightStats?.save_percentage ?? 0) - (leftStats?.save_percentage ?? 0);
-    if (bySavePct !== 0) return bySavePct;
-
-    return (left.profile?.full_name || '').localeCompare(right.profile?.full_name || '');
-  });
+  skaters.sort((left, right) => compareRosterPlayers(left, right, rosterStatsByPlayer, false));
+  goalies.sort((left, right) => compareRosterPlayers(left, right, rosterStatsByPlayer, true));
 
   return { skaters, goalies };
 }
