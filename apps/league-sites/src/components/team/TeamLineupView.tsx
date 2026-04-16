@@ -21,10 +21,12 @@ interface TeamLineupViewProps {
   onEmptySlotClick?: (slotType: LineupSlotType) => void;
   highlightEmptySlots?: boolean;
   removeAffordance?: boolean;
+  forwardSlots?: number;
+  defenceSlots?: number;
 }
 
-const FORWARD_SLOTS = 6;
-const DEFENCE_SLOTS = 4;
+const DEFAULT_FORWARD_SLOTS = 6;
+const DEFAULT_DEFENCE_SLOTS = 4;
 
 function getLastName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -60,12 +62,19 @@ export function TeamLineupView({
   onEmptySlotClick,
   highlightEmptySlots = false,
   removeAffordance = false,
+  forwardSlots = DEFAULT_FORWARD_SLOTS,
+  defenceSlots = DEFAULT_DEFENCE_SLOTS,
 }: TeamLineupViewProps) {
   const defenders = skaters.filter((p) => isDefence(p.position));
   const forwards = skaters.filter((p) => !isDefence(p.position));
 
-  const forwardLineup = Array.from({ length: FORWARD_SLOTS }, (_, i) => forwards[i] || null);
-  const defenceLineup = Array.from({ length: DEFENCE_SLOTS }, (_, i) => defenders[i] || null);
+  // Forwards are always laid out 3-across with a minimum of 2 rows; defence is
+  // always 2-across. Slot counts may grow when there are extra attendees.
+  const forwardCapacity = Math.max(forwardSlots, DEFAULT_FORWARD_SLOTS);
+  const defenceCapacity = Math.max(defenceSlots, DEFAULT_DEFENCE_SLOTS);
+
+  const forwardLineup = Array.from({ length: forwardCapacity }, (_, i) => forwards[i] || null);
+  const defenceLineup = Array.from({ length: defenceCapacity }, (_, i) => defenders[i] || null);
   const goalie = goalies[0] || null;
 
   return (
@@ -74,7 +83,7 @@ export function TeamLineupView({
         <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
           Forwards
         </h3>
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-5">
+        <div className="mx-auto grid w-fit grid-cols-3 gap-3 sm:gap-4 md:gap-5">
           {forwardLineup.map((player, i) => (
             <JerseySlot
               key={`fwd-${i}`}

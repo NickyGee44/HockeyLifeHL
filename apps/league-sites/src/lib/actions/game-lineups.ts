@@ -354,7 +354,8 @@ async function persistGameTeamLineup(
 
   if (error || !data) {
     console.error('[game-lineups] save error:', error);
-    return { success: false, error: 'Failed to save lineup.' };
+    const details = error?.message ? `: ${error.message}` : '';
+    return { success: false, error: `Failed to save lineup${details}` };
   }
 
   revalidatePath(`/${leagueSlug}/captain`);

@@ -361,7 +361,7 @@ export function FloatingDock({
                 <Link
                   href={`/${leagueSlug}/captain`}
                   onClick={() => setMoreOpen(false)}
-                  className="inline-flex h-9 items-center gap-2 rounded-full border pl-1 pr-3 transition-colors hover:bg-white/[0.04]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.04]"
                   style={{
                     borderColor: `color-mix(in srgb, ${captainSecondary} 55%, transparent)`,
                     background: `color-mix(in srgb, ${captainPrimary} 10%, transparent)`,
@@ -376,9 +376,6 @@ export function FloatingDock({
                     }}
                   >
                     {currentTeam?.is_captain ? 'C' : 'A'}
-                  </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
-                    {currentTeam?.is_captain ? 'Captain' : 'Alternate'}
                   </span>
                 </Link>
               )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   UserPlus,
@@ -47,6 +48,21 @@ export function SubInviteModal({
   const [message, setMessage] = useState('');
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -91,10 +107,10 @@ export function SubInviteModal({
     });
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const modal = (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -231,4 +247,6 @@ export function SubInviteModal({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

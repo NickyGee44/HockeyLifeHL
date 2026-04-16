@@ -126,6 +126,13 @@ export function CaptainGameDayPage({
       .map((player) => [player.playerId, player.availability]),
   ) as Record<string, 'confirmed' | 'tentative' | 'out'>;
 
+  const eligibleForLineupCount = (data?.lineup.layout.roster ?? []).filter(
+    (player) => player.availability === 'confirmed' || player.isSub === true,
+  ).length;
+  const snapshotExtendedGrid = eligibleForLineupCount > 11;
+  const snapshotForwardSlots = snapshotExtendedGrid ? 9 : 6;
+  const snapshotDefenceSlots = snapshotExtendedGrid ? 6 : 4;
+
   const refreshData = () => setRefreshToken((current) => current + 1);
 
   const handleStartScoring = () => {
@@ -298,6 +305,8 @@ export function CaptainGameDayPage({
                 primaryColor={teamPrimaryColor}
                 secondaryColor={teamSecondaryColor}
                 availabilityMap={availabilityMap}
+                forwardSlots={snapshotForwardSlots}
+                defenceSlots={snapshotDefenceSlots}
               />
             </div>
           </section>

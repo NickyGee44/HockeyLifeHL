@@ -15,23 +15,31 @@ import {
   type LineupRosterPlayer,
 } from '@/lib/lineups/types';
 
-const FORWARD_SLOTS = 6;
-const DEFENCE_SLOTS = 4;
+const BASE_FORWARD_SLOTS = 6;
+const BASE_DEFENCE_SLOTS = 4;
+const EXTENDED_FORWARD_SLOTS = 9;
+const EXTENDED_DEFENCE_SLOTS = 6;
 const GOALIE_SLOTS = 1;
+const EXTENDED_ATTENDANCE_THRESHOLD = 11;
 
-const FORWARD_COORDS = [
-  { x: 14, y: 30 },
-  { x: 28, y: 30 },
-  { x: 42, y: 30 },
-  { x: 58, y: 30 },
-  { x: 72, y: 30 },
-  { x: 86, y: 30 },
+// Forwards render 3-across (y < 50), defence 2-across (50 <= y < 86),
+// goalie at y >= 86. deriveSlotFromCoord relies on those bands so anything
+// we place must stay within them.
+const FORWARD_COORDS_BASE = [
+  { x: 28, y: 22 }, { x: 50, y: 22 }, { x: 72, y: 22 },
+  { x: 28, y: 38 }, { x: 50, y: 38 }, { x: 72, y: 38 },
 ];
-const DEFENCE_COORDS = [
-  { x: 36, y: 64 },
-  { x: 64, y: 64 },
-  { x: 36, y: 78 },
-  { x: 64, y: 78 },
+const FORWARD_COORDS_EXTENDED = [
+  ...FORWARD_COORDS_BASE,
+  { x: 28, y: 48 }, { x: 50, y: 48 }, { x: 72, y: 48 },
+];
+const DEFENCE_COORDS_BASE = [
+  { x: 35, y: 58 }, { x: 65, y: 58 },
+  { x: 35, y: 72 }, { x: 65, y: 72 },
+];
+const DEFENCE_COORDS_EXTENDED = [
+  ...DEFENCE_COORDS_BASE,
+  { x: 35, y: 82 }, { x: 65, y: 82 },
 ];
 const GOALIE_COORDS = { x: 50, y: 90 };
 
@@ -108,6 +116,12 @@ export function CaptainLineupModalEditor({
     [layout.roster],
   );
 
+  const extendedGrid = eligible.length > EXTENDED_ATTENDANCE_THRESHOLD;
+  const forwardSlotCount = extendedGrid ? EXTENDED_FORWARD_SLOTS : BASE_FORWARD_SLOTS;
+  const defenceSlotCount = extendedGrid ? EXTENDED_DEFENCE_SLOTS : BASE_DEFENCE_SLOTS;
+  const forwardCoords = extendedGrid ? FORWARD_COORDS_EXTENDED : FORWARD_COORDS_BASE;
+  const defenceCoords = extendedGrid ? DEFENCE_COORDS_EXTENDED : DEFENCE_COORDS_BASE;
+
   const eligibleById = useMemo(() => {
     const map = new Map<string, LineupRosterPlayer>();
     for (const player of eligible) {
@@ -173,7 +187,7 @@ export function CaptainLineupModalEditor({
       return;
     }
 
-    const maxSlots = slotType === 'forward' ? FORWARD_SLOTS : slotType === 'defence' ? DEFENCE_SLOTS : GOALIE_SLOTS;
+    const maxSlots = slotType === 'forward' ? forwardSlotCount : slotType === 'defence' ? defenceSlotCount : GOALIE_SLOTS;
     // Count existing players in this section, ignoring the selected player if they're already placed.
     const occupants = placedBySlot[slotType].filter((item) => item.player.playerId !== selectedPlayerId);
 
@@ -186,8 +200,8 @@ export function CaptainLineupModalEditor({
       slotType === 'goalie'
         ? GOALIE_COORDS
         : slotType === 'defence'
-          ? DEFENCE_COORDS[occupants.length]
-          : FORWARD_COORDS[occupants.length];
+          ? defenceCoords[occupants.length]
+          : forwardCoords[occupants.length];
 
     setError(null);
     setSavedAt(null);
@@ -370,6 +384,8 @@ export function CaptainLineupModalEditor({
           onEmptySlotClick={selectedPlayerId ? placeSelectedInSection : undefined}
           highlightEmptySlots={Boolean(selectedPlayerId)}
           removeAffordance
+          forwardSlots={forwardSlotCount}
+          defenceSlots={defenceSlotCount}
         />
       </div>
 
