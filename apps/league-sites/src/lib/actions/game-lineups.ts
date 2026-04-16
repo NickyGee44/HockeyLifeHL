@@ -25,6 +25,7 @@ type AuthenticatedLineupAccess = {
     status: string;
     home_team_id: string;
     away_team_id: string;
+    season_id: string | null;
     home_team: any;
     away_team: any;
   };
@@ -114,19 +115,27 @@ async function loadAcceptedSubSnapshotForGameTeam(
 async function loadRosterSnapshotForGameTeam(
   serviceSupabase: ReturnType<typeof createServiceRoleClient>,
   gameId: string,
-  teamId: string
+  teamId: string,
+  seasonId?: string | null,
 ) {
+  let rosterQuery = (serviceSupabase.from('team_rosters') as any)
+    .select(`
+      player_id,
+      position,
+      jersey_number,
+      season_id,
+      profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
+    `)
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .is('end_date', null);
+
+  if (seasonId) {
+    rosterQuery = rosterQuery.eq('season_id', seasonId);
+  }
+
   const [rosterResult, checkinResult] = await Promise.all([
-    (serviceSupabase.from('team_rosters') as any)
-      .select(`
-        player_id,
-        position,
-        jersey_number,
-        profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
-      `)
-      .eq('team_id', teamId)
-      .eq('status', 'active')
-      .is('end_date', null),
+    rosterQuery,
     (serviceSupabase.from('game_checkins') as any)
       .select('player_id, status')
       .eq('game_id', gameId)
@@ -177,6 +186,7 @@ async function verifyGameLineupManagerAccess(
       status,
       home_team_id,
       away_team_id,
+      season_id,
       league:leagues!games_league_id_fkey(slug),
       home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color),
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, secondary_color)
@@ -244,7 +254,7 @@ async function buildEditorPayload(
       .eq('game_id', gameId)
       .eq('team_id', teamId)
       .maybeSingle(),
-    loadRosterSnapshotForGameTeam(serviceSupabase, gameId, teamId),
+    loadRosterSnapshotForGameTeam(serviceSupabase, gameId, teamId, access.game.season_id ?? null),
   ]);
   const baseLayout = roster.length > 0 ? normalizeLineupLayout(lineupResult.data?.layout_json ?? null, roster) : buildDefaultLineupLayout([]);
   const team = access.game.home_team_id === teamId ? formatTeamIdentity(access.game.home_team) : formatTeamIdentity(access.game.away_team);
@@ -299,7 +309,7 @@ async function persistGameTeamLineup(
       .eq('game_id', gameId)
       .eq('team_id', teamId)
       .maybeSingle(),
-    loadRosterSnapshotForGameTeam(serviceSupabase, gameId, teamId),
+    loadRosterSnapshotForGameTeam(serviceSupabase, gameId, teamId, access.data.game.season_id ?? null),
   ]);
   const existing = existingResult.data;
   const normalizedLayout = normalizeLineupLayout(
