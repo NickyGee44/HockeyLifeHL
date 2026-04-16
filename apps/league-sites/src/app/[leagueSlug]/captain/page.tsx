@@ -412,12 +412,12 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         })}
       </div>
 
-      {subs.length > 0 && (
-        <div className="mb-8 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-          <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Subs</h2>
-            <span className="text-sm text-[var(--color-text-secondary)]">{subs.length} played this season</span>
-          </div>
+      <div className="mb-8 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Subs</h2>
+          <span className="text-sm text-[var(--color-text-secondary)]">{subs.length} played this season</span>
+        </div>
+        {subs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-[var(--color-surface-hover)]">
@@ -438,8 +438,12 @@ export default function CaptainPage({ params }: CaptainPageProps) {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="px-4 py-5 text-sm text-[var(--color-text-secondary)]">
+            No subs have appeared in a game yet this season.
+          </div>
+        )}
+      </div>
 
       {/* Roster Manager (editable roster + join requests) */}
       <RosterManager

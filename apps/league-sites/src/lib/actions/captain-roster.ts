@@ -96,6 +96,7 @@ export async function getTeamRoster(
     )
     .eq('team_id', teamId)
     .eq('status', 'active')
+    .eq('player_type', 'regular')
     .is('end_date', null);
 
   if (seasonId) {
@@ -121,17 +122,48 @@ export async function getTeamSubsWhoPlayed(
   teamId: string,
   seasonId?: string | null,
 ): Promise<{ success: boolean; data?: SubRosterPlayer[]; error?: string }> {
-  const rosterResult = await getTeamRoster(teamId, seasonId);
-  if (!rosterResult.success || !rosterResult.data) {
-    return { success: false, error: rosterResult.error || 'Failed to fetch roster' };
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('team_rosters')
+    .select(
+      `
+      id,
+      player_id,
+      jersey_number,
+      position,
+      leadership_role,
+      player_type,
+      profile:profiles(id, full_name, email, phone, avatar_url)
+    `
+    )
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .eq('player_type', 'sub')
+    .is('end_date', null);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query.order('jersey_number', { ascending: true, nullsFirst: false });
+
+  if (error) {
+    console.error('Failed to get team subs:', error);
+    return { success: false, error: 'Failed to fetch subs' };
   }
 
   const statsByPlayer = await getTeamRosterStats(teamId, seasonId ?? undefined);
 
-  const subs = rosterResult.data
-    .filter((player) => player.player_type === 'sub')
-    .map((player) => ({
+  const subs = (data || [])
+    .map((player: any) => ({
       ...player,
+      profile: Array.isArray(player.profile) ? player.profile[0] : player.profile,
       games_played: statsByPlayer[player.player_id]?.games_played ?? 0,
     }))
     .filter((player) => player.games_played > 0)

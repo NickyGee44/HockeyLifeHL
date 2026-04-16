@@ -6,7 +6,6 @@ import {
   Users,
   Mail,
   User,
-  Shield,
   Pencil,
   Trash2,
   Check,
@@ -27,7 +26,6 @@ import {
   type RosterPlayer,
   type JoinRequest,
 } from '@/lib/actions/captain-roster';
-import { updatePlayerType } from '@/lib/actions/sub-invitations';
 
 const POSITIONS = ['Forward', 'Defense', 'Goalie'] as const;
 
@@ -264,18 +262,6 @@ function RosterTable({
                 Position
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Type
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Phone
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -291,7 +277,7 @@ function RosterTable({
             ))}
             {roster.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-[var(--color-text-secondary)]">
+                <td colSpan={3} className="px-4 py-8 text-center text-[var(--color-text-secondary)]">
                   No players on the roster yet.
                 </td>
               </tr>
@@ -313,12 +299,11 @@ function EditableRosterRow({
   onUpdate: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [editingField, setEditingField] = useState<'jersey' | 'position' | 'player_type' | 'details' | null>(null);
+  const [editingField, setEditingField] = useState<'jersey' | 'position' | 'details' | null>(null);
   const [jerseyValue, setJerseyValue] = useState(
     player.jersey_number?.toString() ?? ''
   );
   const [positionValue, setPositionValue] = useState(player.position ?? '');
-  const [playerTypeValue, setPlayerTypeValue] = useState<'regular' | 'sub' | 'part_time'>(player.player_type ?? 'regular');
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [detailName, setDetailName] = useState(player.profile?.full_name ?? '');
   const [detailEmail, setDetailEmail] = useState(player.profile?.email ?? '');
@@ -349,23 +334,6 @@ function EditableRosterRow({
         teamId,
         player.id,
         positionValue || null
-      );
-      if (result.success) {
-        setEditingField(null);
-        onUpdate();
-      } else {
-        setError(result.error || 'Failed to update');
-      }
-    });
-  };
-
-  const handleSavePlayerType = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await updatePlayerType(
-        teamId,
-        player.id,
-        playerTypeValue as 'regular' | 'sub' | 'part_time'
       );
       if (result.success) {
         setEditingField(null);
@@ -410,7 +378,6 @@ function EditableRosterRow({
     setEditingField(null);
     setJerseyValue(player.jersey_number?.toString() ?? '');
     setPositionValue(player.position ?? '');
-    setPlayerTypeValue(player.player_type ?? 'regular');
     setDetailName(player.profile?.full_name ?? '');
     setDetailEmail(player.profile?.email ?? '');
     setDetailPhone(player.profile?.phone ?? '');
@@ -480,7 +447,18 @@ function EditableRosterRow({
                   {player.jersey_number ?? '-'}
                 </button>
               </div>
-              <span className="font-medium text-[var(--color-text-primary)]">{name}</span>
+              <div className="min-w-0">
+                <span className="font-medium text-[var(--color-text-primary)]">{name}</span>
+                {player.leadership_role === 'captain' ? (
+                  <span className="ml-2 inline-flex items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                    C
+                  </span>
+                ) : player.leadership_role === 'alternate_captain' ? (
+                  <span className="ml-2 inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300/90">
+                    A
+                  </span>
+                ) : null}
+              </div>
             </div>
           )}
         </td>
@@ -535,96 +513,8 @@ function EditableRosterRow({
           )}
         </td>
 
-        {/* Player Type */}
-        <td className="px-4 py-3 text-center">
-          {editingField === 'player_type' ? (
-            <div className="flex items-center justify-center gap-1">
-              <select
-                value={playerTypeValue}
-                onChange={(e) => setPlayerTypeValue(e.target.value as 'regular' | 'sub' | 'part_time')}
-                className="px-2 py-1 text-sm bg-[var(--color-surface-hover)] border border-[var(--league-primary)] rounded text-[var(--color-text-primary)] focus:outline-none"
-                autoFocus
-                disabled={isPending}
-              >
-                <option value="regular">Regular</option>
-                <option value="sub">Sub</option>
-                <option value="part_time">Part Time</option>
-              </select>
-              <button
-                onClick={handleSavePlayerType}
-                disabled={isPending}
-                className="p-1 text-green-400 hover:bg-green-500/10 rounded"
-              >
-                {isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Check className="w-3.5 h-3.5" />
-                )}
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)] rounded"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setEditingField('player_type')}
-              className="group inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-[var(--color-surface-hover)] transition-colors"
-              title="Edit player type"
-            >
-              <PlayerTypeBadge type={player.player_type} />
-              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
-          )}
-        </td>
-
-        {/* Email */}
-        <td className="px-4 py-3 text-center">
-          {player.profile?.email ? (
-            <a
-              href={`mailto:${player.profile.email}`}
-              className="inline-flex text-[var(--league-primary)] hover:text-[var(--league-primary)]/80"
-              title={`Email ${name}`}
-            >
-              <Mail className="w-4 h-4" />
-            </a>
-          ) : null}
-        </td>
-
-        {/* Phone */}
-        <td className="px-4 py-3 text-center">
-          {player.profile?.phone ? (
-            <a
-              href={`tel:${player.profile.phone}`}
-              className="inline-flex text-[var(--league-primary)] hover:text-[var(--league-primary)]/80"
-              title={`Call ${name}`}
-            >
-              <Phone className="w-4 h-4" />
-            </a>
-          ) : null}
-        </td>
-
-        {/* Role */}
-        <td className="px-4 py-3 text-center">
-          {player.leadership_role === 'captain' ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs font-medium">
-              <Shield className="w-3 h-3" />
-              Captain
-            </span>
-          ) : player.leadership_role === 'alternate_captain' ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400/80 rounded text-xs font-medium">
-              <Shield className="w-3 h-3" />
-              Alternate
-            </span>
-          ) : (
-            <span className="text-[var(--color-text-muted)]">Player</span>
-          )}
-        </td>
-
         {/* Actions */}
-        <td className="px-4 py-3 text-center">
+        <td className="px-4 py-3">
           {showRemoveConfirm ? (
             <div className="flex items-center justify-center gap-1">
               <button
@@ -646,26 +536,50 @@ function EditableRosterRow({
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-center gap-1">
-              <button
-                onClick={() => setEditingField('details')}
-                className="p-2 text-[var(--color-text-muted)] hover:text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
-                title="Edit player details"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setShowRemoveConfirm(true)}
-                disabled={hasLeadershipRole}
-                className="p-2 text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title={
-                  hasLeadershipRole
-                    ? 'Cannot remove captains or alternates'
-                    : 'Remove from roster'
-                }
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-[var(--color-text-secondary)]">
+                {player.profile?.email ? (
+                  <a
+                    href={`mailto:${player.profile.email}`}
+                    className="inline-flex items-center gap-1 text-sm hover:text-[var(--league-primary)]"
+                    title={`Email ${name}`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{player.profile.email}</span>
+                  </a>
+                ) : null}
+                {player.profile?.phone ? (
+                  <a
+                    href={`tel:${player.profile.phone}`}
+                    className="inline-flex items-center gap-1 text-sm hover:text-[var(--league-primary)]"
+                    title={`Call ${name}`}
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{player.profile.phone}</span>
+                  </a>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setEditingField('details')}
+                  className="p-2 text-[var(--color-text-muted)] hover:text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
+                  title="Edit player details"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowRemoveConfirm(true)}
+                  disabled={hasLeadershipRole}
+                  className="p-2 text-[var(--color-text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={
+                    hasLeadershipRole
+                      ? 'Cannot remove captains or alternates'
+                      : 'Remove from roster'
+                  }
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
         </td>
@@ -673,7 +587,7 @@ function EditableRosterRow({
 
       {error && (
         <tr>
-          <td colSpan={7} className="px-4 py-2">
+          <td colSpan={3} className="px-4 py-2">
             <p className="text-sm text-red-400 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3" />
               {error}
@@ -685,25 +599,3 @@ function EditableRosterRow({
   );
 }
 
-function PlayerTypeBadge({ type }: { type: string }) {
-  switch (type) {
-    case 'sub':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
-          Sub
-        </span>
-      );
-    case 'part_time':
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
-          Part Time
-        </span>
-      );
-    default:
-      return (
-        <span className="text-[var(--color-text-muted)] text-xs">
-          Regular
-        </span>
-      );
-  }
-}
