@@ -10,7 +10,6 @@ import {
   CalendarDays,
   Check,
   CircleHelp,
-  ClipboardList,
   Loader2,
   Shield,
   SquarePen,
@@ -225,20 +224,36 @@ export function CaptainGameDayPage({
           Captain dashboard
         </Link>
 
-        <div className="mt-4 space-y-8">
-          <section>
-            <div className="flex items-center gap-3">
-              <div className="rounded-full bg-[var(--league-primary)]/12 p-3 text-[var(--league-primary)]">
-                <CalendarDays className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
-                  Captain Control
-                </p>
-                <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
-                  Game Day
-                </h1>
-              </div>
+        <div className="mt-5 space-y-8">
+          <section className="space-y-5">
+            <div className="text-center">
+              <h1 className="text-[2.6rem] font-black uppercase tracking-[0.08em] text-[var(--color-text-primary)] drop-shadow-[0_12px_40px_rgba(0,0,0,0.55)] sm:text-5xl">
+                Game Day
+              </h1>
+            </div>
+
+            <div className="relative z-40 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <ActionTile
+                icon={<SquarePen className="h-5 w-5" />}
+                title="Set Lineup"
+                onClick={() => setShowLineupEditor(true)}
+              />
+              <ActionTile
+                icon={<Users className="h-5 w-5" />}
+                title="Edit Attendance"
+                onClick={() => setShowAttendanceEditor(true)}
+              />
+              <ActionTile
+                icon={<UserPlus className="h-5 w-5" />}
+                title="Invite Sub"
+                onClick={() => setShowSubInvite(true)}
+              />
+              <ActionTile
+                icon={<Trophy className="h-5 w-5" />}
+                title="Score Game"
+                onClick={() => setShowScoreModal(true)}
+                disabled={Boolean(currentData.scoreDisabledReason)}
+              />
             </div>
           </section>
 
@@ -252,52 +267,21 @@ export function CaptainGameDayPage({
               emptyTitle=""
               emptyDescription=""
               showViewToggle={false}
+              hideTitle
               variant="team"
               teamActions={<GameDayCountTiles counts={currentData.counts} />}
             />
           </section>
 
-          <section className="relative z-40 space-y-4">
-            <SectionHeading
-              icon={<ClipboardList className="h-5 w-5 text-[var(--league-primary)]" />}
-              title="Action Tiles"
-              description="Everything important for the current game, without the old studio on the main page."
-            />
-            <div className="relative z-40 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <ActionTile
-                icon={<SquarePen className="h-5 w-5" />}
-                title="Set Lineup"
-                description="Open the lineup editor in a focused overlay."
-                onClick={() => setShowLineupEditor(true)}
-              />
-              <ActionTile
-                icon={<Users className="h-5 w-5" />}
-                title="Edit Attendance"
-                description="Update every player to In, Out, Unsure, or No Response."
-                onClick={() => setShowAttendanceEditor(true)}
-              />
-              <ActionTile
-                icon={<UserPlus className="h-5 w-5" />}
-                title="Invite Sub"
-                description="Search league subs and send a game invite."
-                onClick={() => setShowSubInvite(true)}
-              />
-              <ActionTile
-                icon={<Trophy className="h-5 w-5" />}
-                title="Score Game"
-                description={currentData.scoreDisabledReason ?? 'Launch the scorekeeper session for this game.'}
-                onClick={() => setShowScoreModal(true)}
-                disabled={Boolean(currentData.scoreDisabledReason)}
-              />
-            </div>
-          </section>
-
           <section className="space-y-4">
-            <SectionHeading
-              icon={<SquarePen className="h-5 w-5 text-[var(--league-primary)]" />}
-              title="Live Snapshot"
-              description={`${currentData.lineup.status === 'published' ? 'Published' : 'Draft'} lineup preview. Use the action tiles to edit lineup or attendance in modals.`}
-            />
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-2.5 text-[var(--league-primary)] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+                <JerseyIcon className="h-5 w-5" />
+              </div>
+              <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
+                Our Lineup
+              </h2>
+            </div>
             <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)] md:p-7">
               <TeamLineupView
                 skaters={skaters}
@@ -422,25 +406,19 @@ function CaptainMessage({
   );
 }
 
-function SectionHeading({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
+function JerseyIcon({ className }: { className?: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="rounded-full bg-[var(--league-primary)]/12 p-2.5">{icon}</div>
-      <div>
-        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-          {title}
-        </h2>
-        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{description}</p>
-      </div>
-    </div>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M5 5 L8.5 3 Q12 6 15.5 3 L19 5 L22 8 L20.5 11 L18.5 10 L18.5 21 Q12 22 5.5 21 L5.5 10 L3.5 11 L2 8 Z" />
+    </svg>
   );
 }
 
@@ -481,13 +459,11 @@ function buildCountTone(tone: 'emerald' | 'rose' | 'amber' | 'cyan') {
 function ActionTile({
   icon,
   title,
-  description,
   onClick,
   disabled = false,
 }: {
   icon: ReactNode;
   title: string;
-  description: string;
   onClick: () => void;
   disabled?: boolean;
 }) {
@@ -496,20 +472,17 @@ function ActionTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`relative z-40 rounded-[26px] border p-5 text-left transition-all ${
+      className={`relative z-40 aspect-square rounded-[28px] border px-4 py-5 text-center transition-all backdrop-blur-xl ${
         disabled
-          ? 'cursor-not-allowed border-slate-700 bg-slate-900/60 text-slate-400'
-          : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)] hover:border-[var(--league-primary)]/40 hover:bg-[var(--color-background-elevated)]'
+          ? 'cursor-not-allowed border-white/5 bg-slate-950/45 text-slate-500'
+          : 'border-white/10 bg-white/[0.05] text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08]'
       }`}
     >
-      <div className="flex items-center gap-3">
-        <div className={`rounded-2xl p-3 ${disabled ? 'bg-slate-800 text-slate-400' : 'bg-[var(--league-primary)]/12 text-[var(--league-primary)]'}`}>
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <div className={`rounded-[20px] border p-3 ${disabled ? 'border-white/5 bg-slate-900/70 text-slate-500' : 'border-white/10 bg-black/20 text-[var(--league-primary)]'}`}>
           {icon}
         </div>
-        <div>
-          <p className="text-base font-black tracking-tight">{title}</p>
-          <p className="mt-1 text-sm leading-5 text-inherit/80">{description}</p>
-        </div>
+        <p className="text-sm font-black uppercase tracking-[0.12em] sm:text-base">{title}</p>
       </div>
     </button>
   );

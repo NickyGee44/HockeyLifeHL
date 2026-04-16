@@ -43,6 +43,7 @@ interface HomepageWeeklyGamesProps {
   showViewToggle?: boolean;
   /** 'team' hides eyebrow, overlay badges, detail team names, status card, and dots */
   variant?: 'homepage' | 'team';
+  hideTitle?: boolean;
   teamActions?: ReactNode;
   /** Which background image preset to render (default: 'weekly-games') */
   backgroundPreset?: BackgroundPreset;
@@ -597,6 +598,7 @@ export function HomepageWeeklyGames({
   emptyDescription = 'Check the full schedule for the next slate and recent scores.',
   showViewToggle = true,
   variant = 'homepage',
+  hideTitle = false,
   teamActions,
   backgroundPreset = 'weekly-games',
 }: HomepageWeeklyGamesProps) {
@@ -621,23 +623,26 @@ export function HomepageWeeklyGames({
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          {!isTeamVariant && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-              <Calendar className="h-3.5 w-3.5" />
-              {eyebrowLabel}
-              <span className="text-[var(--color-text-muted)]">•</span>
-              {games.length} {games.length === 1 ? 'game' : 'games'}
-            </div>
-          )}
-          <h2 className={`${isTeamVariant ? '' : 'mt-3 '}flex items-center gap-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]`}>
-            {isTeamVariant && <Calendar className="h-5 w-5 text-[var(--league-primary)]" />}
-            {title}
-          </h2>
-        </div>
+      {(!hideTitle || showViewToggle) ? (
+        <div className="flex items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            {!hideTitle && !isTeamVariant && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                <Calendar className="h-3.5 w-3.5" />
+                {eyebrowLabel}
+                <span className="text-[var(--color-text-muted)]">•</span>
+                {games.length} {games.length === 1 ? 'game' : 'games'}
+              </div>
+            )}
+            {!hideTitle ? (
+              <h2 className={`${isTeamVariant ? '' : 'mt-3 '}flex items-center gap-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]`}>
+                {isTeamVariant && <Calendar className="h-5 w-5 text-[var(--league-primary)]" />}
+                {title}
+              </h2>
+            ) : null}
+          </div>
 
-        {showViewToggle ? (
+          {showViewToggle ? (
           <button
             type="button"
             aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
@@ -648,8 +653,9 @@ export function HomepageWeeklyGames({
           >
             {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
           </button>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {games.length > 0 ? (
         view === 'cool' ? (
