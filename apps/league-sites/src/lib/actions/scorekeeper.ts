@@ -131,6 +131,7 @@ export interface ScorekeeperSession {
   initiatingTeamId: string | null;
   initiatingTeamType: ScorekeeperTeamType | null;
   initiatingCaptainId: string | null;
+  attendanceLocked: boolean;
 }
 
 export interface GameOfficial {
@@ -252,6 +253,7 @@ type SessionLookupResult = {
   initiatingTeamId: string | null;
   initiatingTeamType: ScorekeeperTeamType | null;
   initiatingCaptainId: string | null;
+  attendanceLocked: boolean;
   accessCount: number;
 };
 
@@ -270,6 +272,10 @@ async function lookupSessionByToken(
       games!inner(
         status,
         scheduled_at,
+        home_team_id,
+        away_team_id,
+        home_attendance_locked_at,
+        away_attendance_locked_at,
         home_team:teams!games_home_team_id_fkey(name),
         away_team:teams!games_away_team_id_fkey(name)
       )
@@ -298,9 +304,20 @@ async function lookupSessionByToken(
   const game = data.games as {
     status: string | null;
     scheduled_at: string;
+    home_team_id: string;
+    away_team_id: string;
+    home_attendance_locked_at: string | null;
+    away_attendance_locked_at: string | null;
     home_team: { name: string } | null;
     away_team: { name: string } | null;
   };
+
+  const attendanceLocked =
+    (data.initiating_team_type === 'home'
+      ? game?.home_attendance_locked_at
+      : data.initiating_team_type === 'away'
+        ? game?.away_attendance_locked_at
+        : null) !== null;
 
   return {
     sessionId: data.id,
@@ -318,6 +335,7 @@ async function lookupSessionByToken(
     initiatingTeamId: (data.initiating_team_id as string | null) ?? null,
     initiatingTeamType: (data.initiating_team_type as ScorekeeperTeamType | null) ?? null,
     initiatingCaptainId: (data.initiating_captain_id as string | null) ?? null,
+    attendanceLocked,
     accessCount,
   };
 }
@@ -855,6 +873,7 @@ export async function validateScorekeeperToken(token: string): Promise<{
         initiatingTeamId: session.initiatingTeamId,
         initiatingTeamType: session.initiatingTeamType,
         initiatingCaptainId: session.initiatingCaptainId,
+        attendanceLocked: session.attendanceLocked,
       },
     };
   } catch (error) {
@@ -903,6 +922,7 @@ export async function getScorekeeperSession(): Promise<{
         initiatingTeamId: session.initiatingTeamId,
         initiatingTeamType: session.initiatingTeamType,
         initiatingCaptainId: session.initiatingCaptainId,
+        attendanceLocked: session.attendanceLocked,
       },
     };
   } catch (error) {

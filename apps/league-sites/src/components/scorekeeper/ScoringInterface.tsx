@@ -232,7 +232,7 @@ export function ScoringInterface({
   const activeTeam = selectedTeam === 'home' ? homeTeam : awayTeam;
   const opposingTeam = selectedTeam === 'home' ? awayTeam : homeTeam;
 
-  // Show pre-game check-in when game hasn't started yet
+  // Show pre-game check-in when game hasn't started yet and attendance still needs confirmation.
   if (game.status === 'scheduled' && checkins) {
     return (
       <PreGameCheckin

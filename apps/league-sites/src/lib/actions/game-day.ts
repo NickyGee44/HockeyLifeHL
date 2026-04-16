@@ -20,6 +20,8 @@ type RelevantGameRow = {
   status: ScheduleGame['status'];
   home_team_id: string;
   away_team_id: string;
+  home_attendance_locked_at: string | null;
+  away_attendance_locked_at: string | null;
   home_team: any;
   away_team: any;
 };
@@ -49,6 +51,8 @@ export interface CaptainGameDayData {
   opponentName: string;
   scoreSelfEnabled: boolean;
   scoreDisabledReason: string | null;
+  attendanceLocked: boolean;
+  attendanceLockedAt: string | null;
   counts: {
     in: number;
     out: number;
@@ -276,6 +280,8 @@ export async function getCaptainGameDayData(
       status,
       home_team_id,
       away_team_id,
+      home_attendance_locked_at,
+      away_attendance_locked_at,
       home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color),
       away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color)
     `)
@@ -354,6 +360,11 @@ export async function getCaptainGameDayData(
       ? normalizeGameTeam(resolvedGame.away_team).name
       : normalizeGameTeam(resolvedGame.home_team).name;
 
+  const attendanceLockedAt =
+    resolvedGame.home_team_id === teamId
+      ? resolvedGame.home_attendance_locked_at
+      : resolvedGame.away_attendance_locked_at;
+
   return {
     success: true,
     data: {
@@ -369,10 +380,60 @@ export async function getCaptainGameDayData(
       opponentName,
       scoreSelfEnabled,
       scoreDisabledReason,
+      attendanceLocked: Boolean(attendanceLockedAt),
+      attendanceLockedAt,
       counts,
       rosterPlayerIds: attendance.filter((player) => !player.isSub).map((player) => player.playerId),
     },
   };
+}
+
+export async function lockCaptainGameAttendance(input: {
+  gameId: string;
+  teamId: string;
+  leagueSlug: string;
+}) {
+  const access = await verifyCaptainAccess(input.teamId);
+  if (!access.authorized) {
+    return { success: false, error: access.error };
+  }
+
+  const { supabase } = access;
+  const { data: game } = await (supabase.from('games') as any)
+    .select('id, status, home_team_id, away_team_id')
+    .eq('id', input.gameId)
+    .maybeSingle();
+
+  if (!game) {
+    return { success: false, error: 'Game not found' };
+  }
+
+  if (game.home_team_id !== input.teamId && game.away_team_id !== input.teamId) {
+    return { success: false, error: 'That team is not assigned to this game' };
+  }
+
+  if (game.status === 'completed' || game.status === 'cancelled') {
+    return { success: false, error: 'Completed or cancelled games can no longer be edited.' };
+  }
+
+  const field = game.home_team_id === input.teamId
+    ? 'home_attendance_locked_at'
+    : 'away_attendance_locked_at';
+
+  const { error } = await (supabase.from('games') as any)
+    .update({
+      [field]: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.gameId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath(`/${input.leagueSlug}/captain/lineups/${input.gameId}`);
+  revalidatePath(`/${input.leagueSlug}/scorekeeper/game/${input.gameId}`);
+  return { success: true };
 }
 
 export async function updateCaptainGameAttendanceStatus(input: {
@@ -433,6 +494,18 @@ export async function updateCaptainGameAttendanceStatus(input: {
     }
   }
 
+  const lockField = game.home_team_id === input.teamId
+    ? 'home_attendance_locked_at'
+    : 'away_attendance_locked_at';
+
+  await (supabase.from('games') as any)
+    .update({
+      [lockField]: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.gameId);
+
   revalidatePath(`/${input.leagueSlug}/captain/lineups/${input.gameId}`);
+  revalidatePath(`/${input.leagueSlug}/scorekeeper/game/${input.gameId}`);
   return { success: true };
 }

@@ -24,6 +24,7 @@ import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import { TeamLineupView } from '@/components/team/TeamLineupView';
 import {
   getCaptainGameDayData,
+  lockCaptainGameAttendance,
   updateCaptainGameAttendanceStatus,
   type CaptainAttendanceStatus,
   type CaptainGameDayData,
@@ -51,7 +52,6 @@ export function CaptainGameDayPage({
   const [showLineupEditor, setShowLineupEditor] = useState(false);
   const [showAttendanceEditor, setShowAttendanceEditor] = useState(false);
   const [showSubInvite, setShowSubInvite] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [startingScore, startScoreTransition] = useTransition();
 
@@ -251,8 +251,8 @@ export function CaptainGameDayPage({
               <ActionTile
                 icon={<Trophy className="h-5 w-5" />}
                 title="Score Game"
-                onClick={() => setShowScoreModal(true)}
-                disabled={Boolean(currentData.scoreDisabledReason)}
+                onClick={handleStartScoring}
+                disabled={Boolean(currentData.scoreDisabledReason) || startingScore}
               />
             </div>
           </section>
@@ -326,6 +326,8 @@ export function CaptainGameDayPage({
         gameId={currentData.resolvedGameId!}
         teamId={teamId}
         players={currentData.attendance}
+        attendanceLocked={currentData.attendanceLocked}
+        attendanceLockedAt={currentData.attendanceLockedAt}
       />
 
       <SubInviteModal
@@ -348,31 +350,6 @@ export function CaptainGameDayPage({
         }))}
       />
 
-      <Overlay
-        open={showScoreModal}
-        onClose={() => setShowScoreModal(false)}
-        title="Score Game"
-      >
-        <div className="space-y-4">
-          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-            Start scorekeeping for {currentData.teamName} vs {currentData.opponentName}. This uses the same captain self-scoring flow as the rest of the site.
-          </p>
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background)]/70 p-4">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-              {currentData.scoreDisabledReason ?? 'Captain self-scoring is enabled for this league.'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleStartScoring}
-            disabled={Boolean(currentData.scoreDisabledReason) || startingScore}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--league-primary)] px-4 py-3 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300"
-          >
-            {startingScore ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trophy className="h-4 w-4" />}
-            Start Scoring
-          </button>
-        </div>
-      </Overlay>
     </>
   );
 }
@@ -472,13 +449,13 @@ function ActionTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`relative z-40 aspect-square rounded-[28px] border px-4 py-5 text-center transition-all backdrop-blur-xl ${
+      className={`relative z-40 min-h-[108px] rounded-[24px] border px-4 py-3 text-center transition-all backdrop-blur-xl ${
         disabled
           ? 'cursor-not-allowed border-white/5 bg-slate-950/45 text-slate-500'
           : 'border-white/10 bg-white/[0.05] text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08]'
       }`}
     >
-      <div className="flex h-full flex-col items-center justify-center gap-3">
+      <div className="flex h-full flex-col items-center justify-center gap-2">
         <div className={`rounded-[20px] border p-3 ${disabled ? 'border-white/5 bg-slate-900/70 text-slate-500' : 'border-white/10 bg-black/20 text-[var(--league-primary)]'}`}>
           {icon}
         </div>
@@ -576,6 +553,8 @@ function AttendanceEditorModal({
   gameId,
   teamId,
   players,
+  attendanceLocked,
+  attendanceLockedAt,
 }: {
   open: boolean;
   onClose: () => void;
@@ -583,16 +562,47 @@ function AttendanceEditorModal({
   gameId: string;
   teamId: string;
   players: GameDayAttendancePlayer[];
+  attendanceLocked: boolean;
+  attendanceLockedAt: string | null;
 }) {
   const [rows, setRows] = useState(players);
   const [savingPlayerId, setSavingPlayerId] = useState<string | null>(null);
+  const [locking, startLocking] = useTransition();
+  const [locked, setLocked] = useState(attendanceLocked);
+  const [lockedAt, setLockedAt] = useState<string | null>(attendanceLockedAt);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setRows(players);
   }, [players]);
 
+  useEffect(() => {
+    setLocked(attendanceLocked);
+    setLockedAt(attendanceLockedAt);
+  }, [attendanceLocked, attendanceLockedAt]);
+
   if (!open) return null;
+
+  const handleLockAttendance = () => {
+    if (locking || locked) return;
+    setError(null);
+    startLocking(async () => {
+      const result = await lockCaptainGameAttendance({
+        gameId,
+        teamId,
+        leagueSlug,
+      });
+
+      if (!result.success) {
+        setError(result.error || 'Could not lock attendance.');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      setLocked(true);
+      setLockedAt(now);
+    });
+  };
 
   const setStatus = async (playerId: string, status: CaptainAttendanceStatus) => {
     const previous = rows;
@@ -615,6 +625,9 @@ function AttendanceEditorModal({
     if (!result.success) {
       setRows(previous);
       setError(result.error || 'Could not update attendance.');
+    } else {
+      setLocked(false);
+      setLockedAt(null);
     }
 
     setSavingPlayerId(null);
@@ -623,9 +636,28 @@ function AttendanceEditorModal({
   return (
     <Overlay open={open} onClose={onClose} title="Edit Attendance">
       <div className="space-y-4">
-        <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-          Update attendance for the current game. Tap an icon to change each player instantly.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
+            Update attendance for the current game. Tap an icon to change each player instantly.
+          </p>
+          <button
+            type="button"
+            onClick={handleLockAttendance}
+            disabled={locking || locked}
+            className={`inline-flex items-center justify-center rounded-xl border px-4 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors ${
+              locked
+                ? 'border-emerald-400/30 bg-emerald-400/14 text-emerald-300'
+                : 'border-[var(--league-primary)]/30 bg-[var(--league-primary)]/12 text-[var(--league-primary)] hover:bg-[var(--league-primary)]/18 disabled:cursor-not-allowed disabled:opacity-60'
+            }`}
+          >
+            {locking ? 'Locking...' : locked ? 'Attendance Locked' : 'Lock Attendance'}
+          </button>
+        </div>
+        {locked ? (
+          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300">
+            Attendance is locked for scorekeeping{lockedAt ? '.' : '.'}
+          </div>
+        ) : null}
         {error ? (
           <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-300">
             {error}
