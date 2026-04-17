@@ -246,17 +246,17 @@ const JERSEY_PATH = `
 `;
 
 const LEFT_CUFF_STRIPE = `
-  M 16 168
-  L 70 150
-  L 86 174
-  L 30 196
+  M 10 171
+  L 62 154
+  L 74 170
+  L 20 191
   Z
 `;
 const RIGHT_CUFF_STRIPE = `
-  M 210 150
-  L 264 168
-  L 250 196
-  L 194 174
+  M 206 154
+  L 258 171
+  L 248 191
+  L 194 170
   Z
 `;
 const HEM_STRIPE = `
@@ -264,6 +264,13 @@ const HEM_STRIPE = `
   L 200 205
   L 215 225
   Q 140 245 65 225
+  Z
+`;
+const COLLAR_STRIPE = `
+  M 118 53
+  Q 140 67 162 53
+  L 156 60
+  Q 140 70 124 60
   Z
 `;
 
@@ -322,6 +329,14 @@ function Jersey({
           fill="rgba(0,0,0,0.3)"
         />
 
+        <path
+          d={COLLAR_STRIPE}
+          fill={secondaryColor}
+          stroke={jerseyInnerOutline}
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+
         <g clipPath="url(#jersey-shape-clip)">
           <path
             d={LEFT_CUFF_STRIPE}
@@ -353,6 +368,7 @@ function Jersey({
             <path d={LEFT_CUFF_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
             <path d={RIGHT_CUFF_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
             <path d={HEM_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
+            <path d={COLLAR_STRIPE} fill="rgba(203,213,225,0.45)" stroke="none" />
           </>
         ) : null}
 
