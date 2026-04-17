@@ -246,17 +246,17 @@ const JERSEY_PATH = `
 `;
 
 const LEFT_CUFF_STRIPE = `
-  M 20 165
-  L 67 151
-  L 82 173
-  L 35 195
+  M 16 168
+  L 70 150
+  L 86 174
+  L 30 196
   Z
 `;
 const RIGHT_CUFF_STRIPE = `
-  M 213 151
-  L 260 165
-  L 245 195
-  L 198 173
+  M 210 150
+  L 264 168
+  L 250 196
+  L 194 174
   Z
 `;
 const HEM_STRIPE = `
@@ -294,6 +294,12 @@ function Jersey({
         viewBox="0 0 280 240"
         className="h-auto w-full drop-shadow-[0_8px_22px_rgba(0,0,0,0.4)]"
       >
+        <defs>
+          <clipPath id="jersey-shape-clip">
+            <path d={JERSEY_PATH} />
+          </clipPath>
+        </defs>
+
         <path
           d={JERSEY_PATH}
           fill={primaryColor}
@@ -316,28 +322,30 @@ function Jersey({
           fill="rgba(0,0,0,0.3)"
         />
 
-        <path
-          d={LEFT_CUFF_STRIPE}
-          fill={secondaryColor}
-          stroke={jerseyInnerOutline}
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
-        <path
-          d={RIGHT_CUFF_STRIPE}
-          fill={secondaryColor}
-          stroke={jerseyInnerOutline}
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
+        <g clipPath="url(#jersey-shape-clip)">
+          <path
+            d={LEFT_CUFF_STRIPE}
+            fill={secondaryColor}
+            stroke={jerseyInnerOutline}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+          <path
+            d={RIGHT_CUFF_STRIPE}
+            fill={secondaryColor}
+            stroke={jerseyInnerOutline}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
 
-        <path
-          d={HEM_STRIPE}
-          fill={secondaryColor}
-          stroke={jerseyInnerOutline}
-          strokeWidth="3"
-          strokeLinejoin="round"
-        />
+          <path
+            d={HEM_STRIPE}
+            fill={secondaryColor}
+            stroke={jerseyInnerOutline}
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+        </g>
 
         {availability === 'out' ? (
           <>
