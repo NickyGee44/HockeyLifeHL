@@ -396,7 +396,13 @@ function CoolView({
   return (
     <div className="mt-6 animate-fade-in">
       <div className="relative">
-        <div className="relative overflow-hidden rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]">
+        <div
+          className={`relative overflow-hidden ${
+            minimal
+              ? ''
+              : 'rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]'
+          }`}
+        >
           <div
             className="absolute inset-0"
             style={{
@@ -478,9 +484,9 @@ function CoolView({
         </div>
 
         <div
-          className="relative z-30 -mt-20 px-3 sm:-mt-24 sm:px-6 lg:-mt-28"
+          className={`relative z-30 px-3 sm:px-6 ${minimal ? '-mt-10 lg:-mt-14' : '-mt-20 sm:-mt-24 lg:-mt-28'}`}
           style={{
-            filter: 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
+            filter: minimal ? 'none' : 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
           }}
         >
           <div
