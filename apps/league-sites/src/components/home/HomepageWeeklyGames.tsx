@@ -302,6 +302,7 @@ function CoolView({
   leagueSlug,
   timezone,
   minimal = false,
+  blendToPage = false,
   teamActions,
   backgroundPreset = 'weekly-games',
 }: {
@@ -311,13 +312,14 @@ function CoolView({
   leagueSlug: string;
   timezone?: string | null;
   minimal?: boolean;
+  blendToPage?: boolean;
   teamActions?: ReactNode;
   backgroundPreset?: BackgroundPreset;
 }) {
   const game = games[activeIndex];
   const hasControls = games.length > 1;
   const heroHref = getGameHref(game, leagueSlug);
-  const heroEdgeColor = minimal ? 'var(--color-background)' : 'var(--color-surface)';
+  const heroEdgeColor = blendToPage ? 'var(--color-background)' : 'var(--color-surface)';
   const heroTopGlow = `radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, ${heroEdgeColor} 44%, transparent) 0%, color-mix(in srgb, ${heroEdgeColor} 12%, transparent) 34%, color-mix(in srgb, ${heroEdgeColor} 70%, transparent) 74%, ${heroEdgeColor} 100%)`;
   const heroCenterFade = `radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, ${heroEdgeColor} 18%, transparent) 52%, color-mix(in srgb, ${heroEdgeColor} 62%, transparent) 76%, ${heroEdgeColor} 100%)`;
   const heroBottomFade = `linear-gradient(180deg, transparent 0%, color-mix(in srgb, ${heroEdgeColor} 34%, transparent) 24%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 54%, ${heroEdgeColor} 100%)`;
@@ -405,7 +407,7 @@ function CoolView({
       <div className="relative">
         <div
           className={`relative overflow-hidden ${
-            minimal
+            blendToPage
               ? ''
               : 'rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]'
           }`}
@@ -413,7 +415,7 @@ function CoolView({
           <div
             className="relative"
             style={
-              minimal
+              blendToPage
                 ? {
                     WebkitMaskImage: COOL_HERO_IMAGE_MASK,
                     maskImage: COOL_HERO_IMAGE_MASK,
@@ -433,7 +435,7 @@ function CoolView({
                   className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
                   style={{
                     backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
-                    ...(minimal
+                    ...(blendToPage
                       ? {}
                       : {
                           WebkitMaskImage: COOL_HERO_IMAGE_MASK,
@@ -476,7 +478,11 @@ function CoolView({
           <Link
             href={heroHref}
             aria-label={getGameAriaLabel(game)}
-            className="absolute inset-0 z-10 block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-surface)]"
+            className={`absolute inset-0 z-10 block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] focus-visible:ring-offset-4 ${
+              blendToPage
+                ? 'focus-visible:ring-offset-[var(--color-background)]'
+                : 'focus-visible:ring-offset-[var(--color-surface)]'
+            }`}
           >
             <span className="sr-only">{getGameAriaLabel(game)}</span>
           </Link>
@@ -640,6 +646,7 @@ export function HomepageWeeklyGames({
   backgroundPreset = 'weekly-games',
 }: HomepageWeeklyGamesProps) {
   const isTeamVariant = variant === 'team';
+  const shouldBlendHeroToPage = isTeamVariant || variant === 'homepage';
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
   const isCompactView = view === 'compact';
@@ -703,6 +710,7 @@ export function HomepageWeeklyGames({
             leagueSlug={leagueSlug}
             timezone={timezone}
             minimal={isTeamVariant}
+            blendToPage={shouldBlendHeroToPage}
             teamActions={teamActions}
             backgroundPreset={backgroundPreset}
           />
