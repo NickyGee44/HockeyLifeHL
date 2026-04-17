@@ -246,17 +246,17 @@ const JERSEY_PATH = `
 `;
 
 const LEFT_CUFF_STRIPE = `
-  M 22 168
-  L 78 154
-  L 85 175
-  L 32 192
+  M 22 166
+  L 70 153
+  L 80 176
+  L 34 190
   Z
 `;
 const RIGHT_CUFF_STRIPE = `
-  M 202 154
-  L 258 168
-  L 248 192
-  L 195 175
+  M 210 153
+  L 258 166
+  L 246 190
+  L 200 176
   Z
 `;
 const HEM_STRIPE = `
