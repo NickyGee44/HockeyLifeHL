@@ -4858,11 +4858,8 @@ export async function getPlayerCareerStatsTimeline(
     }
 
     return [...seasonMap.values()]
+      .filter((season) => season.season_id !== historicalBaselineSeason?.id)
       .map((season) => {
-        if (season.season_id === historicalBaselineSeason?.id) {
-          return season;
-        }
-
         const key = `${season.season_id}:${season.team_id || 'unknown'}`;
         const appearanceGames = appearancesBySeasonTeam.get(key)?.size || 0;
         const gamesPlayed = Math.max(season.games_played, appearanceGames);
@@ -5006,6 +5003,7 @@ export async function getPlayerCareerStatsTimeline(
   }
 
   return timelineRows
+    .filter((row) => row.season_id !== historicalBaselineSeason?.id)
     .filter((row) => row.games_played > 0 || row.points > 0 || row.wins > 0 || row.saves > 0)
     .sort((left, right) => new Date(left.sort_date || 0).getTime() - new Date(right.sort_date || 0).getTime());
 }
