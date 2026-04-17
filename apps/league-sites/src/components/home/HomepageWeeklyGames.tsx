@@ -404,7 +404,7 @@ function CoolView({
           }`}
         >
           <div
-            className="absolute inset-0"
+            className="relative"
             style={
               minimal
                 ? {
@@ -414,44 +414,50 @@ function CoolView({
                 : undefined
             }
           >
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 44%, transparent) 0%, color-mix(in srgb, var(--color-surface) 12%, transparent) 34%, color-mix(in srgb, var(--color-surface) 70%, transparent) 74%, var(--color-surface) 100%)',
-              }}
-            />
-            {backgroundPreset === 'weekly-games' && (
+            <div className="absolute inset-0">
               <div
-                className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
+                className="absolute inset-0"
                 style={{
-                  backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
-                  ...(minimal
-                    ? {}
-                    : {
-                        WebkitMaskImage: COOL_HERO_IMAGE_MASK,
-                        maskImage: COOL_HERO_IMAGE_MASK,
-                      }),
+                  backgroundImage:
+                    'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 44%, transparent) 0%, color-mix(in srgb, var(--color-surface) 12%, transparent) 34%, color-mix(in srgb, var(--color-surface) 70%, transparent) 74%, var(--color-surface) 100%)',
                 }}
               />
-            )}
-            <div className="absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
-            <div className="absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
-            <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_68%,transparent)_42%,transparent_100%)] sm:h-24" />
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  'radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, var(--color-surface) 18%, transparent) 52%, color-mix(in srgb, var(--color-surface) 62%, transparent) 76%, var(--color-surface) 100%)',
-              }}
-            />
-            <div
-              className="absolute inset-x-0 bottom-0 h-56 sm:h-64"
-              style={{
-                backgroundImage:
-                  'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 34%, transparent) 24%, color-mix(in srgb, var(--color-surface) 72%, transparent) 54%, var(--color-surface) 100%)',
-              }}
-            />
+              {backgroundPreset === 'weekly-games' && (
+                <div
+                  className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
+                  style={{
+                    backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
+                    ...(minimal
+                      ? {}
+                      : {
+                          WebkitMaskImage: COOL_HERO_IMAGE_MASK,
+                          maskImage: COOL_HERO_IMAGE_MASK,
+                        }),
+                  }}
+                />
+              )}
+              <div className="absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
+              <div className="absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
+              <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_68%,transparent)_42%,transparent_100%)] sm:h-24" />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage:
+                    'radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, var(--color-surface) 18%, transparent) 52%, color-mix(in srgb, var(--color-surface) 62%, transparent) 76%, var(--color-surface) 100%)',
+                }}
+              />
+              <div
+                className="absolute inset-x-0 bottom-0 h-56 sm:h-64"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 34%, transparent) 24%, color-mix(in srgb, var(--color-surface) 72%, transparent) 54%, var(--color-surface) 100%)',
+                }}
+              />
+            </div>
+
+            <div className="relative z-20 grid">
+              {renderHeroSlide(game)}
+            </div>
           </div>
 
           <Link
@@ -493,10 +499,6 @@ function CoolView({
               </button>
             </>
           )}
-
-          <div className="relative z-20 grid">
-            {renderHeroSlide(game)}
-          </div>
         </div>
 
         <div
