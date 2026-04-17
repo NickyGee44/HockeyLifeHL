@@ -280,11 +280,13 @@ function Jersey({
   secondaryColor: string;
   availability?: 'confirmed' | 'tentative' | 'out';
 }) {
-  const outline = '#111111';
-  const nameColor = isLightColor(primaryColor) ? '#111111' : '#ffffff';
-
+  const jerseyOutline = '#ffffff';
+  const jerseyInnerOutline = '#111111';
+  const textOutline = '#ffffff';
   const displayName = name.toUpperCase().slice(0, 12);
   const nameFontSize = displayName.length > 10 ? 13 : displayName.length > 7 ? 15 : 17;
+  const accentTextColor = isLightColor(secondaryColor) ? '#111111' : secondaryColor;
+  const displayNumber = number != null ? String(number).padStart(2, '0') : '00';
 
   return (
     <div className="relative w-[110px] sm:w-[124px] md:w-[134px]">
@@ -295,8 +297,16 @@ function Jersey({
         <path
           d={JERSEY_PATH}
           fill={primaryColor}
-          stroke={outline}
-          strokeWidth="5"
+          stroke={jerseyOutline}
+          strokeWidth="8"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <path
+          d={JERSEY_PATH}
+          fill={primaryColor}
+          stroke={jerseyInnerOutline}
+          strokeWidth="4"
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -309,14 +319,14 @@ function Jersey({
         <path
           d={LEFT_CUFF_STRIPE}
           fill={secondaryColor}
-          stroke={outline}
+          stroke={jerseyInnerOutline}
           strokeWidth="3"
           strokeLinejoin="round"
         />
         <path
           d={RIGHT_CUFF_STRIPE}
           fill={secondaryColor}
-          stroke={outline}
+          stroke={jerseyInnerOutline}
           strokeWidth="3"
           strokeLinejoin="round"
         />
@@ -324,7 +334,7 @@ function Jersey({
         <path
           d={HEM_STRIPE}
           fill={secondaryColor}
-          stroke={outline}
+          stroke={jerseyInnerOutline}
           strokeWidth="3"
           strokeLinejoin="round"
         />
@@ -344,8 +354,11 @@ function Jersey({
           textAnchor="middle"
           fontSize={nameFontSize}
           fontWeight={900}
-          fill={nameColor}
+          fill={accentTextColor}
+          stroke={textOutline}
+          strokeWidth="3"
           style={{
+            paintOrder: 'stroke fill',
             fontFamily: '"Arial Black", Impact, "Oswald", sans-serif',
             letterSpacing: '1px',
           }}
@@ -359,15 +372,15 @@ function Jersey({
           textAnchor="middle"
           fontSize={68}
           fontWeight={900}
-          fill={secondaryColor}
-          stroke={outline}
+          fill={accentTextColor}
+          stroke={textOutline}
           strokeWidth="5"
           style={{
             paintOrder: 'stroke fill',
             fontFamily: '"Arial Black", Impact, "Oswald", sans-serif',
           }}
         >
-          {number ?? '—'}
+          {displayNumber}
         </text>
       </svg>
 
