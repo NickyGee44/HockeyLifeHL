@@ -4925,22 +4925,35 @@ export async function getPlayerCareerStatsTimeline(
     appearancesBySeasonTeam.set(key, games);
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', playerId)
+    .maybeSingle();
+
+  const importedSeed = getImportedAggregateSkaterSeed(HLHL_WINTER_2026_SEASON_ID, profile?.full_name);
+
   const timelineRows = rows
     .filter((row) => Boolean(row.season_id))
     .map((row) => {
       const season = row.season_id as string;
       const key = `${season}:${row.team_id || 'unknown'}`;
-      const gamesPlayed = Math.max(row.games_played || 0, appearancesBySeasonTeam.get(key)?.size || 0);
+      const importedGamesPlayed = season === HLHL_WINTER_2026_SEASON_ID ? importedSeed?.gamesPlayed ?? null : null;
+      const goals = season === HLHL_WINTER_2026_SEASON_ID && importedSeed ? importedSeed.goals : (row.goals || 0);
+      const assists = season === HLHL_WINTER_2026_SEASON_ID && importedSeed ? importedSeed.assists : (row.assists || 0);
+      const points = season === HLHL_WINTER_2026_SEASON_ID && importedSeed
+        ? importedSeed.goals + importedSeed.assists
+        : (row.points ?? ((row.goals || 0) + (row.assists || 0)));
+      const gamesPlayed = Math.max(row.games_played || 0, appearancesBySeasonTeam.get(key)?.size || 0, importedGamesPlayed || 0);
       const teamGames = row.team_id ? (teamGameCountBySeasonTeam.get(key) || gamesPlayed) : gamesPlayed;
-      const goals = row.goals || 0;
-      const assists = row.assists || 0;
-      const points = row.points ?? (goals + assists);
       return {
         season_id: season,
         season_name: seasonNameById.get(season) || 'Unknown Season',
         sort_date: seasonSortById.get(season) || null,
         team_id: row.team_id,
-        team_name: row.team_name || (row.team_id ? teamNames.get(row.team_id) || null : null),
+        team_name: importedSeed?.teamName && season === HLHL_WINTER_2026_SEASON_ID
+          ? importedSeed.teamName
+          : (row.team_name || (row.team_id ? teamNames.get(row.team_id) || null : null)),
         position: row.position,
         games_played: gamesPlayed,
         team_games: teamGames,
@@ -4961,43 +4974,35 @@ export async function getPlayerCareerStatsTimeline(
       };
     });
 
-  if (historicalBaselineSeason) {
-    const { data: baselineStats } = await serviceSupabase
-      .from('player_career_baselines')
-      .select('games_played, goals, assists, points')
-      .eq('player_id', playerId)
-      .maybeSingle();
-
-    if (baselineStats && timelineRows.length === 0) {
-      const gamesPlayed = Number(baselineStats.games_played || 0);
-      const goals = Number(baselineStats.goals || 0);
-      const assists = Number(baselineStats.assists || 0);
-      const points = Number(baselineStats.points ?? (goals + assists));
-      timelineRows.push({
-        season_id: HLHL_WINTER_2026_SEASON_ID,
-        season_name: seasonNameById.get(HLHL_WINTER_2026_SEASON_ID) || 'Winter 2026',
-        sort_date: seasonSortById.get(HLHL_WINTER_2026_SEASON_ID) || (historicalBaselineSeason.start_date ?? null),
-        team_id: null,
-        team_name: null,
-        position: null,
-        games_played: gamesPlayed,
-        team_games: gamesPlayed,
-        attendance_pct: gamesPlayed > 0 ? 100 : 0,
-        goals,
-        assists,
-        points,
-        goals_per_game: gamesPlayed > 0 ? roundCareerMetric(goals / gamesPlayed, 2) : 0,
-        points_per_game: gamesPlayed > 0 ? roundCareerMetric(points / gamesPlayed, 2) : 0,
-        wins: 0,
-        losses: 0,
-        ties: 0,
-        saves: 0,
-        goals_against: 0,
-        save_percentage: null,
-        goals_against_average: null,
-        shutouts: 0,
-      });
-    }
+  if (importedSeed && !timelineRows.some((row) => row.season_id === HLHL_WINTER_2026_SEASON_ID)) {
+    const gamesPlayed = importedSeed.gamesPlayed;
+    const goals = importedSeed.goals;
+    const assists = importedSeed.assists;
+    const points = goals + assists;
+    timelineRows.push({
+      season_id: HLHL_WINTER_2026_SEASON_ID,
+      season_name: seasonNameById.get(HLHL_WINTER_2026_SEASON_ID) || 'Winter 2026',
+      sort_date: seasonSortById.get(HLHL_WINTER_2026_SEASON_ID) || null,
+      team_id: null,
+      team_name: importedSeed.teamName,
+      position: null,
+      games_played: gamesPlayed,
+      team_games: gamesPlayed,
+      attendance_pct: gamesPlayed > 0 ? 100 : 0,
+      goals,
+      assists,
+      points,
+      goals_per_game: gamesPlayed > 0 ? roundCareerMetric(goals / gamesPlayed, 2) : 0,
+      points_per_game: gamesPlayed > 0 ? roundCareerMetric(points / gamesPlayed, 2) : 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      saves: 0,
+      goals_against: 0,
+      save_percentage: null,
+      goals_against_average: null,
+      shutouts: 0,
+    });
   }
 
   return timelineRows
