@@ -25,9 +25,9 @@ type WeeklyGameTeam = ScheduleGame['home_team'] | undefined;
 
 const COOL_HERO_IMAGE_MASK =
   [
-    'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.72) 14%, rgba(0,0,0,1) 28%, rgba(0,0,0,1) 100%)',
-    'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.78) 12%, rgba(0,0,0,1) 24%, rgba(0,0,0,1) 76%, rgba(0,0,0,0.78) 88%, transparent 100%)',
-    'radial-gradient(138% 124% at 50% 42%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.97) 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.48) 72%, rgba(0,0,0,0.18) 86%, transparent 100%)',
+    'radial-gradient(140% 132% at 50% 46%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.98) 34%, rgba(0,0,0,0.92) 50%, rgba(0,0,0,0.72) 64%, rgba(0,0,0,0.44) 76%, rgba(0,0,0,0.18) 88%, transparent 100%)',
+    'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.18) 6%, rgba(0,0,0,0.58) 18%, rgba(0,0,0,0.9) 32%, rgba(0,0,0,1) 46%, rgba(0,0,0,1) 68%, rgba(0,0,0,0.84) 82%, rgba(0,0,0,0.38) 92%, transparent 100%)',
+    'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.24) 7%, rgba(0,0,0,0.68) 18%, rgba(0,0,0,0.98) 30%, rgba(0,0,0,1) 50%, rgba(0,0,0,0.98) 70%, rgba(0,0,0,0.68) 82%, rgba(0,0,0,0.24) 93%, transparent 100%)',
   ].join(',');
 
 type BackgroundPreset = 'none' | 'weekly-games';
