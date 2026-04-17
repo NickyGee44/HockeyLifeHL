@@ -317,6 +317,13 @@ function CoolView({
   const game = games[activeIndex];
   const hasControls = games.length > 1;
   const heroHref = getGameHref(game, leagueSlug);
+  const heroEdgeColor = minimal ? 'var(--color-background)' : 'var(--color-surface)';
+  const heroTopGlow = `radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, ${heroEdgeColor} 44%, transparent) 0%, color-mix(in srgb, ${heroEdgeColor} 12%, transparent) 34%, color-mix(in srgb, ${heroEdgeColor} 70%, transparent) 74%, ${heroEdgeColor} 100%)`;
+  const heroCenterFade = `radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, ${heroEdgeColor} 18%, transparent) 52%, color-mix(in srgb, ${heroEdgeColor} 62%, transparent) 76%, ${heroEdgeColor} 100%)`;
+  const heroBottomFade = `linear-gradient(180deg, transparent 0%, color-mix(in srgb, ${heroEdgeColor} 34%, transparent) 24%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 54%, ${heroEdgeColor} 100%)`;
+  const heroLeftFade = `linear-gradient(90deg, ${heroEdgeColor} 0%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 42%, transparent 100%)`;
+  const heroRightFade = `linear-gradient(270deg, ${heroEdgeColor} 0%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 42%, transparent 100%)`;
+  const heroTopFade = `linear-gradient(180deg, ${heroEdgeColor} 0%, color-mix(in srgb, ${heroEdgeColor} 68%, transparent) 42%, transparent 100%)`;
 
   const renderHeroSlide = (slideGame: ScheduleGame) => (
     <div className="pointer-events-none col-start-1 row-start-1">
@@ -418,8 +425,7 @@ function CoolView({
               <div
                 className="absolute inset-0"
                 style={{
-                  backgroundImage:
-                    'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 44%, transparent) 0%, color-mix(in srgb, var(--color-surface) 12%, transparent) 34%, color-mix(in srgb, var(--color-surface) 70%, transparent) 74%, var(--color-surface) 100%)',
+                  backgroundImage: heroTopGlow,
                 }}
               />
               {backgroundPreset === 'weekly-games' && (
@@ -436,21 +442,28 @@ function CoolView({
                   }}
                 />
               )}
-              <div className="absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
-              <div className="absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
-              <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_68%,transparent)_42%,transparent_100%)] sm:h-24" />
+              <div
+                className="absolute inset-y-0 left-0 w-20 sm:w-24"
+                style={{ backgroundImage: heroLeftFade }}
+              />
+              <div
+                className="absolute inset-y-0 right-0 w-20 sm:w-24"
+                style={{ backgroundImage: heroRightFade }}
+              />
+              <div
+                className="absolute inset-x-0 top-0 h-20 sm:h-24"
+                style={{ backgroundImage: heroTopFade }}
+              />
               <div
                 className="absolute inset-0"
                 style={{
-                  backgroundImage:
-                    'radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, var(--color-surface) 18%, transparent) 52%, color-mix(in srgb, var(--color-surface) 62%, transparent) 76%, var(--color-surface) 100%)',
+                  backgroundImage: heroCenterFade,
                 }}
               />
               <div
                 className="absolute inset-x-0 bottom-0 h-56 sm:h-64"
                 style={{
-                  backgroundImage:
-                    'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 34%, transparent) 24%, color-mix(in srgb, var(--color-surface) 72%, transparent) 54%, var(--color-surface) 100%)',
+                  backgroundImage: heroBottomFade,
                 }}
               />
             </div>
