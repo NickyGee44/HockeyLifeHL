@@ -32,9 +32,7 @@ const CHART_COLUMN_WIDTH = 112;
 const CHART_WIDTH = CHART_RANK_COLUMN_WIDTH + (CHART_COLUMN_WIDTH * TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length);
 const CHART_ROW_HEIGHT = 56;
 const CHART_HEADER_HEIGHT = 44;
-const CHART_PATH_INSET_X = CHART_RANK_COLUMN_WIDTH + (CHART_COLUMN_WIDTH / 2);
 const CHART_LOGO_SIZE = 48;
-const CHART_TOP_PADDING = 20;
 const CHART_FALLBACK_PATH_COLOR = 'var(--league-primary)';
 
 export function TeamsGrid({
@@ -211,7 +209,8 @@ function TeamsDirectoryBumpChart({
     metricKey: TeamsDirectoryBumpChartMetricKey;
   } | null>(null);
   const totalTeams = Math.max(data.teams.length, 1);
-  const chartHeight = CHART_HEADER_HEIGHT + CHART_TOP_PADDING + (totalTeams * CHART_ROW_HEIGHT);
+  const chartContentHeight = totalTeams * CHART_ROW_HEIGHT;
+  const chartHeight = CHART_HEADER_HEIGHT + chartContentHeight;
 
   const chartTeams = useMemo(
     () => [...data.teams].sort((left, right) => left.metrics.overall.rank - right.metrics.overall.rank),
@@ -270,7 +269,7 @@ function TeamsDirectoryBumpChart({
           >
             <div className="relative border-r border-[var(--color-border)]/70">
               <div style={{ height: CHART_HEADER_HEIGHT }} />
-              <div className="relative" style={{ height: chartHeight - CHART_HEADER_HEIGHT }}>
+              <div className="relative" style={{ height: chartContentHeight }}>
                 {Array.from({ length: totalTeams }, (_, index) => (
                   <span
                     key={`rank-${index + 1}`}
@@ -292,52 +291,56 @@ function TeamsDirectoryBumpChart({
                   {column.label}
                 </div>
 
-                <div className="relative" style={{ height: chartHeight - CHART_HEADER_HEIGHT }}>
-                  {chartTeams.map((team) => {
-                    const metric = team.metrics[column.key];
-                    const top = metricContentTop(metric.rank);
-                    const isSelected = selectedMetric?.teamId === team.teamId && selectedMetric.metricKey === column.key;
-                    const isDimmed = Boolean(selectedMetric && selectedMetric.teamId !== team.teamId);
-                    const label = `${team.teamName}: #${metric.rank} in ${column.label}, ${metric.valueLabel}`;
-
-                    return (
-                      <button
-                        key={`${team.teamId}-${column.key}`}
-                        type="button"
-                        title={label}
-                        aria-label={label}
-                        aria-pressed={isSelected}
-                        onClick={() => setSelectedMetric((current) => (
-                          current?.teamId === team.teamId && current.metricKey === column.key
-                            ? null
-                            : { teamId: team.teamId, metricKey: column.key }
-                        ))}
-                        className="absolute left-1/2 top-0 flex items-center justify-center rounded-xl -translate-x-1/2 -translate-y-1/2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/55"
-                        style={{
-                          top,
-                          width: CHART_LOGO_SIZE,
-                          height: CHART_LOGO_SIZE,
-                          opacity: isDimmed ? 0.24 : 1,
-                          transform: `translate(-50%, -50%) scale(${isSelected ? 1.08 : 1})`,
-                          filter: isSelected ? 'drop-shadow(0 0 0.6rem color-mix(in srgb, var(--league-primary) 25%, transparent))' : 'none',
-                        }}
-                      >
-                        <TeamLogo
-                          logoUrl={team.logoUrl}
-                          teamName={team.teamName}
-                          teamColor={team.primaryColor}
-                          size="sm"
-                          className="rounded-xl object-contain"
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
+                <div className="relative" style={{ height: chartContentHeight }} />
 
                 {columnIndex < TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length - 1 && (
                   <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-[var(--color-border)]/50" />
                 )}
               </div>
+            ))}
+          </div>
+
+          <div className="absolute inset-0">
+            {chartTeams.flatMap((team) => (
+              TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.map((column, columnIndex) => {
+                const metric = team.metrics[column.key];
+                const isSelected = selectedMetric?.teamId === team.teamId && selectedMetric.metricKey === column.key;
+                const isDimmed = Boolean(selectedMetric && selectedMetric.teamId !== team.teamId);
+                const label = `${team.teamName}: #${metric.rank} in ${column.label}, ${metric.valueLabel}`;
+
+                return (
+                  <button
+                    key={`${team.teamId}-${column.key}`}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    aria-pressed={isSelected}
+                    onClick={() => setSelectedMetric((current) => (
+                      current?.teamId === team.teamId && current.metricKey === column.key
+                        ? null
+                        : { teamId: team.teamId, metricKey: column.key }
+                    ))}
+                    className="absolute flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/55"
+                    style={{
+                      left: metricCenterX(columnIndex),
+                      top: metricTop(metric.rank),
+                      width: CHART_LOGO_SIZE,
+                      height: CHART_LOGO_SIZE,
+                      opacity: isDimmed ? 0.24 : 1,
+                      transform: `translate(-50%, -50%) scale(${isSelected ? 1.08 : 1})`,
+                      filter: isSelected ? 'drop-shadow(0 0 0.6rem color-mix(in srgb, var(--league-primary) 25%, transparent))' : 'none',
+                    }}
+                  >
+                    <TeamLogo
+                      logoUrl={team.logoUrl}
+                      teamName={team.teamName}
+                      teamColor={team.primaryColor}
+                      size="sm"
+                      className="rounded-xl object-contain"
+                    />
+                  </button>
+                );
+              })
             ))}
           </div>
         </div>
@@ -364,16 +367,20 @@ function TeamsDirectoryBumpChart({
 }
 
 function metricContentTop(rank: number) {
-  return CHART_TOP_PADDING + ((rank - 1) * CHART_ROW_HEIGHT) + (CHART_LOGO_SIZE / 2);
+  return ((rank - 1) * CHART_ROW_HEIGHT) + (CHART_ROW_HEIGHT / 2);
 }
 
 function metricTop(rank: number) {
   return CHART_HEADER_HEIGHT + metricContentTop(rank);
 }
 
+function metricCenterX(columnIndex: number) {
+  return CHART_RANK_COLUMN_WIDTH + (columnIndex * CHART_COLUMN_WIDTH) + (CHART_COLUMN_WIDTH / 2);
+}
+
 function buildBumpPath(team: TeamsDirectoryBumpChartTeam, totalTeams: number) {
   const points = TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.map((column, columnIndex) => {
-    const x = (columnIndex * CHART_COLUMN_WIDTH) + CHART_PATH_INSET_X;
+    const x = metricCenterX(columnIndex);
     const y = metricTop(Math.min(team.metrics[column.key].rank, totalTeams));
     return { x, y };
   });
