@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Award, Shield, Sparkles, Target, Trophy, X } from 'lucide-react';
 import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 import type {
@@ -95,13 +95,39 @@ function splitPlayerName(name: string) {
   };
 }
 
+const PODIUM_CARD_STYLES: Record<number, { heightClass: string; cardClass: string; avatarClass: string; avatarHalo: string }> = {
+  1: {
+    heightClass: 'min-h-[20rem] md:min-h-[22rem]',
+    cardClass:
+      'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
+    avatarClass: 'h-24 w-24',
+    avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
+  },
+  2: {
+    heightClass: 'min-h-[18rem] md:min-h-[20rem]',
+    cardClass:
+      'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
+    avatarClass: 'h-20 w-20',
+    avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
+  },
+  3: {
+    heightClass: 'min-h-[16.5rem] md:min-h-[18.5rem]',
+    cardClass:
+      'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
+    avatarClass: 'h-20 w-20',
+    avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
+  },
+};
+
+const PODIUM_AVATAR_STYLES: Record<number, string> = {
+  1: 'conic-gradient(from 180deg, rgba(255,250,214,1) 0deg, rgba(245,204,96,1) 70deg, rgba(255,239,138,1) 150deg, rgba(189,147,45,1) 220deg, rgba(255,250,214,1) 360deg)',
+  2: 'conic-gradient(from 180deg, rgba(255,255,255,0.98) 0deg, rgba(203,213,225,1) 72deg, rgba(241,245,249,1) 150deg, rgba(148,163,184,1) 220deg, rgba(255,255,255,0.98) 360deg)',
+  3: 'conic-gradient(from 180deg, rgba(255,237,213,0.98) 0deg, rgba(205,127,50,1) 75deg, rgba(251,146,60,0.98) 150deg, rgba(154,52,18,1) 225deg, rgba(255,237,213,0.98) 360deg)',
+};
+
 export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, mode, rows }: StatLeadersProps) {
   const metrics = getActiveMetrics(mode, isAllTime);
   const [selectedMetric, setSelectedMetric] = useState<LeaderMetric>(() => getDefaultMetric(mode));
-
-  useEffect(() => {
-    setSelectedMetric(getDefaultMetric(mode));
-  }, [mode, isAllTime]);
 
   const activeMetric = metrics.find((metric) => metric.id === selectedMetric) ?? metrics[0];
   const [openTeamTooltipFor, setOpenTeamTooltipFor] = useState<string | null>(null);
@@ -129,11 +155,8 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
     })
     .slice(0, 3);
 
-  const podiumLeaders = useMemo(() => {
-    if (leaders.length <= 1) return leaders;
-    if (leaders.length === 2) return [leaders[1], leaders[0]];
-    return [leaders[1], leaders[0], leaders[2]];
-  }, [leaders]);
+  const podiumLeaders =
+    leaders.length <= 1 ? leaders : leaders.length === 2 ? [leaders[1], leaders[0]] : [leaders[1], leaders[0], leaders[2]];
 
   return (
     <div className="league-shell-panel rounded-[30px] border border-[var(--color-border)] p-4 md:p-6">
@@ -170,7 +193,7 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
         </div>
 
         {leaders.length > 0 ? (
-          <div className="mt-5 rounded-[28px] border border-[var(--glass-card-border)] bg-[linear-gradient(180deg,rgba(19,24,49,0.96),rgba(28,35,72,0.92))] p-4 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.65)] md:p-5">
+          <div className="mt-5 px-1 md:px-2">
             <div className="grid grid-cols-3 items-end gap-3 md:gap-4">
               {podiumLeaders.map((leader) => {
                 const rank = leaders.findIndex((entry) => entry.player_id === leader.player_id) + 1;
@@ -180,45 +203,30 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                 const teamTooltipOpen = openTeamTooltipFor === leader.player_id;
                 const teamLogo = leader.display_team_logo_url || '/blank_team.png';
                 const teamName = leader.display_team_name || leader.team_name || 'Team';
+                const podiumStyle = PODIUM_CARD_STYLES[rank] ?? PODIUM_CARD_STYLES[3];
 
                 return (
                   <div
                     key={`${activeMetric.id}-${leader.player_id}`}
-                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-3 text-center transition-transform ${
-                      isCenter
-                        ? 'z-10 translate-y-0 border-[var(--league-primary)]/35 bg-[linear-gradient(180deg,rgba(64,72,122,0.95),rgba(39,46,89,0.95))] shadow-[0_22px_50px_-24px_rgba(0,0,0,0.7)]'
-                        : 'translate-y-4 border-white/8 bg-[linear-gradient(180deg,rgba(36,42,82,0.94),rgba(25,31,62,0.9))] shadow-[0_18px_40px_-26px_rgba(0,0,0,0.65)]'
-                    }`}
+                    className={`relative flex min-w-0 flex-col items-center justify-between rounded-[24px] border px-3 pb-4 pt-4 text-center ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
                   >
-                    {isCenter ? (
-                      <div className="absolute -top-8 flex flex-col items-center">
-                        <Trophy className="h-7 w-7 text-amber-300 drop-shadow-[0_6px_12px_rgba(245,158,11,0.35)]" />
-                        <span className="mt-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 text-[10px] font-black text-black">
-                          1
-                        </span>
-                      </div>
-                    ) : (
-                      <span className={`absolute -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
-                        rank === 2 ? 'bg-sky-400 text-slate-950' : 'bg-emerald-400 text-slate-950'
-                      }`}>
-                        {rank}
-                      </span>
-                    )}
-
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
-                      className={`relative block overflow-hidden rounded-full border ${
-                        isCenter ? 'mt-4 h-24 w-24 border-amber-300/70' : 'mt-5 h-16 w-16 border-white/15'
-                      } bg-black/20 transition-transform hover:scale-[1.03]`}
+                      className={`relative mt-1 block rounded-full p-[3px] transition-transform hover:scale-[1.03] ${podiumStyle.avatarHalo}`}
+                      style={{ backgroundImage: PODIUM_AVATAR_STYLES[rank] ?? PODIUM_AVATAR_STYLES[3] }}
                     >
-                      <img
-                        src={leader.avatar_url || '/blank_player.png'}
-                        alt={leader.player_name}
-                        className="h-full w-full object-cover"
-                      />
+                      <span className="block rounded-full bg-[rgba(7,10,22,0.9)] p-[3px]">
+                        <span className={`block overflow-hidden rounded-full border border-white/10 bg-black/30 ${podiumStyle.avatarClass}`}>
+                          <img
+                            src={leader.avatar_url || '/blank_player.png'}
+                            alt={leader.player_name}
+                            className="h-full w-full object-cover"
+                          />
+                        </span>
+                      </span>
                     </Link>
 
-                    <div className="mt-3 min-w-0">
+                    <div className="mt-4 min-w-0 flex-1">
                       <Link
                         href={`/${leagueSlug}/players/${leader.player_id}`}
                         className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
@@ -232,7 +240,7 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                         {formatMetricValue(activeMetric.id, leader.value)}
                       </div>
 
-                      <div className="relative mt-2 flex items-center justify-center">
+                      <div className="relative mt-3 flex items-center justify-center">
                         <button
                           type="button"
                           onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
@@ -261,13 +269,13 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                           </div>
                         ) : null}
                       </div>
-
-                      {playerBadges.length > 0 ? (
-                        <div className="mt-2 flex justify-center">
-                          <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
-                        </div>
-                      ) : null}
                     </div>
+
+                    {playerBadges.length > 0 ? (
+                      <div className="mt-3 flex justify-center">
+                        <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
