@@ -97,13 +97,17 @@ function splitPlayerName(name: string) {
   };
 }
 
-const PODIUM_CARD_STYLES: Record<number, { heightClass: string; cardClass: string; avatarClass: string; avatarHalo: string }> = {
+const PODIUM_CARD_STYLES: Record<
+  number,
+  { heightClass: string; cardClass: string; avatarClass: string; avatarHalo: string; teamLogoClass: string }
+> = {
   1: {
     heightClass: 'min-h-[20rem] md:min-h-[22rem]',
     cardClass:
       'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
     avatarClass: 'h-24 w-24',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
+    teamLogoClass: 'h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12',
   },
   2: {
     heightClass: 'min-h-[18rem] md:min-h-[19.5rem]',
@@ -111,13 +115,15 @@ const PODIUM_CARD_STYLES: Record<number, { heightClass: string; cardClass: strin
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
     avatarClass: 'h-20 w-20',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
+    teamLogoClass: 'h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12',
   },
   3: {
     heightClass: 'min-h-[15.5rem] md:min-h-[17rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
-    avatarClass: 'h-20 w-20',
+    avatarClass: 'h-16 w-16',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
+    teamLogoClass: 'h-10 w-10 object-contain md:h-11 md:w-11',
   },
 };
 
@@ -266,7 +272,7 @@ export function StatLeaders({
                           <img
                             src={teamLogo}
                             alt={teamName}
-                            className="h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12"
+                            className={podiumStyle.teamLogoClass}
                           />
                         </button>
                         {teamTooltipOpen ? (
