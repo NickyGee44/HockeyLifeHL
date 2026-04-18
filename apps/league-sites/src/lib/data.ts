@@ -58,6 +58,11 @@ import {
   type ImportedCareerBaselineRow,
 } from './all-time-stats';
 import {
+  buildTeamsDirectoryBumpChartData,
+  type TeamCommitmentSnapshot,
+  type TeamsDirectoryBumpChartData,
+} from './teams-directory-bump-chart';
+import {
   applyImportedAggregateGoalieOverride,
   applyImportedAggregateSkaterOverride,
   getImportedAggregateGoalieSeed,
@@ -4713,6 +4718,150 @@ async function loadTeamGameCountsBySeasonTeam(
   }
 
   return new Map([...counts.entries()].map(([key, games]) => [key, games.size]));
+}
+
+export async function getTeamsDirectoryBumpChartData(
+  leagueId: string,
+  seasonId: string | null,
+  teams: Team[],
+): Promise<TeamsDirectoryBumpChartData | null> {
+  if (!seasonId || teams.length === 0) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const standings = await getStandings(leagueId, seasonId);
+  const publicTeamIds = new Set(teams.map((team) => team.id));
+  const chartStandings = standings.filter((standing) => publicTeamIds.has(standing.team_id));
+  const teamIds = teams.map((team) => team.id);
+
+  const [confirmedAppearances, fallbackAppearances, teamGameCounts, rosterRows, gamesResult] = await Promise.all([
+    getConfirmedCheckinAppearanceRows(supabase, { leagueId, seasonId, teamIds }),
+    getFallbackRosterAppearanceRows(supabase, { seasonId, teamIds }),
+    loadTeamGameCountsBySeasonTeam(supabase, leagueId, [seasonId], teamIds),
+    supabase
+      .from('team_rosters')
+      .select('team_id, player_id, joined_at, end_date, player_type')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active')
+      .in('team_id', teamIds),
+    supabase
+      .from('games')
+      .select('id, season_id, scheduled_at, home_team_id, away_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .in('status', [...PLAYED_GAME_STATUSES])
+      .or(`home_team_id.in.(${teamIds.join(',')}),away_team_id.in.(${teamIds.join(',')})`),
+  ]);
+
+  const regularRosterRows = (rosterRows.data || []).filter((row) => row.team_id && row.player_id && row.player_type === 'regular');
+  const rosterByTeam = new Map<string, Array<typeof regularRosterRows[number]>>();
+  for (const row of regularRosterRows) {
+    const rows = rosterByTeam.get(row.team_id) || [];
+    rows.push(row);
+    rosterByTeam.set(row.team_id, rows);
+  }
+
+  type TeamDirectoryGameRow = {
+    id: string;
+    season_id: string | null;
+    scheduled_at: string | null;
+    home_team_id: string | null;
+    away_team_id: string | null;
+  };
+
+  const gameRows = (gamesResult.data || []) as TeamDirectoryGameRow[];
+  const gamesById = new Map(gameRows.filter((game) => game.id).map((game) => [game.id, game]));
+  const teamGameRows = new Map<string, TeamDirectoryGameRow[]>();
+  for (const game of gameRows) {
+    for (const teamId of [game.home_team_id, game.away_team_id]) {
+      if (!teamId || !teamIds.includes(teamId)) continue;
+      const rows = teamGameRows.get(teamId) || [];
+      rows.push(game);
+      teamGameRows.set(teamId, rows);
+    }
+  }
+
+  const isRosterEntryEligibleForGame = (
+    rosterEntry: { player_id: string; joined_at: string | null; end_date: string | null },
+    gameDate: string | null | undefined,
+  ) => {
+    if (!gameDate) return true;
+    const gameTime = new Date(gameDate).getTime();
+    if (Number.isNaN(gameTime)) return true;
+    if (rosterEntry.joined_at && gameTime < new Date(rosterEntry.joined_at).getTime()) {
+      return false;
+    }
+    if (rosterEntry.end_date && gameTime > new Date(rosterEntry.end_date).getTime()) {
+      return false;
+    }
+    return true;
+  };
+
+  const possibleAppearancesByTeam = new Map<string, number>();
+  for (const teamId of teamIds) {
+    const rows = rosterByTeam.get(teamId) || [];
+    const games = teamGameRows.get(teamId) || [];
+    let possibleAppearances = 0;
+    for (const rosterEntry of rows) {
+      for (const game of games) {
+        if (isRosterEntryEligibleForGame(rosterEntry, game.scheduled_at)) {
+          possibleAppearances += 1;
+        }
+      }
+    }
+    possibleAppearancesByTeam.set(teamId, possibleAppearances);
+  }
+
+  const confirmedCounts = new Map<string, Set<string>>();
+  for (const row of confirmedAppearances) {
+    if (!row.team_id || !row.player_id || !row.game_id) continue;
+    const rosterEntries = rosterByTeam.get(row.team_id) || [];
+    const rosterEntry = rosterEntries.find((entry) => entry.player_id === row.player_id);
+    const game = gamesById.get(row.game_id);
+    if (!rosterEntry || !isRosterEntryEligibleForGame(rosterEntry, game?.scheduled_at)) continue;
+    const keys = confirmedCounts.get(row.team_id) || new Set<string>();
+    keys.add(`${row.player_id}:${row.game_id}`);
+    confirmedCounts.set(row.team_id, keys);
+  }
+
+  const fallbackCounts = new Map<string, Set<string>>();
+  for (const row of fallbackAppearances) {
+    if (!row.team_id || !row.player_id || !row.game_id) continue;
+    const rosterEntries = rosterByTeam.get(row.team_id) || [];
+    const rosterEntry = rosterEntries.find((entry) => entry.player_id === row.player_id);
+    const game = gamesById.get(row.game_id);
+    if (!rosterEntry || !isRosterEntryEligibleForGame(rosterEntry, game?.scheduled_at)) continue;
+    const keys = fallbackCounts.get(row.team_id) || new Set<string>();
+    keys.add(`${row.player_id}:${row.game_id}`);
+    fallbackCounts.set(row.team_id, keys);
+  }
+
+  const commitment: TeamCommitmentSnapshot[] = teamIds.map((teamId) => {
+    const confirmed = confirmedCounts.get(teamId)?.size || 0;
+    const fallback = fallbackCounts.get(teamId)?.size || 0;
+    const possibleAppearances = possibleAppearancesByTeam.get(teamId) || 0;
+    const appearances = confirmed + fallback;
+    const attendancePct = possibleAppearances > 0 ? roundCareerMetric((appearances / possibleAppearances) * 100, 1) : 0;
+
+    return {
+      teamId,
+      attendancePct,
+      appearances,
+      possibleAppearances,
+      confirmedAppearances: confirmed,
+      fallbackAppearances: fallback,
+      gamesPlayed: teamGameCounts.get(`${seasonId}:${teamId}`) || 0,
+    };
+  });
+
+  return buildTeamsDirectoryBumpChartData({
+    seasonId,
+    teams,
+    standings: chartStandings,
+    commitment,
+  });
 }
 
 export async function getPlayerCareerStatsTimeline(
