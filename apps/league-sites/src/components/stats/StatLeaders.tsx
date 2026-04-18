@@ -13,7 +13,7 @@ import type {
 
 type SkaterLeaderMetric = 'goals' | 'assists' | 'points' | 'championships';
 type GoalieLeaderMetric = 'wins' | 'goals_against_average' | 'shutouts' | 'championships';
-type LeaderMetric = SkaterLeaderMetric | GoalieLeaderMetric;
+export type LeaderMetric = SkaterLeaderMetric | GoalieLeaderMetric;
 type StatsLeaderRow = UnifiedSkaterStatsRow | UnifiedGoalieStatsRow;
 
 interface StatLeadersProps {
@@ -22,7 +22,9 @@ interface StatLeadersProps {
   isAllTime: boolean;
   leagueSlug: string;
   mode: StatsMode;
+  onMetricChange?: (metric: LeaderMetric) => void;
   rows: StatsLeaderRow[];
+  selectedMetric?: LeaderMetric;
 }
 
 const SKATER_METRICS: Array<{ id: SkaterLeaderMetric; icon: typeof Trophy; label: string; emptyLabel: string }> = [
@@ -125,11 +127,20 @@ const PODIUM_AVATAR_STYLES: Record<number, string> = {
   3: 'conic-gradient(from 180deg, rgba(255,237,213,0.98) 0deg, rgba(205,127,50,1) 75deg, rgba(251,146,60,0.98) 150deg, rgba(154,52,18,1) 225deg, rgba(255,237,213,0.98) 360deg)',
 };
 
-export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, mode, rows }: StatLeadersProps) {
+export function StatLeaders({
+  badges,
+  hideTitle = false,
+  isAllTime,
+  leagueSlug,
+  mode,
+  onMetricChange,
+  rows,
+  selectedMetric,
+}: StatLeadersProps) {
   const metrics = getActiveMetrics(mode, isAllTime);
-  const [selectedMetric, setSelectedMetric] = useState<LeaderMetric>(() => getDefaultMetric(mode));
+  const [internalSelectedMetric, setInternalSelectedMetric] = useState<LeaderMetric>(() => getDefaultMetric(mode));
 
-  const activeMetric = metrics.find((metric) => metric.id === selectedMetric) ?? metrics[0];
+  const activeMetric = metrics.find((metric) => metric.id === (selectedMetric ?? internalSelectedMetric)) ?? metrics[0];
   const [openTeamTooltipFor, setOpenTeamTooltipFor] = useState<string | null>(null);
   const leaders = [...rows]
     .map((row) => ({
@@ -178,7 +189,10 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
               <button
                 key={metric.id}
                 type="button"
-                onClick={() => setSelectedMetric(metric.id)}
+                onClick={() => {
+                  setInternalSelectedMetric(metric.id);
+                  onMetricChange?.(metric.id);
+                }}
                 className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                   isActive
                     ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
@@ -208,7 +222,7 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                 return (
                   <div
                     key={`${activeMetric.id}-${leader.player_id}`}
-                    className={`relative flex min-w-0 flex-col items-center justify-between rounded-[24px] border px-3 pb-4 pt-4 text-center ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
+                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-4 text-center ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
                   >
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
@@ -226,21 +240,24 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                       </span>
                     </Link>
 
-                    <div className="mt-4 min-w-0 flex-1">
-                      <Link
-                        href={`/${leagueSlug}/players/${leader.player_id}`}
-                        className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
-                      >
-                        <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{firstName}</span>
-                        {lastName ? (
-                          <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{lastName}</span>
-                        ) : null}
-                      </Link>
-                      <div className="mt-2 text-xl font-black tracking-tight text-[var(--league-primary)] md:text-2xl">
+                    <div className="mt-4 flex w-full min-w-0 flex-1 flex-col justify-end">
+                      <div className="min-h-[2.9rem]">
+                        <Link
+                          href={`/${leagueSlug}/players/${leader.player_id}`}
+                          className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
+                        >
+                          <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{firstName}</span>
+                          {lastName ? (
+                            <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{lastName}</span>
+                          ) : null}
+                        </Link>
+                      </div>
+
+                      <div className="mt-2 flex min-h-[2.4rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-2xl">
                         {formatMetricValue(activeMetric.id, leader.value)}
                       </div>
 
-                      <div className="relative mt-3 flex items-center justify-center">
+                      <div className="relative mt-3 flex min-h-[3.75rem] items-center justify-center">
                         <button
                           type="button"
                           onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
@@ -250,7 +267,7 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                           <img
                             src={teamLogo}
                             alt={teamName}
-                            className={`object-contain ${isCenter ? 'h-10 w-10' : 'h-8 w-8'}`}
+                            className={`object-contain ${isCenter ? 'h-[3.25rem] w-[3.25rem]' : 'h-[2.625rem] w-[2.625rem]'}`}
                           />
                         </button>
                         {teamTooltipOpen ? (
@@ -271,11 +288,11 @@ export function StatLeaders({ badges, hideTitle = false, isAllTime, leagueSlug, 
                       </div>
                     </div>
 
-                    {playerBadges.length > 0 ? (
-                      <div className="mt-3 flex justify-center">
+                    <div className="mt-3 flex min-h-[1.75rem] items-center justify-center">
+                      {playerBadges.length > 0 ? (
                         <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
-                      </div>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </div>
                 );
               })}
