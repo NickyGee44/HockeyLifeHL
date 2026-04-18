@@ -29,6 +29,8 @@ import {
   getTeamRosterStats,
   getTeamRivals,
   getTeamWithCaptain,
+  getUnifiedGoalieStatsRows,
+  getUnifiedSkaterStatsRows,
 } from '@/lib/data';
 import {
   buildTaleOfTheTapeRivals,
@@ -76,13 +78,24 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const currentSeason = await getCurrentSeason(league.id);
 
-  const [roster, rosterStatsByPlayer, standings, rivals, seasons, seasonGames] = await Promise.all([
+  const [
+    roster,
+    rosterStatsByPlayer,
+    standings,
+    rivals,
+    seasons,
+    seasonGames,
+    leagueSkaterRows,
+    leagueGoalieRows,
+  ] = await Promise.all([
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
     getTeamRivals(team.id, 4, currentSeason?.id),
     getSeasons(league.id),
     currentSeason?.id ? getSeasonGames(league.id, currentSeason.id) : Promise.resolve([]),
+    getUnifiedSkaterStatsRows(league.id, currentSeason?.id),
+    getUnifiedGoalieStatsRows(league.id, currentSeason?.id),
   ]);
 
   const teamStats = standings.find((standing) => standing.team_id === team.id) ?? null;
@@ -136,7 +149,15 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   );
 
   const captain = roster.find((player) => player.leadership_role === 'captain');
-  const taleOfTheTapeRivals = buildTaleOfTheTapeRivals(team.id, rivals, standings);
+  const taleOfTheTapeRivals = buildTaleOfTheTapeRivals({
+    teamId: team.id,
+    teamName: team.name,
+    teamPrimaryColor: (team as any).primary_color || null,
+    rivals,
+    standings,
+    skaterRows: leagueSkaterRows,
+    goalieRows: leagueGoalieRows,
+  });
   const leadersByMetric = {
     points: buildTeamLeaders(skaters, rosterStatsByPlayer, 'points'),
     goals: buildTeamLeaders(skaters, rosterStatsByPlayer, 'goals'),

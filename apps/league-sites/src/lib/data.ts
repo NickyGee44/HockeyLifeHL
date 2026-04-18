@@ -1309,7 +1309,7 @@ export async function getTeamSchedule(
  * Fetch team rivals (teams they've played with head-to-head record)
  */
 export async function getTeamRivals(teamId: string, limit = 3, seasonId?: string): Promise<{
-  team: { id: string; name: string; slug: string; logo: string | null };
+  team: { id: string; name: string; slug: string; logo: string | null; primaryColor: string | null };
   wins: number;
   losses: number;
   ties: number;
@@ -1325,8 +1325,8 @@ export async function getTeamRivals(teamId: string, limit = 3, seasonId?: string
       away_team_id,
       home_score,
       away_score,
-      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, team_type),
-      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, team_type)
+      home_team:teams!games_home_team_id_fkey(id, name, slug, logo_url, primary_color, team_type),
+      away_team:teams!games_away_team_id_fkey(id, name, slug, logo_url, primary_color, team_type)
     `)
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .eq('status', 'completed');
@@ -1343,7 +1343,7 @@ export async function getTeamRivals(teamId: string, limit = 3, seasonId?: string
 
   // Calculate record against each opponent
   const opponents = new Map<string, {
-    team: { id: string; name: string; slug: string; logo: string | null };
+    team: { id: string; name: string; slug: string; logo: string | null; primaryColor: string | null };
     wins: number;
     losses: number;
     ties: number;
@@ -1365,7 +1365,13 @@ export async function getTeamRivals(teamId: string, limit = 3, seasonId?: string
 
     if (!opponents.has(opponentId)) {
       opponents.set(opponentId, {
-        team: { id: opponent.id, name: opponent.name, slug: opponent.slug, logo: opponent.logo_url },
+        team: {
+          id: opponent.id,
+          name: opponent.name,
+          slug: opponent.slug,
+          logo: opponent.logo_url,
+          primaryColor: opponent.primary_color || null,
+        },
         wins: 0,
         losses: 0,
         ties: 0,
