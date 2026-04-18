@@ -383,3 +383,144 @@ function formatSeasonSpan(startDate: string, endDate: string): string {
     ? `${startYear}`
     : `${startYear}-${String(endYear).slice(-2)}`;
 }
+
+// ---------------------------------------------------------------------------
+// Tale-of-the-Tape rival matchup data
+// ---------------------------------------------------------------------------
+
+export type TeamStrengthLabel = 'offense' | 'defence' | 'goaltending' | 'balanced';
+
+export type TaleOfTheTapeTeamSide = {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  overallRecord: string;       // e.g. "12-4-2"
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifferential: number;
+  strength: TeamStrengthLabel;
+  weakness: TeamStrengthLabel;
+};
+
+export type TaleOfTheTapeRival = {
+  /** The viewed team (left side) */
+  team: TaleOfTheTapeTeamSide;
+  /** The rival (right side) */
+  rival: TaleOfTheTapeTeamSide;
+  /** Head-to-head record from the viewed team's perspective (W-L-T) */
+  h2hRecord: string;
+  /** Rival's head-to-head record (mirror) */
+  h2hRecordRival: string;
+  /** Total games between the two teams this season */
+  gamesPlayed: number;
+};
+
+/**
+ * Derive a team's primary strength and weakness from league-relative rankings.
+ *
+ * Heuristic (deterministic, easy to explain):
+ * 1. Rank the team by goals_for (desc) → offense_pct (0 = best, 1 = worst).
+ * 2. Rank the team by goals_against (asc) → defense_pct (0 = best, 1 = worst).
+ * 3. If |offense_pct − defense_pct| ≤ 0.15 → strength & weakness are both "balanced".
+ * 4. Otherwise the better percentile is the strength; the worse is the weakness.
+ * 5. On the defensive side we distinguish "goaltending" (top-40 % GA) from "defence"
+ *    (bottom-60 % GA) to give some variety, since standings don't separate the two.
+ */
+export function deriveStrengthWeakness(
+  standings: TeamStanding[],
+  teamId: string,
+): { strength: TeamStrengthLabel; weakness: TeamStrengthLabel } {
+  const total = standings.length;
+  if (total <= 1) return { strength: 'balanced', weakness: 'balanced' };
+
+  const offenseRank = rankStandingValue(standings, teamId, 'goals_for', 'desc');
+  const defenseRank = rankStandingValue(standings, teamId, 'goals_against', 'asc');
+
+  if (offenseRank == null || defenseRank == null) {
+    return { strength: 'balanced', weakness: 'balanced' };
+  }
+
+  // Normalise to 0-1 where 0 = best
+  const offPct = (offenseRank - 1) / (total - 1);
+  const defPct = (defenseRank - 1) / (total - 1);
+
+  if (Math.abs(offPct - defPct) <= 0.15) {
+    return { strength: 'balanced', weakness: 'balanced' };
+  }
+
+  const defensiveLabel = (pct: number): TeamStrengthLabel =>
+    pct <= 0.4 ? 'goaltending' : 'defence';
+
+  if (offPct < defPct) {
+    // Offense is the stronger side
+    return { strength: 'offense', weakness: defensiveLabel(defPct) };
+  }
+  // Defense is the stronger side
+  return { strength: defensiveLabel(defPct), weakness: 'offense' };
+}
+
+/**
+ * Build the full tale-of-the-tape data for each rival, ready for the UI.
+ * Requires the current-season standings so we can attach GF/GA/record/strength
+ * for both the viewed team and each rival.
+ */
+export function buildTaleOfTheTapeRivals(
+  teamId: string,
+  rivals: RivalSummary[],
+  standings: TeamStanding[],
+): TaleOfTheTapeRival[] {
+  const standingMap = new Map(standings.map((s) => [s.team_id, s]));
+  const teamStanding = standingMap.get(teamId);
+
+  if (!teamStanding) return [];
+
+  const teamSW = deriveStrengthWeakness(standings, teamId);
+
+  return rivals
+    .map((rival) => {
+      const rivalStanding = standingMap.get(rival.team.id);
+      if (!rivalStanding) return null;
+
+      const rivalSW = deriveStrengthWeakness(standings, rival.team.id);
+
+      const teamSide: TaleOfTheTapeTeamSide = {
+        id: teamId,
+        name: teamStanding.team_name,
+        slug: '', // Not needed for the viewed team (already on the page)
+        logo: teamStanding.team_logo,
+        overallRecord: `${teamStanding.wins}-${teamStanding.losses}-${teamStanding.ties}`,
+        goalsFor: teamStanding.goals_for,
+        goalsAgainst: teamStanding.goals_against,
+        goalDifferential: teamStanding.goal_differential,
+        strength: teamSW.strength,
+        weakness: teamSW.weakness,
+      };
+
+      const rivalSide: TaleOfTheTapeTeamSide = {
+        id: rival.team.id,
+        name: rival.team.name,
+        slug: rival.team.slug,
+        logo: rival.team.logo,
+        overallRecord: `${rivalStanding.wins}-${rivalStanding.losses}-${rivalStanding.ties}`,
+        goalsFor: rivalStanding.goals_for,
+        goalsAgainst: rivalStanding.goals_against,
+        goalDifferential: rivalStanding.goal_differential,
+        strength: rivalSW.strength,
+        weakness: rivalSW.weakness,
+      };
+
+      // H2H from the viewed team's perspective
+      const h2hRecord = `${rival.wins}-${rival.losses}${rival.ties > 0 ? `-${rival.ties}` : ''}`;
+      const h2hRecordRival = `${rival.losses}-${rival.wins}${rival.ties > 0 ? `-${rival.ties}` : ''}`;
+
+      return {
+        team: teamSide,
+        rival: rivalSide,
+        h2hRecord,
+        h2hRecordRival,
+        gamesPlayed: rival.games_played,
+      } satisfies TaleOfTheTapeRival;
+    })
+    .filter((entry): entry is TaleOfTheTapeRival => entry !== null);
+}

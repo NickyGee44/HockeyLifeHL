@@ -10,7 +10,7 @@ import {
   Swords,
 } from 'lucide-react';
 import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
-import { RivalsCarousel } from '@/components/team/RivalsCarousel';
+import { RivalsTaleOfTheTape } from '@/components/team/RivalsTaleOfTheTape';
 import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
 import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
 import { TeamPageCheckinCard } from '@/components/team/TeamPageCheckinCard';
@@ -31,7 +31,7 @@ import {
   getTeamWithCaptain,
 } from '@/lib/data';
 import {
-  buildRivalCardInsights,
+  buildTaleOfTheTapeRivals,
   buildTeamLeaders,
   buildTeamPointInsights,
   formatSavePercentage,
@@ -136,7 +136,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   );
 
   const captain = roster.find((player) => player.leadership_role === 'captain');
-  const rivalCards = buildRivalCardInsights(rivals);
+  const taleOfTheTapeRivals = buildTaleOfTheTapeRivals(team.id, rivals, standings);
   const leadersByMetric = {
     points: buildTeamLeaders(skaters, rosterStatsByPlayer, 'points'),
     goals: buildTeamLeaders(skaters, rosterStatsByPlayer, 'goals'),
@@ -465,15 +465,17 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 title="Rivals"
                 icon={<Swords className="w-5 h-5 text-[var(--league-primary)]" />}
               />
-              <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
-                {rivalCards.length > 0 ? (
-                  <div>
-                    <RivalsCarousel rivals={rivalCards} leagueSlug={leagueSlug} />
-                  </div>
+              <div className="mt-4">
+                {taleOfTheTapeRivals.length > 0 ? (
+                  <RivalsTaleOfTheTape
+                    matchups={taleOfTheTapeRivals}
+                    leagueSlug={leagueSlug}
+                    teamLogoOverride={team.logo_url || team.logo || null}
+                  />
                 ) : (
                   <EmptyPanel
                     title="No rivalry sample yet"
-                    description="Rival cards will appear after this team logs completed games against opponents."
+                    description="Tale-of-the-tape rival matchups will appear after this team logs completed games against opponents."
                   />
                 )}
               </div>

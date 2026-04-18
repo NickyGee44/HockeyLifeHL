@@ -1,8 +1,10 @@
 import type { Player, ScheduleGame } from '../types';
 import {
   buildRivalCardInsights,
+  buildTaleOfTheTapeRivals,
   buildTeamLeaders,
   buildTeamPointInsights,
+  deriveStrengthWeakness,
   getTeamStandingRank,
   normalizeTeamScheduleView,
   partitionTeamSchedule,
@@ -153,6 +155,123 @@ describe('team page helpers', () => {
     expect(trailingRival.insight).toContain('controlled more of the matchup');
     expect(levelRival.status).toBe('level');
     expect(levelRival.recordLabel).toBe('1-1-1');
+  });
+
+  it('derives strength and weakness from league-relative offense and defence ranks', () => {
+    const standings = [
+      {
+        team_id: 'team-1',
+        team_name: 'Falcons',
+        wins: 7,
+        losses: 1,
+        ties: 0,
+        goals_for: 40,
+        goals_against: 18,
+        goal_differential: 22,
+      },
+      {
+        team_id: 'team-2',
+        team_name: 'Blades',
+        wins: 6,
+        losses: 2,
+        ties: 0,
+        goals_for: 32,
+        goals_against: 12,
+        goal_differential: 20,
+      },
+      {
+        team_id: 'team-3',
+        team_name: 'Storm',
+        wins: 3,
+        losses: 5,
+        ties: 0,
+        goals_for: 20,
+        goals_against: 30,
+        goal_differential: -10,
+      },
+      {
+        team_id: 'team-4',
+        team_name: 'Wolves',
+        wins: 2,
+        losses: 6,
+        ties: 0,
+        goals_for: 18,
+        goals_against: 38,
+        goal_differential: -20,
+      },
+    ] as any;
+
+    expect(deriveStrengthWeakness(standings, 'team-1')).toEqual({
+      strength: 'offense',
+      weakness: 'goaltending',
+    });
+
+    expect(deriveStrengthWeakness(standings, 'team-2')).toEqual({
+      strength: 'goaltending',
+      weakness: 'offense',
+    });
+  });
+
+  it('builds tale-of-the-tape rivals using current-season standings and h2h records', () => {
+    const matchups = buildTaleOfTheTapeRivals(
+      'team-1',
+      [
+        {
+          team: { id: 'team-3', name: 'Storm', slug: 'storm', logo: '/storm.png' },
+          wins: 3,
+          losses: 1,
+          ties: 0,
+          games_played: 4,
+        },
+      ],
+      [
+        {
+          team_id: 'team-1',
+          team_name: 'Falcons',
+          team_logo: '/falcons-standing.png',
+          wins: 7,
+          losses: 1,
+          ties: 0,
+          points: 14,
+          games_played: 8,
+          goals_for: 40,
+          goals_against: 18,
+          goal_differential: 22,
+        },
+        {
+          team_id: 'team-3',
+          team_name: 'Storm',
+          team_logo: '/storm-standing.png',
+          wins: 3,
+          losses: 5,
+          ties: 0,
+          points: 6,
+          games_played: 8,
+          goals_for: 20,
+          goals_against: 30,
+          goal_differential: -10,
+        },
+      ] as any,
+    );
+
+    expect(matchups).toHaveLength(1);
+    expect(matchups[0]).toMatchObject({
+      gamesPlayed: 4,
+      h2hRecord: '3-1',
+      h2hRecordRival: '1-3',
+      team: {
+        id: 'team-1',
+        name: 'Falcons',
+        logo: '/falcons-standing.png',
+        overallRecord: '7-1-0',
+      },
+      rival: {
+        id: 'team-3',
+        name: 'Storm',
+        logo: '/storm.png',
+        overallRecord: '3-5-0',
+      },
+    });
   });
 
   it('splits roster by role and sorts each group by production', () => {
