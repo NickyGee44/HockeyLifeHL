@@ -118,7 +118,7 @@ const PODIUM_CARD_STYLES: Record<
     teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
   3: {
-    heightClass: 'min-h-[18.75rem] md:min-h-[20.75rem]',
+    heightClass: 'min-h-[16.9rem] md:min-h-[18.7rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
@@ -232,7 +232,7 @@ export function StatLeaders({
                   >
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
-                      className={`absolute left-1/2 top-[1.9rem] z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] md:top-[2.05rem] ${podiumStyle.avatarHalo}`}
+                      className={`absolute left-1/2 top-[3.2rem] z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] md:top-[3.35rem] ${podiumStyle.avatarHalo}`}
                       style={{ backgroundImage: PODIUM_AVATAR_STYLES[rank] ?? PODIUM_AVATAR_STYLES[3] }}
                     >
                       <span className="block rounded-full bg-[rgba(7,10,22,0.9)] p-[3px]">
