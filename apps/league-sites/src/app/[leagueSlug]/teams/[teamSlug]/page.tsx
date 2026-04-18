@@ -479,7 +479,6 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   <RivalsTaleOfTheTape
                     matchups={taleOfTheTapeRivals}
                     leagueSlug={leagueSlug}
-                    teamLogoOverride={team.logo_url || team.logo || null}
                   />
                 ) : (
                   <EmptyPanel

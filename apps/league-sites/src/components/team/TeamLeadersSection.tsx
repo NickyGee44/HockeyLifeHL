@@ -41,26 +41,26 @@ const PODIUM_CARD_STYLES: Record<
   { heightClass: string; cardClass: string; avatarHalo: string }
 > = {
   1: {
-    heightClass: 'min-h-[16.5rem] md:min-h-[18rem]',
+    heightClass: 'min-h-[14.5rem] md:min-h-[15.5rem]',
     cardClass:
       'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
   },
   2: {
-    heightClass: 'min-h-[15rem] md:min-h-[16.5rem]',
+    heightClass: 'min-h-[13.4rem] md:min-h-[14.35rem]',
     cardClass:
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
   },
   3: {
-    heightClass: 'min-h-[13.5rem] md:min-h-[14.75rem]',
+    heightClass: 'min-h-[12.25rem] md:min-h-[13.1rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
   },
 };
 
-const PODIUM_AVATAR_SIZE_CLASS = 'h-[4.8rem] w-[4.8rem]';
+const PODIUM_AVATAR_SIZE_CLASS = 'h-[4.15rem] w-[4.15rem] md:h-[4.35rem] md:w-[4.35rem]';
 
 const PODIUM_AVATAR_STYLES: Record<number, string> = {
   1: 'conic-gradient(from 180deg, rgba(255,250,214,1) 0deg, rgba(245,204,96,1) 70deg, rgba(255,239,138,1) 150deg, rgba(189,147,45,1) 220deg, rgba(255,250,214,1) 360deg)',
@@ -90,7 +90,7 @@ export function TeamLeadersSection({
   const [metric, setMetric] = useState<TeamLeaderMetric>(initialMetric);
   const [showChart, setShowChart] = useState(false);
 
-  const leaders = leadersByMetric[metric] ?? [];
+  const leaders = useMemo(() => leadersByMetric[metric] ?? [], [leadersByMetric, metric]);
   const podiumLeaders = useMemo(() => {
     if (leaders.length <= 1) return leaders;
     if (leaders.length === 2) return [leaders[1], leaders[0]];
@@ -256,42 +256,43 @@ function TeamLeaderPodiumCard({
     >
       <Link
         href={`/${leagueSlug}/players/${leader.playerId}`}
-        className={`absolute left-1/2 top-[3.2rem] z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] md:top-[3.35rem] ${podiumStyle.avatarHalo}`}
+        className={`absolute left-1/2 top-[2.55rem] z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] md:top-[2.7rem] ${podiumStyle.avatarHalo}`}
         style={{ backgroundImage: PODIUM_AVATAR_STYLES[place] ?? PODIUM_AVATAR_STYLES[3] }}
       >
         <span className="block rounded-full bg-[rgba(7,10,22,0.9)] p-[3px]">
           <span className={`block overflow-hidden rounded-full border border-white/10 bg-black/30 ${PODIUM_AVATAR_SIZE_CLASS}`}>
-            <img
+            <Image
               src={leader.avatarUrl || '/blank_player.png'}
               alt={leader.name}
+              width={72}
+              height={72}
               className="h-full w-full object-cover"
             />
           </span>
         </span>
       </Link>
 
-      <div className={`flex w-full min-w-0 flex-col items-center justify-end rounded-[24px] border px-3 pb-3 pt-[8.85rem] text-center md:pb-3.5 md:pt-[9.4rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}>
+      <div className={`flex w-full min-w-0 flex-col items-center justify-end rounded-[22px] border px-3 pb-2.5 pt-[7rem] text-center md:pb-3 md:pt-[7.45rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}>
         <div className="w-full min-w-0">
-          <div className="min-h-[3.6rem] md:min-h-[3.85rem]">
+          <div className="min-h-[2.9rem] md:min-h-[3.15rem]">
             <Link
               href={`/${leagueSlug}/players/${leader.playerId}`}
               className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
             >
-              <span className="block truncate text-sm font-black md:text-[15px]">{firstName}</span>
+              <span className="block truncate text-[13px] font-black md:text-sm">{firstName}</span>
               {lastName ? (
-                <span className="block truncate text-sm font-black md:text-[15px]">{lastName}</span>
+                <span className="block truncate text-[13px] font-black md:text-sm">{lastName}</span>
               ) : null}
             </Link>
           </div>
 
-          <div className="mt-1.5 flex min-h-[2.35rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
+          <div className="mt-1 flex min-h-[2rem] items-center justify-center text-[1.05rem] font-black tracking-tight text-[var(--league-primary)] md:text-[1.45rem]">
             {leader.value}
           </div>
 
-          <div className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
-            {leader.positionLabel}
-            {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
-            {` • ${leader.gamesPlayed} GP`}
+          <div className="mt-0.5 text-[10px] font-medium text-[var(--color-text-secondary)] md:text-[11px]">
+            {leader.jerseyNumber != null ? `#${leader.jerseyNumber} • ` : ''}
+            {`${leader.gamesPlayed} GP`}
           </div>
         </div>
       </div>

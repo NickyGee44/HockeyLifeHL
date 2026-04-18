@@ -61,11 +61,9 @@ export type TeamLeaderCard = {
   name: string;
   avatarUrl: string | null;
   jerseyNumber: number | null;
-  leadershipRole: Player['leadership_role'];
   metric: TeamLeaderMetric;
   value: number;
   gamesPlayed: number;
-  positionLabel: string;
 };
 
 export type TeamPointInsight = {
@@ -222,11 +220,9 @@ export function buildTeamLeaders(
         name: player.profile?.full_name || 'Unknown Player',
         avatarUrl: player.profile?.avatar_url || null,
         jerseyNumber: player.jersey_number ?? null,
-        leadershipRole: player.leadership_role,
         metric,
         value: stats?.[metric] ?? 0,
         gamesPlayed: stats?.games_played ?? 0,
-        positionLabel: getPositionShortLabel(player.position, false),
       } satisfies TeamLeaderCard;
     })
     .sort((left, right) => {

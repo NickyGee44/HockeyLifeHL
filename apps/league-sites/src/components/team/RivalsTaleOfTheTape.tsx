@@ -75,18 +75,24 @@ function ComparisonRow({
         </span>
       </div>
       <div className="flex h-1.5 items-center gap-1">
-        <div className="flex h-full flex-1 justify-end overflow-hidden rounded-full bg-white/[0.08]">
+        <div
+          className="relative h-full flex-1 overflow-hidden rounded-full"
+          style={{ backgroundColor: `color-mix(in srgb, ${leftColor} 18%, rgba(255,255,255,0.07))` }}
+        >
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="absolute inset-y-0 right-0 rounded-full transition-all duration-500"
             style={{
               width: `${leftPct}%`,
               backgroundColor: leftColor,
             }}
           />
         </div>
-        <div className="flex h-full flex-1 justify-start overflow-hidden rounded-full bg-white/[0.08]">
+        <div
+          className="relative h-full flex-1 overflow-hidden rounded-full"
+          style={{ backgroundColor: `color-mix(in srgb, ${rightColor} 18%, rgba(255,255,255,0.07))` }}
+        >
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
             style={{
               width: `${rightPct}%`,
               backgroundColor: rightColor,
@@ -280,11 +286,9 @@ function formatTendyMeta(gamesPlayed: number, gaa: number | null) {
 export function RivalsTaleOfTheTape({
   matchups,
   leagueSlug,
-  teamLogoOverride,
 }: {
   matchups: TaleOfTheTapeRival[];
   leagueSlug: string;
-  teamLogoOverride?: string | null;
 }) {
   const [index, setIndex] = useState(0);
 
@@ -305,7 +309,6 @@ export function RivalsTaleOfTheTape({
   if (matchups.length === 0) return null;
 
   const m = matchups[index];
-  const teamLogo = teamLogoOverride ?? m.team.logo;
 
   return (
     <div>
@@ -317,7 +320,7 @@ export function RivalsTaleOfTheTape({
         <div className="mb-7 flex items-center justify-center gap-4 md:gap-10">
           <TeamLogo
             name={m.team.name}
-            logo={teamLogo}
+            logo={m.team.logo}
             slug=""
             leagueSlug={leagueSlug}
             side="left"
