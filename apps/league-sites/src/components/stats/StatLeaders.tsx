@@ -232,7 +232,7 @@ export function StatLeaders({
                   >
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
-                      className={`absolute left-1/2 top-0 z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] ${podiumStyle.avatarHalo}`}
+                      className={`absolute left-1/2 top-[1.9rem] z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] md:top-[2.05rem] ${podiumStyle.avatarHalo}`}
                       style={{ backgroundImage: PODIUM_AVATAR_STYLES[rank] ?? PODIUM_AVATAR_STYLES[3] }}
                     >
                       <span className="block rounded-full bg-[rgba(7,10,22,0.9)] p-[3px]">
