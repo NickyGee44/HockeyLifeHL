@@ -9,7 +9,6 @@ import {
   Shield,
   Swords,
 } from 'lucide-react';
-import { PointInsightsCarousel } from '@/components/team/PointInsightsCarousel';
 import { RivalsTaleOfTheTape } from '@/components/team/RivalsTaleOfTheTape';
 import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
 import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
@@ -35,7 +34,6 @@ import {
 import {
   buildTaleOfTheTapeRivals,
   buildTeamLeaders,
-  buildTeamPointInsights,
   formatSavePercentage,
   getPositionShortLabel,
   getTeamStandingRank,
@@ -182,13 +180,6 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
     };
   });
 
-  const pointInsights = buildTeamPointInsights({
-    teamName: team.name,
-    teamId: team.id,
-    standings,
-    teamStats,
-    rosterStatsByPlayer,
-  });
   const logoSrc = team.logo_url || team.logo || '/blank_team.png';
   const teamScheduleGames = seasonGames.filter((game) => game.home_team?.id === team.id || game.away_team?.id === team.id);
   const nextTeamGame = [...teamScheduleGames]
@@ -354,12 +345,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   leadersByMetric={leadersByMetric}
                   barChartPlayers={barChartPlayers}
                   leagueSlug={leagueSlug}
-                  teamLogoSrc={logoSrc}
-                  teamName={team.name}
                   initialMetric={leaderTab}
-                  pointInsightsElement={
-                    pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} asBanner /> : null
-                  }
                 />
               </div>
             </section>

@@ -75,25 +75,21 @@ function ComparisonRow({
         </span>
       </div>
       <div className="flex h-1.5 items-center gap-1">
-        <div className="flex h-full flex-1 justify-end">
+        <div className="flex h-full flex-1 justify-end overflow-hidden rounded-full bg-white/[0.08]">
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${leftPct}%`,
-              backgroundColor: leftWins
-                ? leftColor
-                : 'color-mix(in srgb, var(--color-text-muted) 40%, transparent)',
+              backgroundColor: leftColor,
             }}
           />
         </div>
-        <div className="flex h-full flex-1 justify-start">
+        <div className="flex h-full flex-1 justify-start overflow-hidden rounded-full bg-white/[0.08]">
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${rightPct}%`,
-              backgroundColor: rightWins
-                ? rightColor
-                : 'color-mix(in srgb, var(--color-text-muted) 40%, transparent)',
+              backgroundColor: rightColor,
             }}
           />
         </div>

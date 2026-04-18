@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BarChart3, Trophy, X } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import type { TeamLeaderCard, TeamLeaderMetric } from '@/lib/team-page';
 
 interface BarChartPlayer {
@@ -19,10 +19,7 @@ interface TeamLeadersSectionProps {
   leadersByMetric: Record<TeamLeaderMetric, TeamLeaderCard[]>;
   barChartPlayers: BarChartPlayer[];
   leagueSlug: string;
-  pointInsightsElement: React.ReactNode;
   initialMetric?: TeamLeaderMetric;
-  teamLogoSrc?: string | null;
-  teamName: string;
 }
 
 const METRIC_LABELS: Record<TeamLeaderMetric, string> = {
@@ -39,32 +36,27 @@ const TAB_OPTIONS: [TeamLeaderMetric, string][] = [
   ['penalty_minutes', 'PM'],
 ];
 
-const PODIUM_TEAM_LOGO_CLASS = 'h-[3.5rem] w-[3.5rem] object-contain md:h-[3.75rem] md:w-[3.75rem]';
-
 const PODIUM_CARD_STYLES: Record<
   number,
-  { heightClass: string; cardClass: string; avatarHalo: string; teamLogoClass: string }
+  { heightClass: string; cardClass: string; avatarHalo: string }
 > = {
   1: {
-    heightClass: 'min-h-[22.25rem] md:min-h-[24.25rem]',
+    heightClass: 'min-h-[16.5rem] md:min-h-[18rem]',
     cardClass:
       'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
-    teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
   2: {
-    heightClass: 'min-h-[20.5rem] md:min-h-[22.5rem]',
+    heightClass: 'min-h-[15rem] md:min-h-[16.5rem]',
     cardClass:
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
-    teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
   3: {
-    heightClass: 'min-h-[16.9rem] md:min-h-[18.7rem]',
+    heightClass: 'min-h-[13.5rem] md:min-h-[14.75rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
-    teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
 };
 
@@ -93,16 +85,12 @@ export function TeamLeadersSection({
   leadersByMetric,
   barChartPlayers,
   leagueSlug,
-  pointInsightsElement,
   initialMetric = 'points',
-  teamLogoSrc,
-  teamName,
 }: TeamLeadersSectionProps) {
   const [metric, setMetric] = useState<TeamLeaderMetric>(initialMetric);
   const [showChart, setShowChart] = useState(false);
 
   const leaders = leadersByMetric[metric] ?? [];
-  const [openTeamTooltipFor, setOpenTeamTooltipFor] = useState<string | null>(null);
   const podiumLeaders = useMemo(() => {
     if (leaders.length <= 1) return leaders;
     if (leaders.length === 2) return [leaders[1], leaders[0]];
@@ -171,13 +159,6 @@ export function TeamLeadersSection({
                       leader={leader}
                       place={place}
                       leagueSlug={leagueSlug}
-                      teamLogoSrc={teamLogoSrc}
-                      teamName={teamName}
-                      tooltipOpen={openTeamTooltipFor === leader.playerId}
-                      onToggleTooltip={() =>
-                        setOpenTeamTooltipFor((current) => (current === leader.playerId ? null : leader.playerId))
-                      }
-                      onCloseTooltip={() => setOpenTeamTooltipFor(null)}
                     />
                   );
                 })}
@@ -253,8 +234,6 @@ export function TeamLeadersSection({
           )}
         </div>
       )}
-
-      {metric === 'points' ? pointInsightsElement : null}
     </section>
   );
 }
@@ -263,28 +242,11 @@ function TeamLeaderPodiumCard({
   leader,
   place,
   leagueSlug,
-  teamLogoSrc,
-  teamName,
-  tooltipOpen,
-  onToggleTooltip,
-  onCloseTooltip,
 }: {
   leader: TeamLeaderCard;
   place: number;
   leagueSlug: string;
-  teamLogoSrc?: string | null;
-  teamName: string;
-  tooltipOpen: boolean;
-  onToggleTooltip: () => void;
-  onCloseTooltip: () => void;
 }) {
-  const labels: Record<TeamLeaderMetric, string> = {
-    goals: 'Goals',
-    assists: 'Assists',
-    points: 'Points',
-    penalty_minutes: 'PIM',
-  };
-  const logoSrc = teamLogoSrc || '/blank_team.png';
   const { firstName, lastName } = splitPlayerName(leader.name);
   const podiumStyle = PODIUM_CARD_STYLES[place] ?? PODIUM_CARD_STYLES[3];
 
@@ -322,16 +284,7 @@ function TeamLeaderPodiumCard({
             </Link>
           </div>
 
-          <div className="mt-2 flex min-h-[1.25rem] items-center justify-center gap-1.5">
-            {leader.leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
-            {leader.leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
-          </div>
-
-          <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {labels[leader.metric]} leader
-          </p>
-
-          <div className="mt-2 flex min-h-[2.35rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
+          <div className="mt-1.5 flex min-h-[2.35rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
             {leader.value}
           </div>
 
@@ -340,52 +293,9 @@ function TeamLeaderPodiumCard({
             {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
             {` • ${leader.gamesPlayed} GP`}
           </div>
-
-          <div className="relative mt-2.5 flex min-h-[3.75rem] items-end justify-center md:min-h-[4rem]">
-            <button
-              type="button"
-              onClick={onToggleTooltip}
-              className="rounded-full p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
-              aria-label={`Show team for ${leader.name}`}
-            >
-              <img
-                src={logoSrc}
-                alt={teamName}
-                className={podiumStyle.teamLogoClass}
-              />
-            </button>
-            {tooltipOpen ? (
-              <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full border border-white/10 bg-[rgba(10,13,29,0.96)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.8)]">
-                <div className="flex items-center gap-2">
-                  <span className="truncate max-w-[150px]">{teamName}</span>
-                  <button
-                    type="button"
-                    onClick={onCloseTooltip}
-                    className="rounded-full text-white/60 transition-colors hover:text-white"
-                    aria-label="Close team name"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function CaptainBadge({ label, muted }: { label: string; muted?: boolean }) {
-  return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] ${
-        muted
-          ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]'
-          : 'bg-amber-500/18 text-amber-500'
-      }`}
-    >
-      {label}
-    </span>
-  );
-}
