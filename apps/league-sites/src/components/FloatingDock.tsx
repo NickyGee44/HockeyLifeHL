@@ -129,7 +129,7 @@ export function FloatingDock({
   const moreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
   }, []);
 
   // Close "more" menu when clicking outside
@@ -150,7 +150,7 @@ export function FloatingDock({
 
   // Close on navigation
   useEffect(() => {
-    setMoreOpen(false);
+    queueMicrotask(() => setMoreOpen(false));
   }, [pathname]);
 
   const isActive = (href: string) => {
@@ -221,14 +221,17 @@ export function FloatingDock({
   };
 
   const isDark = resolvedTheme === 'dark';
+  const dockBottomOffset = 'calc(env(safe-area-inset-bottom, 6px) + 12px)';
+  const moreMenuBottomOffset = 'calc(env(safe-area-inset-bottom, 6px) + 88px)';
 
   const dock = (
     <div className="fixed inset-x-0 bottom-0 z-[999] flex justify-center lg:hidden" ref={moreRef}>
       {/* More popup menu */}
       {moreOpen && (
         <div
-          className="absolute inset-x-4 bottom-[calc(100%+4px)] mx-auto max-w-sm animate-in slide-in-from-bottom-4 rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
+          className="fixed inset-x-4 z-[1000] mx-auto max-w-sm animate-in slide-in-from-bottom-4 rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
           style={{
+            bottom: moreMenuBottomOffset,
             background: `linear-gradient(170deg, color-mix(in srgb, var(--league-primary) 10%, rgba(20,20,28,0.92)) 0%, color-mix(in srgb, var(--league-secondary-safe) 6%, rgba(12,12,18,0.95)) 100%)`,
           }}
         >
@@ -418,8 +421,9 @@ export function FloatingDock({
 
         {/* Dock bar */}
         <div
-          className="relative mx-auto mb-[calc(env(safe-area-inset-bottom,6px)+12px)] w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
+          className="relative mx-auto w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
           style={{
+            marginBottom: dockBottomOffset,
             background: `linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 14%, rgba(18,18,26,0.88)) 0%, color-mix(in srgb, var(--league-secondary-safe) 10%, rgba(10,10,16,0.92)) 100%)`,
           }}
         >
