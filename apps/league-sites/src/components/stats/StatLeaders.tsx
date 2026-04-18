@@ -99,13 +99,12 @@ function splitPlayerName(name: string) {
 
 const PODIUM_CARD_STYLES: Record<
   number,
-  { heightClass: string; cardClass: string; avatarClass: string; avatarHalo: string; teamLogoClass: string }
+  { heightClass: string; cardClass: string; avatarHalo: string; teamLogoClass: string }
 > = {
   1: {
     heightClass: 'min-h-[20rem] md:min-h-[22rem]',
     cardClass:
       'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
-    avatarClass: 'h-24 w-24',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
     teamLogoClass: 'h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12',
   },
@@ -113,7 +112,6 @@ const PODIUM_CARD_STYLES: Record<
     heightClass: 'min-h-[18rem] md:min-h-[19.5rem]',
     cardClass:
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
-    avatarClass: 'h-20 w-20',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
     teamLogoClass: 'h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12',
   },
@@ -121,11 +119,12 @@ const PODIUM_CARD_STYLES: Record<
     heightClass: 'min-h-[15.5rem] md:min-h-[17rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
-    avatarClass: 'h-16 w-16',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
     teamLogoClass: 'h-10 w-10 object-contain md:h-11 md:w-11',
   },
 };
+
+const PODIUM_AVATAR_SIZE_CLASS = 'h-24 w-24';
 
 const PODIUM_AVATAR_STYLES: Record<number, string> = {
   1: 'conic-gradient(from 180deg, rgba(255,250,214,1) 0deg, rgba(245,204,96,1) 70deg, rgba(255,239,138,1) 150deg, rgba(189,147,45,1) 220deg, rgba(255,250,214,1) 360deg)',
@@ -227,15 +226,15 @@ export function StatLeaders({
                 return (
                   <div
                     key={`${activeMetric.id}-${leader.player_id}`}
-                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-3 pt-4 text-center ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
+                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-[6.5rem] text-center md:pb-5 md:pt-[7rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
                   >
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
-                      className={`relative mt-1 block rounded-full p-[3px] transition-transform hover:scale-[1.03] ${podiumStyle.avatarHalo}`}
+                      className={`absolute left-1/2 top-4 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] ${podiumStyle.avatarHalo}`}
                       style={{ backgroundImage: PODIUM_AVATAR_STYLES[rank] ?? PODIUM_AVATAR_STYLES[3] }}
                     >
                       <span className="block rounded-full bg-[rgba(7,10,22,0.9)] p-[3px]">
-                        <span className={`block overflow-hidden rounded-full border border-white/10 bg-black/30 ${podiumStyle.avatarClass}`}>
+                        <span className={`block overflow-hidden rounded-full border border-white/10 bg-black/30 ${PODIUM_AVATAR_SIZE_CLASS}`}>
                           <img
                             src={leader.avatar_url || '/blank_player.png'}
                             alt={leader.player_name}
@@ -245,7 +244,7 @@ export function StatLeaders({
                       </span>
                     </Link>
 
-                    <div className="mt-4 flex w-full min-w-0 flex-1 flex-col justify-end">
+                    <div className="mt-auto flex w-full min-w-0 flex-1 flex-col justify-end">
                       <div className="min-h-[2.9rem]">
                         <Link
                           href={`/${leagueSlug}/players/${leader.player_id}`}
@@ -291,12 +290,12 @@ export function StatLeaders({
                           </div>
                         ) : null}
                       </div>
-                    </div>
 
-                    <div className="mt-3 flex min-h-[1.75rem] items-center justify-center">
-                      {playerBadges.length > 0 ? (
-                        <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
-                      ) : null}
+                      <div className="mt-3 flex min-h-[1.75rem] items-center justify-center">
+                        {playerBadges.length > 0 ? (
+                          <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 );
