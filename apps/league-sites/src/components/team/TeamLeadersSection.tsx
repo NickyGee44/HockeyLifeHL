@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BarChart3, Medal } from 'lucide-react';
+import { BarChart3, Trophy, X } from 'lucide-react';
 import type { TeamLeaderCard, TeamLeaderMetric } from '@/lib/team-page';
 
 interface BarChartPlayer {
@@ -21,6 +21,8 @@ interface TeamLeadersSectionProps {
   leagueSlug: string;
   pointInsightsElement: React.ReactNode;
   initialMetric?: TeamLeaderMetric;
+  teamLogoSrc?: string | null;
+  teamName: string;
 }
 
 const METRIC_LABELS: Record<TeamLeaderMetric, string> = {
@@ -44,11 +46,19 @@ export function TeamLeadersSection({
   leagueSlug,
   pointInsightsElement,
   initialMetric = 'points',
+  teamLogoSrc,
+  teamName,
 }: TeamLeadersSectionProps) {
   const [metric, setMetric] = useState<TeamLeaderMetric>(initialMetric);
   const [showChart, setShowChart] = useState(false);
 
   const leaders = leadersByMetric[metric] ?? [];
+  const [openTeamTooltipFor, setOpenTeamTooltipFor] = useState<string | null>(null);
+  const podiumLeaders = useMemo(() => {
+    if (leaders.length <= 1) return leaders;
+    if (leaders.length === 2) return [leaders[1], leaders[0]];
+    return [leaders[1], leaders[0], leaders[2]];
+  }, [leaders]);
 
   const sortedBarChartPlayers = useMemo(() => {
     return [...barChartPlayers].sort((a, b) => (b.values[metric] ?? 0) - (a.values[metric] ?? 0));
@@ -102,15 +112,27 @@ export function TeamLeadersSection({
       {!showChart ? (
         <>
           {leaders.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-3">
-              {leaders.map((leader, index) => (
-                <TeamLeaderPodiumCard
-                  key={`${leader.playerId}-${leader.metric}`}
-                  leader={leader}
-                  place={index + 1}
-                  leagueSlug={leagueSlug}
-                />
-              ))}
+            <div className="rounded-[28px] border border-[var(--glass-card-border)] bg-[linear-gradient(180deg,rgba(19,24,49,0.96),rgba(28,35,72,0.92))] p-4 shadow-[0_22px_60px_-28px_rgba(0,0,0,0.65)] md:p-5">
+              <div className="grid grid-cols-3 items-end gap-3 md:gap-4">
+                {podiumLeaders.map((leader) => {
+                  const place = leaders.findIndex((entry) => entry.playerId === leader.playerId) + 1;
+                  return (
+                    <TeamLeaderPodiumCard
+                      key={`${leader.playerId}-${leader.metric}`}
+                      leader={leader}
+                      place={place}
+                      leagueSlug={leagueSlug}
+                      teamLogoSrc={teamLogoSrc}
+                      teamName={teamName}
+                      tooltipOpen={openTeamTooltipFor === leader.playerId}
+                      onToggleTooltip={() =>
+                        setOpenTeamTooltipFor((current) => (current === leader.playerId ? null : leader.playerId))
+                      }
+                      onCloseTooltip={() => setOpenTeamTooltipFor(null)}
+                    />
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <div className="rounded-[24px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/55 px-6 py-10 text-center">
@@ -192,60 +214,128 @@ function TeamLeaderPodiumCard({
   leader,
   place,
   leagueSlug,
+  teamLogoSrc,
+  teamName,
+  tooltipOpen,
+  onToggleTooltip,
+  onCloseTooltip,
 }: {
   leader: TeamLeaderCard;
   place: number;
   leagueSlug: string;
+  teamLogoSrc?: string | null;
+  teamName: string;
+  tooltipOpen: boolean;
+  onToggleTooltip: () => void;
+  onCloseTooltip: () => void;
 }) {
-  const medalStyles = [
-    'from-amber-400/30 via-amber-300/18 to-transparent border-amber-300/35 text-amber-200',
-    'from-slate-200/25 via-slate-100/15 to-transparent border-slate-300/30 text-slate-100',
-    'from-orange-500/22 via-orange-300/14 to-transparent border-orange-300/25 text-orange-200',
-  ];
   const labels: Record<TeamLeaderMetric, string> = {
     goals: 'Goals',
     assists: 'Assists',
     points: 'Points',
     penalty_minutes: 'PIM',
   };
+  const isCenter = place === 1;
+  const logoSrc = teamLogoSrc || '/blank_team.png';
 
   return (
-    <Link
-      href={`/${leagueSlug}/players/${leader.playerId}`}
-      className={`rounded-[24px] border bg-gradient-to-br p-5 transition-transform duration-200 hover:-translate-y-0.5 ${medalStyles[place - 1] || medalStyles[2]}`}
+    <div
+      className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-3 text-center transition-transform ${
+        isCenter
+          ? 'z-10 translate-y-0 border-[var(--league-primary)]/35 bg-[linear-gradient(180deg,rgba(64,72,122,0.95),rgba(39,46,89,0.95))] shadow-[0_22px_50px_-24px_rgba(0,0,0,0.7)]'
+          : 'translate-y-4 border-white/8 bg-[linear-gradient(180deg,rgba(36,42,82,0.94),rgba(25,31,62,0.9))] shadow-[0_18px_40px_-26px_rgba(0,0,0,0.65)]'
+      }`}
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-current/20 bg-black/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">
-          <Medal className="h-3.5 w-3.5" />
-          {place === 1 ? 'Gold' : place === 2 ? 'Silver' : 'Bronze'}
+      {isCenter ? (
+        <div className="absolute -top-8 flex flex-col items-center">
+          <Trophy className="h-7 w-7 text-amber-300 drop-shadow-[0_6px_12px_rgba(245,158,11,0.35)]" />
+          <span className="mt-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 text-[10px] font-black text-black">
+            1
+          </span>
         </div>
-        <span className="text-3xl font-black leading-none">{leader.value}</span>
-      </div>
+      ) : (
+        <span className={`absolute -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
+          place === 2 ? 'bg-sky-400 text-slate-950' : 'bg-emerald-400 text-slate-950'
+        }`}>
+          {place}
+        </span>
+      )}
 
-      <div className="flex items-center gap-3">
+      <Link
+        href={`/${leagueSlug}/players/${leader.playerId}`}
+        className={`relative block overflow-hidden rounded-full border ${
+          isCenter ? 'mt-4 h-24 w-24 border-amber-300/70' : 'mt-5 h-16 w-16 border-white/15'
+        } bg-black/20 transition-transform hover:scale-[1.03]`}
+      >
         <Image
           src={leader.avatarUrl || '/blank_player.png'}
           alt={leader.name}
-          width={60}
-          height={60}
-          className="h-14 w-14 rounded-full border border-white/10 object-cover"
+          width={96}
+          height={96}
+          className="h-full w-full object-cover"
         />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-lg font-bold text-[var(--color-text-primary)]">{leader.name}</p>
-            {leader.leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
-            {leader.leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
-          </div>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {labels[leader.metric]} leader • {leader.positionLabel}
-            {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
-          </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {leader.gamesPlayed} GP
-          </p>
+      </Link>
+
+      <div className="mt-3 min-w-0">
+        <Link
+          href={`/${leagueSlug}/players/${leader.playerId}`}
+          className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
+        >
+          <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{leader.name}</span>
+        </Link>
+
+        <div className="mt-1 flex items-center justify-center gap-1.5">
+          {leader.leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
+          {leader.leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
+        </div>
+
+        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+          {labels[leader.metric]} leader
+        </p>
+
+        <div className="mt-1 text-xl font-black tracking-tight text-[var(--league-primary)] md:text-2xl">
+          {leader.value}
+        </div>
+
+        <div className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
+          {leader.positionLabel}
+          {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
+          {` • ${leader.gamesPlayed} GP`}
+        </div>
+
+        <div className="relative mt-2 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={onToggleTooltip}
+            className="rounded-full p-1.5 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
+            aria-label={`Show team for ${leader.name}`}
+          >
+            <Image
+              src={logoSrc}
+              alt={teamName}
+              width={40}
+              height={40}
+              className={`object-contain ${isCenter ? 'h-10 w-10' : 'h-8 w-8'}`}
+            />
+          </button>
+          {tooltipOpen ? (
+            <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full border border-white/10 bg-[rgba(10,13,29,0.96)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.8)]">
+              <div className="flex items-center gap-2">
+                <span className="truncate max-w-[150px]">{teamName}</span>
+                <button
+                  type="button"
+                  onClick={onCloseTooltip}
+                  className="rounded-full text-white/60 transition-colors hover:text-white"
+                  aria-label="Close team name"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

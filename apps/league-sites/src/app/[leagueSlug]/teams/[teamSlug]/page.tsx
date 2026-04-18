@@ -354,6 +354,8 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   leadersByMetric={leadersByMetric}
                   barChartPlayers={barChartPlayers}
                   leagueSlug={leagueSlug}
+                  teamLogoSrc={logoSrc}
+                  teamName={team.name}
                   initialMetric={leaderTab}
                   pointInsightsElement={
                     pointInsights.length > 0 ? <PointInsightsCarousel insights={pointInsights} asBanner /> : null
