@@ -2,9 +2,9 @@ import type { Team, TeamStanding } from './types';
 
 export const TEAMS_DIRECTORY_BUMP_CHART_COLUMNS = [
   { key: 'overall', label: 'Overall' },
-  { key: 'offense', label: 'Offensive Firepower' },
-  { key: 'defense', label: 'Defense + Goaltending' },
-  { key: 'commitment', label: 'Game Commitment' },
+  { key: 'offense', label: 'Offense' },
+  { key: 'defense', label: 'Defense' },
+  { key: 'commitment', label: 'Commitment' },
 ] as const;
 
 export type TeamsDirectoryBumpChartMetricKey = typeof TEAMS_DIRECTORY_BUMP_CHART_COLUMNS[number]['key'];
@@ -40,6 +40,87 @@ export interface TeamsDirectoryBumpChartData {
   totalTeams: number;
   attendanceSource: 'confirmed-plus-fallback-roster-appearances';
   teams: TeamsDirectoryBumpChartTeam[];
+}
+
+const ORDINAL_SUFFIXES = ['th', 'st', 'nd', 'rd'] as const;
+
+function formatOrdinal(value: number) {
+  const absolute = Math.abs(value);
+  const mod100 = absolute % 100;
+
+  if (mod100 >= 11 && mod100 <= 13) {
+    return `${value}th`;
+  }
+
+  return `${value}${ORDINAL_SUFFIXES[absolute % 10] || 'th'}`;
+}
+
+function describeRankTier(rank: number, totalTeams: number) {
+  if (rank === 1) return 'leader';
+  if (rank === totalTeams) return 'trailing';
+  if (rank <= Math.max(2, Math.ceil(totalTeams / 3))) return 'top';
+  if (rank >= Math.max(2, totalTeams - 1)) return 'bottom';
+  return 'middle';
+}
+
+export function buildTeamsDirectoryBumpChartNarrative(
+  team: TeamsDirectoryBumpChartTeam,
+  metricKey: TeamsDirectoryBumpChartMetricKey,
+  totalTeams: number,
+) {
+  const metric = team.metrics[metricKey];
+  const place = `${formatOrdinal(metric.rank)} of ${totalTeams}`;
+  const tier = describeRankTier(metric.rank, totalTeams);
+
+  switch (metricKey) {
+    case 'overall': {
+      const detail = {
+        leader: 'They are setting the pace in the standings. 🏁',
+        top: 'They are right near the top of the table.',
+        middle: 'They are in the middle of the standings fight.',
+        bottom: 'There is still runway to climb the table.',
+        trailing: 'They are chasing the field in the standings right now.',
+      }[tier];
+
+      return `${team.teamName} sit ${place} overall with ${metric.valueLabel}. ${detail}`;
+    }
+
+    case 'offense': {
+      const detail = {
+        leader: 'That is the top scoring mark on this chart. 🚨',
+        top: 'The scoring punch is absolutely there.',
+        middle: 'The attack is keeping them in the mix.',
+        bottom: 'Offense is the clearest place to find another gear.',
+        trailing: 'This is the spot with the most room to add some pop.',
+      }[tier];
+
+      return `${team.teamName} sit ${place} in offense with ${metric.valueLabel}. ${detail}`;
+    }
+
+    case 'defense': {
+      const detail = {
+        leader: 'That is the stingiest defensive mark in this view. 🧱',
+        top: 'They are keeping things tight in their own end.',
+        middle: 'Their defensive numbers are holding steady.',
+        bottom: 'Shutting the door more often would move this line fast.',
+        trailing: 'Defense is the obvious swing category from here.',
+      }[tier];
+
+      return `${team.teamName} sit ${place} in defense, allowing ${metric.valueLabel}. ${detail}`;
+    }
+
+    case 'commitment': {
+      const detail = {
+        leader: 'No one is showing up more consistently right now. ✅',
+        top: 'Their turnout is one of the strongest in this view.',
+        middle: 'Their attendance is right in the pack.',
+        bottom: 'A little more consistency would stand out quickly here.',
+        trailing: 'Commitment is the clearest place to tighten things up.',
+      }[tier];
+
+      return `${team.teamName} sit ${place} in commitment at ${metric.valueLabel} attendance. ${detail}`;
+    }
+  }
 }
 
 interface BuildTeamsDirectoryBumpChartInput {

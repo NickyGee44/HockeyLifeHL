@@ -8,6 +8,7 @@ import { useDivisionFilter } from '@/components/DivisionFilterProvider';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { SeasonSelector } from '@/components/SeasonSelector';
 import {
+  buildTeamsDirectoryBumpChartNarrative,
   TEAMS_DIRECTORY_BUMP_CHART_COLUMNS,
   type TeamsDirectoryBumpChartData,
   type TeamsDirectoryBumpChartMetricKey,
@@ -25,20 +26,15 @@ interface TeamsGridProps {
   bumpChartData?: TeamsDirectoryBumpChartData | null;
 }
 
-const CHART_COLUMN_WIDTH = 180;
-const CHART_WIDTH = CHART_COLUMN_WIDTH * TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length;
-const CHART_ROW_HEIGHT = 72;
-const CHART_HEADER_HEIGHT = 64;
-const CHART_PATH_INSET_X = CHART_COLUMN_WIDTH / 2;
-const CHART_LOGO_SIZE = 42;
-const CHART_TOP_PADDING = 24;
+const CHART_RANK_COLUMN_WIDTH = 32;
+const CHART_COLUMN_WIDTH = 140;
+const CHART_WIDTH = CHART_RANK_COLUMN_WIDTH + (CHART_COLUMN_WIDTH * TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length);
+const CHART_ROW_HEIGHT = 64;
+const CHART_HEADER_HEIGHT = 48;
+const CHART_PATH_INSET_X = CHART_RANK_COLUMN_WIDTH + (CHART_COLUMN_WIDTH / 2);
+const CHART_LOGO_SIZE = 56;
+const CHART_TOP_PADDING = 16;
 const CHART_FALLBACK_PATH_COLOR = 'var(--league-primary)';
-const CHART_SUBLABELS: Record<TeamsDirectoryBumpChartMetricKey, string> = {
-  overall: 'Standings',
-  offense: 'Goals For',
-  defense: 'Lowest GA',
-  commitment: 'Attendance %',
-};
 
 export function TeamsGrid({
   teams,
@@ -149,7 +145,6 @@ export function TeamsGrid({
           {filteredBumpChartData && (
             <TeamsDirectoryBumpChart
               data={filteredBumpChartData}
-              seasonName={seasonName}
               leagueSlug={leagueSlug}
             />
           )}
@@ -205,14 +200,15 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
 
 function TeamsDirectoryBumpChart({
   data,
-  seasonName,
   leagueSlug,
 }: {
   data: TeamsDirectoryBumpChartData;
-  seasonName?: string;
   leagueSlug: string;
 }) {
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<{
+    teamId: string;
+    metricKey: TeamsDirectoryBumpChartMetricKey;
+  } | null>(null);
   const totalTeams = Math.max(data.teams.length, 1);
   const chartHeight = CHART_HEADER_HEIGHT + CHART_TOP_PADDING + (totalTeams * CHART_ROW_HEIGHT);
 
@@ -221,51 +217,21 @@ function TeamsDirectoryBumpChart({
     [data.teams],
   );
 
-  const selectedTeam = chartTeams.find((team) => team.teamId === selectedTeamId) || null;
+  const selectedTeam = selectedMetric
+    ? chartTeams.find((team) => team.teamId === selectedMetric.teamId) || null
+    : null;
+  const selectedNarrative = selectedTeam && selectedMetric
+    ? buildTeamsDirectoryBumpChartNarrative(selectedTeam, selectedMetric.metricKey, totalTeams)
+    : null;
 
   return (
-    <section className="mt-12 rounded-[28px] border border-[var(--color-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background-elevated)_94%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))] p-5 shadow-[0_26px_60px_-42px_rgba(0,0,0,0.82)] md:p-6">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--league-primary)]/80">
-            Team snapshot
-          </p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-            Bump chart
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-[var(--color-text-secondary)]">
-            {seasonName ? `${seasonName} rankings across standings, scoring, defending, and game commitment.` : 'Current season rankings across standings, scoring, defending, and game commitment.'}
-          </p>
-        </div>
-        <div className="text-sm text-[var(--color-text-secondary)] md:text-right">
-          <p>Tap a logo to isolate a team.</p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Attendance uses confirmed check-ins plus conservative fallback appearances for regular roster players.</p>
-        </div>
-      </div>
-
-      <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-[var(--color-text-primary)]">
-          {selectedTeam ? (
-            <span>
-              {selectedTeam.teamName} highlighted, <Link href={`/${leagueSlug}/teams/${selectedTeam.teamSlug}`} className="text-[var(--league-primary)] hover:underline">open roster</Link>
-            </span>
-          ) : (
-            <span className="text-[var(--color-text-secondary)]">Neutral view, all team paths visible.</span>
-          )}
-        </div>
-        {selectedTeam && (
-          <button
-            type="button"
-            onClick={() => setSelectedTeamId(null)}
-            className="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
-          >
-            Clear
-          </button>
-        )}
-      </div>
+    <section className="mt-12">
+      <h2 className="mb-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+        Team Positioning
+      </h2>
 
       <div className="overflow-x-auto pb-2">
-        <div className="relative min-w-[780px]" style={{ width: CHART_WIDTH, height: chartHeight }}>
+        <div className="relative min-w-[592px]" style={{ width: CHART_WIDTH, height: chartHeight }}>
           <svg
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"
@@ -275,41 +241,54 @@ function TeamsDirectoryBumpChart({
           >
             {chartTeams.map((team) => {
               const path = buildBumpPath(team, totalTeams);
-              const isActive = !selectedTeamId || selectedTeamId === team.teamId;
+              const isActive = !selectedMetric || selectedMetric.teamId === team.teamId;
               return (
                 <path
                   key={team.teamId}
                   d={path}
                   fill="none"
                   stroke={team.primaryColor || CHART_FALLBACK_PATH_COLOR}
-                  strokeWidth={selectedTeamId === team.teamId ? 4.5 : 2.5}
+                  strokeWidth={selectedMetric?.teamId === team.teamId ? 4 : 2.25}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  opacity={isActive ? 0.95 : 0.12}
+                  opacity={isActive ? 0.95 : 0.14}
                   style={{ transition: 'opacity 180ms ease, stroke-width 180ms ease' }}
                 />
               );
             })}
           </svg>
 
-          <div className="grid h-full" style={{ gridTemplateColumns: `repeat(${TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length}, ${CHART_COLUMN_WIDTH}px)` }}>
+          <div
+            className="grid h-full"
+            style={{ gridTemplateColumns: `${CHART_RANK_COLUMN_WIDTH}px repeat(${TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length}, ${CHART_COLUMN_WIDTH}px)` }}
+          >
+            <div className="relative border-r border-[var(--color-border)]/70">
+              <div className="h-12 border-b border-[var(--color-border)]/80" />
+              <div className="relative" style={{ height: chartHeight - CHART_HEADER_HEIGHT }}>
+                {Array.from({ length: totalTeams }, (_, index) => (
+                  <span
+                    key={`rank-${index + 1}`}
+                    className="pointer-events-none absolute left-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] font-semibold text-[var(--color-text-muted)]"
+                    style={{ top: metricContentTop(index + 1) }}
+                  >
+                    {index + 1}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             {TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.map((column, columnIndex) => (
-              <div key={column.key} className="relative border-l border-[var(--color-border)]/70 first:border-l-0">
-                <div className="h-16 border-b border-[var(--color-border)]/80 px-4 pt-2">
-                  <div className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-text-primary)]">
-                    {column.label}
-                  </div>
-                  <div className="mt-1 text-xs font-medium text-[var(--color-text-secondary)]">
-                    {CHART_SUBLABELS[column.key]}
-                  </div>
+              <div key={column.key} className="relative border-r border-[var(--color-border)]/70 last:border-r-0">
+                <div className="flex h-12 items-center justify-center border-b border-[var(--color-border)]/80 px-1 text-center text-[11px] font-black uppercase tracking-[0.16em] text-[var(--color-text-primary)] sm:px-2 sm:text-xs">
+                  {column.label}
                 </div>
 
                 <div className="relative" style={{ height: chartHeight - CHART_HEADER_HEIGHT }}>
                   {chartTeams.map((team) => {
                     const metric = team.metrics[column.key];
-                    const top = metricTop(metric.rank);
-                    const isSelected = selectedTeamId === team.teamId;
-                    const isDimmed = Boolean(selectedTeamId && !isSelected);
+                    const top = metricContentTop(metric.rank);
+                    const isSelected = selectedMetric?.teamId === team.teamId && selectedMetric.metricKey === column.key;
+                    const isDimmed = Boolean(selectedMetric && selectedMetric.teamId !== team.teamId);
                     const label = `${team.teamName}: #${metric.rank} in ${column.label}, ${metric.valueLabel}`;
 
                     return (
@@ -319,61 +298,58 @@ function TeamsDirectoryBumpChart({
                         title={label}
                         aria-label={label}
                         aria-pressed={isSelected}
-                        onClick={() => setSelectedTeamId((current) => current === team.teamId ? null : team.teamId)}
-                        className="absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 rounded-2xl px-2 py-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/55"
+                        onClick={() => setSelectedMetric((current) => (
+                          current?.teamId === team.teamId && current.metricKey === column.key
+                            ? null
+                            : { teamId: team.teamId, metricKey: column.key }
+                        ))}
+                        className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/55"
                         style={{
                           top,
                           opacity: isDimmed ? 0.24 : 1,
                           transform: `translate(-50%, -50%) scale(${isSelected ? 1.08 : 1})`,
+                          filter: isSelected ? 'drop-shadow(0 0 0.6rem color-mix(in srgb, var(--league-primary) 25%, transparent))' : 'none',
                         }}
                       >
-                        <span
-                          className="flex items-center justify-center rounded-2xl border bg-[var(--color-background-elevated)]/90 p-1 shadow-[0_12px_30px_rgba(0,0,0,0.26)] backdrop-blur-sm"
-                          style={{
-                            borderColor: isSelected
-                              ? team.primaryColor
-                              : 'color-mix(in srgb, var(--color-border) 84%, transparent)',
-                            boxShadow: isSelected
-                              ? `0 0 0 2px color-mix(in srgb, ${team.primaryColor} 30%, transparent), 0 18px 32px rgba(0,0,0,0.34)`
-                              : '0 12px 30px rgba(0,0,0,0.22)',
-                          }}
-                        >
-                          <TeamLogo
-                            logoUrl={team.logoUrl}
-                            teamName={team.teamName}
-                            teamColor={team.primaryColor}
-                            size="md"
-                            className="rounded-xl"
-                          />
-                        </span>
-                        <span className="rounded-full bg-[var(--color-background)]/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
-                          #{metric.rank}
-                        </span>
+                        <TeamLogo
+                          logoUrl={team.logoUrl}
+                          teamName={team.teamName}
+                          teamColor={team.primaryColor}
+                          size="md"
+                          className="rounded-xl"
+                        />
                       </button>
                     );
                   })}
-
-                  <div className="pointer-events-none absolute inset-y-0 left-3 flex flex-col justify-between py-6 text-[11px] font-semibold text-[var(--color-text-muted)]">
-                    {Array.from({ length: totalTeams }, (_, index) => (
-                      <span key={`${column.key}-${index}`}>{index + 1}</span>
-                    ))}
-                  </div>
                 </div>
 
                 {columnIndex < TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.length - 1 && (
-                  <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-[var(--color-border)]/60" />
+                  <div className="pointer-events-none absolute right-0 top-0 h-full w-px bg-[var(--color-border)]/50" />
                 )}
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {selectedTeam && selectedMetric && selectedNarrative && (
+        <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+          <Link href={`/${leagueSlug}/teams/${selectedTeam.teamSlug}`} className="font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)]">
+            {selectedTeam.teamName}
+          </Link>{' '}
+          {selectedNarrative.replace(`${selectedTeam.teamName} `, '')}
+        </p>
+      )}
     </section>
   );
 }
 
+function metricContentTop(rank: number) {
+  return CHART_TOP_PADDING + ((rank - 1) * CHART_ROW_HEIGHT) + (CHART_LOGO_SIZE / 2);
+}
+
 function metricTop(rank: number) {
-  return CHART_HEADER_HEIGHT + CHART_TOP_PADDING + ((rank - 1) * CHART_ROW_HEIGHT) + (CHART_LOGO_SIZE / 2);
+  return CHART_HEADER_HEIGHT + metricContentTop(rank);
 }
 
 function buildBumpPath(team: TeamsDirectoryBumpChartTeam, totalTeams: number) {

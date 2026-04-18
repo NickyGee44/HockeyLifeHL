@@ -1,5 +1,6 @@
 import {
   buildTeamsDirectoryBumpChartData,
+  buildTeamsDirectoryBumpChartNarrative,
   resolveTeamPrimaryColor,
   type TeamCommitmentSnapshot,
 } from '@/lib/teams-directory-bump-chart';
@@ -172,6 +173,27 @@ describe('teams directory bump chart helpers', () => {
     expect(result).not.toBeNull();
     expect(result?.teams).toHaveLength(3);
     expect(result?.teams.find((team) => team.teamId === 'team-a')?.metrics.overall.valueLabel).toBe('0 pts');
+  });
+
+  it('builds deterministic narratives for selected team metrics', () => {
+    const result = buildTeamsDirectoryBumpChartData({
+      seasonId: 'season-1',
+      teams,
+      standings,
+      commitment,
+    });
+
+    const falcons = result?.teams.find((team) => team.teamId === 'team-a');
+    const wolves = result?.teams.find((team) => team.teamId === 'team-c');
+
+    expect(falcons).toBeDefined();
+    expect(wolves).toBeDefined();
+    expect(buildTeamsDirectoryBumpChartNarrative(falcons!, 'offense', result!.totalTeams)).toBe(
+      'Falcons sit 1st of 3 in offense with 42 GF. That is the top scoring mark on this chart. 🚨',
+    );
+    expect(buildTeamsDirectoryBumpChartNarrative(wolves!, 'commitment', result!.totalTeams)).toBe(
+      'Wolves sit 3rd of 3 in commitment at 62.5% attendance. Commitment is the clearest place to tighten things up.',
+    );
   });
 
   it('resolves team colors from multiple stored formats', () => {
