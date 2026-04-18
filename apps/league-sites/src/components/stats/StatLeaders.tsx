@@ -106,25 +106,25 @@ const PODIUM_CARD_STYLES: Record<
     cardClass:
       'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
-    teamLogoClass: 'h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12',
+    teamLogoClass: 'h-[4.025rem] w-[4.025rem] object-contain md:h-[4.2rem] md:w-[4.2rem]',
   },
   2: {
     heightClass: 'min-h-[18rem] md:min-h-[19.5rem]',
     cardClass:
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
-    teamLogoClass: 'h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12',
+    teamLogoClass: 'h-[4.025rem] w-[4.025rem] object-contain md:h-[4.2rem] md:w-[4.2rem]',
   },
   3: {
     heightClass: 'min-h-[15.5rem] md:min-h-[17rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
-    teamLogoClass: 'h-10 w-10 object-contain md:h-11 md:w-11',
+    teamLogoClass: 'h-[3.5rem] w-[3.5rem] object-contain md:h-[3.85rem] md:w-[3.85rem]',
   },
 };
 
-const PODIUM_AVATAR_SIZE_CLASS = 'h-24 w-24';
+const PODIUM_AVATAR_SIZE_CLASS = 'h-[4.8rem] w-[4.8rem]';
 
 const PODIUM_AVATAR_STYLES: Record<number, string> = {
   1: 'conic-gradient(from 180deg, rgba(255,250,214,1) 0deg, rgba(245,204,96,1) 70deg, rgba(255,239,138,1) 150deg, rgba(189,147,45,1) 220deg, rgba(255,250,214,1) 360deg)',
@@ -213,7 +213,7 @@ export function StatLeaders({
 
         {leaders.length > 0 ? (
           <div className="mt-5 px-1 md:px-2">
-            <div className="grid grid-cols-3 items-end gap-3 md:gap-4">
+            <div className="grid grid-cols-3 items-stretch gap-3 md:gap-4">
               {podiumLeaders.map((leader) => {
                 const rank = leaders.findIndex((entry) => entry.player_id === leader.player_id) + 1;
                 const { firstName, lastName } = splitPlayerName(leader.player_name);
@@ -226,11 +226,11 @@ export function StatLeaders({
                 return (
                   <div
                     key={`${activeMetric.id}-${leader.player_id}`}
-                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-[6.5rem] text-center md:pb-5 md:pt-[7rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
+                    className="relative flex h-full min-w-0 items-end"
                   >
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
-                      className={`absolute left-1/2 top-4 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] ${podiumStyle.avatarHalo}`}
+                      className={`absolute left-1/2 top-0 z-10 block -translate-x-1/2 rounded-full p-[3px] transition-transform hover:scale-[1.03] ${podiumStyle.avatarHalo}`}
                       style={{ backgroundImage: PODIUM_AVATAR_STYLES[rank] ?? PODIUM_AVATAR_STYLES[3] }}
                     >
                       <span className="block rounded-full bg-[rgba(7,10,22,0.9)] p-[3px]">
@@ -244,57 +244,59 @@ export function StatLeaders({
                       </span>
                     </Link>
 
-                    <div className="mt-auto flex w-full min-w-0 flex-1 flex-col justify-end">
-                      <div className="min-h-[2.9rem]">
-                        <Link
-                          href={`/${leagueSlug}/players/${leader.player_id}`}
-                          className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
-                        >
-                          <span className="block truncate text-sm font-black md:text-[15px]">{firstName}</span>
-                          {lastName ? (
-                            <span className="block truncate text-sm font-black md:text-[15px]">{lastName}</span>
-                          ) : null}
-                        </Link>
-                      </div>
+                    <div className={`flex w-full min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-[7.2rem] text-center md:pb-5 md:pt-[7.7rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}>
+                      <div className="mt-auto flex w-full min-w-0 flex-1 flex-col justify-end pt-1">
+                        <div className="min-h-[3.25rem]">
+                          <Link
+                            href={`/${leagueSlug}/players/${leader.player_id}`}
+                            className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
+                          >
+                            <span className="block truncate text-sm font-black md:text-[15px]">{firstName}</span>
+                            {lastName ? (
+                              <span className="block truncate text-sm font-black md:text-[15px]">{lastName}</span>
+                            ) : null}
+                          </Link>
+                        </div>
 
-                      <div className="mt-2 flex min-h-[2.4rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
-                        {formatMetricValue(activeMetric.id, leader.value)}
-                      </div>
+                        <div className="mt-3 flex min-h-[2.4rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
+                          {formatMetricValue(activeMetric.id, leader.value)}
+                        </div>
 
-                      <div className="relative mt-2 flex min-h-[3rem] items-end justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
-                          className="rounded-full p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
-                          aria-label={`Show team for ${leader.player_name}`}
-                        >
-                          <img
-                            src={teamLogo}
-                            alt={teamName}
-                            className={podiumStyle.teamLogoClass}
-                          />
-                        </button>
-                        {teamTooltipOpen ? (
-                          <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full border border-white/10 bg-[rgba(10,13,29,0.96)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.8)]">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate max-w-[150px]">{teamName}</span>
-                              <button
-                                type="button"
-                                onClick={() => setOpenTeamTooltipFor(null)}
-                                className="rounded-full text-white/60 transition-colors hover:text-white"
-                                aria-label="Close team name"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                        <div className="relative mt-2 flex min-h-[4rem] items-end justify-center md:min-h-[4.35rem]">
+                          <button
+                            type="button"
+                            onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
+                            className="rounded-full p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
+                            aria-label={`Show team for ${leader.player_name}`}
+                          >
+                            <img
+                              src={teamLogo}
+                              alt={teamName}
+                              className={podiumStyle.teamLogoClass}
+                            />
+                          </button>
+                          {teamTooltipOpen ? (
+                            <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full border border-white/10 bg-[rgba(10,13,29,0.96)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.8)]">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate max-w-[150px]">{teamName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenTeamTooltipFor(null)}
+                                  className="rounded-full text-white/60 transition-colors hover:text-white"
+                                  aria-label="Close team name"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ) : null}
-                      </div>
+                          ) : null}
+                        </div>
 
-                      <div className="mt-3 flex min-h-[1.75rem] items-center justify-center">
-                        {playerBadges.length > 0 ? (
-                          <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
-                        ) : null}
+                        <div className="mt-3 flex min-h-[1.75rem] items-center justify-center">
+                          {playerBadges.length > 0 ? (
+                            <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </div>
