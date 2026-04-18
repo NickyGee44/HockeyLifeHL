@@ -106,14 +106,14 @@ const PODIUM_CARD_STYLES: Record<number, { heightClass: string; cardClass: strin
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
   },
   2: {
-    heightClass: 'min-h-[18rem] md:min-h-[20rem]',
+    heightClass: 'min-h-[18rem] md:min-h-[19.5rem]',
     cardClass:
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
     avatarClass: 'h-20 w-20',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
   },
   3: {
-    heightClass: 'min-h-[16.5rem] md:min-h-[18.5rem]',
+    heightClass: 'min-h-[15.5rem] md:min-h-[17rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
     avatarClass: 'h-20 w-20',
@@ -211,7 +211,6 @@ export function StatLeaders({
             <div className="grid grid-cols-3 items-end gap-3 md:gap-4">
               {podiumLeaders.map((leader) => {
                 const rank = leaders.findIndex((entry) => entry.player_id === leader.player_id) + 1;
-                const isCenter = rank === 1;
                 const { firstName, lastName } = splitPlayerName(leader.player_name);
                 const playerBadges = badges?.[leader.player_id] || [];
                 const teamTooltipOpen = openTeamTooltipFor === leader.player_id;
@@ -222,7 +221,7 @@ export function StatLeaders({
                 return (
                   <div
                     key={`${activeMetric.id}-${leader.player_id}`}
-                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-4 text-center ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
+                    className={`relative flex min-w-0 flex-col items-center rounded-[24px] border px-3 pb-3 pt-4 text-center ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}
                   >
                     <Link
                       href={`/${leagueSlug}/players/${leader.player_id}`}
@@ -246,28 +245,28 @@ export function StatLeaders({
                           href={`/${leagueSlug}/players/${leader.player_id}`}
                           className="block leading-tight text-[var(--color-text-primary)] transition-colors hover:text-[var(--league-primary)]"
                         >
-                          <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{firstName}</span>
+                          <span className="block truncate text-sm font-black md:text-[15px]">{firstName}</span>
                           {lastName ? (
-                            <span className={`block truncate ${isCenter ? 'text-[15px] font-black' : 'text-sm font-bold'}`}>{lastName}</span>
+                            <span className="block truncate text-sm font-black md:text-[15px]">{lastName}</span>
                           ) : null}
                         </Link>
                       </div>
 
-                      <div className="mt-2 flex min-h-[2.4rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-2xl">
+                      <div className="mt-2 flex min-h-[2.4rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
                         {formatMetricValue(activeMetric.id, leader.value)}
                       </div>
 
-                      <div className="relative mt-3 flex min-h-[3.75rem] items-center justify-center">
+                      <div className="relative mt-2 flex min-h-[3rem] items-end justify-center">
                         <button
                           type="button"
                           onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
-                          className="rounded-full p-1.5 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
+                          className="rounded-full p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
                           aria-label={`Show team for ${leader.player_name}`}
                         >
                           <img
                             src={teamLogo}
                             alt={teamName}
-                            className={`object-contain ${isCenter ? 'h-[3.25rem] w-[3.25rem]' : 'h-[2.625rem] w-[2.625rem]'}`}
+                            className="h-[2.875rem] w-[2.875rem] object-contain md:h-12 md:w-12"
                           />
                         </button>
                         {teamTooltipOpen ? (
