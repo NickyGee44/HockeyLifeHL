@@ -1,8 +1,10 @@
 import {
   buildTeamsDirectoryBumpChartData,
   buildTeamsDirectoryBumpChartNarrative,
+  rerankTeamsDirectoryBumpChartTeams,
   resolveTeamPrimaryColor,
   type TeamCommitmentSnapshot,
+  type TeamScoringDepthSnapshot,
 } from '@/lib/teams-directory-bump-chart';
 import type { Team, TeamStanding } from '@/lib/types';
 
@@ -139,12 +141,34 @@ describe('teams directory bump chart helpers', () => {
     },
   ];
 
-  it('builds chart ranks across all four columns', () => {
+  const scoringDepth: TeamScoringDepthSnapshot[] = [
+    {
+      teamId: 'team-a',
+      remainingGoals: 14,
+      totalGoals: 42,
+      topThreeGoals: 28,
+    },
+    {
+      teamId: 'team-b',
+      remainingGoals: 22,
+      totalGoals: 39,
+      topThreeGoals: 17,
+    },
+    {
+      teamId: 'team-c',
+      remainingGoals: 3,
+      totalGoals: 21,
+      topThreeGoals: 18,
+    },
+  ];
+
+  it('builds chart ranks across all five columns', () => {
     const result = buildTeamsDirectoryBumpChartData({
       seasonId: 'season-1',
       teams,
       standings,
       commitment,
+      scoringDepth,
     });
 
     expect(result).not.toBeNull();
@@ -156,9 +180,11 @@ describe('teams directory bump chart helpers', () => {
     expect(falcons?.metrics.overall.rank).toBe(1);
     expect(falcons?.metrics.offense.rank).toBe(1);
     expect(falcons?.metrics.defense.rank).toBe(2);
+    expect(falcons?.metrics.scoringDepth.rank).toBe(2);
     expect(falcons?.metrics.commitment.rank).toBe(1);
 
     expect(blades?.metrics.defense.rank).toBe(1);
+    expect(blades?.metrics.scoringDepth.rank).toBe(1);
     expect(blades?.metrics.commitment.valueLabel).toBe('88.8%');
   });
 
@@ -168,6 +194,7 @@ describe('teams directory bump chart helpers', () => {
       teams,
       standings: [],
       commitment,
+      scoringDepth,
     });
 
     expect(result).not.toBeNull();
@@ -181,6 +208,7 @@ describe('teams directory bump chart helpers', () => {
       teams,
       standings,
       commitment,
+      scoringDepth,
     });
 
     const falcons = result?.teams.find((team) => team.teamId === 'team-a');
@@ -194,6 +222,31 @@ describe('teams directory bump chart helpers', () => {
     expect(buildTeamsDirectoryBumpChartNarrative(wolves!, 'commitment', result!.totalTeams)).toBe(
       'Wolves sit 3rd of 3 in commitment at 62.5% attendance. Commitment is the clearest place to tighten things up.',
     );
+    expect(buildTeamsDirectoryBumpChartNarrative(wolves!, 'scoringDepth', result!.totalTeams)).toBe(
+      'Wolves sit 3rd of 3 in scoring depth with 3 goals beyond top 3. This is the clearest place to find more goals beyond the top trio.',
+    );
+    expect(buildTeamsDirectoryBumpChartNarrative(wolves!, 'commitment', result!.totalTeams, { hideCommitmentValue: true })).toBe(
+      'Wolves sit 3rd of 3 in commitment. Commitment is the clearest place to tighten things up.',
+    );
+  });
+
+  it('re-ranks a division-filtered subset for display', () => {
+    const result = buildTeamsDirectoryBumpChartData({
+      seasonId: 'season-1',
+      teams,
+      standings,
+      commitment,
+      scoringDepth,
+    });
+
+    const reranked = rerankTeamsDirectoryBumpChartTeams(
+      result!.teams.filter((team) => team.divisionId === 'div-1'),
+    );
+
+    expect(reranked).toHaveLength(2);
+    expect(reranked.find((team) => team.teamId === 'team-a')?.metrics.overall.rank).toBe(1);
+    expect(reranked.find((team) => team.teamId === 'team-b')?.metrics.overall.rank).toBe(2);
+    expect(reranked.find((team) => team.teamId === 'team-b')?.metrics.scoringDepth.rank).toBe(1);
   });
 
   it('resolves team colors from multiple stored formats', () => {

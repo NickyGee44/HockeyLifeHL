@@ -60,6 +60,7 @@ import {
 import {
   buildTeamsDirectoryBumpChartData,
   type TeamCommitmentSnapshot,
+  type TeamScoringDepthSnapshot,
   type TeamsDirectoryBumpChartData,
 } from './teams-directory-bump-chart';
 import {
@@ -4735,7 +4736,7 @@ export async function getTeamsDirectoryBumpChartData(
   const chartStandings = standings.filter((standing) => publicTeamIds.has(standing.team_id));
   const teamIds = teams.map((team) => team.id);
 
-  const [confirmedAppearances, fallbackAppearances, teamGameCounts, rosterRows, gamesResult] = await Promise.all([
+  const [confirmedAppearances, fallbackAppearances, teamGameCounts, rosterRows, gamesResult, scoringDepthResult] = await Promise.all([
     getConfirmedCheckinAppearanceRows(supabase, { leagueId, seasonId, teamIds }),
     getFallbackRosterAppearanceRows(supabase, { seasonId, teamIds }),
     loadTeamGameCountsBySeasonTeam(supabase, leagueId, [seasonId], teamIds),
@@ -4753,6 +4754,11 @@ export async function getTeamsDirectoryBumpChartData(
       .eq('season_id', seasonId)
       .in('status', [...PLAYED_GAME_STATUSES])
       .or(`home_team_id.in.(${teamIds.join(',')}),away_team_id.in.(${teamIds.join(',')})`),
+    supabase
+      .from('player_stats')
+      .select('team_id, player_id, goals')
+      .eq('season_id', seasonId)
+      .in('team_id', teamIds),
   ]);
 
   const regularRosterRows = (rosterRows.data || []).filter((row) => row.team_id && row.player_id && row.player_type === 'regular');
@@ -4856,11 +4862,39 @@ export async function getTeamsDirectoryBumpChartData(
     };
   });
 
+  const goalsByTeamPlayer = new Map<string, number>();
+  for (const row of scoringDepthResult.data || []) {
+    const teamId = row.team_id;
+    const playerId = row.player_id;
+    if (!teamId || !playerId) continue;
+    const key = `${teamId}:${playerId}`;
+    goalsByTeamPlayer.set(key, (goalsByTeamPlayer.get(key) || 0) + (Number(row.goals) || 0));
+  }
+
+  const scoringDepth: TeamScoringDepthSnapshot[] = teamIds.map((teamId) => {
+    const standing = chartStandings.find((entry) => entry.team_id === teamId);
+    const totalGoals = Math.max(0, standing?.goals_for || 0);
+    const playerGoalTotals = [...goalsByTeamPlayer.entries()]
+      .filter(([key]) => key.startsWith(`${teamId}:`))
+      .map(([, goals]) => goals)
+      .sort((left, right) => right - left);
+    const topThreeGoals = playerGoalTotals.slice(0, 3).reduce((sum, goals) => sum + goals, 0);
+    const remainingGoals = Math.max(0, totalGoals - topThreeGoals);
+
+    return {
+      teamId,
+      remainingGoals,
+      totalGoals,
+      topThreeGoals,
+    };
+  });
+
   return buildTeamsDirectoryBumpChartData({
     seasonId,
     teams,
     standings: chartStandings,
     commitment,
+    scoringDepth,
   });
 }
 

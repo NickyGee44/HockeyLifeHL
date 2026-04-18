@@ -4,6 +4,7 @@ export const TEAMS_DIRECTORY_BUMP_CHART_COLUMNS = [
   { key: 'overall', label: 'Overall' },
   { key: 'offense', label: 'Offense' },
   { key: 'defense', label: 'Defense' },
+  { key: 'scoringDepth', label: 'Scoring Depth' },
   { key: 'commitment', label: 'Commitment' },
 ] as const;
 
@@ -17,6 +18,13 @@ export interface TeamCommitmentSnapshot {
   confirmedAppearances: number;
   fallbackAppearances: number;
   gamesPlayed: number;
+}
+
+export interface TeamScoringDepthSnapshot {
+  teamId: string;
+  remainingGoals: number;
+  totalGoals: number;
+  topThreeGoals: number;
 }
 
 export interface TeamsDirectoryBumpChartMetric {
@@ -40,6 +48,40 @@ export interface TeamsDirectoryBumpChartData {
   totalTeams: number;
   attendanceSource: 'confirmed-plus-fallback-roster-appearances';
   teams: TeamsDirectoryBumpChartTeam[];
+}
+
+export function rerankTeamsDirectoryBumpChartTeams(teams: TeamsDirectoryBumpChartTeam[]): TeamsDirectoryBumpChartTeam[] {
+  if (teams.length <= 1) {
+    return teams;
+  }
+
+  const rerankedMetrics = new Map<TeamsDirectoryBumpChartMetricKey, Map<string, number>>();
+
+  for (const column of TEAMS_DIRECTORY_BUMP_CHART_COLUMNS) {
+    const rankedTeams = [...teams].sort((left, right) => {
+      const rankDelta = left.metrics[column.key].rank - right.metrics[column.key].rank;
+      if (rankDelta !== 0) return rankDelta;
+      return left.teamName.localeCompare(right.teamName);
+    });
+
+    rerankedMetrics.set(
+      column.key,
+      new Map(rankedTeams.map((team, index) => [team.teamId, index + 1])),
+    );
+  }
+
+  return teams.map((team) => ({
+    ...team,
+    metrics: Object.fromEntries(
+      TEAMS_DIRECTORY_BUMP_CHART_COLUMNS.map((column) => [
+        column.key,
+        {
+          ...team.metrics[column.key],
+          rank: rerankedMetrics.get(column.key)?.get(team.teamId) || team.metrics[column.key].rank,
+        },
+      ]),
+    ) as Record<TeamsDirectoryBumpChartMetricKey, TeamsDirectoryBumpChartMetric>,
+  }));
 }
 
 const ORDINAL_SUFFIXES = ['th', 'st', 'nd', 'rd'] as const;
@@ -67,6 +109,9 @@ export function buildTeamsDirectoryBumpChartNarrative(
   team: TeamsDirectoryBumpChartTeam,
   metricKey: TeamsDirectoryBumpChartMetricKey,
   totalTeams: number,
+  options?: {
+    hideCommitmentValue?: boolean;
+  },
 ) {
   const metric = team.metrics[metricKey];
   const place = `${formatOrdinal(metric.rank)} of ${totalTeams}`;
@@ -109,6 +154,18 @@ export function buildTeamsDirectoryBumpChartNarrative(
       return `${team.teamName} sit ${place} in defense, allowing ${metric.valueLabel}. ${detail}`;
     }
 
+    case 'scoringDepth': {
+      const detail = {
+        leader: 'That is the strongest secondary scoring total on this chart. 🔥',
+        top: 'Production is coming from well beyond the headline scorers.',
+        middle: 'Their supporting cast is supplying real offense.',
+        bottom: 'A little more support scoring would move this line quickly.',
+        trailing: 'This is the clearest place to find more goals beyond the top trio.',
+      }[tier];
+
+      return `${team.teamName} sit ${place} in scoring depth with ${metric.valueLabel}. ${detail}`;
+    }
+
     case 'commitment': {
       const detail = {
         leader: 'No one is showing up more consistently right now. ✅',
@@ -117,6 +174,10 @@ export function buildTeamsDirectoryBumpChartNarrative(
         bottom: 'A little more consistency would stand out quickly here.',
         trailing: 'Commitment is the clearest place to tighten things up.',
       }[tier];
+
+      if (options?.hideCommitmentValue) {
+        return `${team.teamName} sit ${place} in commitment. ${detail}`;
+      }
 
       return `${team.teamName} sit ${place} in commitment at ${metric.valueLabel} attendance. ${detail}`;
     }
@@ -128,6 +189,7 @@ interface BuildTeamsDirectoryBumpChartInput {
   teams: Team[];
   standings: TeamStanding[];
   commitment: TeamCommitmentSnapshot[];
+  scoringDepth: TeamScoringDepthSnapshot[];
 }
 
 function roundMetric(value: number, digits = 1) {
@@ -174,6 +236,7 @@ export function buildTeamsDirectoryBumpChartData({
   teams,
   standings,
   commitment,
+  scoringDepth,
 }: BuildTeamsDirectoryBumpChartInput): TeamsDirectoryBumpChartData | null {
   if (teams.length === 0) {
     return null;
@@ -210,6 +273,7 @@ export function buildTeamsDirectoryBumpChartData({
   });
 
   const commitmentByTeamId = new Map(commitment.map((entry) => [entry.teamId, entry]));
+  const scoringDepthByTeamId = new Map(scoringDepth.map((entry) => [entry.teamId, entry]));
   const totalTeams = normalizedStandings.length;
 
   const overallRows = [...normalizedStandings].sort((left, right) => {
@@ -245,6 +309,23 @@ export function buildTeamsDirectoryBumpChartData({
     return compareByName(left, right);
   });
 
+  const scoringDepthRows = [...normalizedStandings].sort((left, right) => {
+    const leftHasGames = left.games_played > 0;
+    const rightHasGames = right.games_played > 0;
+    if (leftHasGames !== rightHasGames) return leftHasGames ? -1 : 1;
+
+    const leftDepth = scoringDepthByTeamId.get(left.team_id)?.remainingGoals ?? 0;
+    const rightDepth = scoringDepthByTeamId.get(right.team_id)?.remainingGoals ?? 0;
+    if (rightDepth !== leftDepth) return rightDepth - leftDepth;
+    if (right.goals_for !== left.goals_for) return right.goals_for - left.goals_for;
+
+    if ((overallRanks.get(left.team_id) || totalTeams) !== (overallRanks.get(right.team_id) || totalTeams)) {
+      return (overallRanks.get(left.team_id) || totalTeams) - (overallRanks.get(right.team_id) || totalTeams);
+    }
+
+    return compareByName(left, right);
+  });
+
   const commitmentRows = [...normalizedStandings].sort((left, right) => {
     const leftCommitment = commitmentByTeamId.get(left.team_id);
     const rightCommitment = commitmentByTeamId.get(right.team_id);
@@ -269,11 +350,13 @@ export function buildTeamsDirectoryBumpChartData({
 
   const offenseRanks = buildRankMap(offenseRows.map((standing) => ({ team_id: standing.team_id })));
   const defenseRanks = buildRankMap(defenseRows.map((standing) => ({ team_id: standing.team_id })));
+  const scoringDepthRanks = buildRankMap(scoringDepthRows.map((standing) => ({ team_id: standing.team_id })));
   const commitmentRanks = buildRankMap(commitmentRows.map((standing) => ({ team_id: standing.team_id })));
 
   const bumpTeams = normalizedStandings.map((standing) => {
     const team = teamsById.get(standing.team_id);
     const commitmentEntry = commitmentByTeamId.get(standing.team_id);
+    const scoringDepthEntry = scoringDepthByTeamId.get(standing.team_id);
 
     return {
       teamId: standing.team_id,
@@ -297,6 +380,11 @@ export function buildTeamsDirectoryBumpChartData({
           rank: defenseRanks.get(standing.team_id) || totalTeams,
           value: standing.goals_against,
           valueLabel: `${standing.goals_against} GA`,
+        },
+        scoringDepth: {
+          rank: scoringDepthRanks.get(standing.team_id) || totalTeams,
+          value: scoringDepthEntry?.remainingGoals ?? 0,
+          valueLabel: `${scoringDepthEntry?.remainingGoals ?? 0} goals beyond top 3`,
         },
         commitment: {
           rank: commitmentRanks.get(standing.team_id) || totalTeams,
