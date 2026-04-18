@@ -97,30 +97,32 @@ function splitPlayerName(name: string) {
   };
 }
 
+const PODIUM_TEAM_LOGO_CLASS = 'h-[3.5rem] w-[3.5rem] object-contain md:h-[3.75rem] md:w-[3.75rem]';
+
 const PODIUM_CARD_STYLES: Record<
   number,
   { heightClass: string; cardClass: string; avatarHalo: string; teamLogoClass: string }
 > = {
   1: {
-    heightClass: 'min-h-[20.5rem] md:min-h-[22rem]',
+    heightClass: 'min-h-[22.25rem] md:min-h-[24.25rem]',
     cardClass:
       'border-[rgba(245,204,96,0.5)] bg-[linear-gradient(180deg,rgba(255,248,227,0.18),rgba(36,30,12,0.94))] shadow-[0_28px_60px_-30px_rgba(245,204,96,0.5)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(255,248,227,0.35),0_18px_32px_-18px_rgba(245,204,96,0.65)]',
-    teamLogoClass: 'h-[3.75rem] w-[3.75rem] object-contain md:h-[4rem] md:w-[4rem]',
+    teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
   2: {
-    heightClass: 'min-h-[19.25rem] md:min-h-[20.75rem]',
+    heightClass: 'min-h-[20.5rem] md:min-h-[22.5rem]',
     cardClass:
       'border-[rgba(203,213,225,0.45)] bg-[linear-gradient(180deg,rgba(241,245,249,0.16),rgba(24,29,41,0.94))] shadow-[0_24px_54px_-30px_rgba(148,163,184,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(248,250,252,0.3),0_16px_28px_-18px_rgba(148,163,184,0.55)]',
-    teamLogoClass: 'h-[3.75rem] w-[3.75rem] object-contain md:h-[4rem] md:w-[4rem]',
+    teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
   3: {
-    heightClass: 'min-h-[18rem] md:min-h-[19.5rem]',
+    heightClass: 'min-h-[18.75rem] md:min-h-[20.75rem]',
     cardClass:
       'border-[rgba(205,127,50,0.45)] bg-[linear-gradient(180deg,rgba(251,191,153,0.14),rgba(43,24,14,0.94))] shadow-[0_22px_48px_-30px_rgba(180,83,9,0.45)]',
     avatarHalo: 'shadow-[0_0_0_1px_rgba(254,215,170,0.24),0_16px_28px_-18px_rgba(180,83,9,0.55)]',
-    teamLogoClass: 'h-[3.75rem] w-[3.75rem] object-contain md:h-[4rem] md:w-[4rem]',
+    teamLogoClass: PODIUM_TEAM_LOGO_CLASS,
   },
 };
 
@@ -244,8 +246,8 @@ export function StatLeaders({
                       </span>
                     </Link>
 
-                    <div className={`flex w-full min-w-0 flex-col items-center rounded-[24px] border px-3 pb-4 pt-[7.8rem] text-center md:pb-5 md:pt-[8.35rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}>
-                      <div className="mt-auto flex w-full min-w-0 flex-1 flex-col justify-end pt-3">
+                    <div className={`flex w-full min-w-0 flex-col items-center justify-end rounded-[24px] border px-3 pb-3 pt-[8.85rem] text-center md:pb-3.5 md:pt-[9.4rem] ${podiumStyle.heightClass} ${podiumStyle.cardClass}`}>
+                      <div className="w-full min-w-0">
                         <div className="min-h-[3.6rem] md:min-h-[3.85rem]">
                           <Link
                             href={`/${leagueSlug}/players/${leader.player_id}`}
@@ -258,11 +260,11 @@ export function StatLeaders({
                           </Link>
                         </div>
 
-                        <div className="mt-2.5 flex min-h-[2.4rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
+                        <div className="mt-2 flex min-h-[2.35rem] items-center justify-center text-xl font-black tracking-tight text-[var(--league-primary)] md:text-[1.65rem]">
                           {formatMetricValue(activeMetric.id, leader.value)}
                         </div>
 
-                        <div className="relative mt-3 flex min-h-[4.25rem] items-end justify-center md:min-h-[4.5rem]">
+                        <div className="relative mt-2.5 flex min-h-[3.75rem] items-end justify-center md:min-h-[4rem]">
                           <button
                             type="button"
                             onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
@@ -292,11 +294,11 @@ export function StatLeaders({
                           ) : null}
                         </div>
 
-                        <div className="mt-3 flex min-h-[1.75rem] items-center justify-center">
-                          {playerBadges.length > 0 ? (
+                        {playerBadges.length > 0 ? (
+                          <div className="mt-1.5 flex items-center justify-center">
                             <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
-                          ) : null}
-                        </div>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
