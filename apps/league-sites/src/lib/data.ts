@@ -146,6 +146,22 @@ export type PlayerCareerSeasonRow = {
   shutouts: number;
 };
 
+export function filterVisiblePlayerCareerTimelineRows(
+  rows: PlayerCareerSeasonRow[],
+  options: { includeHistoricalBaseline?: boolean } = {},
+): PlayerCareerSeasonRow[] {
+  const { includeHistoricalBaseline = false } = options;
+
+  return rows.filter((row) => {
+    const seasonName = row.season_name?.trim();
+    if (!seasonName || seasonName === 'Unknown Season') {
+      return false;
+    }
+
+    return includeHistoricalBaseline || !isHistoricalCareerBaselineSeasonName(seasonName);
+  });
+}
+
 function roundCareerMetric(value: number, digits = 1) {
   if (!Number.isFinite(value)) return 0;
   return Number(value.toFixed(digits));
@@ -4510,19 +4526,22 @@ function emojiForHotFact(text: string) {
 function buildDeterministicPlayerCareerHotFact(input: {
   playerName: string;
   seasons: PlayerCareerSeasonRow[];
+  careerTotalsSeasons?: PlayerCareerSeasonRow[];
   isGoalie: boolean;
 }) {
-  const { playerName, seasons, isGoalie } = input;
-  if (seasons.length === 0) {
+  const { playerName, seasons, careerTotalsSeasons, isGoalie } = input;
+  const totalsSource = careerTotalsSeasons && careerTotalsSeasons.length > 0 ? careerTotalsSeasons : seasons;
+
+  if (totalsSource.length === 0) {
     return `🌶️ ${playerName} is still waiting for the stat sheet to catch up.`;
   }
 
-  const latest = seasons[seasons.length - 1];
+  const latest = seasons[seasons.length - 1] ?? totalsSource[totalsSource.length - 1];
   const previous = seasons.length > 1 ? seasons[seasons.length - 2] : null;
 
   if (isGoalie) {
-    const careerWins = seasons.reduce((sum, season) => sum + season.wins, 0);
-    const careerSaves = seasons.reduce((sum, season) => sum + season.saves, 0);
+    const careerWins = totalsSource.reduce((sum, season) => sum + season.wins, 0);
+    const careerSaves = totalsSource.reduce((sum, season) => sum + season.saves, 0);
 
     if (careerWins > 0 && careerWins % 5 === 0) {
       return `🔥 ${playerName} just hit ${careerWins} career wins, which is a pretty loud way to keep the crease.`;
@@ -4548,8 +4567,8 @@ function buildDeterministicPlayerCareerHotFact(input: {
     return `🌶️ ${playerName} has stacked ${careerWins} wins and ${careerSaves} saves so far, which is a decent way to make life miserable in net.`;
   }
 
-  const careerPoints = seasons.reduce((sum, season) => sum + season.points, 0);
-  const careerGoals = seasons.reduce((sum, season) => sum + season.goals, 0);
+  const careerPoints = totalsSource.reduce((sum, season) => sum + season.points, 0);
+  const careerGoals = totalsSource.reduce((sum, season) => sum + season.goals, 0);
 
   if (careerPoints >= 10 && careerPoints % 25 <= 3) {
     return `🔥 ${playerName} is already at ${careerPoints} career points, and the next milestone is basically on the doorstep.`;
@@ -4575,24 +4594,37 @@ function buildDeterministicPlayerCareerHotFact(input: {
     return `🥅 ${playerName} has ${careerGoals} career goals and is sniffing another clean milestone already.`;
   }
 
-  return `🌶️ ${playerName} has piled up ${careerPoints} points in ${seasons.length} season${seasons.length === 1 ? '' : 's'}, which travels pretty well.`;
+  const seasonCount = seasons.length > 0 ? seasons.length : totalsSource.length;
+  return `🌶️ ${playerName} has piled up ${careerPoints} points in ${seasonCount} season${seasonCount === 1 ? '' : 's'}, which travels pretty well.`;
 }
 
 export async function generatePlayerCareerHotFacts(input: {
   playerName: string;
   seasons: PlayerCareerSeasonRow[];
+  careerTotalsSeasons?: PlayerCareerSeasonRow[];
   isGoalie: boolean;
 }): Promise<string[]> {
-  const { playerName, seasons, isGoalie } = input;
+  const { playerName, seasons, careerTotalsSeasons, isGoalie } = input;
   const ordered = [...seasons].sort((left, right) => {
     const leftTime = left.sort_date ? new Date(left.sort_date).getTime() : 0;
     const rightTime = right.sort_date ? new Date(right.sort_date).getTime() : 0;
     return leftTime - rightTime;
   });
 
-  if (ordered.length === 0) {
+  const orderedTotals = [...(careerTotalsSeasons && careerTotalsSeasons.length > 0 ? careerTotalsSeasons : seasons)].sort(
+    (left, right) => {
+      const leftTime = left.sort_date ? new Date(left.sort_date).getTime() : 0;
+      const rightTime = right.sort_date ? new Date(right.sort_date).getTime() : 0;
+      return leftTime - rightTime;
+    },
+  );
+
+  if (ordered.length === 0 && orderedTotals.length === 0) {
     return [];
   }
+
+  const comparisonSeasons = ordered.length > 0 ? ordered : orderedTotals;
+  const totalsSource = orderedTotals.length > 0 ? orderedTotals : comparisonSeasons;
 
   const facts: string[] = [];
   const pushFact = (fact?: string | null) => {
@@ -4601,14 +4633,19 @@ export async function generatePlayerCareerHotFacts(input: {
     facts.push(trimmed);
   };
 
-  pushFact(buildDeterministicPlayerCareerHotFact({ playerName, seasons: ordered, isGoalie }));
+  pushFact(buildDeterministicPlayerCareerHotFact({
+    playerName,
+    seasons: comparisonSeasons,
+    careerTotalsSeasons: totalsSource,
+    isGoalie,
+  }));
 
-  const latest = ordered[ordered.length - 1];
-  const previous = ordered.length > 1 ? ordered[ordered.length - 2] : null;
+  const latest = comparisonSeasons[comparisonSeasons.length - 1];
+  const previous = comparisonSeasons.length > 1 ? comparisonSeasons[comparisonSeasons.length - 2] : null;
 
   if (isGoalie) {
-    const careerWins = ordered.reduce((sum, season) => sum + season.wins, 0);
-    const careerShutouts = ordered.reduce((sum, season) => sum + season.shutouts, 0);
+    const careerWins = totalsSource.reduce((sum, season) => sum + season.wins, 0);
+    const careerShutouts = totalsSource.reduce((sum, season) => sum + season.shutouts, 0);
 
     if (latest.wins >= 10) {
       pushFact(`🥅 ${playerName} stacked ${latest.wins} wins in ${latest.season_name}, which is starter behavior all the way down.`);
@@ -4633,9 +4670,9 @@ export async function generatePlayerCareerHotFacts(input: {
       pushFact(`🚫 ${playerName} has ${careerShutouts} career shutout${careerShutouts === 1 ? '' : 's'}, which always plays.`);
     }
   } else {
-    const careerGoals = ordered.reduce((sum, season) => sum + season.goals, 0);
-    const careerAssists = ordered.reduce((sum, season) => sum + season.assists, 0);
-    const careerPoints = ordered.reduce((sum, season) => sum + season.points, 0);
+    const careerGoals = totalsSource.reduce((sum, season) => sum + season.goals, 0);
+    const careerAssists = totalsSource.reduce((sum, season) => sum + season.assists, 0);
+    const careerPoints = totalsSource.reduce((sum, season) => sum + season.points, 0);
 
     if (latest.points >= 20) {
       pushFact(`🔥 ${playerName} put up ${latest.points} points in ${latest.season_name}, which is the kind of season that travels in every rink.`);
@@ -4902,7 +4939,11 @@ export async function getPlayerCareerStatsTimeline(
   leagueId: string,
   playerId: string,
   isGoalie: boolean,
+  options: {
+    includeHistoricalBaseline?: boolean;
+  } = {},
 ): Promise<PlayerCareerSeasonRow[]> {
+  const { includeHistoricalBaseline = false } = options;
   const supabase = await createClient();
   const serviceSupabase = createServiceRoleClient();
   const { data: seasonRecords } = await supabase
@@ -5047,7 +5088,7 @@ export async function getPlayerCareerStatsTimeline(
     }
 
     return [...seasonMap.values()]
-      .filter((season) => season.season_id !== historicalBaselineSeason?.id)
+      .filter((season) => includeHistoricalBaseline || season.season_id !== historicalBaselineSeason?.id)
       .map((season) => {
         const key = `${season.season_id}:${season.team_id || 'unknown'}`;
         const appearanceGames = appearancesBySeasonTeam.get(key)?.size || 0;
@@ -5192,7 +5233,7 @@ export async function getPlayerCareerStatsTimeline(
   }
 
   return timelineRows
-    .filter((row) => row.season_id !== historicalBaselineSeason?.id)
+    .filter((row) => includeHistoricalBaseline || row.season_id !== historicalBaselineSeason?.id)
     .filter((row) => row.games_played > 0 || row.points > 0 || row.wins > 0 || row.saves > 0)
     .sort((left, right) => new Date(left.sort_date || 0).getTime() - new Date(right.sort_date || 0).getTime());
 }

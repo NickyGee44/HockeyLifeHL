@@ -17,6 +17,7 @@ import {
   getPlayerGoalieMatchups,
   getGoaliePlayerMatchups,
   generatePlayerCareerHotFacts,
+  filterVisiblePlayerCareerTimelineRows,
 } from '@/lib/data';
 import { PlayerHeader } from '@/components/player/PlayerHeader';
 import { PlayerBadgesSection } from '@/components/player/PlayerBadgesSection';
@@ -76,7 +77,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const isGoalie = player.position === 'G' || player.position === 'Goalie';
 
   // Fetch data in parallel
-  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData, careerTimeline] = await Promise.all([
+  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData, careerTimeline, careerTimelineWithBaseline] = await Promise.all([
     getSeasons(league.id),
     getPlayerCareerStats(profileId, seasonId),
     getPlayerGameLog(profileId, seasonId, 20),
@@ -87,6 +88,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
       ? getGoaliePlayerMatchups(profileId, seasonId)
       : getPlayerGoalieMatchups(profileId, seasonId),
     getPlayerCareerStatsTimeline(league.id, profileId, isGoalie),
+    getPlayerCareerStatsTimeline(league.id, profileId, isGoalie, { includeHistoricalBaseline: true }),
   ]);
 
   const playerName = player.profile?.full_name || 'Unknown Player';
@@ -107,9 +109,14 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   }));
   const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
   const showPerGameHistory = !isAggregateOnlySeasonView(seasonId, currentSeasonName);
+  const visibleCareerTimeline = filterVisiblePlayerCareerTimelineRows(careerTimeline);
+  const careerTotalsTimeline = filterVisiblePlayerCareerTimelineRows(careerTimelineWithBaseline, {
+    includeHistoricalBaseline: true,
+  });
   const careerHotFacts = await generatePlayerCareerHotFacts({
     playerName,
-    seasons: careerTimeline,
+    seasons: visibleCareerTimeline,
+    careerTotalsSeasons: careerTotalsTimeline,
     isGoalie,
   });
 
@@ -168,7 +175,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
         )}
 
         <PlayerCareerStatsSection
-          seasons={careerTimeline}
+          seasons={visibleCareerTimeline}
           isGoalie={isGoalie}
           hotFacts={careerHotFacts}
         />
