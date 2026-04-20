@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
@@ -15,6 +15,16 @@ import { FloatingDock } from '@/components/FloatingDock';
 import { ScrollRevealObserver } from '@/components/ScrollRevealObserver';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
+
+/**
+ * Force league routes dynamic.
+ *
+ * These routes depend on no-store Supabase reads in shared layout/metadata code,
+ * and Vercel production has been surfacing DYNAMIC_SERVER_USAGE on statically
+ * treated league pages. Stats/player detail routes already opt into dynamic
+ * rendering and were not failing in the same way.
+ */
+export const dynamic = 'force-dynamic';
 
 /**
  * Revalidate every 60 seconds as a time-based fallback.
@@ -69,15 +79,6 @@ export async function generateMetadata({
       images: league.banner_url ? [{ url: league.banner_url }] : [],
     },
   };
-}
-
-/**
- * Generate static params for top leagues
- * Enables ISR for faster initial loads
- */
-export async function generateStaticParams() {
-  const slugs = await getAllLeagueSlugs();
-  return slugs.map((slug) => ({ leagueSlug: slug }));
 }
 
 /**
