@@ -97,7 +97,7 @@ function splitPlayerName(name: string) {
   };
 }
 
-const PODIUM_TEAM_LOGO_CLASS = 'h-[3.5rem] w-[3.5rem] object-contain md:h-[3.75rem] md:w-[3.75rem]';
+const PODIUM_TEAM_LOGO_CLASS = 'h-[3.5rem] w-[3.5rem] rounded-full object-cover md:h-[3.75rem] md:w-[3.75rem]';
 
 const PODIUM_CARD_STYLES: Record<
   number,

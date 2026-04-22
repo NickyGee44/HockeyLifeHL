@@ -119,7 +119,7 @@ const SKATER_COLUMNS: StatsTableColumn<SkaterStatKey>[] = [
   },
   {
     key: "championships",
-    label: "Chps",
+    label: "Champ",
     align: "center",
     defaultSortDirection: "desc",
   },
@@ -215,7 +215,7 @@ const GOALIE_COLUMNS: StatsTableColumn<GoalieStatKey>[] = [
   { key: "losses", label: "L", align: "center", defaultSortDirection: "desc" },
   {
     key: "championships",
-    label: "Chps",
+    label: "Champ",
     align: "center",
     defaultSortDirection: "desc",
   },
