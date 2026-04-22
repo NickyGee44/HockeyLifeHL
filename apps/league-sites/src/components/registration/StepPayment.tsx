@@ -124,11 +124,11 @@ export function StepPayment({
         <div className="flex flex-col items-center justify-center p-8 bg-green-500/10 rounded-xl border border-green-500/20">
           <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
           <p className="text-green-400 text-center text-lg font-medium">
-            {isAlternateMethod ? 'Alternate Payment Selected' : 'Payment Complete'}
+            {isAlternateMethod ? 'Paying In Person' : 'Payment Complete'}
           </p>
           <p className="text-[var(--color-text-secondary)] text-center mt-2">
             {isAlternateMethod
-              ? 'This registration will bypass online checkout so payment can be handled outside the app.'
+              ? "You're all set — just pay your league fees in person."
               : `${formatCurrency(totalChargeCents || registrationFee)} has been processed.`}
           </p>
         </div>
@@ -226,7 +226,7 @@ export function StepPayment({
               className="mt-3 text-sm font-medium text-[var(--league-primary)] hover:underline"
             >
               {canBypassWithAlternateMethod
-                ? 'Pay via Alternate Method'
+                ? "Skip — I'm paying in person"
                 : isTeamContribution
                   ? 'Skip for now and let my captain track it manually'
                   : 'Skip for now and let my team handle payment'}

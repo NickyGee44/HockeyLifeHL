@@ -229,7 +229,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
 
   const initialData = draftResult.success ? (draftResult.data ?? inviteInitialData) : inviteInitialData;
   const invitePreview = captainInvite ? await getPublicCaptainInvitePreview(captainInvite) : null;
-  const allowAlternatePaymentBypass = invitePreview?.branding.kind === 'league';
+  const allowAlternatePaymentBypass = true;
   const waiver =
     waiverResult.success && waiverResult.data
       ? waiverResult.data
