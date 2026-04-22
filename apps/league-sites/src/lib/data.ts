@@ -3027,6 +3027,8 @@ async function appendCurrentDisplayTeamMetadata<T extends UnifiedStatsRowBase>(
     return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, [], fallbackLogoUrl);
   }
 
+  // Fetch ALL active rosters for the current season (not filtered by player_id)
+  // to avoid PostgREST URL length limits when all-time stats have hundreds of players
   const { data: currentSeasonRosters, error } = await supabase
     .from('team_rosters')
     .select(`
@@ -3038,8 +3040,7 @@ async function appendCurrentDisplayTeamMetadata<T extends UnifiedStatsRowBase>(
     .eq('league_id', leagueId)
     .eq('season_id', currentSeason.id)
     .eq('status', 'active')
-    .is('end_date', null)
-    .in('player_id', playerIds);
+    .is('end_date', null);
 
   if (error || !currentSeasonRosters) {
     return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, [], fallbackLogoUrl);
