@@ -79,9 +79,12 @@ const PUBLIC_MORE_ITEMS: MoreMenuItem[] = [
   { href: '/contact', label: 'Contact', icon: Mail, pageKey: 'contact' },
 ];
 
-const AUTH_MORE_ITEMS: MoreMenuItem[] = [
-  { href: '/me', label: 'My Dashboard', icon: LayoutDashboard, pageKey: 'me' },
-];
+function buildAuthMoreItems(profileId: string | undefined): MoreMenuItem[] {
+  if (!profileId) return [];
+  return [
+    { href: `/players/${profileId}`, label: 'My Page', icon: LayoutDashboard, pageKey: 'mypage' },
+  ];
+}
 
 function shouldShowPage(pageKey: string, visiblePages?: Record<string, boolean>): boolean {
   if (!visiblePages) return true;
@@ -119,7 +122,7 @@ export function FloatingDock({
 }: FloatingDockProps) {
   const pathname = usePathname() ?? '';
   const router = useRouter();
-  const { currentTeam } = usePlayerProfile(leagueId, seasonId);
+  const { profile, currentTeam } = usePlayerProfile(leagueId, seasonId);
   const { user } = useUser();
   const { openLogin, openSignup } = useAuth();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
@@ -193,7 +196,7 @@ export function FloatingDock({
     } satisfies MoreMenuItem];
   });
 
-  const filteredMoreItems = [...(user ? AUTH_MORE_ITEMS : []), ...captainItems, ...publicItems, ...customItems]
+  const filteredMoreItems = [...(user ? buildAuthMoreItems(profile?.id) : []), ...captainItems, ...publicItems, ...customItems]
     .filter((item, index, items) => items.findIndex((candidate) => candidate.href === item.href) === index);
 
   const isMoreActive = filteredMoreItems.some((item) => !item.external && isActive(item.href));
@@ -308,9 +311,21 @@ export function FloatingDock({
                     : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80'
                 }`;
 
+                const iconElement = item.pageKey === 'mypage' && profile?.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt="My Page"
+                    width={22}
+                    height={22}
+                    className="h-[22px] w-[22px] rounded-full object-cover"
+                  />
+                ) : (
+                  <item.icon className="h-[22px] w-[22px]" />
+                );
+
                 const content = (
                   <>
-                    <item.icon className="h-[22px] w-[22px]" />
+                    {iconElement}
                     <span className="text-[10px] font-medium leading-tight">{item.label}</span>
                   </>
                 );

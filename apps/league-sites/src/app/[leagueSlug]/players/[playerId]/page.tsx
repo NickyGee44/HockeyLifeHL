@@ -27,6 +27,7 @@ import { SeasonSelector } from '@/components/player/SeasonSelector';
 import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
 import { PlayerCareerStatsSection } from '@/components/player/PlayerCareerStatsSection';
 import { PlayerMatchups } from '@/components/player/PlayerMatchups';
+import { PlayerQuickActions } from '@/components/player/PlayerQuickActions';
 import { isAggregateOnlySeasonView } from '@/lib/imported-aggregate-season-overrides';
 import { countChampionshipBadges, summarizePlayerCareerAchievements } from '@/lib/career-achievements';
 
@@ -141,6 +142,9 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
           badges={badges}
           careerAchievements={careerAchievements}
         />
+
+        {/* Quick Actions (only visible to the player themselves) */}
+        <PlayerQuickActions playerId={playerId} leagueSlug={leagueSlug} />
 
         {/* Achievements Section */}
         <PlayerBadgesSection badges={badges} seasonId={seasonId} />
