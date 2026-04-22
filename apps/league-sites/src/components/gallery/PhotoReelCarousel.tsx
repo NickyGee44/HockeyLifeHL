@@ -1,9 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReelPhoto } from '@/lib/types';
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 interface PhotoReelCarouselProps {
   photos: ReelPhoto[];
@@ -11,11 +19,12 @@ interface PhotoReelCarouselProps {
 }
 
 export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCarouselProps) {
+  const shuffled = useMemo(() => shuffle(photos), [photos]);
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const total = photos.length;
+  const total = shuffled.length;
 
   const advance = useCallback(
     (dir: 1 | -1) => {
@@ -35,8 +44,6 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
 
   if (total === 0) return null;
 
-  const photo = photos[current];
-
   return (
     <div
       className="relative w-full overflow-hidden rounded-2xl shadow-xl"
@@ -46,7 +53,7 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
       {/* Responsive aspect ratio container */}
       <div className="relative aspect-[4/3] sm:aspect-[16/9] xl:aspect-[21/9] w-full bg-black">
         {/* Photo stack — crossfade via opacity */}
-        {photos.map((p, i) => (
+        {shuffled.map((p, i) => (
           <img
             key={p.id}
             src={p.url}
@@ -60,21 +67,6 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
             draggable={false}
           />
         ))}
-
-        {/* Frosted glass caption bar */}
-        <div className="absolute inset-x-0 bottom-0 z-10 bg-black/40 backdrop-blur-md px-5 py-3 flex items-center justify-between">
-          <div className="min-w-0 flex-1">
-            {photo.caption && (
-              <p className="text-sm font-medium text-white truncate">{photo.caption}</p>
-            )}
-            <p className="text-xs text-white/70 truncate">
-              {photo.album_title}
-            </p>
-          </div>
-          <span className="ml-3 shrink-0 text-xs tabular-nums text-white/60">
-            {current + 1} / {total}
-          </span>
-        </div>
 
         {/* Navigation arrows */}
         {total > 1 && (
@@ -98,8 +90,8 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
 
         {/* Dot indicators */}
         {total > 1 && (
-          <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
-            {photos.map((_, i) => (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
+            {shuffled.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
