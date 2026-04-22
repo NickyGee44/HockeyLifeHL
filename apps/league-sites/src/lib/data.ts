@@ -6207,6 +6207,33 @@ export async function getGalleryAlbums(leagueId: string): Promise<GalleryAlbum[]
   })) as GalleryAlbum[];
 }
 
+export async function getRecentPhotosForReel(
+  leagueId: string,
+  limit = 12,
+): Promise<import('./types').ReelPhoto[]> {
+  const supabase = await createClient();
+
+  // Fetch recent individual photos joined with their album title
+  const { data, error } = await supabase
+    .from('gallery_photos')
+    .select('id, url, caption, gallery_id, league_gallery!inner(id, title, league_id, is_published)')
+    .eq('league_gallery.league_id', leagueId)
+    .eq('league_gallery.is_published', true)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    url: row.url,
+    caption: row.caption,
+    album_id: row.gallery_id,
+    album_title: row.league_gallery?.title ?? '',
+    album_href: '', // filled by caller with leagueSlug context
+  }));
+}
+
 export async function getAlbumWithPhotos(albumId: string): Promise<{ album: GalleryAlbum; photos: GalleryPhoto[] } | null> {
   const supabase = await createClient();
   const { data: album, error: albumError } = await supabase

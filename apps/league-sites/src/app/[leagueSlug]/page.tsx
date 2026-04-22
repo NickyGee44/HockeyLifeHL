@@ -16,6 +16,7 @@ import {
   getDivisions,
   getAllArticles,
   getGalleryAlbums,
+  getRecentPhotosForReel,
   getCurrentSeason,
   getPlayerBadgesByIds,
   getSeasons,
@@ -44,6 +45,7 @@ import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
+import PhotoReelCarousel from '@/components/gallery/PhotoReelCarousel';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 interface HomePageProps {
@@ -458,6 +460,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     teams,
     seasons,
     sponsors,
+    reelPhotosRaw,
   ] = await Promise.all([
     getLeagueStats(league.id, currentSeason?.id),
     getHomepageWeeklyGames(league.id, {
@@ -473,11 +476,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getTeams(league.id),
     getSeasons(league.id),
     getLeagueSponsors(league.id),
+    getRecentPhotosForReel(league.id, 12),
   ]);
 
   const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
   const albums = filterAlbumsForSeason(allAlbums, currentSeason);
 
+  const reelPhotos = reelPhotosRaw.map((p) => ({
+    ...p,
+    album_href: `/${leagueSlug}/gallery/${p.album_id}`,
+  }));
   const hasAlbums = albums.length > 0;
   const websiteSettings = league.settings?.website;
   const hasSocialLinks = !!(
@@ -611,7 +619,26 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           </section>
         </div>
 
-        {hasAlbums && (
+        {reelPhotos.length > 0 ? (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionHeading
+                title="League Photos"
+                icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
+              />
+              <Link
+                href={`/${leagueSlug}/gallery`}
+                className="text-sm font-medium text-[var(--league-primary)] hover:underline"
+              >
+                View All Photos
+              </Link>
+            </div>
+
+            <div className="mt-4">
+              <PhotoReelCarousel photos={reelPhotos} galleryHref={`/${leagueSlug}/gallery`} />
+            </div>
+          </section>
+        ) : hasAlbums ? (
           <section>
             <SectionHeading
               title="League Photos"
@@ -651,7 +678,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </div>
             </div>
           </section>
-        )}
+        ) : null}
 
         {socialSettings && (
           <section className={`${panelClass} p-6 md:p-8`}>

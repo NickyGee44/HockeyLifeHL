@@ -733,6 +733,16 @@ export interface GalleryPhoto {
   created_at: string;
 }
 
+/** Photo with album metadata for homepage reel */
+export interface ReelPhoto {
+  id: string;
+  url: string;
+  caption: string | null;
+  album_id: string;
+  album_title: string;
+  album_href: string;
+}
+
 /** Staff member */
 export interface StaffMember {
   id: string;
