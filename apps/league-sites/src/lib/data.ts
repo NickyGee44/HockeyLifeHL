@@ -2950,6 +2950,7 @@ type ImportedAggregateProfileMetadata = {
 function enrichUnifiedStatsRowsWithCurrentDisplayTeam<T extends UnifiedStatsRowBase>(
   rows: T[],
   currentSeasonRosters: CurrentSeasonRosterDisplayRow[],
+  fallbackLogoUrl: string = FREE_AGENT_DISPLAY_TEAM_LOGO_URL,
 ): T[] {
   if (rows.length === 0) {
     return rows;
@@ -2983,7 +2984,7 @@ function enrichUnifiedStatsRowsWithCurrentDisplayTeam<T extends UnifiedStatsRowB
     if (!displayTeam) {
       return {
         ...row,
-        display_team_logo_url: FREE_AGENT_DISPLAY_TEAM_LOGO_URL,
+        display_team_logo_url: fallbackLogoUrl,
         display_team_name: FREE_AGENT_DISPLAY_TEAM_NAME,
         display_team_is_free_agent: true,
       };
@@ -3011,12 +3012,21 @@ async function appendCurrentDisplayTeamMetadata<T extends UnifiedStatsRowBase>(
     return rows;
   }
 
+  const supabase = await createClient();
+
+  // Fetch the league logo to use as fallback for non-rostered players
+  const { data: leagueRow } = await supabase
+    .from('leagues')
+    .select('logo_url')
+    .eq('id', leagueId)
+    .single();
+  const fallbackLogoUrl = leagueRow?.logo_url || FREE_AGENT_DISPLAY_TEAM_LOGO_URL;
+
   const currentSeason = await getCurrentSeason(leagueId);
   if (!currentSeason) {
-    return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, []);
+    return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, [], fallbackLogoUrl);
   }
 
-  const supabase = await createClient();
   const { data: currentSeasonRosters, error } = await supabase
     .from('team_rosters')
     .select(`
@@ -3032,12 +3042,13 @@ async function appendCurrentDisplayTeamMetadata<T extends UnifiedStatsRowBase>(
     .in('player_id', playerIds);
 
   if (error || !currentSeasonRosters) {
-    return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, []);
+    return enrichUnifiedStatsRowsWithCurrentDisplayTeam(rows, [], fallbackLogoUrl);
   }
 
   return enrichUnifiedStatsRowsWithCurrentDisplayTeam(
     rows,
     currentSeasonRosters as unknown as CurrentSeasonRosterDisplayRow[],
+    fallbackLogoUrl,
   );
 }
 
