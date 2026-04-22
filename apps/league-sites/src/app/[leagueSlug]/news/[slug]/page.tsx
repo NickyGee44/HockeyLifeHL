@@ -99,14 +99,23 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
         {/* Article */}
         <article className="league-reading-panel overflow-hidden rounded-[32px]">
-          <div className="relative aspect-[16/7.2] min-h-[280px]">
+          <div className="relative aspect-[4/3] sm:aspect-[16/7.2] min-h-[280px]">
             {article.image_url ? (
-              <EditorialHeroImage
-                src={article.image_url}
-                alt={article.title}
-                foregroundClassName="object-cover sm:object-contain sm:object-right"
-                backgroundClassName="object-cover opacity-24"
-              />
+              <>
+                {/* Mobile: simple full-bleed image */}
+                <div className="absolute inset-0 sm:hidden">
+                  <img src={article.image_url} alt={article.title} className="h-full w-full object-cover" />
+                </div>
+                {/* Desktop: layered editorial treatment */}
+                <div className="absolute inset-0 hidden sm:block">
+                  <EditorialHeroImage
+                    src={article.image_url}
+                    alt={article.title}
+                    foregroundClassName="object-contain object-right"
+                    backgroundClassName="object-cover opacity-24"
+                  />
+                </div>
+              </>
             ) : (
               <LeagueNewsFallbackArtwork
                 leagueName={league.name}
@@ -120,7 +129,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="mb-4 inline-flex items-center rounded-full bg-[var(--league-primary)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-accent-text)]">
                 {article.type === 'game_recap' ? 'Game recap' : article.type === 'weekly_wrap' ? 'Weekly wrap' : 'News'}
               </div>
-              <h1 className="max-w-4xl text-xl font-extrabold leading-[1.15] text-white sm:text-3xl md:text-[2.75rem] md:leading-[1.12]">
+              <h1 className="max-w-4xl text-lg font-extrabold leading-[1.18] text-white sm:text-3xl md:text-[2.75rem] md:leading-[1.12]">
                 {article.title}
               </h1>
               <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/72">
