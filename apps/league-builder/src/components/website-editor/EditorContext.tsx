@@ -50,6 +50,7 @@ function leagueToState(league: LeagueEditorData | undefined, leagues: LeagueEdit
     visiblePages: ws.visiblePages ?? { ...DEFAULT_VISIBLE_PAGES },
     navItems: ws.navItems ?? [],
     showGameTicker: ws.showGameTicker ?? true,
+    showCaptainPhone: ws.showCaptainPhone ?? true,
     socialFacebook: ws.socialFacebook ?? '',
     socialTwitter: ws.socialTwitter ?? '',
     socialInstagram: ws.socialInstagram ?? '',
@@ -172,6 +173,7 @@ export function EditorProvider({ children, organizationId, leagues, previewBaseU
       state.socialYoutube !== s.socialYoutube ||
       state.socialTiktok !== s.socialTiktok ||
       state.showGameTicker !== s.showGameTicker ||
+      state.showCaptainPhone !== s.showCaptainPhone ||
       JSON.stringify(state.navItems) !== JSON.stringify(s.navItems) ||
       JSON.stringify(state.visiblePages) !== JSON.stringify(s.visiblePages)
     );

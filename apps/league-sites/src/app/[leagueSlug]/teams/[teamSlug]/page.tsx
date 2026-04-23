@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   CalendarDays,
   Mail,
+  MessageSquare,
   Phone,
   Shield,
   Swords,
@@ -534,6 +535,15 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     <Phone className="h-4 w-4" />
                     <span>{team.contact_phone}</span>
                   </div>
+                ) : null}
+                {league.settings?.website?.showCaptainPhone !== false && captain?.profile?.phone ? (
+                  <a
+                    href={`sms:${captain.profile.phone}`}
+                    className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Text Captain</span>
+                  </a>
                 ) : null}
               </div>
               {!team.contact_email && !team.contact_phone && !captain && (

@@ -35,6 +35,7 @@ export interface WebsiteSettings {
   visiblePages?: Record<string, boolean>;
   seoTitle?: string;
   seoDescription?: string;
+  showCaptainPhone?: boolean;
 }
 
 /**
@@ -204,6 +205,7 @@ export interface Player {
     id?: string;
     full_name: string | null;
     avatar_url: string | null;
+    phone?: string | null;
   };
   team?: Team & {
     league_id: string;

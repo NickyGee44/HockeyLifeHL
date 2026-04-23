@@ -759,7 +759,7 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
     .from('team_rosters')
     .select(`
       *,
-      profile:profiles(id, full_name, avatar_url, position)
+      profile:profiles(id, full_name, avatar_url, position, phone)
     `)
     .eq('team_id', teamId);
 
@@ -806,6 +806,7 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
             id: profileRow.id,
             full_name: profileRow.full_name,
             avatar_url: profileRow.avatar_url,
+            phone: (profileRow as any).phone ?? null,
           }
         : undefined,
     });

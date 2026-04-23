@@ -52,6 +52,7 @@ export interface WebsiteSettings {
     pageSlug?: string;
   }>;
   showGameTicker?: boolean;
+  showCaptainPhone?: boolean;
   seoTitle?: string;
   seoDescription?: string;
 }
@@ -93,6 +94,7 @@ export interface EditorState {
     pageSlug?: string;
   }>;
   showGameTicker: boolean;
+  showCaptainPhone: boolean;
 
   // Social
   socialFacebook: string;
@@ -159,6 +161,7 @@ export interface PreviewThemePayload {
     pageSlug?: string;
   }>;
   showGameTicker: boolean;
+  showCaptainPhone: boolean;
 
   // Social
   socialFacebook: string;

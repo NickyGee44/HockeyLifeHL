@@ -32,6 +32,7 @@ export function useEditorSave() {
         visiblePages: state.visiblePages,
         navItems: state.navItems,
         showGameTicker: state.showGameTicker,
+        showCaptainPhone: state.showCaptainPhone,
         seoTitle: state.seoTitle,
         seoDescription: state.seoDescription,
       };
