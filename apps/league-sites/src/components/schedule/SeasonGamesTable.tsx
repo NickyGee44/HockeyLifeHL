@@ -123,7 +123,7 @@ export function SeasonGamesTable({
               <div className="flex items-center gap-2 md:gap-3">
                 {/* Away */}
                 <div className="flex min-w-0 flex-1 items-center gap-2 justify-end">
-                  <span className="truncate text-sm font-medium text-[var(--color-text-primary)] md:text-base">
+                  <span className="text-xs font-medium leading-tight text-[var(--color-text-primary)] md:text-sm">
                     {game.away_team?.name || 'TBD'}
                   </span>
                   <TeamLogo
@@ -159,7 +159,7 @@ export function SeasonGamesTable({
                     size="sm"
                     className="shrink-0"
                   />
-                  <span className="truncate text-sm font-medium text-[var(--color-text-primary)] md:text-base">
+                  <span className="text-xs font-medium leading-tight text-[var(--color-text-primary)] md:text-sm">
                     {game.home_team?.name || 'TBD'}
                   </span>
                 </div>
