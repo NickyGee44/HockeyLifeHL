@@ -1024,6 +1024,14 @@ export async function submitPlayerRegistration(
       })
       .eq('id', user.id);
 
+    // Check league auto-approve setting
+    const { data: leagueRow } = await serviceSupabase
+      .from('leagues')
+      .select('registration_form_config')
+      .eq('id', data.league_id)
+      .maybeSingle();
+    const autoApprove = !!(leagueRow?.registration_form_config as any)?.auto_approve;
+
     // Upsert registration
     const { data: registration, error: regError } = await serviceSupabase
       .from('registration_submissions')
@@ -1035,7 +1043,7 @@ export async function submitPlayerRegistration(
           team_id: registrationContext.storedTeamId,
           waiver_id: waiverId,
           registration_type: registrationContext.registrationType,
-          status: 'approved',
+          status: autoApprove ? 'approved' : 'pending',
           preferred_position: normalizedPrimaryPosition,
           secondary_position: normalizedSecondaryPosition,
           preferred_jersey_number: data.preferred_jersey_number || null,

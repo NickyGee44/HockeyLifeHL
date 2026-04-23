@@ -223,6 +223,7 @@ export interface RegistrationFormConfig {
   levels: string[];
   locations: string[];
   nights: string[];
+  auto_approve: boolean;
   enabled_fields: {
     played_last_season: boolean;
     level: boolean;
@@ -247,6 +248,7 @@ export async function updateRegistrationFormConfig(
     levels: config.levels.map((l) => l.trim()).filter(Boolean),
     locations: config.locations.map((l) => l.trim()).filter(Boolean),
     nights: config.nights.map((n) => n.trim()).filter(Boolean),
+    auto_approve: config.auto_approve ?? false,
     enabled_fields: config.enabled_fields,
   };
 
