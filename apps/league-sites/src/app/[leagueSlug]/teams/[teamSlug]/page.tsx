@@ -391,7 +391,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 availabilityGameId={nextTeamGame?.id ?? null}
                 availabilityTeamId={team.id}
                 statsView={
-                  <div className="league-reading-panel rounded-[28px] p-6 md:p-8">
+                  <div>
                     <StatsTableCard
                       columns={['Player', 'GP', 'G', 'A', 'PTS', 'PIM', 'Pos']}
                       emptyTitle="No skater statistics yet"
