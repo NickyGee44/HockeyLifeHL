@@ -537,7 +537,8 @@ export async function getSeasonRegistrationPaymentConfig(
   const feeConfigured = !isPlayerFeeConfigurationMissing(
     settings.feeCollectionModel,
     settings.feeAmountCents,
-    settings.feeBasis
+    settings.feeBasis,
+    settings.feeRecordExists
   );
   const registrationFee = getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents);
   const paymentQuote = await getRegistrationPaymentQuoteForLeague(leagueId, registrationFee);
