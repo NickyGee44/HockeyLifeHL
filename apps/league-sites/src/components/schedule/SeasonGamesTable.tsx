@@ -159,7 +159,7 @@ export function SeasonGamesTable({
                     size="sm"
                     className="shrink-0"
                   />
-                  <span className="text-xs font-medium leading-tight text-[var(--color-text-primary)] md:text-sm">
+                  <span className="text-xs font-medium leading-tight text-right text-[var(--color-text-primary)] md:text-sm flex-1">
                     {game.home_team?.name || 'TBD'}
                   </span>
                 </div>
