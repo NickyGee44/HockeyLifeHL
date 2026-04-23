@@ -1035,7 +1035,7 @@ export async function submitPlayerRegistration(
           team_id: registrationContext.storedTeamId,
           waiver_id: waiverId,
           registration_type: registrationContext.registrationType,
-          status: 'pending',
+          status: 'approved',
           preferred_position: normalizedPrimaryPosition,
           secondary_position: normalizedSecondaryPosition,
           preferred_jersey_number: data.preferred_jersey_number || null,
