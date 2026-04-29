@@ -2518,7 +2518,7 @@ export type Database = {
           penalty_minutes: number | null
           penalty_severity: string | null
           penalty_type: string | null
-          period: number
+          period: number | null
           player_id: string
           shot_type: string | null
           sync_status: string
@@ -2553,7 +2553,7 @@ export type Database = {
           penalty_minutes?: number | null
           penalty_severity?: string | null
           penalty_type?: string | null
-          period: number
+          period?: number | null
           player_id: string
           shot_type?: string | null
           sync_status?: string
@@ -2588,7 +2588,7 @@ export type Database = {
           penalty_minutes?: number | null
           penalty_severity?: string | null
           penalty_type?: string | null
-          period?: number
+          period?: number | null
           player_id?: string
           shot_type?: string | null
           sync_status?: string
@@ -5200,6 +5200,7 @@ export type Database = {
           registration_form_config: Json
           registration_url: string | null
           search_keywords: string[] | null
+          scorekeeper_tracks_time_periods: boolean
           secondary_color: string | null
           settings: Json | null
           short_name: string | null
@@ -5259,6 +5260,7 @@ export type Database = {
           registration_form_config?: Json
           registration_url?: string | null
           search_keywords?: string[] | null
+          scorekeeper_tracks_time_periods?: boolean
           secondary_color?: string | null
           settings?: Json | null
           short_name?: string | null
@@ -5318,6 +5320,7 @@ export type Database = {
           registration_form_config?: Json
           registration_url?: string | null
           search_keywords?: string[] | null
+          scorekeeper_tracks_time_periods?: boolean
           secondary_color?: string | null
           settings?: Json | null
           short_name?: string | null

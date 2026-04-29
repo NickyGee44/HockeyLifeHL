@@ -22,8 +22,8 @@ interface ShotEntryProps {
   shootingRoster: PlayerData[];
   shootingTeamName: string;
   shootingTeamColor?: string | null;
-  period: number;
-  gameTimeSeconds: number;
+  period: number | null;
+  gameTimeSeconds: number | null;
   onComplete: () => void;
   onCancel: () => void;
 }

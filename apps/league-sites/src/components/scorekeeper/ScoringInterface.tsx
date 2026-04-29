@@ -96,6 +96,8 @@ export function ScoringInterface({
     [game.id]
   );
 
+  const tracksTimePeriods = game.scorekeeperTracksTimePeriods;
+
   const timer = useGameTimer({
     periodLengthMinutes: game.periodLengthMinutes,
     periodCount: game.periodCount,
@@ -142,9 +144,9 @@ export function ScoringInterface({
   // Filtered events for timeline
   const filteredEvents = useMemo(() => {
     const active = events.filter(e => !e.deletedAt);
-    if (activePeriodTab === 'all') return active;
+    if (!tracksTimePeriods || activePeriodTab === 'all') return active;
     return active.filter(e => e.period === activePeriodTab);
-  }, [events, activePeriodTab]);
+  }, [events, activePeriodTab, tracksTimePeriods]);
 
   const handleEntryComplete = useCallback(() => {
     setActiveEntry(null);
@@ -189,10 +191,10 @@ export function ScoringInterface({
   }
 
   // Determine auto-flags for current goal entry (live timer values)
-  const isPP = selectedTeam
+  const isPP = tracksTimePeriods && selectedTeam
     ? penaltyTracker.isPowerPlay(selectedTeam, timer.timeRemaining, timer.currentPeriod)
     : false;
-  const isSH = selectedTeam
+  const isSH = tracksTimePeriods && selectedTeam
     ? penaltyTracker.isShortHanded(selectedTeam, timer.timeRemaining, timer.currentPeriod)
     : false;
   const isEN = selectedTeam
@@ -212,8 +214,8 @@ export function ScoringInterface({
         teamId: defendingTeamId,
         teamType: defendingTeamType,
         goalieId,
-        period: timer.currentPeriod,
-        gameTimeSeconds: timer.timeRemaining,
+        period: tracksTimePeriods ? timer.currentPeriod : null,
+        gameTimeSeconds: tracksTimePeriods ? timer.timeRemaining : null,
       });
       if (!result.success) {
         setActionError(result.error || 'Failed to record save');
@@ -379,19 +381,25 @@ export function ScoringInterface({
       )}
 
       {/* Penalty Box - live timers between scoreboard and timer */}
-      <PenaltyBox
-        penaltyTracker={penaltyTracker}
-        timeRemaining={timer.timeRemaining}
-        currentPeriod={timer.currentPeriod}
-        homeRoster={homeTeam.roster}
-        awayRoster={awayTeam.roster}
-        homeTeamColor={homeTeam.primaryColor}
-        awayTeamColor={awayTeam.primaryColor}
-      />
+      {tracksTimePeriods && (
+        <PenaltyBox
+          penaltyTracker={penaltyTracker}
+          timeRemaining={timer.timeRemaining}
+          currentPeriod={timer.currentPeriod}
+          homeRoster={homeTeam.roster}
+          awayRoster={awayTeam.roster}
+          homeTeamColor={homeTeam.primaryColor}
+          awayTeamColor={awayTeam.primaryColor}
+        />
+      )}
 
       {/* Timer Bar */}
       <div className="px-4 py-3 border-b border-[var(--color-border)]">
-        {game.status === 'scheduled' ? (
+        {!tracksTimePeriods ? (
+          <div className="text-center text-sm text-[var(--color-text-secondary)]">
+            Time and periods are disabled for this league. Goals can be entered in any order.
+          </div>
+        ) : game.status === 'scheduled' ? (
           <div className="text-center">
             <button
               onClick={handleStartGame}
@@ -422,7 +430,7 @@ export function ScoringInterface({
           </div>
           <div className="flex items-center gap-2">
             {/* Period Tabs inline */}
-            {!eventsCollapsed && (
+            {tracksTimePeriods && !eventsCollapsed && (
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -486,6 +494,7 @@ export function ScoringInterface({
                     homeTeamColor={homeTeam.primaryColor}
                     awayTeamColor={awayTeam.primaryColor}
                     onUndo={() => handleUndo(event.id)}
+                    showTimePeriods={tracksTimePeriods}
                   />
                 ))}
               </div>
@@ -503,8 +512,8 @@ export function ScoringInterface({
           teamName={activeTeam.name}
           teamColor={activeTeam.primaryColor}
           roster={activeTeam.roster}
-          period={timer.currentPeriod}
-          gameTimeSeconds={timer.timeRemaining}
+          period={tracksTimePeriods ? timer.currentPeriod : null}
+          gameTimeSeconds={tracksTimePeriods ? timer.timeRemaining : null}
           isPowerPlay={isPP}
           isShortHanded={isSH}
           isEmptyNet={isEN}
@@ -521,8 +530,8 @@ export function ScoringInterface({
           teamName={activeTeam.name}
           teamColor={activeTeam.primaryColor}
           roster={activeTeam.roster}
-          period={timer.currentPeriod}
-          gameTimeSeconds={timer.timeRemaining}
+          period={tracksTimePeriods ? timer.currentPeriod : null}
+          gameTimeSeconds={tracksTimePeriods ? timer.timeRemaining : null}
           penaltyRules={game.penaltyRules}
           onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
@@ -538,8 +547,8 @@ export function ScoringInterface({
           shootingRoster={activeTeam!.roster}
           shootingTeamName={activeTeam!.name}
           shootingTeamColor={activeTeam!.primaryColor}
-          period={timer.currentPeriod}
-          gameTimeSeconds={timer.timeRemaining}
+          period={tracksTimePeriods ? timer.currentPeriod : null}
+          gameTimeSeconds={tracksTimePeriods ? timer.timeRemaining : null}
           onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
         />
@@ -624,6 +633,7 @@ function EventRow({
   homeTeamColor,
   awayTeamColor,
   onUndo,
+  showTimePeriods = true,
 }: {
   event: GameEventData;
   homeTeamName: string;
@@ -631,6 +641,7 @@ function EventRow({
   homeTeamColor?: string | null;
   awayTeamColor?: string | null;
   onUndo: () => void;
+  showTimePeriods?: boolean;
 }) {
   const teamName = event.teamType === 'home' ? homeTeamName : awayTeamName;
 
@@ -719,9 +730,11 @@ function EventRow({
           </div>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-xs text-[var(--color-text-secondary)]">
-            P{event.period} {timeDisplay}
-          </span>
+          {showTimePeriods && event.period != null && (
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              P{event.period} {timeDisplay}
+            </span>
+          )}
           <span className="text-xs text-[var(--color-text-secondary)]">
             {teamName}
           </span>

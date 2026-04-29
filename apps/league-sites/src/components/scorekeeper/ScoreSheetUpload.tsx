@@ -158,8 +158,8 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
         return {
           type: 'goal' as const,
           teamType: g.teamType,
-          period: g.period,
-          gameTimeSeconds: g.timeMinutes * 60 + g.timeSeconds,
+          period: game.scorekeeperTracksTimePeriods ? g.period : null,
+          gameTimeSeconds: game.scorekeeperTracksTimePeriods ? g.timeMinutes * 60 + g.timeSeconds : null,
           scorerJersey: g.scorerJersey,
           assist1Jersey: g.assist1Jersey,
           assist2Jersey: g.assist2Jersey,
@@ -169,8 +169,8 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
         return {
           type: 'penalty' as const,
           teamType: p.teamType,
-          period: p.period,
-          gameTimeSeconds: p.timeMinutes * 60 + p.timeSeconds,
+          period: game.scorekeeperTracksTimePeriods ? p.period : null,
+          gameTimeSeconds: game.scorekeeperTracksTimePeriods ? p.timeMinutes * 60 + p.timeSeconds : null,
           playerJersey: p.playerJersey,
           penaltyType: p.type,
           penaltyMinutes: p.minutes,

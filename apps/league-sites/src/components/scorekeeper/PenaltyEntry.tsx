@@ -17,8 +17,8 @@ interface PenaltyEntryProps {
   teamName: string;
   teamColor?: string | null;
   roster: PlayerData[];
-  period: number;
-  gameTimeSeconds: number;
+  period: number | null;
+  gameTimeSeconds: number | null;
   /** Custom penalty rules from league settings (optional) */
   penaltyRules?: PenaltyRule[];
   onComplete: () => void;

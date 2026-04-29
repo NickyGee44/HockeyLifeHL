@@ -18,8 +18,8 @@ interface GoalEntryProps {
   teamName: string;
   teamColor?: string | null;
   roster: PlayerData[];
-  period: number;
-  gameTimeSeconds: number;
+  period: number | null;
+  gameTimeSeconds: number | null;
   isPowerPlay: boolean;
   isShortHanded: boolean;
   isEmptyNet: boolean;
