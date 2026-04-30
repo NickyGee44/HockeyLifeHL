@@ -224,11 +224,17 @@ export function FloatingDock({
   };
 
   const isDark = resolvedTheme === 'dark';
-  const dockBottomOffset = 'calc(env(safe-area-inset-bottom, 6px) + 12px)';
-  const moreMenuBottomOffset = 'calc(env(safe-area-inset-bottom, 6px) + 88px)';
+  const moreMenuBottomOffset = 'calc(env(safe-area-inset-bottom, 0px) + 76px)';
 
   const dock = (
-    <div className="fixed inset-x-0 bottom-0 z-[999] flex justify-center lg:hidden" ref={moreRef}>
+    <div
+      className="fixed inset-x-0 bottom-0 z-[999] flex justify-center lg:hidden"
+      ref={moreRef}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        transform: 'translate3d(0, 0, 0)',
+      }}
+    >
       {/* More popup menu */}
       {moreOpen && (
         <div
@@ -436,9 +442,8 @@ export function FloatingDock({
 
         {/* Dock bar */}
         <div
-          className="relative mx-auto w-[calc(100%-2rem)] max-w-[400px] rounded-[22px] border border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
+          className="relative mx-auto w-full max-w-[400px] rounded-t-[22px] border-x border-t border-white/[0.12] shadow-[0_4px_30px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-3xl"
           style={{
-            marginBottom: dockBottomOffset,
             background: `linear-gradient(135deg, color-mix(in srgb, var(--league-primary) 14%, rgba(18,18,26,0.88)) 0%, color-mix(in srgb, var(--league-secondary-safe) 10%, rgba(10,10,16,0.92)) 100%)`,
           }}
         >
