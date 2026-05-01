@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 export interface GameEventForCorrection {
   id: string;
   event_type: string;
-  period: number;
+  period: number | null;
   game_time_seconds: number | null;
   team_id: string;
   team_type: 'home' | 'away';
