@@ -197,7 +197,7 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
     const formattedEvents: GameEventForCorrection[] = (events || []).map((e) => ({
       id: e.id,
       event_type: e.event_type,
-      period: e.period,
+      period: e.period ?? 1,
       game_time_seconds: e.game_time_seconds,
       team_id: e.team_id,
       team_type: e.team_type as 'home' | 'away',

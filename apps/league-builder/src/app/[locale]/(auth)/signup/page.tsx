@@ -1,11 +1,12 @@
 'use client';
 
 import { signUp } from '@/lib/actions/auth';
+import { searchClaimablePlayerProfiles, type ClaimablePlayerCandidate } from '@/lib/actions/legacy-merge';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { useState } from 'react';
 import { cn } from '@hockey-life/ui/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, UserCheck, X } from 'lucide-react';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { OAuthProviderButton } from '@/components/auth/OAuthProviderButton';
 
@@ -15,6 +16,33 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [playerSearch, setPlayerSearch] = useState('');
+  const [playerSearchLoading, setPlayerSearchLoading] = useState(false);
+  const [playerCandidates, setPlayerCandidates] = useState<ClaimablePlayerCandidate[]>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<ClaimablePlayerCandidate | null>(null);
+
+  async function handlePlayerSearch() {
+    const query = playerSearch.trim();
+    if (query.length < 2) {
+      setPlayerCandidates([]);
+      return;
+    }
+
+    setError(null);
+    setPlayerSearchLoading(true);
+    try {
+      const result = await searchClaimablePlayerProfiles(query);
+      if (result.success) {
+        setPlayerCandidates(result.data);
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError(t('errors.generic'));
+    } finally {
+      setPlayerSearchLoading(false);
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -143,28 +171,127 @@ export default function SignupPage() {
           </div>
         </div>
 
+        <div className="border-t border-neutral-700 pt-4 space-y-3">
+          <div>
+            <label
+              htmlFor="playerSearch"
+              className="block text-sm font-medium text-neutral-300 mb-2"
+            >
+              Claim player history <span className="text-neutral-500 font-normal">(optional)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                id="playerSearch"
+                value={playerSearch}
+                onChange={(e) => setPlayerSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handlePlayerSearch();
+                  }
+                }}
+                className={inputClasses}
+                placeholder="Search your player name or email"
+              />
+              <button
+                type="button"
+                onClick={handlePlayerSearch}
+                disabled={playerSearchLoading || playerSearch.trim().length < 2}
+                className="px-4 rounded-xl bg-white/[0.08] border border-white/10 text-neutral-200 hover:bg-white/[0.12] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Search player history"
+              >
+                {playerSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-neutral-500 mt-1.5">
+              Already on a roster? Claim your stats and team history while creating your account.
+            </p>
+          </div>
+
+          {selectedPlayer && (
+            <div className="rounded-xl border border-rink-500/30 bg-rink-500/10 p-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-rink-400" />
+                  Claiming {selectedPlayer.fullName}
+                </p>
+                <p className="text-xs text-neutral-400 mt-1">
+                  {selectedPlayer.teams[0]?.teamName || 'Rostered player'} · {selectedPlayer.stats.points} PTS · {selectedPlayer.stats.gamesPlayed} GP
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPlayer(null)}
+                className="text-neutral-400 hover:text-white"
+                aria-label="Clear selected player history"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {!selectedPlayer && playerCandidates.length > 0 && (
+            <div className="space-y-2">
+              {playerCandidates.map((candidate) => (
+                <button
+                  type="button"
+                  key={candidate.id}
+                  onClick={() => setSelectedPlayer(candidate)}
+                  className="w-full text-left rounded-xl border border-white/10 bg-white/[0.04] p-3 hover:border-rink-500/40 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{candidate.fullName}</p>
+                      <p className="text-xs text-neutral-500">
+                        {candidate.emailHint ? `${candidate.emailHint} · ` : ''}
+                        {candidate.teams[0]?.teamName || 'Rostered player'}
+                        {candidate.teams[0]?.seasonName ? ` · ${candidate.teams[0].seasonName}` : ''}
+                      </p>
+                    </div>
+                    <div className="text-right text-xs text-neutral-400 shrink-0">
+                      <p>{candidate.stats.gamesPlayed} GP</p>
+                      <p>{candidate.stats.points} PTS</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!selectedPlayer && playerSearch.trim().length >= 2 && !playerSearchLoading && playerCandidates.length === 0 && (
+            <p className="text-xs text-neutral-500">No claimable rostered player history selected.</p>
+          )}
+
+          <input type="hidden" name="claimPlayerProfileId" value={selectedPlayer?.id || ''} />
+        </div>
+
         <div className="border-t border-neutral-700 pt-4">
           <label
             htmlFor="organizationName"
             className="block text-sm font-medium text-neutral-300 mb-2"
           >
-            {t('auth.companyName')}
+            {selectedPlayer ? 'League / team name' : t('auth.companyName')} {selectedPlayer && <span className="text-neutral-500 font-normal">(optional)</span>}
           </label>
           <input
             type="text"
             id="organizationName"
             name="organizationName"
-            required
+            required={!selectedPlayer}
             autoComplete="organization"
             className={inputClasses}
             placeholder={t('auth.companyNamePlaceholder')}
           />
           <p className="text-xs text-neutral-500 mt-1">
-            {t('auth.companyNameDescription')}
+            {selectedPlayer
+              ? 'Player accounts inherit league and team access from the claimed roster profile.'
+              : t('auth.companyNameDescription')}
           </p>
-          <p className="text-xs text-neutral-600 mt-0.5">
-            {t('auth.companyNameExample')}
-          </p>
+          {!selectedPlayer && (
+            <p className="text-xs text-neutral-600 mt-0.5">
+              {t('auth.companyNameExample')}
+            </p>
+          )}
         </div>
 
         <div className="border-t border-neutral-700 pt-4 space-y-3">
