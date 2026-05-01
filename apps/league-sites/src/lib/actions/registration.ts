@@ -479,6 +479,82 @@ export async function getRegistrationJourneyData(
 // League & Season Data
 // ============================================================================
 
+function uniqueIds(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+async function getRegistrationSeasonTeamOptions(
+  leagueId: string,
+  seasonId: string
+): Promise<Array<{ id: string; name: string }>> {
+  const serviceSupabase = createServiceRoleClient();
+
+  const [preferenceResult, rosterResult, registrationResult, gameResult] = await Promise.all([
+    serviceSupabase
+      .from('team_schedule_preferences')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+    serviceSupabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active'),
+    serviceSupabase
+      .from('registration_submissions')
+      .select('team_id, requested_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted']),
+    serviceSupabase
+      .from('games')
+      .select('home_team_id, away_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+  ]);
+
+  const hardParticipationIds = uniqueIds([
+    ...((rosterResult.data ?? []) as Array<{ team_id: string | null }>).map((row) => row.team_id),
+    ...((registrationResult.data ?? []) as Array<{ team_id: string | null; requested_team_id?: string | null }>).flatMap((row) => [
+      row.team_id,
+      row.requested_team_id,
+    ]),
+    ...((gameResult.data ?? []) as Array<{ home_team_id: string | null; away_team_id: string | null }>).flatMap((row) => [
+      row.home_team_id,
+      row.away_team_id,
+    ]),
+  ]);
+
+  const seasonTeamIds =
+    hardParticipationIds.length > 0
+      ? hardParticipationIds
+      : uniqueIds(
+          ((preferenceResult.data ?? []) as Array<{ team_id: string | null }>).map(
+            (row) => row.team_id
+          )
+        );
+
+  if (seasonTeamIds.length === 0) return [];
+
+  const { data: teams, error } = await serviceSupabase
+    .from('teams')
+    .select('id, name, team_type, status')
+    .eq('league_id', leagueId)
+    .in('id', seasonTeamIds)
+    .neq('status', 'inactive')
+    .not('team_type', 'in', '(free_agents,placeholder,exhibition)')
+    .order('name', { ascending: true });
+
+  if (error || !teams) return [];
+
+  return teams.map((team: any) => ({
+    id: team.id,
+    name: team.name,
+  }));
+}
+
 export async function getLeagueRegistrationData(leagueSlug: string) {
   const supabase = await createClient();
 
@@ -501,10 +577,6 @@ export async function getLeagueRegistrationData(leagueSlug: string) {
         registration_type,
         status
       ),
-      teams (
-        id,
-        name
-      ),
       divisions (
         id,
         name,
@@ -517,6 +589,13 @@ export async function getLeagueRegistrationData(leagueSlug: string) {
 
   if (error || !league) return null;
   return league;
+}
+
+export async function getRegistrationTeamOptions(
+  leagueId: string,
+  seasonId: string
+): Promise<Array<{ id: string; name: string }>> {
+  return getRegistrationSeasonTeamOptions(leagueId, seasonId);
 }
 
 export async function getSeasonRegistrationFee(

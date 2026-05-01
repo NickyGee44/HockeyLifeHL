@@ -8,6 +8,7 @@ import {
   getMyRegistrationStatus,
   getLeagueWaiver,
   getRegistrationJourneyData,
+  getRegistrationTeamOptions,
 } from '@/lib/actions/registration';
 import { getCaptainInvitePrefill } from '@/lib/actions/captain-player-invites';
 import { CaptainInviteCookieBridge } from '@/components/registration/CaptainInviteCookieBridge';
@@ -197,11 +198,12 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
   }
 
   // Load draft, waiver, and payment settings
-  const [draftResult, waiverResult, registrationConfig, journeyResult] = await Promise.all([
+  const [draftResult, waiverResult, registrationConfig, journeyResult, teamOptions] = await Promise.all([
     getRegistrationDraft(league.id, activeSeason.id),
     getLeagueWaiver(league.id),
     getSeasonRegistrationPaymentConfig(league.id, activeSeason.id),
     getRegistrationJourneyData(league.id, activeSeason.id),
+    getRegistrationTeamOptions(league.id, activeSeason.id),
   ]);
 
   if (!registrationConfig.feeConfigured) {
@@ -242,10 +244,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
           document_mime_type: null,
         };
 
-  const teams = (league.teams || []).map((team: any) => ({
-    id: team.id,
-    name: team.name,
-  }));
+  const teams = teamOptions;
 
   const leagueFormConfig = (league as any).registration_form_config ?? {};
   const journeyData =
