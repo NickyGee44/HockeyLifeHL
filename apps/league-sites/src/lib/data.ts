@@ -5763,9 +5763,26 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
     .eq('league_id', leagueId)
     .eq('slug', slug)
     .eq('published', true)
-    .single();
-  if (error || !data) return null;
-  return data as unknown as NewsArticle;
+    .limit(1)
+    .maybeSingle();
+
+  if (!error && data) {
+    return data as unknown as NewsArticle;
+  }
+
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(slug);
+  if (!uuidLike) return null;
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from('articles')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .eq('league_id', leagueId)
+    .eq('id', slug)
+    .eq('published', true)
+    .maybeSingle();
+
+  if (fallbackError || !fallbackData) return null;
+  return fallbackData as unknown as NewsArticle;
 }
 
 export async function getArticleLinkContext(
@@ -6084,17 +6101,51 @@ export async function getAllArticles(leagueId: string, limit = 20): Promise<News
  */
 export async function getGameRecap(gameId: string): Promise<NewsArticle | null> {
   const supabase = await createClient();
+  const articleSelect = '*, author:profiles!articles_author_id_fkey(full_name, avatar_url)';
 
   const { data, error } = await supabase
     .from('articles')
-    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .select(articleSelect)
     .eq('game_id', gameId)
     .eq('type', 'game_recap')
     .eq('published', true)
+    .order('published_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (error || !data) return null;
-  return data as unknown as NewsArticle;
+  if (!error && data) {
+    return data as unknown as NewsArticle;
+  }
+
+  const { data: taggedRows, error: taggedError } = await supabase
+    .from('article_game_tags')
+    .select('article_id')
+    .eq('game_id', gameId)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const taggedArticleIds = [
+    ...new Set(
+      (taggedRows || [])
+        .map((row: { article_id: string | null }) => row.article_id)
+        .filter(Boolean),
+    ),
+  ] as string[];
+
+  if (taggedError || taggedArticleIds.length === 0) return null;
+
+  const { data: taggedArticles, error: articleError } = await supabase
+    .from('articles')
+    .select(articleSelect)
+    .in('id', taggedArticleIds)
+    .eq('type', 'game_recap')
+    .eq('published', true)
+    .order('published_at', { ascending: false })
+    .limit(1);
+
+  if (articleError || !taggedArticles?.[0]) return null;
+  return taggedArticles[0] as unknown as NewsArticle;
 }
 
 /**

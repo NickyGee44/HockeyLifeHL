@@ -42,21 +42,20 @@ export function GameRecapSection({ recap, leagueSlug }: GameRecapSectionProps) {
             {recap.title}
           </h3>
 
-          {/* Article content preview */}
+          {/* Article content */}
           <div className="space-y-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
             <RichArticleContent
               content={recap.content}
-              maxParagraphs={4}
               paragraphClassName="text-sm leading-relaxed text-[var(--color-text-secondary)]"
             />
           </div>
 
-          {/* Read full article link */}
+          {/* Standalone article link */}
           <Link
             href={`/${leagueSlug}/news/${recap.slug || recap.id}`}
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--league-primary)] hover:underline"
           >
-            Read Full Recap
+            Open Standalone Story
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
