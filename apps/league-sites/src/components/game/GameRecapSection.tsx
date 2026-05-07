@@ -19,7 +19,7 @@ export function GameRecapSection({ recap, leagueSlug }: GameRecapSectionProps) {
     : null;
 
   return (
-    <div className="container mx-auto px-4 pt-8">
+    <div id="recap" className="container mx-auto scroll-mt-24 px-4 pt-8">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <SectionHeading

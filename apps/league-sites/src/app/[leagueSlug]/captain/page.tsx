@@ -29,6 +29,7 @@ import {
   type SubRosterPlayer,
 } from '@/lib/actions/captain-roster';
 import { getCaptainTeamReturnRequests } from '@/lib/actions/team-return';
+import { TeamPushToggle } from '@/components/push/TeamPushToggle';
 
 interface CaptainPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -375,6 +376,11 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         </div>
       </div>
 
+      <TeamPushToggle
+        teamId={currentTeam.team_id}
+        initialEnabled={currentTeam.team.push_enabled !== false}
+      />
+
       <div className="relative z-40 mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {captainActionItems.map((item) => {
           const Icon = item.icon;
@@ -465,4 +471,3 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     </div>
   );
 }
-
