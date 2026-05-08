@@ -476,7 +476,10 @@ async function finalizeCompletedGameStats(
 
   const { error: statusUpdateError } = await supabase
     .from('games')
-    .update({ status: 'completed' })
+    .update({
+      status: 'completed',
+      stats_locked_at: new Date().toISOString(),
+    })
     .eq('id', gameId);
 
   if (statusUpdateError) {
@@ -505,6 +508,29 @@ async function finalizeCompletedGameStats(
       body: { action: 'game_recap', game_id: gameId },
     }).catch(() => {});
   }
+}
+
+async function finalizeIfBothCaptainsVerified(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+): Promise<boolean> {
+  const { data: verificationState, error: verificationStateError } = await supabase
+    .from('games')
+    .select('home_verified_at, away_verified_at')
+    .eq('id', gameId)
+    .single();
+
+  if (verificationStateError) {
+    console.error('Verify captain state reload error:', verificationStateError);
+    return false;
+  }
+
+  if (verificationState?.home_verified_at && verificationState?.away_verified_at) {
+    await finalizeCompletedGameStats(supabase, gameId);
+    return true;
+  }
+
+  return false;
 }
 
 async function resolveTeamCaptainContact(
@@ -2560,11 +2586,12 @@ export async function submitGameForVerification(gameId: string): Promise<{
         return { success: false, error: 'Failed to submit for verification' };
       }
 
+      const gameCompleted = await finalizeIfBothCaptainsVerified(supabase, gameId);
       const leagueRelation = Array.isArray(gameDetails.leagues)
         ? gameDetails.leagues[0]
         : gameDetails.leagues;
 
-      if (leagueRelation?.name && leagueRelation?.slug && opposingTeamId) {
+      if (!gameCompleted && leagueRelation?.name && leagueRelation?.slug && opposingTeamId) {
         try {
           await maybeEmailCaptainVerificationLink({
             supabase,
@@ -2721,7 +2748,7 @@ export async function verifyCaptainStats(token: string): Promise<{
 
     const { data: verificationState, error: verificationStateError } = await supabase
       .from('games')
-      .select('home_verified_at, away_verified_at, stats_locked_at')
+      .select('home_verified_at, away_verified_at')
       .eq('id', gameId)
       .single();
 
@@ -2730,11 +2757,7 @@ export async function verifyCaptainStats(token: string): Promise<{
       return { success: true, gameId, teamType };
     }
 
-    if (
-      verificationState?.home_verified_at &&
-      verificationState?.away_verified_at &&
-      verificationState?.stats_locked_at
-    ) {
+    if (verificationState?.home_verified_at && verificationState?.away_verified_at) {
       await finalizeCompletedGameStats(supabase, gameId);
     }
 
@@ -3130,11 +3153,14 @@ export async function getOrCreateCaptainScorekeeperSession(
     const initiatingTeamType: ScorekeeperTeamType =
       game.home_team_id === teamId ? 'home' : 'away';
 
-    // Look for any existing active session for this game (shared between both team captains)
+    // Reuse only this captain team's active session. Sharing one token across
+    // both captains loses the initiating team context and can leave games stuck.
     const { data: existing } = await supabase
       .from('scorekeeper_sessions')
       .select('token, expires_at')
       .eq('game_id', gameId)
+      .eq('session_origin', 'captain_self_score')
+      .eq('initiating_team_id', teamId)
       .eq('is_active', true)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
