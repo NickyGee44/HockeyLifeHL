@@ -1,6 +1,6 @@
 'use server';
 
-import { createAuthClient as createClient } from '@/lib/supabase/server';
+import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export interface SubInvitation {
   id: string;
@@ -8,6 +8,8 @@ export interface SubInvitation {
   team_id: string;
   invited_by: string;
   invited_player_id: string;
+  replaced_player_id: string | null;
+  source_type: 'team' | 'league';
   status: 'pending' | 'accepted' | 'declined' | 'expired';
   message: string | null;
   responded_at: string | null;
@@ -75,7 +77,8 @@ export async function inviteSub(
   gameId: string,
   teamId: string,
   playerId: string,
-  message?: string
+  message?: string,
+  replacedPlayerId?: string | null
 ): Promise<ActionResult> {
   const auth = await verifyCaptainRole(teamId);
   if (!auth.authorized) {
@@ -83,12 +86,48 @@ export async function inviteSub(
   }
 
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
+
+  const { data: teamRow } = await serviceSupabase
+    .from('teams')
+    .select('league_id')
+    .eq('id', teamId)
+    .maybeSingle();
+
+  if (!teamRow?.league_id) {
+    return { success: false, error: 'Team not found' };
+  }
+
+  const [{ data: teamRosterRow }, { data: activeLeagueSpare }] = await Promise.all([
+    serviceSupabase
+      .from('team_rosters')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('player_id', playerId)
+      .eq('status', 'active')
+      .is('end_date', null)
+      .in('player_type', ['sub', 'part_time'])
+      .maybeSingle(),
+    (serviceSupabase as any)
+      .from('league_spare_pool')
+      .select('id')
+      .eq('league_id', teamRow.league_id)
+      .eq('player_id', playerId)
+      .eq('active', true)
+      .maybeSingle(),
+  ]);
+
+  if (!teamRosterRow && !activeLeagueSpare) {
+    return { success: false, error: 'That player is not an active team spare or league spare.' };
+  }
 
   const { error } = await supabase.from('sub_invitations').insert({
     game_id: gameId,
     team_id: teamId,
     invited_by: auth.userId!,
     invited_player_id: playerId,
+    replaced_player_id: replacedPlayerId || null,
+    source_type: teamRosterRow ? 'team' : 'league',
     status: 'pending',
     message: message || null,
   });
@@ -194,6 +233,8 @@ export async function getMySubInvitations(
       team_id,
       invited_by,
       invited_player_id,
+      replaced_player_id,
+      source_type,
       status,
       message,
       responded_at,
@@ -271,6 +312,8 @@ export async function getTeamSubInvitations(
       team_id,
       invited_by,
       invited_player_id,
+      replaced_player_id,
+      source_type,
       status,
       message,
       responded_at,
@@ -329,8 +372,18 @@ export async function updatePlayerType(
 
 export async function getLeagueSubPlayers(
   leagueId: string,
-  excludeTeamId?: string
-): Promise<{ success: boolean; data?: { id: string; full_name: string | null; email: string | null }[]; error?: string }> {
+  teamId?: string
+): Promise<{
+  success: boolean;
+  data?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    source: 'team' | 'league';
+    position: string | null;
+  }[];
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const {
@@ -341,33 +394,53 @@ export async function getLeagueSubPlayers(
     return { success: false, error: 'Not authenticated' };
   }
 
-  // Get all players registered as subs in this league
-  let query = supabase
-    .from('team_rosters')
-    .select(`
-      player_id,
-      profile:profiles!team_rosters_player_id_fkey(id, full_name, email)
-    `)
-    .eq('league_id', leagueId)
-    .eq('status', 'active')
-    .in('player_type', ['sub', 'part_time']);
+  const serviceSupabase = createServiceRoleClient();
+  const [teamSparesResult, leagueSparesResult] = await Promise.all([
+    teamId
+      ? serviceSupabase
+          .from('team_rosters')
+          .select(`
+            player_id,
+            position,
+            profile:profiles!team_rosters_player_id_fkey(id, full_name, email)
+          `)
+          .eq('league_id', leagueId)
+          .eq('team_id', teamId)
+          .eq('status', 'active')
+          .is('end_date', null)
+          .in('player_type', ['sub', 'part_time'])
+      : Promise.resolve({ data: [], error: null }),
+    (serviceSupabase as any)
+      .from('league_spare_pool')
+      .select(`
+        player_id,
+        position,
+        profile:profiles!league_spare_pool_player_id_fkey(id, full_name, email)
+      `)
+      .eq('league_id', leagueId)
+      .eq('active', true),
+  ]);
 
-  if (excludeTeamId) {
-    query = query.neq('team_id', excludeTeamId);
+  if (teamSparesResult.error) {
+    console.error('Failed to get team spare players:', teamSparesResult.error);
+    return { success: false, error: teamSparesResult.error.message };
   }
 
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Failed to get league sub players:', error);
-    return { success: false, error: error.message };
+  if (leagueSparesResult.error) {
+    console.error('Failed to get league spare players:', leagueSparesResult.error);
+    return { success: false, error: leagueSparesResult.error.message };
   }
 
-  // Deduplicate by player_id
   const seen = new Set<string>();
-  const players: { id: string; full_name: string | null; email: string | null }[] = [];
+  const players: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    source: 'team' | 'league';
+    position: string | null;
+  }[] = [];
 
-  for (const row of data || []) {
+  for (const row of teamSparesResult.data || []) {
     const profile = Array.isArray((row as any).profile)
       ? (row as any).profile[0]
       : (row as any).profile;
@@ -377,9 +450,33 @@ export async function getLeagueSubPlayers(
         id: profile.id,
         full_name: profile.full_name,
         email: profile.email,
+        source: 'team',
+        position: (row as any).position ?? null,
       });
     }
   }
 
-  return { success: true, data: players };
+  for (const row of leagueSparesResult.data || []) {
+    const profile = Array.isArray((row as any).profile)
+      ? (row as any).profile[0]
+      : (row as any).profile;
+    if (profile && !seen.has(profile.id)) {
+      seen.add(profile.id);
+      players.push({
+        id: profile.id,
+        full_name: profile.full_name,
+        email: profile.email,
+        source: 'league',
+        position: (row as any).position ?? null,
+      });
+    }
+  }
+
+  return {
+    success: true,
+    data: players.sort((left, right) => {
+      if (left.source !== right.source) return left.source === 'team' ? -1 : 1;
+      return (left.full_name || '').localeCompare(right.full_name || '');
+    }),
+  };
 }

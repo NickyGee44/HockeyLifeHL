@@ -123,12 +123,14 @@ async function loadRosterSnapshotForGameTeam(
       player_id,
       position,
       jersey_number,
+      player_type,
       season_id,
       profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
     `)
     .eq('team_id', teamId)
     .eq('status', 'active')
-    .is('end_date', null);
+    .is('end_date', null)
+    .eq('player_type', 'regular');
 
   if (seasonId) {
     rosterQuery = rosterQuery.eq('season_id', seasonId);

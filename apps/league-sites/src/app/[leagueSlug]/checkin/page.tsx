@@ -166,7 +166,8 @@ export default function CheckinPage() {
         .select('player_id, position, jersey_number, profile:profiles(id, full_name, avatar_url)')
         .eq('team_id', teamId)
         .eq('status', 'active')
-        .is('end_date', null);
+        .is('end_date', null)
+        .eq('player_type', 'regular');
 
       if (rosterData) {
         setRoster(

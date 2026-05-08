@@ -24,12 +24,19 @@ interface SubInviteModalProps {
   leagueId: string;
   roster: RosterPlayer[];
   gameDateLabel?: string;
+  missingPlayers?: Array<{
+    playerId: string;
+    fullName: string;
+    jerseyNumber: number | null;
+  }>;
 }
 
 interface SubPlayer {
   id: string;
   full_name: string | null;
   email: string | null;
+  source: 'team' | 'league';
+  position: string | null;
 }
 
 export function SubInviteModal({
@@ -40,17 +47,20 @@ export function SubInviteModal({
   leagueId,
   roster,
   gameDateLabel,
+  missingPlayers = [],
 }: SubInviteModalProps) {
   const [availableSubs, setAvailableSubs] = useState<SubPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState('');
+  const [replacedPlayerId, setReplacedPlayerId] = useState<string>('');
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted gates client-only portal rendering.
     setMounted(true);
     return () => setMounted(false);
   }, []);
@@ -83,8 +93,13 @@ export function SubInviteModal({
 
     fetchSubs();
     // Reset state when opening
-    setSearchQuery(''); setMessage(''); setSentInvites(new Set()); setError(null); // eslint-disable-line -- intentional reset on modal open
-  }, [isOpen, leagueId, teamId, roster]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- modal form state intentionally resets when opened.
+    setSearchQuery('');
+    setMessage('');
+    setReplacedPlayerId(missingPlayers[0]?.playerId ?? '');
+    setSentInvites(new Set());
+    setError(null);
+  }, [isOpen, leagueId, teamId, roster, missingPlayers]);
 
   const filteredSubs = availableSubs.filter((sub) => {
     if (!searchQuery) return true;
@@ -98,7 +113,13 @@ export function SubInviteModal({
   const handleInvite = (playerId: string) => {
     setError(null);
     startTransition(async () => {
-      const result = await inviteSub(gameId, teamId, playerId, message || undefined);
+      const result = await inviteSub(
+        gameId,
+        teamId,
+        playerId,
+        message || undefined,
+        replacedPlayerId || null,
+      );
       if (result.success) {
         setSentInvites((prev) => new Set([...prev, playerId]));
       } else {
@@ -124,7 +145,7 @@ export function SubInviteModal({
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-[var(--league-primary)]" />
-              Invite Sub
+              Find Spare
             </h2>
             {gameDateLabel && (
               <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
@@ -140,8 +161,29 @@ export function SubInviteModal({
           </button>
         </div>
 
-        {/* Optional message */}
+        {/* Replacement target + optional message */}
         <div className="px-4 pt-3">
+          {missingPlayers.length > 0 ? (
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
+              Replacing
+              <select
+                value={replacedPlayerId}
+                onChange={(event) => setReplacedPlayerId(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm normal-case tracking-normal text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              >
+                <option value="">No specific player</option>
+                {missingPlayers.map((player) => (
+                  <option key={player.playerId} value={player.playerId}>
+                    {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}{player.fullName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+              Tip: mark the missing player Out first so the spare is tied to the right replacement.
+            </p>
+          )}
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -200,14 +242,21 @@ export function SubInviteModal({
                   className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)]/80"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-[var(--color-text-primary)] truncate">
-                      {sub.full_name || 'Unknown Player'}
-                    </p>
-                    {sub.email && (
-                      <p className="text-xs text-[var(--color-text-muted)] truncate">
-                        {sub.email}
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-medium text-[var(--color-text-primary)]">
+                        {sub.full_name || 'Unknown Player'}
                       </p>
-                    )}
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                        sub.source === 'team'
+                          ? 'bg-cyan-500/10 text-cyan-300'
+                          : 'bg-emerald-500/10 text-emerald-300'
+                      }`}>
+                        {sub.source === 'team' ? 'Team' : 'League'}
+                      </span>
+                    </div>
+                    <p className="truncate text-xs text-[var(--color-text-muted)]">
+                      {[sub.position, sub.email].filter(Boolean).join(' · ') || 'Active spare'}
+                    </p>
                   </div>
 
                   {alreadyInvited ? (

@@ -2051,9 +2051,10 @@ export interface CheckinPlayer {
   id: string;
   fullName: string;
   avatarUrl: string | null;
-  jerseyNumber: number;
+  jerseyNumber: number | null;
   position: string;
   checkinStatus: 'confirmed' | 'tentative' | 'out' | null;
+  isSub?: boolean;
 }
 
 /**
@@ -2080,8 +2081,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
       return { success: false, error: 'Game not found' };
     }
 
-    // Fetch rosters and existing checkins in parallel
-    const [homeRosterResult, awayRosterResult, checkinsResult] = await Promise.all([
+    // Fetch regular rosters, accepted game spares, and existing checkins in parallel.
+    const [homeRosterResult, awayRosterResult, homeSubResult, awaySubResult, checkinsResult] = await Promise.all([
       (() => {
         let query = (supabase as any)
           .from('team_rosters')
@@ -2091,7 +2092,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           `)
           .eq('team_id', game.home_team_id)
           .eq('status', 'active')
-          .is('end_date', null);
+          .is('end_date', null)
+          .eq('player_type', 'regular');
 
         if (game.season_id) {
           query = query.eq('season_id', game.season_id);
@@ -2108,7 +2110,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           `)
           .eq('team_id', game.away_team_id)
           .eq('status', 'active')
-          .is('end_date', null);
+          .is('end_date', null)
+          .eq('player_type', 'regular');
 
         if (game.season_id) {
           query = query.eq('season_id', game.season_id);
@@ -2116,6 +2119,24 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
 
         return query;
       })(),
+      (supabase as any)
+        .from('sub_invitations')
+        .select(`
+          invited_player_id,
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('game_id', gameId)
+        .eq('team_id', game.home_team_id)
+        .eq('status', 'accepted'),
+      (supabase as any)
+        .from('sub_invitations')
+        .select(`
+          invited_player_id,
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('game_id', gameId)
+        .eq('team_id', game.away_team_id)
+        .eq('status', 'accepted'),
       (supabase as any)
         .from('game_checkins')
         .select('player_id, status')
@@ -2128,9 +2149,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
       checkinMap.set(row.player_id, row.status);
     }
 
-    const formatCheckinRoster = (roster: any[] | null): CheckinPlayer[] => {
-      if (!roster) return [];
-      return roster
+    const formatCheckinRoster = (roster: any[] | null, subs: any[] | null): CheckinPlayer[] => {
+      const regulars = (roster || [])
         .filter((r: any) => r.profiles)
         .map((r: any) => ({
           id: r.player_id,
@@ -2139,15 +2159,42 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           jerseyNumber: r.jersey_number,
           position: r.position as string,
           checkinStatus: (checkinMap.get(r.player_id) as CheckinPlayer['checkinStatus']) || null,
-        }))
-        .sort((a: CheckinPlayer, b: CheckinPlayer) => a.jerseyNumber - b.jerseyNumber);
+          isSub: false,
+        }));
+
+      const seen = new Set(regulars.map((player: CheckinPlayer) => player.id));
+      const acceptedSubs = (subs || [])
+        .filter((row: any) => row.invited_player_id && !seen.has(row.invited_player_id))
+        .map((row: any) => {
+          const profile = Array.isArray(row.invited_player_profile)
+            ? row.invited_player_profile[0]
+            : row.invited_player_profile;
+
+          return {
+            id: row.invited_player_id,
+            fullName: profile?.full_name ?? 'Spare Player',
+            avatarUrl: profile?.avatar_url ?? null,
+            jerseyNumber: null,
+            position: 'Spare',
+            checkinStatus: (checkinMap.get(row.invited_player_id) as CheckinPlayer['checkinStatus']) || 'confirmed',
+            isSub: true,
+          };
+        });
+
+      return [...regulars, ...acceptedSubs].sort((a: CheckinPlayer, b: CheckinPlayer) => {
+        if (a.isSub !== b.isSub) return Number(a.isSub) - Number(b.isSub);
+        if (a.jerseyNumber !== null && b.jerseyNumber !== null) return a.jerseyNumber - b.jerseyNumber;
+        if (a.jerseyNumber !== null) return -1;
+        if (b.jerseyNumber !== null) return 1;
+        return a.fullName.localeCompare(b.fullName);
+      });
     };
 
     return {
       success: true,
       checkins: {
-        homeTeam: formatCheckinRoster(homeRosterResult.data),
-        awayTeam: formatCheckinRoster(awayRosterResult.data),
+        homeTeam: formatCheckinRoster(homeRosterResult.data, homeSubResult.data),
+        awayTeam: formatCheckinRoster(awayRosterResult.data, awaySubResult.data),
       },
     };
   } catch (error) {

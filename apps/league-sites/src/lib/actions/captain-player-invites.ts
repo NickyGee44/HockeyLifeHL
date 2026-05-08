@@ -158,15 +158,15 @@ export async function createCaptainPlayerInvite(input: {
   }
 
   const league = Array.isArray(team.leagues) ? team.leagues[0] : team.leagues;
-  const brandScope = input.isSpare && input.shareWithLeague ? 'league' : 'team';
-  const playerType = input.isSpare ? (input.shareWithLeague ? 'sub' : 'part_time') : 'regular';
+  const brandScope = 'team';
+  const playerType = input.isSpare ? 'part_time' : 'regular';
   const normalizedPhone = normalizePhone(input.phone);
 
   let playerId = input.existingPlayerId || null;
   let rosterId = input.existingRosterId || null;
   let inviteeName = input.fullName?.trim() || null;
   let inviteePhone = normalizedPhone;
-  let invitePosition = input.position || null;
+  const invitePosition = input.position || null;
 
   if (playerId) {
     const { data: existing } = await (serviceSupabase as any)
@@ -251,7 +251,7 @@ export async function createCaptainPlayerInvite(input: {
       share_phone: inviteePhone,
       position: invitePosition,
       player_type: playerType,
-      share_with_league: input.isSpare && input.shareWithLeague === true,
+      share_with_league: false,
       brand_scope: brandScope,
       invited_by: auth.userId,
       registration_path: `/${league.slug}/register?captainInvite=`,

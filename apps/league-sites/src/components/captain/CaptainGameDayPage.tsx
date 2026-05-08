@@ -139,6 +139,13 @@ export function CaptainGameDayPage({
   const snapshotExtendedGrid = eligibleForLineupCount > 11;
   const snapshotForwardSlots = snapshotExtendedGrid ? 9 : 6;
   const snapshotDefenceSlots = snapshotExtendedGrid ? 6 : 4;
+  const missingRegularPlayers = (data?.attendance ?? [])
+    .filter((player) => !player.isSub && player.status === 'out')
+    .map((player) => ({
+      playerId: player.playerId,
+      fullName: player.fullName,
+      jerseyNumber: player.jerseyNumber,
+    }));
 
   const refreshData = () => setRefreshToken((current) => current + 1);
 
@@ -356,6 +363,7 @@ export function CaptainGameDayPage({
           player_type: 'regular' as const,
           profile: null,
         }))}
+        missingPlayers={missingRegularPlayers}
       />
 
     </>
@@ -509,6 +517,7 @@ function Overlay({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted gates client-only portal rendering.
     setMounted(true);
     return () => setMounted(false);
   }, []);

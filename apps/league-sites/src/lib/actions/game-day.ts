@@ -139,12 +139,14 @@ async function loadAttendancePlayers(
       player_id,
       jersey_number,
       position,
+      player_type,
       season_id,
       profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
     `)
     .eq('team_id', teamId)
     .eq('status', 'active')
-    .is('end_date', null);
+    .is('end_date', null)
+    .eq('player_type', 'regular');
 
   if (seasonId) {
     rosterQuery = rosterQuery.eq('season_id', seasonId);
@@ -161,6 +163,7 @@ async function loadAttendancePlayers(
     (supabase.from('sub_invitations') as any)
       .select(`
         invited_player_id,
+        replaced_player_id,
         status,
         invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url)
       `)
