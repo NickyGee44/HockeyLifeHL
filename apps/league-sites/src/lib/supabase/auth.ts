@@ -101,8 +101,11 @@ export async function getUser(): Promise<AuthResult> {
  */
 export async function resetPassword(email: string): Promise<{ error: AuthError | null }> {
   const supabase = createClient();
+  const callbackUrl = new URL('/api/auth/callback', window.location.origin);
+  callbackUrl.searchParams.set('next', '/reset-password');
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: callbackUrl.toString(),
   });
   return { error };
 }

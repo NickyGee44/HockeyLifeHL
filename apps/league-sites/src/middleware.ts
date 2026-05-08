@@ -36,6 +36,7 @@ const PRODUCTION_DOMAIN = 'beerleaguehockey.ca';
 const DEV_DOMAINS = ['localhost', '127.0.0.1', '.local'];
 
 const PASSTHROUGH_PATHS = new Set([
+  '/reset-password',
   '/sw.js',
   '/manifest.webmanifest',
   '/api/push/subscribe',
