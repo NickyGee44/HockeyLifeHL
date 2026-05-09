@@ -12,6 +12,8 @@ interface ReminderTeamIdentity {
   primaryColor: string;
 }
 
+const CHECKIN_CARD_BACKGROUND_URL = '/checkin-card-backgrounds/arena-light-streaks.png';
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -110,6 +112,7 @@ export function buildReminderSvg({
   opponentName,
   teamLogoDataUrl,
   opponentLogoDataUrl,
+  backgroundImageDataUrl,
   teamPrimaryColor,
   opponentPrimaryColor,
   seasonRecord,
@@ -122,6 +125,7 @@ export function buildReminderSvg({
   opponentName: string;
   teamLogoDataUrl: string | null;
   opponentLogoDataUrl: string | null;
+  backgroundImageDataUrl: string | null;
   teamPrimaryColor: string;
   opponentPrimaryColor: string;
   seasonRecord: string;
@@ -192,6 +196,9 @@ export function buildReminderSvg({
           <stop stop-color="${opponent.primaryColor}" stop-opacity="0.85"/>
           <stop offset="1" stop-color="${opponent.primaryColor}" stop-opacity="0"/>
         </radialGradient>
+        <clipPath id="heroClip">
+          <rect x="500" y="82" width="1018" height="422" rx="24" />
+        </clipPath>
       </defs>
 
       <rect width="1600" height="900" rx="34" fill="#050816" />
@@ -206,6 +213,10 @@ export function buildReminderSvg({
 
       <rect x="476" y="58" width="1066" height="470" rx="28" fill="#0a0f1d" stroke="rgba(255,255,255,0.06)" />
       <rect x="500" y="82" width="1018" height="422" rx="24" fill="#020617" />
+      ${backgroundImageDataUrl ? `
+        <image href="${escapeXml(backgroundImageDataUrl)}" x="500" y="82" width="1018" height="422" preserveAspectRatio="xMidYMid slice" clip-path="url(#heroClip)" opacity="0.86" />
+        <rect x="500" y="82" width="1018" height="422" rx="24" fill="#020617" opacity="0.22" />
+      ` : ''}
       <rect x="500" y="82" width="1018" height="422" rx="24" fill="url(#heroGlowLeft)" />
       <rect x="500" y="82" width="1018" height="422" rx="24" fill="url(#heroGlowRight)" />
       <text x="1009" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="900" fill="#fbbf24" letter-spacing="2">NEXT CHECK-IN</text>
@@ -301,9 +312,10 @@ export async function shareCheckinReminder(options: {
   shareText: string;
   shareUrl: string;
 }) {
-  const [teamLogoDataUrl, opponentLogoDataUrl] = await Promise.all([
+  const [teamLogoDataUrl, opponentLogoDataUrl, backgroundImageDataUrl] = await Promise.all([
     imageUrlToDataUrl(options.teamLogoUrl),
     imageUrlToDataUrl(options.opponentLogoUrl),
+    imageUrlToDataUrl(CHECKIN_CARD_BACKGROUND_URL),
   ]);
 
   const file = await svgToPngFile(
@@ -311,6 +323,7 @@ export async function shareCheckinReminder(options: {
       ...options,
       teamLogoDataUrl,
       opponentLogoDataUrl,
+      backgroundImageDataUrl,
       teamPrimaryColor: normalizeHexColor(options.teamPrimaryColor, '#8b5cf6'),
       opponentPrimaryColor: normalizeHexColor(options.opponentPrimaryColor, '#ef4444'),
     }),
