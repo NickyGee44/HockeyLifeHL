@@ -36,6 +36,16 @@ interface RemainingGame {
   awayTeamId: string;
 }
 
+interface OddsBound {
+  min: number;
+  max: number;
+}
+
+interface TeamOutcomeBounds {
+  firstPlace: OddsBound;
+  playoffs: OddsBound;
+}
+
 const SIMULATION_COUNT = 5000;
 const REGRESSION_GAMES = 8;
 const MAX_DECISIVE_WIN_SHARE = 0.8;
@@ -137,15 +147,23 @@ export function calculatePlayoffOdds(
   const rankedTeams = rankTeams(teams);
   const baselineFirstPlaceOdds = rankedTeams.length > 0 ? 1 / rankedTeams.length : 0;
   const baselinePlayoffOdds = getBaselinePlayoffOdds(rankedTeams, config);
+  const outcomeBounds = calculateOutcomeBounds(teams, remainingGames, config);
 
   return rankedTeams.map((team) => {
     const rawFirstPlaceOdds = (firstPlaceCounts.get(team.team_id) ?? 0) / SIMULATION_COUNT;
     const rawPlayoffOdds = (playoffCounts.get(team.team_id) ?? 0) / SIMULATION_COUNT;
+    const bounds = outcomeBounds.get(team.team_id);
 
     return {
       teamId: team.team_id,
-      oddsOfFinishingFirst: blendTowardBaseline(rawFirstPlaceOdds, baselineFirstPlaceOdds, seasonProgress),
-      oddsOfMakingPlayoffs: blendTowardBaseline(rawPlayoffOdds, baselinePlayoffOdds, seasonProgress),
+      oddsOfFinishingFirst: applyBounds(
+        blendTowardBaseline(rawFirstPlaceOdds, baselineFirstPlaceOdds, seasonProgress),
+        bounds?.firstPlace,
+      ),
+      oddsOfMakingPlayoffs: applyBounds(
+        blendTowardBaseline(rawPlayoffOdds, baselinePlayoffOdds, seasonProgress),
+        bounds?.playoffs,
+      ),
     };
   });
 }
@@ -231,6 +249,111 @@ function getPlayoffQualifiedTeamIds(teams: SimTeamState[], config: PlayoffOddsCo
   return new Set(ranked.slice(0, limit).map((team) => team.team_id));
 }
 
+function calculateOutcomeBounds(
+  teams: SimTeamState[],
+  remainingGames: RemainingGame[],
+  config: PlayoffOddsConfig,
+): Map<string, TeamOutcomeBounds> {
+  const remainingByTeam = getRemainingGamesByTeam(teams, remainingGames);
+  const maxPointsByTeam = new Map(
+    teams.map((team) => [team.team_id, team.points + (remainingByTeam.get(team.team_id) ?? 0) * 2]),
+  );
+  const bounds = new Map<string, TeamOutcomeBounds>();
+
+  for (const team of teams) {
+    const teamMaxPoints = maxPointsByTeam.get(team.team_id) ?? team.points;
+    const otherTeams = teams.filter((other) => other.team_id !== team.team_id);
+    const canFinishFirst = otherTeams.every((other) => other.points <= teamMaxPoints);
+    const hasClinchedFirst = otherTeams.every(
+      (other) => (maxPointsByTeam.get(other.team_id) ?? other.points) < team.points,
+    );
+
+    bounds.set(team.team_id, {
+      firstPlace: {
+        min: hasClinchedFirst ? 1 : 0,
+        max: canFinishFirst ? 1 : 0,
+      },
+      playoffs: {
+        min: 0,
+        max: 1,
+      },
+    });
+  }
+
+  if (config.useDivisionPlayoffs && (config.playoffTeamsPerDivision ?? 0) > 0) {
+    const divisions = new Map<string, SimTeamState[]>();
+    for (const team of teams) {
+      const key = team.division_id ?? '__no_division__';
+      divisions.set(key, [...(divisions.get(key) ?? []), team]);
+    }
+
+    for (const divisionTeams of divisions.values()) {
+      applyPlayoffBoundsForGroup(
+        divisionTeams,
+        config.playoffTeamsPerDivision ?? divisionTeams.length,
+        maxPointsByTeam,
+        bounds,
+      );
+    }
+    return bounds;
+  }
+
+  applyPlayoffBoundsForGroup(teams, config.playoffTeamsTotal ?? teams.length, maxPointsByTeam, bounds);
+  return bounds;
+}
+
+function getRemainingGamesByTeam(teams: SimTeamState[], remainingGames: RemainingGame[]) {
+  const teamIds = new Set(teams.map((team) => team.team_id));
+  const remainingByTeam = new Map<string, number>();
+
+  for (const game of remainingGames) {
+    if (teamIds.has(game.homeTeamId)) {
+      remainingByTeam.set(game.homeTeamId, (remainingByTeam.get(game.homeTeamId) ?? 0) + 1);
+    }
+    if (teamIds.has(game.awayTeamId)) {
+      remainingByTeam.set(game.awayTeamId, (remainingByTeam.get(game.awayTeamId) ?? 0) + 1);
+    }
+  }
+
+  return remainingByTeam;
+}
+
+function applyPlayoffBoundsForGroup(
+  teams: SimTeamState[],
+  configuredSpots: number,
+  maxPointsByTeam: Map<string, number>,
+  bounds: Map<string, TeamOutcomeBounds>,
+) {
+  const spots = Math.min(Math.max(configuredSpots, 0), teams.length);
+
+  for (const team of teams) {
+    const existingBounds = bounds.get(team.team_id);
+    if (!existingBounds) continue;
+
+    if (spots >= teams.length) {
+      existingBounds.playoffs = { min: 1, max: 1 };
+      continue;
+    }
+
+    if (spots <= 0) {
+      existingBounds.playoffs = { min: 0, max: 0 };
+      continue;
+    }
+
+    const teamMaxPoints = maxPointsByTeam.get(team.team_id) ?? team.points;
+    const otherTeams = teams.filter((other) => other.team_id !== team.team_id);
+    const teamsAlreadyAboveTeamMax = otherTeams.filter((other) => other.points > teamMaxPoints).length;
+    const teamsThatCanReachOrPassTeam = otherTeams.filter(
+      (other) => (maxPointsByTeam.get(other.team_id) ?? other.points) >= team.points,
+    ).length;
+
+    existingBounds.playoffs = {
+      min: teamsThatCanReachOrPassTeam < spots ? 1 : 0,
+      max: teamsAlreadyAboveTeamMax < spots ? 1 : 0,
+    };
+  }
+}
+
 function rankTeams(teams: SimTeamState[]): SimTeamState[] {
   return [...teams].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
@@ -303,6 +426,11 @@ function getBaselinePlayoffOdds(teams: SimTeamState[], config: PlayoffOddsConfig
 
 function blendTowardBaseline(value: number, baseline: number, confidence: number) {
   return baseline + (value - baseline) * confidence;
+}
+
+function applyBounds(value: number, bounds?: OddsBound) {
+  if (!bounds) return value;
+  return clamp(value, bounds.min, bounds.max);
 }
 
 function getTeamGamesPlayed(team: Pick<TeamStanding, 'games_played' | 'wins' | 'losses' | 'ties' | 'overtime_losses'>) {
