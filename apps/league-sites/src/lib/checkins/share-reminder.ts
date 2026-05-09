@@ -6,6 +6,12 @@ export interface ReminderRosterPlayer {
   status: ReminderCheckinStatus;
 }
 
+interface ReminderTeamIdentity {
+  name: string;
+  logoDataUrl: string | null;
+  primaryColor: string;
+}
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, '&amp;')
@@ -53,9 +59,59 @@ function buildGroups(players: ReminderRosterPlayer[]) {
     .filter((group) => group.players.length > 0);
 }
 
-function buildReminderSvg({
+function normalizeHexColor(value: string | null | undefined, fallback: string) {
+  const color = (value || '').trim();
+  if (/^#[0-9a-f]{3}$/i.test(color) || /^#[0-9a-f]{6}$/i.test(color) || /^#[0-9a-f]{8}$/i.test(color)) {
+    return color;
+  }
+  return fallback;
+}
+
+async function imageUrlToDataUrl(url: string | null | undefined) {
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('Failed to load team logo.'));
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function buildTeamLogoMarkup(team: ReminderTeamIdentity, x: number, y: number) {
+  const logoSize = 276;
+  const centerX = x + logoSize / 2;
+  const centerY = y + logoSize / 2;
+
+  if (team.logoDataUrl) {
+    return `
+      <circle cx="${centerX}" cy="${centerY}" r="116" fill="#050816" fill-opacity="0.6" stroke="rgba(255,255,255,0.7)" stroke-width="4" />
+      <image href="${escapeXml(team.logoDataUrl)}" x="${x}" y="${y}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet" />
+    `;
+  }
+
+  const initial = escapeXml(team.name.trim().charAt(0).toUpperCase() || 'T');
+  return `
+    <circle cx="${centerX}" cy="${centerY}" r="116" fill="#050816" fill-opacity="0.7" stroke="rgba(255,255,255,0.7)" stroke-width="4" />
+    <text x="${centerX}" y="${centerY + 32}" text-anchor="middle" font-family="Arial, sans-serif" font-size="108" font-weight="900" fill="#f8fafc">${initial}</text>
+  `;
+}
+
+export function buildReminderSvg({
   teamName,
   opponentName,
+  teamLogoDataUrl,
+  opponentLogoDataUrl,
+  teamPrimaryColor,
+  opponentPrimaryColor,
   seasonRecord,
   opponentRecord,
   puckDropLabel,
@@ -64,6 +120,10 @@ function buildReminderSvg({
 }: {
   teamName: string;
   opponentName: string;
+  teamLogoDataUrl: string | null;
+  opponentLogoDataUrl: string | null;
+  teamPrimaryColor: string;
+  opponentPrimaryColor: string;
   seasonRecord: string;
   opponentRecord: string;
   puckDropLabel: string;
@@ -101,8 +161,16 @@ function buildReminderSvg({
 
   const attendanceCount = roster.filter((player) => player.status === 'confirmed').length;
   const totalPlayers = roster.length;
-  const teamInitial = escapeXml(teamName.trim().charAt(0).toUpperCase() || 'T');
-  const opponentInitial = escapeXml(opponentName.trim().charAt(0).toUpperCase() || 'O');
+  const team = {
+    name: teamName,
+    logoDataUrl: teamLogoDataUrl,
+    primaryColor: normalizeHexColor(teamPrimaryColor, '#8b5cf6'),
+  };
+  const opponent = {
+    name: opponentName,
+    logoDataUrl: opponentLogoDataUrl,
+    primaryColor: normalizeHexColor(opponentPrimaryColor, '#ef4444'),
+  };
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
@@ -117,12 +185,12 @@ function buildReminderSvg({
           <stop offset="100%" stop-color="#090d18" />
         </linearGradient>
         <radialGradient id="heroGlowLeft" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(760 250) rotate(33) scale(340 240)">
-          <stop stop-color="#8b5cf6" stop-opacity="0.95"/>
-          <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+          <stop stop-color="${team.primaryColor}" stop-opacity="0.95"/>
+          <stop offset="1" stop-color="${team.primaryColor}" stop-opacity="0"/>
         </radialGradient>
         <radialGradient id="heroGlowRight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1240 250) rotate(145) scale(340 240)">
-          <stop stop-color="#ef4444" stop-opacity="0.85"/>
-          <stop offset="1" stop-color="#ef4444" stop-opacity="0"/>
+          <stop stop-color="${opponent.primaryColor}" stop-opacity="0.85"/>
+          <stop offset="1" stop-color="${opponent.primaryColor}" stop-opacity="0"/>
         </radialGradient>
       </defs>
 
@@ -142,10 +210,8 @@ function buildReminderSvg({
       <rect x="500" y="82" width="1018" height="422" rx="24" fill="url(#heroGlowRight)" />
       <text x="1009" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="900" fill="#fbbf24" letter-spacing="2">NEXT CHECK-IN</text>
 
-      <circle cx="720" cy="286" r="92" fill="#1f1736" stroke="#f8fafc" stroke-width="5" />
-      <circle cx="1296" cy="286" r="92" fill="#160d1d" stroke="#f8fafc" stroke-width="5" />
-      <text x="720" y="308" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="900" fill="#f8fafc">${teamInitial}</text>
-      <text x="1296" y="308" text-anchor="middle" font-family="Arial, sans-serif" font-size="92" font-weight="900" fill="#f8fafc">${opponentInitial}</text>
+      ${buildTeamLogoMarkup(team, 582, 148)}
+      ${buildTeamLogoMarkup(opponent, 1158, 148)}
 
       <text x="1008" y="258" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#f8fafc">${escapeXml(teamName)}</text>
       <text x="1008" y="308" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" font-weight="900" fill="#f8fafc">VS</text>
@@ -161,7 +227,7 @@ function buildReminderSvg({
 
       <rect x="1208" y="556" width="334" height="126" rx="24" fill="#080d19" stroke="rgba(255,255,255,0.06)" />
       <text x="1236" y="594" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#94a3b8" letter-spacing="3">PUCK DROP</text>
-      <text x="1236" y="652" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#f8fafc">${escapeXml(puckDropLabel)}</text>
+      <text x="1375" y="652" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="900" fill="#f8fafc">${escapeXml(puckDropLabel)}</text>
 
       <rect x="476" y="710" width="1066" height="96" rx="22" fill="#080d19" stroke="rgba(255,255,255,0.06)" />
       <text x="504" y="766" font-family="Arial, sans-serif" font-size="15" font-weight="800" fill="#94a3b8" letter-spacing="3">CHECK IN NOW</text>
@@ -221,6 +287,10 @@ async function downloadFile(file: File) {
 export async function shareCheckinReminder(options: {
   teamName: string;
   opponentName: string;
+  teamLogoUrl?: string | null;
+  opponentLogoUrl?: string | null;
+  teamPrimaryColor?: string | null;
+  opponentPrimaryColor?: string | null;
   seasonRecord: string;
   opponentRecord: string;
   puckDropLabel: string;
@@ -231,7 +301,21 @@ export async function shareCheckinReminder(options: {
   shareText: string;
   shareUrl: string;
 }) {
-  const file = await svgToPngFile(buildReminderSvg(options), options.fileName);
+  const [teamLogoDataUrl, opponentLogoDataUrl] = await Promise.all([
+    imageUrlToDataUrl(options.teamLogoUrl),
+    imageUrlToDataUrl(options.opponentLogoUrl),
+  ]);
+
+  const file = await svgToPngFile(
+    buildReminderSvg({
+      ...options,
+      teamLogoDataUrl,
+      opponentLogoDataUrl,
+      teamPrimaryColor: normalizeHexColor(options.teamPrimaryColor, '#8b5cf6'),
+      opponentPrimaryColor: normalizeHexColor(options.opponentPrimaryColor, '#ef4444'),
+    }),
+    options.fileName,
+  );
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     await navigator.share({

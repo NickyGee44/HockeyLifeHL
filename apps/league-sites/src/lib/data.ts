@@ -372,7 +372,10 @@ function transformTeamData(team: any): any {
     name: rawTeam.name,
     slug: rawTeam.slug,
     logo: rawTeam.logo_url || null,
+    logo_url: rawTeam.logo_url || null,
     colors,
+    primary_color: rawTeam.primary_color || null,
+    secondary_color: rawTeam.secondary_color || null,
     division_id: rawTeam.division_id,
     division: rawTeam.division || (Array.isArray(rawTeam.divisions) ? rawTeam.divisions[0] : rawTeam.divisions) || null,
   };

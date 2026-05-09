@@ -19,7 +19,11 @@ interface TeamPageCheckinCardProps {
   timezone: string;
   teamId: string;
   teamName: string;
+  teamLogoUrl: string | null;
+  teamPrimaryColor: string | null;
   opponentName: string;
+  opponentLogoUrl: string | null;
+  opponentPrimaryColor: string | null;
   nextGame: {
     id: string;
     scheduledAt: string;
@@ -42,7 +46,11 @@ export function TeamPageCheckinCard({
   timezone,
   teamId,
   teamName,
+  teamLogoUrl,
+  teamPrimaryColor,
   opponentName,
+  opponentLogoUrl,
+  opponentPrimaryColor,
   nextGame,
   seasonRecord,
   opponentRecord,
@@ -167,6 +175,10 @@ export function TeamPageCheckinCard({
       const result = await shareCheckinReminder({
         teamName,
         opponentName,
+        teamLogoUrl,
+        opponentLogoUrl,
+        teamPrimaryColor,
+        opponentPrimaryColor,
         seasonRecord,
         opponentRecord,
         puckDropLabel,

@@ -182,6 +182,9 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   });
 
   const logoSrc = team.logo_url || team.logo || '/blank_team.png';
+  const teamBrand = team as {
+    primary_color?: string | null;
+  };
   const teamScheduleGames = seasonGames.filter((game) => game.home_team?.id === team.id || game.away_team?.id === team.id);
   const nextTeamGame = [...teamScheduleGames]
     .filter((game) => game.status === 'scheduled' || game.status === 'in_progress')
@@ -202,6 +205,16 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
       ? nextTeamGame.away_team?.name || 'Opponent'
       : nextTeamGame.home_team?.name || 'Opponent'
     : 'Opponent';
+  const nextOpponent = nextTeamGame
+    ? nextTeamGame.home_team?.id === team.id
+      ? nextTeamGame.away_team ?? null
+      : nextTeamGame.home_team ?? null
+    : null;
+  const nextOpponentBrand = nextOpponent as {
+    logo?: string | null;
+    logo_url?: string | null;
+    primary_color?: string | null;
+  } | null;
   const opponentSeriesGames = nextOpponentId
     ? (seasonGames as any[]).filter((game) => {
         const homeId = game.home_team?.id;
@@ -322,7 +335,11 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     timezone={league.timezone || 'America/Toronto'}
                     teamId={team.id}
                     teamName={team.name}
+                    teamLogoUrl={logoSrc}
+                    teamPrimaryColor={teamBrand.primary_color || null}
                     opponentName={nextOpponentName}
+                    opponentLogoUrl={nextOpponentBrand?.logo_url || nextOpponentBrand?.logo || null}
+                    opponentPrimaryColor={nextOpponentBrand?.primary_color || null}
                     nextGame={{
                       id: nextTeamGame.id,
                       scheduledAt: nextTeamGame.scheduled_at,
@@ -708,5 +725,3 @@ function formatGoalDifferential(value: number) {
   if (value > 0) return `+${value}`;
   return `${value}`;
 }
-
-
