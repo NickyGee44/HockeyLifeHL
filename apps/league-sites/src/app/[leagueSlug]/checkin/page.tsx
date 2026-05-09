@@ -248,6 +248,18 @@ export default function CheckinPage() {
             ...prev,
             [gameId]: { ...(prev[gameId] ?? {}), [user.id]: status },
           }));
+
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('team-checkin-updated', {
+                detail: {
+                  gameId,
+                  playerId: user.id,
+                  status,
+                },
+              })
+            );
+          }
         }
       } else {
         setSaveError(result.error || 'Failed to save your response. Please try again.');

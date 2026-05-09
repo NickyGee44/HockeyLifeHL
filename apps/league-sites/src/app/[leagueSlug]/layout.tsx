@@ -16,6 +16,7 @@ import { ScrollRevealObserver } from '@/components/ScrollRevealObserver';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { PushSubscriptionPrompt } from '@/components/push/PushSubscriptionPrompt';
+import { CheckinReminderBanner } from '@/components/checkin/CheckinReminderBanner';
 
 /**
  * Force league routes dynamic.
@@ -148,6 +149,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                       isPlayoffSeason={isPlayoffSeason}
                     />
                   </div>
+                  <CheckinReminderBanner leagueId={league.id} leagueSlug={leagueSlug} seasonId={activeSeasonId} />
                   <LeagueSiteAnalytics leagueSlug={leagueSlug} />
                   <main className="league-site-main flex-1">
                     <ScrollRevealObserver />

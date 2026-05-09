@@ -316,7 +316,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
           </section>
 
           <div className="mt-6 space-y-6">
-            <section>
+            <section id="next-game" className="scroll-mt-28">
               <HomepageWeeklyGames
                 games={nextTeamGame ? [nextTeamGame] : []}
                 leagueSlug={leagueSlug}
