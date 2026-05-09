@@ -15,6 +15,7 @@ describe('calculatePlayoffOdds', () => {
       buildGame('game-2', 'fitzrays-flyers', 'fitzrays-premier'),
       buildGame('game-3', 'london-eco-metal', 'fitzrays-flyers'),
       buildGame('game-4', 'first-general', 'fitzrays-flyers'),
+      buildGame('game-5', 'fitzrays-flyers', 'london-eco-metal'),
     ];
 
     const odds = calculatePlayoffOdds(standings, remainingGames, { playoffTeamsTotal: 4 });

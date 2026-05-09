@@ -258,14 +258,18 @@ function calculateOutcomeBounds(
   const maxPointsByTeam = new Map(
     teams.map((team) => [team.team_id, team.points + (remainingByTeam.get(team.team_id) ?? 0) * 2]),
   );
+  const maxWinsByTeam = new Map(
+    teams.map((team) => [team.team_id, team.wins + (remainingByTeam.get(team.team_id) ?? 0)]),
+  );
   const bounds = new Map<string, TeamOutcomeBounds>();
 
   for (const team of teams) {
     const teamMaxPoints = maxPointsByTeam.get(team.team_id) ?? team.points;
+    const teamMaxWins = maxWinsByTeam.get(team.team_id) ?? team.wins;
     const otherTeams = teams.filter((other) => other.team_id !== team.team_id);
-    const canFinishFirst = otherTeams.every((other) => other.points <= teamMaxPoints);
+    const canFinishFirst = otherTeams.every((other) => !isGuaranteedAheadByCurrentRecord(other, teamMaxPoints, teamMaxWins));
     const hasClinchedFirst = otherTeams.every(
-      (other) => (maxPointsByTeam.get(other.team_id) ?? other.points) < team.points,
+      (other) => isGuaranteedAheadByCurrentRecord(team, maxPointsByTeam.get(other.team_id) ?? other.points, maxWinsByTeam.get(other.team_id) ?? other.wins),
     );
 
     bounds.set(team.team_id, {
@@ -288,17 +292,12 @@ function calculateOutcomeBounds(
     }
 
     for (const divisionTeams of divisions.values()) {
-      applyPlayoffBoundsForGroup(
-        divisionTeams,
-        config.playoffTeamsPerDivision ?? divisionTeams.length,
-        maxPointsByTeam,
-        bounds,
-      );
+      applyPlayoffBoundsForGroup(divisionTeams, config.playoffTeamsPerDivision ?? divisionTeams.length, maxPointsByTeam, maxWinsByTeam, bounds);
     }
     return bounds;
   }
 
-  applyPlayoffBoundsForGroup(teams, config.playoffTeamsTotal ?? teams.length, maxPointsByTeam, bounds);
+  applyPlayoffBoundsForGroup(teams, config.playoffTeamsTotal ?? teams.length, maxPointsByTeam, maxWinsByTeam, bounds);
   return bounds;
 }
 
@@ -322,6 +321,7 @@ function applyPlayoffBoundsForGroup(
   teams: SimTeamState[],
   configuredSpots: number,
   maxPointsByTeam: Map<string, number>,
+  maxWinsByTeam: Map<string, number>,
   bounds: Map<string, TeamOutcomeBounds>,
 ) {
   const spots = Math.min(Math.max(configuredSpots, 0), teams.length);
@@ -341,10 +341,15 @@ function applyPlayoffBoundsForGroup(
     }
 
     const teamMaxPoints = maxPointsByTeam.get(team.team_id) ?? team.points;
+    const teamMaxWins = maxWinsByTeam.get(team.team_id) ?? team.wins;
     const otherTeams = teams.filter((other) => other.team_id !== team.team_id);
-    const teamsAlreadyAboveTeamMax = otherTeams.filter((other) => other.points > teamMaxPoints).length;
+    const teamsAlreadyAboveTeamMax = otherTeams.filter((other) => isGuaranteedAheadByCurrentRecord(other, teamMaxPoints, teamMaxWins)).length;
     const teamsThatCanReachOrPassTeam = otherTeams.filter(
-      (other) => (maxPointsByTeam.get(other.team_id) ?? other.points) >= team.points,
+      (other) => canReachOrPassCurrentRecord(
+        maxPointsByTeam.get(other.team_id) ?? other.points,
+        maxWinsByTeam.get(other.team_id) ?? other.wins,
+        team,
+      ),
     ).length;
 
     existingBounds.playoffs = {
@@ -352,6 +357,16 @@ function applyPlayoffBoundsForGroup(
       max: teamsAlreadyAboveTeamMax < spots ? 1 : 0,
     };
   }
+}
+
+function isGuaranteedAheadByCurrentRecord(team: SimTeamState, opponentMaxPoints: number, opponentMaxWins: number) {
+  if (team.points !== opponentMaxPoints) return team.points > opponentMaxPoints;
+  return team.wins > opponentMaxWins;
+}
+
+function canReachOrPassCurrentRecord(maxPoints: number, maxWins: number, opponent: SimTeamState) {
+  if (maxPoints !== opponent.points) return maxPoints > opponent.points;
+  return maxWins >= opponent.wins;
 }
 
 function rankTeams(teams: SimTeamState[]): SimTeamState[] {
