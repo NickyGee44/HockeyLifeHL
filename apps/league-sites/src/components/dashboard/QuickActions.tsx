@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
+import { AppSetupQuickActionButton } from '@/components/pwa/AppSetupActions';
 
 interface QuickActionsProps {
   leagueSlug: string;
@@ -167,6 +168,7 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
             </Link>
           );
         })}
+        <AppSetupQuickActionButton leagueName={league?.name || 'Hockey Life'} />
       </div>
     </div>
   );

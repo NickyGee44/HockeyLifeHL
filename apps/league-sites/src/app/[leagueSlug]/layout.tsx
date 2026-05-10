@@ -15,8 +15,8 @@ import { FloatingDock } from '@/components/FloatingDock';
 import { ScrollRevealObserver } from '@/components/ScrollRevealObserver';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
-import { PushSubscriptionPrompt } from '@/components/push/PushSubscriptionPrompt';
 import { CheckinReminderBanner } from '@/components/checkin/CheckinReminderBanner';
+import { OneTimeAppSetupPrompt } from '@/components/pwa/AppSetupActions';
 
 /**
  * Force league routes dynamic.
@@ -155,7 +155,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                     <ScrollRevealObserver />
                     {children}
                   </main>
-                  <PushSubscriptionPrompt leagueName={league.name} />
+                  <OneTimeAppSetupPrompt leagueName={league.name} leagueSlug={leagueSlug} />
                   <div className="league-site-chrome">
                     <SponsorFooterStrip sponsors={sponsors} />
                   </div>
