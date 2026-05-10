@@ -4494,6 +4494,14 @@ export function summarizePlayerCareerTotals(
     points?: number | null;
     team_name?: string | null;
     position?: string | null;
+    wins?: number | null;
+    losses?: number | null;
+    ties?: number | null;
+    saves?: number | null;
+    goals_against?: number | null;
+    save_percentage?: number | null;
+    goals_against_average?: number | null;
+    shutouts?: number | null;
   } | null,
 ): PlayerStats | null {
   if ((!rows || rows.length === 0) && !seasonSummary) {
@@ -4527,6 +4535,14 @@ export function summarizePlayerCareerTotals(
     points,
     penalty_minutes: totals.penalty_minutes,
     plus_minus: 0,
+    wins: seasonSummary?.wins ?? undefined,
+    losses: seasonSummary?.losses ?? undefined,
+    ties: seasonSummary?.ties ?? undefined,
+    saves: seasonSummary?.saves ?? undefined,
+    goals_against: seasonSummary?.goals_against ?? undefined,
+    save_percentage: seasonSummary?.save_percentage ?? undefined,
+    goals_against_average: seasonSummary?.goals_against_average ?? undefined,
+    shutouts: seasonSummary?.shutouts ?? undefined,
   } as PlayerStats;
 }
 
@@ -5268,6 +5284,14 @@ export async function getPlayerCareerStats(
     points?: number | null;
     team_name?: string | null;
     position?: string | null;
+    wins?: number | null;
+    losses?: number | null;
+    ties?: number | null;
+    saves?: number | null;
+    goals_against?: number | null;
+    save_percentage?: number | null;
+    goals_against_average?: number | null;
+    shutouts?: number | null;
   } | null = null;
   let seasonName: string | null = null;
 
@@ -5392,7 +5416,7 @@ export async function getPlayerCareerStats(
   const statGameIds = new Set((data || []).map((row) => row.game_id).filter(Boolean));
 
   if (seasonId) {
-    const [confirmedCheckins, fallbackRosterAppearances, rosterSummaryResult] = await Promise.all([
+    const [confirmedCheckins, fallbackRosterAppearances, rosterSummaryResult, goalieStatsResult] = await Promise.all([
       getConfirmedCheckinAppearanceRows(supabase, {
         seasonId,
         playerIds: [playerId],
@@ -5410,6 +5434,20 @@ export async function getPlayerCareerStats(
             .eq('status', 'active')
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from('goalie_stats')
+        .select(`
+          game_id,
+          team_id,
+          saves,
+          shots_against,
+          goals_against,
+          shutout,
+          game_result,
+          game:games(id, status, home_team_id, away_team_id, home_score, away_score)
+        `)
+        .eq('player_id', playerId)
+        .eq('season_id', seasonId),
     ]);
 
     for (const row of [...confirmedCheckins, ...fallbackRosterAppearances]) {
@@ -5428,6 +5466,94 @@ export async function getPlayerCareerStats(
       position: seasonSummary?.position || rosterSummaryResult.data?.position || undefined,
       games_played: Math.max(seasonSummary?.games_played ?? 0, statGameIds.size),
     };
+
+    const normalizedPosition = seasonSummary.position?.trim().toLowerCase();
+    const isGoalieSeason =
+      normalizedPosition === 'g' ||
+      normalizedPosition === 'goalie' ||
+      normalizedPosition === 'goaltender';
+
+    if (isGoalieSeason) {
+      const goalieGameIds = new Set<string>();
+      const goalieTotals = {
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        saves: 0,
+        shotsAgainst: 0,
+        goalsAgainst: 0,
+        shutouts: 0,
+      };
+
+      for (const row of (goalieStatsResult.data || []) as Array<{
+        game_id: string | null;
+        team_id: string | null;
+        saves: number | null;
+        shots_against: number | null;
+        goals_against: number | null;
+        shutout: boolean | null;
+        game_result: string | null;
+      }>) {
+        if (row.game_id) goalieGameIds.add(row.game_id);
+        goalieTotals.saves += Number(row.saves || 0);
+        goalieTotals.goalsAgainst += Number(row.goals_against || 0);
+        goalieTotals.shotsAgainst += Number(row.shots_against || 0);
+        if (row.shutout) goalieTotals.shutouts += 1;
+
+        const result = row.game_result?.trim().toUpperCase();
+        if (result === 'W' || result === 'WIN') goalieTotals.wins += 1;
+        else if (result === 'L' || result === 'LOSS' || result === 'OTL' || result === 'SOL') goalieTotals.losses += 1;
+        else if (result === 'T' || result === 'TIE') goalieTotals.ties += 1;
+      }
+
+      for (const appearance of [...confirmedCheckins, ...fallbackRosterAppearances]) {
+        if (!appearance.game_id || goalieGameIds.has(appearance.game_id)) {
+          continue;
+        }
+
+        const game = Array.isArray(appearance.game) ? appearance.game[0] : appearance.game;
+        if (!game || game.status !== 'completed' || game.home_score == null || game.away_score == null) {
+          continue;
+        }
+
+        const isHome = game.home_team_id === appearance.team_id;
+        const isAway = game.away_team_id === appearance.team_id;
+        if (!isHome && !isAway) {
+          continue;
+        }
+
+        const goalsFor = Number(isHome ? game.home_score : game.away_score);
+        const goalsAgainst = Number(isHome ? game.away_score : game.home_score);
+        if (!Number.isFinite(goalsFor) || !Number.isFinite(goalsAgainst)) {
+          continue;
+        }
+
+        goalieGameIds.add(appearance.game_id);
+        goalieTotals.goalsAgainst += goalsAgainst;
+        if (goalsAgainst === 0) goalieTotals.shutouts += 1;
+        if (goalsFor > goalsAgainst) goalieTotals.wins += 1;
+        else if (goalsFor < goalsAgainst) goalieTotals.losses += 1;
+        else goalieTotals.ties += 1;
+      }
+
+      if (goalieGameIds.size > 0) {
+        seasonSummary = {
+          ...seasonSummary,
+          games_played: Math.max(seasonSummary.games_played ?? 0, goalieGameIds.size),
+          goals: 0,
+          assists: 0,
+          points: 0,
+          wins: goalieTotals.wins,
+          losses: goalieTotals.losses,
+          ties: goalieTotals.ties,
+          saves: goalieTotals.saves,
+          goals_against: goalieTotals.goalsAgainst,
+          save_percentage: goalieTotals.shotsAgainst > 0 ? goalieTotals.saves / goalieTotals.shotsAgainst : null,
+          goals_against_average: goalieTotals.goalsAgainst / goalieGameIds.size,
+          shutouts: goalieTotals.shutouts,
+        };
+      }
+    }
   }
 
   return summarizePlayerCareerTotals(playerId, data || [], seasonSummary);

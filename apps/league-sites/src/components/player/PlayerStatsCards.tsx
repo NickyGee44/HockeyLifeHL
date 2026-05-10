@@ -8,20 +8,21 @@ interface PlayerStatsCardsProps {
 export function PlayerStatsCards({ stats, isGoalie = false }: PlayerStatsCardsProps) {
   if (isGoalie) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
         <StatCard label="GP" value={stats.games_played} />
         <StatCard label="W" value={stats.wins ?? 0} highlight />
         <StatCard label="L" value={stats.losses ?? 0} />
+        <StatCard label="T" value={stats.ties ?? 0} />
         <StatCard
           label="GAA"
           value={stats.goals_against_average?.toFixed(2) ?? '0.00'}
         />
         <StatCard
           label="SV%"
-          value={stats.save_percentage ? `.${Math.round(stats.save_percentage * 1000)}` : '.000'}
+          value={stats.save_percentage != null ? `.${Math.round(stats.save_percentage * 1000)}` : '--'}
           highlight
         />
-        <StatCard label="SO" value={0} />
+        <StatCard label="SO" value={stats.shutouts ?? 0} />
       </div>
     );
   }

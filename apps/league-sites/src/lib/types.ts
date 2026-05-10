@@ -227,10 +227,12 @@ export interface PlayerStats {
   // Goalie stats
   wins?: number;
   losses?: number;
+  ties?: number;
   saves?: number;
   goals_against?: number;
   save_percentage?: number;
   goals_against_average?: number;
+  shutouts?: number;
 }
 
 export interface PlayerStatsWithAvatar extends PlayerStats {
