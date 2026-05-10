@@ -107,7 +107,9 @@ function InstallGuideModal({
               Add {leagueName} to your Home Screen
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
-              This browser does not allow the site to create the app automatically. Follow these steps instead.
+              {isIos
+                ? 'On iPhone, open this page in Safari, use the Share menu, and add it to your Home Screen. Then launch it from the new icon to turn on alerts.'
+                : 'This browser does not allow the site to create the app automatically. Follow these steps instead.'}
             </p>
           </div>
           <button
@@ -160,24 +162,51 @@ function IosInstallSteps() {
           <div className="rounded-full bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-600">
             hockey-life.beerleaguehockey.ca
           </div>
-          <div className="flex items-center justify-around rounded-2xl border border-slate-200 bg-slate-50 py-2">
-            <MoreHorizontal className="h-5 w-5 text-slate-400" />
-            <Share className="h-7 w-7 rounded-xl bg-sky-100 p-1.5 text-sky-600 ring-2 ring-sky-300" />
-            <PlusSquare className="h-5 w-5 text-slate-400" />
-          </div>
-        </div>
-      </InstructionScreenshot>
-      <InstructionScreenshot step="2" title="Choose Add to Home Screen">
-        <div className="p-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
-            <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 shadow-sm">
-              <PlusSquare className="h-6 w-6 text-slate-700" />
-              <span className="text-sm font-semibold">Add to Home Screen</span>
+            <div className="mb-2 flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
+              <div className="h-8 w-8 rounded-lg bg-slate-900" />
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold">Hockey Life - Player Profile</p>
+                <p className="truncate text-[10px] text-slate-500">hockey-life.beerleaguehockey.ca</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-around rounded-xl bg-white py-2 shadow-sm">
+              <MoreHorizontal className="h-5 w-5 text-slate-400" />
+              <Share className="h-8 w-8 rounded-xl bg-sky-100 p-1.5 text-sky-600 ring-2 ring-sky-300" />
+              <PlusSquare className="h-5 w-5 text-slate-400" />
             </div>
           </div>
         </div>
       </InstructionScreenshot>
-      <InstructionScreenshot step="3" title="Tap Add">
+      <InstructionScreenshot step="2" title="Scroll to Add to Home Screen">
+        <div className="p-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
+            <div className="mb-2 grid grid-cols-4 gap-2">
+              {['Messages', 'WhatsApp', 'Copy', 'Reading List'].map((label) => (
+                <div key={label} className="flex flex-col items-center gap-1">
+                  <div className="h-9 w-9 rounded-full bg-slate-200" />
+                  <span className="max-w-full truncate text-[9px] font-semibold text-slate-700">{label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1 rounded-xl bg-white p-2 shadow-sm">
+              {['Add to Bookmarks', 'Create a QR Code', 'Find in Page', 'Request Desktop Site', 'Print'].map((label) => (
+                <div key={label} className="flex items-center gap-3 border-b border-slate-100 px-2 py-2 last:border-b-0">
+                  <div className="h-5 w-5 rounded bg-slate-200" />
+                  <span className="text-xs font-semibold text-slate-700">{label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 rounded-xl bg-white p-2 shadow-sm ring-2 ring-sky-300">
+              <div className="flex items-center gap-3 px-2 py-2">
+                <PlusSquare className="h-6 w-6 text-slate-800" />
+                <span className="text-sm font-bold">Add to Home Screen</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </InstructionScreenshot>
+      <InstructionScreenshot step="3" title="Tap Add, then open the app">
         <div className="p-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-sm">
