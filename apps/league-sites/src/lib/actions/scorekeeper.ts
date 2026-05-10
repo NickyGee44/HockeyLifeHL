@@ -7,6 +7,7 @@ import { randomBytes } from 'crypto';
 
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
+const ASSUMED_GOALIE_SHOTS_AGAINST = 20;
 
 export type ScorekeeperSessionOrigin = 'assigned_scorekeeper' | 'captain_self_score';
 export type ScorekeeperTeamType = 'home' | 'away';
@@ -97,6 +98,172 @@ function recordFailure(token: string) {
 
 function clearFailures(token: string) {
   tokenFailureStore.delete(`token:${token.toUpperCase()}`);
+}
+
+function isGoalieRosterPosition(position: string | null | undefined, isGoalie?: boolean | null): boolean {
+  const normalized = position?.trim().toLowerCase();
+  return Boolean(isGoalie) || normalized === 'g' || normalized === 'goalie' || normalized === 'goaltender';
+}
+
+function buildAssumedGoalieStat({
+  game,
+  goalie,
+  teamId,
+  goalsFor,
+  goalsAgainst,
+}: {
+  game: {
+    id: string;
+    league_id: string;
+    season_id: string;
+  };
+  goalie: {
+    player_id: string;
+  };
+  teamId: string;
+  goalsFor: number;
+  goalsAgainst: number;
+}) {
+  const safeGoalsAgainst = Math.max(0, Math.trunc(Number(goalsAgainst) || 0));
+  return {
+    game_id: game.id,
+    league_id: game.league_id,
+    season_id: game.season_id,
+    team_id: teamId,
+    player_id: goalie.player_id,
+    goals_against: safeGoalsAgainst,
+    shots_against: ASSUMED_GOALIE_SHOTS_AGAINST,
+    saves: Math.max(0, ASSUMED_GOALIE_SHOTS_AGAINST - safeGoalsAgainst),
+    shutout: safeGoalsAgainst === 0,
+    game_result: goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'T',
+  };
+}
+
+async function ensureAssumedGoalieStatsForGame(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+): Promise<void> {
+  const { data: game, error: gameError } = await supabase
+    .from('games')
+    .select('id, league_id, season_id, status, scheduled_at, home_team_id, away_team_id, home_score, away_score')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (gameError || !game || game.status !== 'completed' || !game.league_id || !game.season_id) {
+    if (gameError) {
+      console.error('[scorekeeper] Failed to load game for goalie stat generation', gameError);
+    }
+    return;
+  }
+
+  if (!game.home_team_id || !game.away_team_id || game.home_score == null || game.away_score == null) {
+    return;
+  }
+
+  const { data: rosterRows, error: rosterError } = await supabase
+    .from('team_rosters')
+    .select('player_id, team_id, position, is_goalie, joined_at, end_date, status')
+    .eq('season_id', game.season_id)
+    .in('team_id', [game.home_team_id, game.away_team_id])
+    .eq('status', 'active');
+
+  if (rosterError || !rosterRows) {
+    if (rosterError) {
+      console.error('[scorekeeper] Failed to load goalies for goalie stat generation', rosterError);
+    }
+    return;
+  }
+
+  const scheduledAt = game.scheduled_at ? new Date(game.scheduled_at).getTime() : null;
+  const goaliesByTeam = new Map<string, Array<{ player_id: string }>>();
+
+  for (const row of rosterRows as Array<{
+    player_id: string | null;
+    team_id: string | null;
+    position: string | null;
+    is_goalie: boolean | null;
+    joined_at: string | null;
+    end_date: string | null;
+  }>) {
+    if (!row.player_id || !row.team_id || !isGoalieRosterPosition(row.position, row.is_goalie)) {
+      continue;
+    }
+
+    if (scheduledAt != null) {
+      if (row.joined_at && new Date(row.joined_at).getTime() > scheduledAt) {
+        continue;
+      }
+      if (row.end_date && new Date(row.end_date).getTime() < scheduledAt) {
+        continue;
+      }
+    }
+
+    const rowsForTeam = goaliesByTeam.get(row.team_id) || [];
+    rowsForTeam.push({ player_id: row.player_id });
+    goaliesByTeam.set(row.team_id, rowsForTeam);
+  }
+
+  const homeGoalies = goaliesByTeam.get(game.home_team_id) || [];
+  const awayGoalies = goaliesByTeam.get(game.away_team_id) || [];
+
+  if (homeGoalies.length !== 1 || awayGoalies.length !== 1) {
+    console.warn('[scorekeeper] Skipping assumed goalie stat generation because goalie assignment is ambiguous', {
+      gameId,
+      homeGoalies: homeGoalies.length,
+      awayGoalies: awayGoalies.length,
+    });
+    return;
+  }
+
+  const homeScore = Number(game.home_score);
+  const awayScore = Number(game.away_score);
+  const rows = [
+    buildAssumedGoalieStat({
+      game,
+      goalie: homeGoalies[0],
+      teamId: game.home_team_id,
+      goalsFor: homeScore,
+      goalsAgainst: awayScore,
+    }),
+    buildAssumedGoalieStat({
+      game,
+      goalie: awayGoalies[0],
+      teamId: game.away_team_id,
+      goalsFor: awayScore,
+      goalsAgainst: homeScore,
+    }),
+  ];
+
+  for (const row of rows) {
+    const { data: existing, error: existingError } = await supabase
+      .from('goalie_stats')
+      .select('id')
+      .eq('game_id', row.game_id)
+      .eq('player_id', row.player_id);
+
+    if (existingError) {
+      console.error('[scorekeeper] Failed to check existing goalie stat row', existingError);
+      continue;
+    }
+
+    if (existing && existing.length > 0) {
+      const { error: updateError } = await supabase
+        .from('goalie_stats')
+        .update(row)
+        .eq('game_id', row.game_id)
+        .eq('player_id', row.player_id);
+
+      if (updateError) {
+        console.error('[scorekeeper] Failed to update assumed goalie stat row', updateError);
+      }
+    } else {
+      const { error: insertError } = await supabase.from('goalie_stats').insert(row);
+
+      if (insertError) {
+        console.error('[scorekeeper] Failed to insert assumed goalie stat row', insertError);
+      }
+    }
+  }
 }
 
 // Cleanup every 5 minutes
@@ -718,6 +885,8 @@ async function recalculateGameDerivedState(supabase: any, gameId: string): Promi
       console.error(`[scorekeeper] Failed to run ${fnName}`, error);
     }
   }
+
+  await ensureAssumedGoalieStatsForGame(supabase, gameId);
 }
 
 // =============================================================================

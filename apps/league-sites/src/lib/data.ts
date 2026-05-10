@@ -91,6 +91,7 @@ const LEGACY_ALL_TIME_LEAGUE_SLUGS = new Set(['hockey-life', 'hockeylifehl', 'ho
 const AGGREGATE_STATS_GAME_LOCATION_PREFIX = '[aggregate-only]';
 const FREE_AGENT_DISPLAY_TEAM_NAME = 'Free Agent';
 const FREE_AGENT_DISPLAY_TEAM_LOGO_URL = '/sponsors/beer-league-hockey.png';
+const ASSUMED_GOALIE_SHOTS_AGAINST = 20;
 const IMPORTED_CAREER_BASELINE_TABLE_CANDIDATES = [
   'league_player_career_baselines',
   'player_career_baselines',
@@ -2917,8 +2918,13 @@ async function buildFallbackCurrentSeasonGoalieRows(
     }
 
     const entry = ensureEntry(goalie);
+    const saves = Math.max(0, ASSUMED_GOALIE_SHOTS_AGAINST - goalsAgainst);
     entry.games_played += 1;
+    entry.saves += saves;
     entry.goals_against += goalsAgainst;
+    entry.save_percentage = entry.games_played > 0
+      ? roundStatValue((entry.saves / (entry.games_played * ASSUMED_GOALIE_SHOTS_AGAINST)) * 100, 1)
+      : null;
 
     if (goalsFor > goalsAgainst) {
       entry.wins += 1;
@@ -5529,6 +5535,8 @@ export async function getPlayerCareerStats(
         }
 
         goalieGameIds.add(appearance.game_id);
+        goalieTotals.shotsAgainst += ASSUMED_GOALIE_SHOTS_AGAINST;
+        goalieTotals.saves += Math.max(0, ASSUMED_GOALIE_SHOTS_AGAINST - goalsAgainst);
         goalieTotals.goalsAgainst += goalsAgainst;
         if (goalsAgainst === 0) goalieTotals.shutouts += 1;
         if (goalsFor > goalsAgainst) goalieTotals.wins += 1;
