@@ -12,6 +12,7 @@ interface SubscribeBody {
       auth?: string;
     };
   };
+  endpoint?: string;
 }
 
 export async function GET() {
@@ -64,4 +65,33 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ subscription: data });
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuthenticatedApiUser();
+  if ('response' in auth) return auth.response;
+
+  const body = (await request.json().catch(() => null)) as SubscribeBody | null;
+  const endpoint = body?.endpoint;
+
+  const supabase = createServiceRoleClient();
+  let query = (supabase.from('push_subscriptions') as any)
+    .update({
+      disabled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', auth.user.id);
+
+  if (endpoint) {
+    query = query.eq('endpoint', endpoint);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    console.error('[api/push/subscribe] Disable failed:', error.message);
+    return NextResponse.json({ error: 'Failed to disable subscription' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }

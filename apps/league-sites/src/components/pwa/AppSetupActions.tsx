@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { BellRing, CheckCircle2, Download, Loader2, Share, Smartphone, X } from 'lucide-react';
-import { updateNotificationPreferences } from '@/lib/actions/notifications';
+import type { ReactNode } from 'react';
+import { BellOff, BellRing, Download, Loader2, Menu, MoreHorizontal, PlusSquare, Share, Smartphone, X } from 'lucide-react';
+import { getNotificationPreferences, updateNotificationPreferences } from '@/lib/actions/notifications';
 import {
   getPushSubscription,
   isPushSupported,
@@ -21,41 +22,9 @@ interface AppSetupControlsProps {
 
 export function AppSetupControls({ leagueName, compact = false }: AppSetupControlsProps) {
   const { canPromptInstall, isIos, isStandalone, promptInstallApp } = useInstallPrompt();
-  const [publicKey, setPublicKey] = useState('');
   const [isInstalling, setIsInstalling] = useState(false);
-  const [isEnablingPush, setIsEnablingPush] = useState(false);
-  const [hasPushSubscription, setHasPushSubscription] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [message, setMessage] = useState<SetupMessage>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function preparePush() {
-      if (!isPushSupported()) return;
-
-      try {
-        await registerServiceWorker();
-        const [existingSubscription, keyResponse] = await Promise.all([
-          getPushSubscription(),
-          fetch('/api/push/subscribe'),
-        ]);
-
-        if (cancelled) return;
-
-        setHasPushSubscription(!!existingSubscription);
-        const keyPayload = keyResponse.ok ? await keyResponse.json() : null;
-        setPublicKey(keyPayload?.publicKey || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '');
-      } catch (error) {
-        console.error('[AppSetupControls] preparePush failed:', error);
-      }
-    }
-
-    preparePush();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const handleInstall = useCallback(async () => {
     if (isStandalone) {
@@ -64,12 +33,7 @@ export function AppSetupControls({ leagueName, compact = false }: AppSetupContro
     }
 
     if (isIos || !canPromptInstall) {
-      setMessage({
-        tone: 'neutral',
-        text: isIos
-          ? 'Tap Share, then Add to Home Screen.'
-          : 'Use your browser menu to install or add this site to your home screen.',
-      });
+      setShowGuide(true);
       return;
     }
 
@@ -83,64 +47,15 @@ export function AppSetupControls({ leagueName, compact = false }: AppSetupContro
       } else if (outcome === 'dismissed') {
         setMessage({ tone: 'neutral', text: 'No problem. You can create the app later from this button.' });
       } else {
-        setMessage({ tone: 'neutral', text: 'Use your browser menu to install or add this site to your home screen.' });
+        setShowGuide(true);
       }
     } catch (error) {
       console.error('[AppSetupControls] install failed:', error);
-      setMessage({ tone: 'error', text: 'Unable to start app install from this browser.' });
+      setShowGuide(true);
     } finally {
       setIsInstalling(false);
     }
   }, [canPromptInstall, isIos, isStandalone, promptInstallApp]);
-
-  const handleEnablePush = useCallback(async () => {
-    if (!isPushSupported()) {
-      setMessage({ tone: 'error', text: 'Push notifications are not supported in this browser.' });
-      return;
-    }
-
-    if (!publicKey) {
-      setMessage({ tone: 'error', text: 'Push notifications are not ready yet. Try again in a moment.' });
-      return;
-    }
-
-    setIsEnablingPush(true);
-    setMessage(null);
-
-    try {
-      const subscription = await subscribeToPush(publicKey);
-      if (!subscription) {
-        setMessage({ tone: 'neutral', text: 'Notifications were not enabled in this browser.' });
-        return;
-      }
-
-      const response = await fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: serializeSubscription(subscription) }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Unable to save push subscription.');
-      }
-
-      const prefResult = await updateNotificationPreferences({ push_enabled: true });
-      if (!prefResult.success) {
-        throw new Error(prefResult.error || 'Unable to enable push preference.');
-      }
-
-      setHasPushSubscription(true);
-      setMessage({ tone: 'success', text: 'Push notifications are on.' });
-    } catch (error) {
-      console.error('[AppSetupControls] enable push failed:', error);
-      setMessage({
-        tone: 'error',
-        text: error instanceof Error ? error.message : 'Unable to enable push notifications.',
-      });
-    } finally {
-      setIsEnablingPush(false);
-    }
-  }, [publicKey]);
 
   const messageClass =
     message?.tone === 'success'
@@ -151,34 +66,174 @@ export function AppSetupControls({ leagueName, compact = false }: AppSetupContro
 
   return (
     <div className={compact ? 'space-y-2' : 'space-y-3'}>
-      <div className={compact ? 'grid grid-cols-1 gap-2 sm:grid-cols-2' : 'grid gap-2 sm:grid-cols-2'}>
-        <button
-          type="button"
-          onClick={handleInstall}
-          disabled={isInstalling}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--league-primary)]/25 bg-[var(--league-primary)]/10 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/18 disabled:opacity-60"
-        >
-          {isInstalling ? <Loader2 className="h-4 w-4 animate-spin" /> : isIos ? <Share className="h-4 w-4" /> : <Download className="h-4 w-4" />}
-          {isStandalone ? 'App Created' : 'Create App'}
-        </button>
-        <button
-          type="button"
-          onClick={handleEnablePush}
-          disabled={isEnablingPush || hasPushSubscription}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 disabled:opacity-60"
-        >
-          {isEnablingPush ? <Loader2 className="h-4 w-4 animate-spin" /> : hasPushSubscription ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <BellRing className="h-4 w-4" />}
-          {hasPushSubscription ? 'Alerts On' : 'Turn On Alerts'}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleInstall}
+        disabled={isInstalling}
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[var(--league-primary)]/25 bg-[var(--league-primary)]/10 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/18 disabled:opacity-60"
+      >
+        {isInstalling ? <Loader2 className="h-4 w-4 animate-spin" /> : isIos ? <Share className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+        {isStandalone ? 'App Created' : 'Create App'}
+      </button>
       {message ? (
         <p className={`text-xs leading-relaxed ${messageClass}`}>{message.text}</p>
       ) : (
         <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
-          Create the {leagueName} app for faster access, then allow push reminders for games and recaps.
+          Create the {leagueName} app for faster access from your home screen.
         </p>
       )}
+      {showGuide ? (
+        <InstallGuideModal leagueName={leagueName} isIos={isIos} onClose={() => setShowGuide(false)} />
+      ) : null}
     </div>
+  );
+}
+
+function InstallGuideModal({
+  leagueName,
+  isIos,
+  onClose,
+}: {
+  leagueName: string;
+  isIos: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/55 p-3 backdrop-blur-sm sm:items-center">
+      <div className="max-h-[86vh] w-full max-w-lg overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--color-text-primary)]">
+              Add {leagueName} to your Home Screen
+            </h2>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+              This browser does not allow the site to create the app automatically. Follow these steps instead.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
+            aria-label="Close install guide"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-3">
+          {isIos ? <IosInstallSteps /> : <BrowserInstallSteps />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InstructionScreenshot({
+  step,
+  title,
+  children,
+}: {
+  step: string;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[var(--league-primary)] text-xs font-black text-[var(--color-accent-text)]">
+          {step}
+        </span>
+        <p className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</p>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-black/10 bg-white text-slate-950 shadow-inner">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function IosInstallSteps() {
+  return (
+    <>
+      <InstructionScreenshot step="1" title="Tap Share in Safari">
+        <div className="space-y-3 p-3">
+          <div className="rounded-full bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-600">
+            hockey-life.beerleaguehockey.ca
+          </div>
+          <div className="flex items-center justify-around rounded-2xl border border-slate-200 bg-slate-50 py-2">
+            <MoreHorizontal className="h-5 w-5 text-slate-400" />
+            <Share className="h-7 w-7 rounded-xl bg-sky-100 p-1.5 text-sky-600 ring-2 ring-sky-300" />
+            <PlusSquare className="h-5 w-5 text-slate-400" />
+          </div>
+        </div>
+      </InstructionScreenshot>
+      <InstructionScreenshot step="2" title="Choose Add to Home Screen">
+        <div className="p-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 shadow-sm">
+              <PlusSquare className="h-6 w-6 text-slate-700" />
+              <span className="text-sm font-semibold">Add to Home Screen</span>
+            </div>
+          </div>
+        </div>
+      </InstructionScreenshot>
+      <InstructionScreenshot step="3" title="Tap Add">
+        <div className="p-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50">
+            <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 text-sm">
+              <span className="text-slate-500">Cancel</span>
+              <span className="font-semibold">Add to Home Screen</span>
+              <span className="font-bold text-sky-600">Add</span>
+            </div>
+            <div className="flex items-center gap-3 p-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-900" />
+              <div>
+                <p className="text-sm font-semibold">Hockey Life</p>
+                <p className="text-xs text-slate-500">beerleaguehockey.ca</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </InstructionScreenshot>
+    </>
+  );
+}
+
+function BrowserInstallSteps() {
+  return (
+    <>
+      <InstructionScreenshot step="1" title="Open your browser menu">
+        <div className="space-y-3 p-3">
+          <div className="rounded-full bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-600">
+            hockey-life.beerleaguehockey.ca
+          </div>
+          <div className="flex justify-end rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <Menu className="h-7 w-7 rounded-xl bg-slate-200 p-1.5 text-slate-800 ring-2 ring-slate-300" />
+          </div>
+        </div>
+      </InstructionScreenshot>
+      <InstructionScreenshot step="2" title="Tap Install app or Add to Home Screen">
+        <div className="p-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
+            <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 shadow-sm">
+              <Download className="h-6 w-6 text-slate-700" />
+              <span className="text-sm font-semibold">Install app</span>
+            </div>
+          </div>
+        </div>
+      </InstructionScreenshot>
+      <InstructionScreenshot step="3" title="Confirm the install">
+        <div className="p-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm font-semibold">Install Hockey Life?</p>
+            <div className="mt-3 flex justify-end gap-2">
+              <span className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500">Cancel</span>
+              <span className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white">Install</span>
+            </div>
+          </div>
+        </div>
+      </InstructionScreenshot>
+    </>
   );
 }
 
@@ -241,7 +296,7 @@ export function OneTimeAppSetupPrompt({ leagueName, leagueSlug }: OneTimeAppSetu
             Set up your Hockey Life app
           </h2>
           <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
-            Add {leagueName} to your home screen and turn on push notifications so game reminders and recaps reach you.
+            Add {leagueName} to your home screen for faster access.
           </p>
         </div>
       </div>
@@ -297,7 +352,7 @@ export function AppSetupQuickActionButton({ leagueName }: AppSetupQuickActionBut
                   Create your app
                 </h2>
                 <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-secondary)]">
-                  Add {leagueName} to your home screen and turn on game alerts.
+                  Add {leagueName} to your home screen for faster access.
                 </p>
               </div>
               <button
@@ -314,5 +369,136 @@ export function AppSetupQuickActionButton({ leagueName }: AppSetupQuickActionBut
         </div>
       ) : null}
     </>
+  );
+}
+
+export function PushAlertsQuickActionButton() {
+  const [enabled, setEnabled] = useState(false);
+  const [supported, setSupported] = useState(true);
+  const [publicKey, setPublicKey] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function prepare() {
+      if (!isPushSupported()) {
+        setSupported(false);
+        return;
+      }
+
+      try {
+        await registerServiceWorker();
+        const [subscription, keyResponse, prefs] = await Promise.all([
+          getPushSubscription(),
+          fetch('/api/push/subscribe'),
+          getNotificationPreferences(),
+        ]);
+
+        if (cancelled) return;
+
+        const keyPayload = keyResponse.ok ? await keyResponse.json() : null;
+        setPublicKey(keyPayload?.publicKey || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '');
+        setEnabled(Boolean(subscription) && prefs?.push_enabled !== false);
+      } catch (error) {
+        console.error('[PushAlertsQuickActionButton] prepare failed:', error);
+      }
+    }
+
+    prepare();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleAlerts = useCallback(async () => {
+    if (!supported) {
+      setMessage('Install the app first, then turn alerts on here.');
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage(null);
+
+    try {
+      if (enabled) {
+        const subscription = await getPushSubscription();
+        const endpoint = subscription?.endpoint;
+        await subscription?.unsubscribe();
+        await fetch('/api/push/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint }),
+        });
+
+        const prefResult = await updateNotificationPreferences({ push_enabled: false });
+        if (!prefResult.success) {
+          throw new Error(prefResult.error || 'Unable to turn alerts off.');
+        }
+
+        setEnabled(false);
+        setMessage('Alerts off');
+        return;
+      }
+
+      if (!publicKey) {
+        setMessage('Alerts are not ready yet.');
+        return;
+      }
+
+      const subscription = await subscribeToPush(publicKey);
+      if (!subscription) {
+        setMessage('Browser notification permission was not enabled.');
+        return;
+      }
+
+      const response = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: serializeSubscription(subscription) }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to save alerts.');
+      }
+
+      const prefResult = await updateNotificationPreferences({ push_enabled: true });
+      if (!prefResult.success) {
+        throw new Error(prefResult.error || 'Unable to turn alerts on.');
+      }
+
+      setEnabled(true);
+      setMessage('Alerts on');
+    } catch (error) {
+      console.error('[PushAlertsQuickActionButton] toggle failed:', error);
+      setMessage(error instanceof Error ? error.message : 'Unable to update alerts.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [enabled, publicKey, supported]);
+
+  return (
+    <button
+      type="button"
+      onClick={toggleAlerts}
+      disabled={isSaving}
+      aria-pressed={enabled}
+      className="group relative flex flex-col items-center gap-2 rounded-lg p-3 text-center transition-all hover:bg-[var(--color-surface-hover)] disabled:opacity-70"
+      title={message || (enabled ? 'Game alerts are on' : 'Turn game alerts on')}
+    >
+      <span className={`absolute right-2 top-2 h-2.5 w-2.5 rounded-full ${enabled ? 'bg-emerald-400' : 'bg-[var(--color-border)]'}`} />
+      {isSaving ? (
+        <Loader2 className="h-5 w-5 animate-spin text-[var(--color-text-secondary)]" />
+      ) : enabled ? (
+        <BellRing className="h-5 w-5 text-emerald-300 transition-transform group-hover:scale-110" />
+      ) : (
+        <BellOff className="h-5 w-5 text-[var(--color-text-secondary)] transition-transform group-hover:scale-110" />
+      )}
+      <span className="text-xs font-medium text-[var(--color-text-primary)]">
+        {enabled ? 'Alerts On' : 'Alerts Off'}
+      </span>
+    </button>
   );
 }
