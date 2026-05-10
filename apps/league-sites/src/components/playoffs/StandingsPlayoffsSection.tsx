@@ -271,7 +271,7 @@ function OddsTeamLogo({
 
 function formatOdds(value: number): string {
   const percentage = value * 100;
-  if (percentage <= 0) return '<1%';
+  if (percentage <= 0) return '0%';
   if (percentage >= 100) return '100%';
   if (percentage >= 10) return `${Math.round(percentage)}%`;
   return `${percentage.toFixed(1)}%`;
@@ -279,12 +279,13 @@ function formatOdds(value: number): string {
 
 function OddsBar({ value, color }: { value: number; color: string }) {
   const percentage = value * 100;
+  const width = percentage <= 0 ? 0 : Math.max(2, Math.min(100, percentage));
 
   return (
     <div className="mx-auto h-1.5 w-16 rounded-full bg-white/8">
       <div
         className="h-full rounded-full transition-all"
-        style={{ width: `${Math.max(2, Math.min(100, percentage))}%`, backgroundColor: color }}
+        style={{ width: `${width}%`, backgroundColor: color }}
       />
     </div>
   );

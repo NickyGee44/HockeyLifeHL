@@ -15,12 +15,36 @@ describe('calculatePlayoffOdds', () => {
       buildGame('game-2', 'fitzrays-flyers', 'fitzrays-premier'),
       buildGame('game-3', 'london-eco-metal', 'fitzrays-flyers'),
       buildGame('game-4', 'first-general', 'fitzrays-flyers'),
+    ];
+
+    const odds = calculatePlayoffOdds(standings, remainingGames, { playoffTeamsTotal: 4 });
+    const flyersOdds = odds.find((team) => team.teamId === 'fitzrays-flyers');
+
+    // 2 current points + 4 wins * 2 points = 10 max, below the leader's current 12.
+    expect(flyersOdds?.oddsOfFinishingFirst).toBe(0);
+    expect(flyersOdds?.oddsOfMakingPlayoffs).toBe(1);
+  });
+
+  it('does not give first-place odds when a team can tie the leader on points but cannot pass the wins tiebreaker', () => {
+    const standings = [
+      buildStanding({ team_id: 'first-general', team_name: 'First General London', wins: 6, losses: 0, ties: 0, points: 12, goal_differential: 18 }),
+      buildStanding({ team_id: 'fitzrays-premier', team_name: 'FitzRays Premier', wins: 2, losses: 2, ties: 2, points: 6, goal_differential: 2 }),
+      buildStanding({ team_id: 'london-eco-metal', team_name: 'London Eco Metal', wins: 2, losses: 4, ties: 0, points: 4, goal_differential: -8 }),
+      buildStanding({ team_id: 'fitzrays-flyers', team_name: 'FitzRays Flyers', wins: 0, losses: 4, ties: 2, points: 2, goal_differential: -12 }),
+    ];
+
+    const remainingGames = [
+      buildGame('game-1', 'fitzrays-flyers', 'first-general'),
+      buildGame('game-2', 'fitzrays-flyers', 'fitzrays-premier'),
+      buildGame('game-3', 'london-eco-metal', 'fitzrays-flyers'),
+      buildGame('game-4', 'first-general', 'fitzrays-flyers'),
       buildGame('game-5', 'fitzrays-flyers', 'london-eco-metal'),
     ];
 
     const odds = calculatePlayoffOdds(standings, remainingGames, { playoffTeamsTotal: 4 });
     const flyersOdds = odds.find((team) => team.teamId === 'fitzrays-flyers');
 
+    // 2 current points + 5 wins * 2 points = 12, but only 5 wins vs leader's current 6.
     expect(flyersOdds?.oddsOfFinishingFirst).toBe(0);
     expect(flyersOdds?.oddsOfMakingPlayoffs).toBe(1);
   });
