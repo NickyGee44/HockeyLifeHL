@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { CookieConsentBanner, ConditionalAnalytics } from '@/components/cookie-consent';
+import { RecoveryRedirect } from '@/components/auth/RecoveryRedirect';
 import { PostHogProvider } from '@/providers/PostHogProvider';
 import './globals.css';
 
@@ -36,6 +37,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
+          <RecoveryRedirect />
           {children}
           <CookieConsentBanner />
         </ThemeProvider>
