@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import { updatePassword } from '@/lib/supabase/auth';
@@ -11,6 +11,10 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    setError(new URLSearchParams(window.location.search).get('error'));
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

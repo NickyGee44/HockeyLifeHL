@@ -1,4 +1,6 @@
 import { createClient } from './client';
+import { createBrowserClient } from '@supabase/ssr';
+import { resolveSupabaseConfig } from '@hockey-life/database/config';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 
 export interface AuthResult {
@@ -100,7 +102,13 @@ export async function getUser(): Promise<AuthResult> {
  * Send password reset email
  */
 export async function resetPassword(email: string): Promise<{ error: AuthError | null }> {
-  const supabase = createClient();
+  const { url, anonKey } = resolveSupabaseConfig();
+  const supabase = createBrowserClient(url, anonKey, {
+    auth: {
+      flowType: 'implicit',
+      detectSessionInUrl: false,
+    },
+  });
   const callbackUrl = new URL('/api/auth/callback', window.location.origin);
   callbackUrl.searchParams.set('next', '/reset-password');
 
