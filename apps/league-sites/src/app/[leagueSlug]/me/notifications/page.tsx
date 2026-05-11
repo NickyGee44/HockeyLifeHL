@@ -17,6 +17,7 @@ import {
   updateNotificationPreferences,
   type NotificationPreferences,
 } from '@/lib/actions/notifications';
+import { PushNotificationSettingsRow } from '@/components/push/PushNotificationSettingsRow';
 
 interface ToggleProps {
   checked: boolean;
@@ -258,13 +259,12 @@ export default function NotificationsPage() {
             <Smartphone className="w-4 h-4 text-[var(--league-primary)]" />
             <span className="font-medium text-[var(--color-text-primary)]">Push Notifications</span>
           </div>
-          <div className="px-5 divide-y divide-[var(--color-border)]">
-            <PrefRow
-              label="Enable Push Notifications"
-              description="Receive notifications in your browser or on your device"
-              prefKey="push_enabled"
-              prefs={prefs}
-              onToggle={handleToggle}
+          <div className="px-5">
+            <PushNotificationSettingsRow
+              initialPreferenceEnabled={prefs.push_enabled}
+              onPreferenceChange={(enabled) => {
+                setPrefs((current) => current ? { ...current, push_enabled: enabled } : current);
+              }}
             />
           </div>
         </div>
