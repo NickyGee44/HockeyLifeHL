@@ -1,6 +1,10 @@
 import { createClient } from './client';
-import { createBrowserClient } from '@supabase/ssr';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+import {
+  createClient as createSupabaseClient,
+  type User,
+  type Session,
+  type AuthError,
+} from '@supabase/supabase-js';
 
 export interface AuthResult {
   user: User | null;
@@ -108,10 +112,12 @@ export async function resetPassword(email: string): Promise<{ error: AuthError |
     return { error: new Error('Password reset is temporarily unavailable.') as AuthError };
   }
 
-  const supabase = createBrowserClient(url, anonKey, {
+  const supabase = createSupabaseClient(url, anonKey, {
     auth: {
       flowType: 'implicit',
       detectSessionInUrl: false,
+      persistSession: false,
+      autoRefreshToken: false,
     },
   });
   const callbackUrl = new URL('/api/auth/callback', window.location.origin);
