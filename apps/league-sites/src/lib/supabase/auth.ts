@@ -1,6 +1,5 @@
 import { createClient } from './client';
 import { createBrowserClient } from '@supabase/ssr';
-import { resolveSupabaseConfig } from '@hockey-life/database/config';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 
 export interface AuthResult {
@@ -102,7 +101,13 @@ export async function getUser(): Promise<AuthResult> {
  * Send password reset email
  */
 export async function resetPassword(email: string): Promise<{ error: AuthError | null }> {
-  const { url, anonKey } = resolveSupabaseConfig();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    return { error: new Error('Password reset is temporarily unavailable.') as AuthError };
+  }
+
   const supabase = createBrowserClient(url, anonKey, {
     auth: {
       flowType: 'implicit',
