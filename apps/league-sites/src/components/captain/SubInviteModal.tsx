@@ -13,6 +13,7 @@ import {
 import {
   inviteSub,
   getLeagueSubPlayers,
+  getTeamSubInvitations,
 } from '@/lib/actions/sub-invitations';
 import type { RosterPlayer } from '@/lib/actions/captain-roster';
 
@@ -81,15 +82,30 @@ export function SubInviteModal({
 
     const fetchSubs = async () => {
       setIsLoading(true);
-      const result = await getLeagueSubPlayers(leagueId, teamId);
-      if (result.success && result.data) {
+      const [subsResult, invitesResult] = await Promise.all([
+        getLeagueSubPlayers(leagueId, teamId),
+        getTeamSubInvitations(teamId, [gameId]),
+      ]);
+
+      if (subsResult.success && subsResult.data) {
         // Also include own team's sub/part_time players
         const rosterPlayerIds = new Set(roster.map((r) => r.player_id));
-        const allSubs = result.data.filter(
+        const allSubs = subsResult.data.filter(
           (s) => !rosterPlayerIds.has(s.id)
         );
         setAvailableSubs(allSubs);
       }
+
+      if (invitesResult.success && invitesResult.data) {
+        const invitedPlayerIds = invitesResult.data.map((invite) => invite.invited_player_id);
+        const confirmedPlayerIds = invitesResult.data
+          .filter((invite) => invite.status === 'accepted')
+          .map((invite) => invite.invited_player_id);
+
+        setSentInvites(new Set(invitedPlayerIds));
+        setConfirmedInvites(new Set(confirmedPlayerIds));
+      }
+
       setIsLoading(false);
     };
 
@@ -103,7 +119,7 @@ export function SubInviteModal({
     setConfirmedInvites(new Set());
     setCaptainConfirmed(false);
     setError(null);
-  }, [isOpen, leagueId, teamId, roster, missingPlayers]);
+  }, [isOpen, leagueId, teamId, gameId, roster, missingPlayers]);
 
   const filteredSubs = availableSubs.filter((sub) => {
     if (!searchQuery) return true;
@@ -114,9 +130,8 @@ export function SubInviteModal({
     );
   });
 
-  const handleInvite = (playerId: string) => {
+  const saveInvite = (playerId: string, markConfirmed: boolean) => {
     setError(null);
-    const markConfirmed = Boolean(replacedPlayerId && captainConfirmed);
     startTransition(async () => {
       const result = await inviteSub(
         gameId,
@@ -135,6 +150,14 @@ export function SubInviteModal({
         setError(result.error || 'Failed to send invitation');
       }
     });
+  };
+
+  const handleInvite = (playerId: string) => {
+    saveInvite(playerId, Boolean(captainConfirmed));
+  };
+
+  const handleMarkIn = (playerId: string) => {
+    saveInvite(playerId, true);
   };
 
   if (!isOpen || !mounted) return null;
@@ -291,10 +314,25 @@ export function SubInviteModal({
                   </div>
 
                   {alreadyInvited ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium">
-                      <Check className="w-3 h-3" />
-                      {confirmedIn ? 'Confirmed In' : 'Invited'}
-                    </span>
+                    confirmedIn ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium">
+                        <Check className="w-3 h-3" />
+                        Confirmed In
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleMarkIn(sub.id)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                      >
+                        {isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                        Mark In
+                      </button>
+                    )
                   ) : (
                     <button
                       onClick={() => handleInvite(sub.id)}
@@ -306,7 +344,7 @@ export function SubInviteModal({
                       ) : (
                         <UserPlus className="w-3 h-3" />
                       )}
-                      Invite
+                      {captainConfirmed ? 'Invite + Mark In' : 'Invite'}
                     </button>
                   )}
                 </div>

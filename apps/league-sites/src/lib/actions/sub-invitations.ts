@@ -122,7 +122,7 @@ export async function inviteSub(
     return { success: false, error: 'That player is not an active team spare or league spare.' };
   }
 
-  const confirmedByCaptain = Boolean(captainConfirmed && replacedPlayerId);
+  const confirmedByCaptain = Boolean(captainConfirmed);
   const now = new Date().toISOString();
 
   const { error } = await supabase.from('sub_invitations').insert({
@@ -139,6 +139,23 @@ export async function inviteSub(
 
   if (error) {
     if (error.code === '23505') {
+      if (confirmedByCaptain) {
+        const confirmed = await confirmExistingSubInvitation({
+          gameId,
+          teamId,
+          playerId,
+          replacedPlayerId,
+          now,
+          serviceSupabase,
+        });
+
+        if (confirmed.success) {
+          return { success: true };
+        }
+
+        return confirmed;
+      }
+
       return { success: false, error: 'This player has already been invited to this game' };
     }
     console.error('Failed to invite sub:', error);
@@ -146,24 +163,104 @@ export async function inviteSub(
   }
 
   if (confirmedByCaptain) {
-    const { error: checkinError } = await serviceSupabase
-      .from('game_checkins')
-      .upsert(
-        {
-          game_id: gameId,
-          team_id: teamId,
-          player_id: playerId,
-          status: 'confirmed',
-          note: 'Captain confirmed replacement sub',
-          updated_at: now,
-        },
-        { onConflict: 'game_id,player_id' }
-      );
+    const confirmed = await upsertCaptainConfirmedCheckin({
+      gameId,
+      teamId,
+      playerId,
+      now,
+      serviceSupabase,
+    });
 
-    if (checkinError) {
-      console.error('Failed to confirm invited sub:', checkinError);
-      return { success: false, error: checkinError.message };
+    if (!confirmed.success) {
+      return confirmed;
     }
+  }
+
+  return { success: true };
+}
+
+async function confirmExistingSubInvitation({
+  gameId,
+  teamId,
+  playerId,
+  replacedPlayerId,
+  now,
+  serviceSupabase,
+}: {
+  gameId: string;
+  teamId: string;
+  playerId: string;
+  replacedPlayerId?: string | null;
+  now: string;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<ActionResult> {
+  const updatePayload: Record<string, string | null> = {
+    status: 'accepted',
+    responded_at: now,
+    updated_at: now,
+  };
+
+  if (replacedPlayerId) {
+    updatePayload.replaced_player_id = replacedPlayerId;
+  }
+
+  const { data, error } = await serviceSupabase
+    .from('sub_invitations')
+    .update(updatePayload)
+    .eq('game_id', gameId)
+    .eq('team_id', teamId)
+    .eq('invited_player_id', playerId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to confirm existing sub invitation:', error);
+    return { success: false, error: error.message };
+  }
+
+  if (!data) {
+    return { success: false, error: 'This player has already been invited to this game by another team.' };
+  }
+
+  return upsertCaptainConfirmedCheckin({
+    gameId,
+    teamId,
+    playerId,
+    now,
+    serviceSupabase,
+  });
+}
+
+async function upsertCaptainConfirmedCheckin({
+  gameId,
+  teamId,
+  playerId,
+  now,
+  serviceSupabase,
+}: {
+  gameId: string;
+  teamId: string;
+  playerId: string;
+  now: string;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<ActionResult> {
+  const { error: checkinError } = await serviceSupabase
+    .from('game_checkins')
+    .upsert(
+      {
+        game_id: gameId,
+        team_id: teamId,
+        player_id: playerId,
+        status: 'confirmed',
+        note: 'Captain confirmed replacement sub',
+        updated_at: now,
+      },
+      { onConflict: 'game_id,player_id' }
+    );
+
+  if (checkinError) {
+    console.error('Failed to confirm invited sub:', checkinError);
+    return { success: false, error: checkinError.message };
   }
 
   return { success: true };
