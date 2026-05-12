@@ -78,7 +78,8 @@ export async function inviteSub(
   teamId: string,
   playerId: string,
   message?: string,
-  replacedPlayerId?: string | null
+  replacedPlayerId?: string | null,
+  captainConfirmed = false
 ): Promise<ActionResult> {
   const auth = await verifyCaptainRole(teamId);
   if (!auth.authorized) {
@@ -121,6 +122,9 @@ export async function inviteSub(
     return { success: false, error: 'That player is not an active team spare or league spare.' };
   }
 
+  const confirmedByCaptain = Boolean(captainConfirmed && replacedPlayerId);
+  const now = new Date().toISOString();
+
   const { error } = await supabase.from('sub_invitations').insert({
     game_id: gameId,
     team_id: teamId,
@@ -128,8 +132,9 @@ export async function inviteSub(
     invited_player_id: playerId,
     replaced_player_id: replacedPlayerId || null,
     source_type: teamRosterRow ? 'team' : 'league',
-    status: 'pending',
+    status: confirmedByCaptain ? 'accepted' : 'pending',
     message: message || null,
+    responded_at: confirmedByCaptain ? now : null,
   });
 
   if (error) {
@@ -138,6 +143,27 @@ export async function inviteSub(
     }
     console.error('Failed to invite sub:', error);
     return { success: false, error: error.message };
+  }
+
+  if (confirmedByCaptain) {
+    const { error: checkinError } = await serviceSupabase
+      .from('game_checkins')
+      .upsert(
+        {
+          game_id: gameId,
+          team_id: teamId,
+          player_id: playerId,
+          status: 'confirmed',
+          note: 'Captain confirmed replacement sub',
+          updated_at: now,
+        },
+        { onConflict: 'game_id,player_id' }
+      );
+
+    if (checkinError) {
+      console.error('Failed to confirm invited sub:', checkinError);
+      return { success: false, error: checkinError.message };
+    }
   }
 
   return { success: true };

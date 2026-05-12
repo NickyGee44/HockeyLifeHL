@@ -56,6 +56,8 @@ export function SubInviteModal({
   const [message, setMessage] = useState('');
   const [replacedPlayerId, setReplacedPlayerId] = useState<string>('');
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
+  const [confirmedInvites, setConfirmedInvites] = useState<Set<string>>(new Set());
+  const [captainConfirmed, setCaptainConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -98,6 +100,8 @@ export function SubInviteModal({
     setMessage('');
     setReplacedPlayerId(missingPlayers[0]?.playerId ?? '');
     setSentInvites(new Set());
+    setConfirmedInvites(new Set());
+    setCaptainConfirmed(false);
     setError(null);
   }, [isOpen, leagueId, teamId, roster, missingPlayers]);
 
@@ -112,6 +116,7 @@ export function SubInviteModal({
 
   const handleInvite = (playerId: string) => {
     setError(null);
+    const markConfirmed = Boolean(replacedPlayerId && captainConfirmed);
     startTransition(async () => {
       const result = await inviteSub(
         gameId,
@@ -119,9 +124,13 @@ export function SubInviteModal({
         playerId,
         message || undefined,
         replacedPlayerId || null,
+        markConfirmed,
       );
       if (result.success) {
         setSentInvites((prev) => new Set([...prev, playerId]));
+        if (markConfirmed) {
+          setConfirmedInvites((prev) => new Set([...prev, playerId]));
+        }
       } else {
         setError(result.error || 'Failed to send invitation');
       }
@@ -168,7 +177,12 @@ export function SubInviteModal({
               Replacing
               <select
                 value={replacedPlayerId}
-                onChange={(event) => setReplacedPlayerId(event.target.value)}
+                onChange={(event) => {
+                  setReplacedPlayerId(event.target.value);
+                  if (!event.target.value) {
+                    setCaptainConfirmed(false);
+                  }
+                }}
                 className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm normal-case tracking-normal text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
               >
                 <option value="">No specific player</option>
@@ -183,6 +197,22 @@ export function SubInviteModal({
             <p className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
               Tip: mark the missing player Out first so the spare is tied to the right replacement.
             </p>
+          )}
+          {replacedPlayerId && (
+            <label className="mb-2 flex cursor-pointer gap-3 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-[var(--color-text-primary)]">
+              <input
+                type="checkbox"
+                checked={captainConfirmed}
+                onChange={(event) => setCaptainConfirmed(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface-hover)] accent-[var(--league-primary)]"
+              />
+              <span>
+                <span className="block font-semibold">Sub already confirmed in</span>
+                <span className="block text-xs text-[var(--color-text-secondary)]">
+                  Use this when you already called or texted the sub. They will show as In immediately.
+                </span>
+              </span>
+            </label>
           )}
           <textarea
             value={message}
@@ -235,6 +265,7 @@ export function SubInviteModal({
           ) : (
             filteredSubs.map((sub) => {
               const alreadyInvited = sentInvites.has(sub.id);
+              const confirmedIn = confirmedInvites.has(sub.id);
 
               return (
                 <div
@@ -262,7 +293,7 @@ export function SubInviteModal({
                   {alreadyInvited ? (
                     <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium">
                       <Check className="w-3 h-3" />
-                      Invited
+                      {confirmedIn ? 'Confirmed In' : 'Invited'}
                     </span>
                   ) : (
                     <button

@@ -9,6 +9,9 @@ interface LineupPlayer {
   position?: string | null;
   /** When true, this player is a spare and must not occupy a jersey slot. */
   isSub?: boolean;
+  /** Game-specific replacement subs can opt into a visible slot. */
+  showAsLineupPlayer?: boolean;
+  replacingName?: string | null;
 }
 
 type LineupSlotType = 'forward' | 'defence' | 'goalie';
@@ -67,12 +70,10 @@ export function TeamLineupView({
   forwardSlots = DEFAULT_FORWARD_SLOTS,
   defenceSlots = DEFAULT_DEFENCE_SLOTS,
 }: TeamLineupViewProps) {
-  // Jersey slots are reserved exclusively for real roster players. Spares
-  // (isSub === true) never replace a rostered teammate — if a rostered player
-  // is marked out for an upcoming game, their jersey stays and goes grey via
-  // the 'out' availability treatment below.
-  const rosterSkaters = skaters.filter((p) => !p.isSub);
-  const rosterGoalies = goalies.filter((p) => !p.isSub);
+  // Team roster spares do not occupy normal slots. Game-specific replacement
+  // subs opt in so captains can see who is actually confirmed for this game.
+  const rosterSkaters = skaters.filter((p) => !p.isSub || p.showAsLineupPlayer);
+  const rosterGoalies = goalies.filter((p) => !p.isSub || p.showAsLineupPlayer);
 
   const defenders = rosterSkaters.filter((p) => isDefence(p.position));
   const forwards = rosterSkaters.filter((p) => !isDefence(p.position));
@@ -187,6 +188,7 @@ function JerseySlot({
           secondaryColor={secondaryColor}
           availability={availability}
         />
+        <ReplacementPill player={player} />
         {removeAffordance ? (
           <span className="pointer-events-none absolute -top-1 -right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white opacity-0 ring-2 ring-white/40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             <X className="h-3.5 w-3.5" />
@@ -214,17 +216,30 @@ function JerseySlot({
   return (
     <div className="flex flex-col items-center">
       {player ? (
-        <Jersey
-          name={getLastName(player.name)}
-          number={player.jerseyNumber}
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-          availability={availability}
-        />
+        <>
+          <Jersey
+            name={getLastName(player.name)}
+            number={player.jerseyNumber}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            availability={availability}
+          />
+          <ReplacementPill player={player} />
+        </>
       ) : (
         <EmptyJersey primaryColor={primaryColor} />
       )}
     </div>
+  );
+}
+
+function ReplacementPill({ player }: { player: LineupPlayer }) {
+  if (!player.replacingName) return null;
+
+  return (
+    <span className="mt-1 max-w-[132px] rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2 py-0.5 text-center text-[9px] font-black uppercase tracking-[0.08em] leading-tight text-cyan-200">
+      Replacing: {player.replacingName}
+    </span>
   );
 }
 

@@ -34,6 +34,8 @@ export interface GameDayAttendancePlayer {
   position: string | null;
   status: CaptainAttendanceStatus;
   isSub: boolean;
+  replacedPlayerId: string | null;
+  replacedPlayerName: string | null;
 }
 
 export interface CaptainGameDayData {
@@ -185,11 +187,13 @@ async function loadAttendancePlayers(
 
   const players: GameDayAttendancePlayer[] = [];
   const seen = new Set<string>();
+  const regularPlayerNames = new Map<string, string>();
 
   for (const row of rosterResult.data || []) {
     const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
     if (!row.player_id || seen.has(row.player_id)) continue;
     seen.add(row.player_id);
+    regularPlayerNames.set(row.player_id, profile?.full_name ?? 'Player');
 
     players.push({
       playerId: row.player_id,
@@ -199,6 +203,8 @@ async function loadAttendancePlayers(
       position: row.position ?? null,
       status: checkins.get(row.player_id) ?? 'no_response',
       isSub: invitedSubIds.has(row.player_id),
+      replacedPlayerId: null,
+      replacedPlayerName: null,
     });
   }
 
@@ -222,6 +228,10 @@ async function loadAttendancePlayers(
       position: null,
       status: checkins.get(row.invited_player_id) ?? fallbackStatus,
       isSub: true,
+      replacedPlayerId: row.replaced_player_id ?? null,
+      replacedPlayerName: row.replaced_player_id
+        ? regularPlayerNames.get(row.replaced_player_id) ?? null
+        : null,
     });
   }
 

@@ -99,14 +99,9 @@ export function CaptainGameDayPage({
     };
   }, [canManage, initialData, leagueSlug, requestedGameId, router, teamId, refreshToken]);
 
-  const placedIds = useMemo(
-    () => new Set(data?.lineup.layout.placedPlayers.map((player) => player.playerId) ?? []),
-    [data?.lineup.layout.placedPlayers],
-  );
-
   const lineupPlayers = useMemo(
-    () => (data?.lineup.layout.roster ?? []).filter((player) => placedIds.has(player.playerId)),
-    [data?.lineup.layout.roster, placedIds],
+    () => (data?.attendance ?? []).filter((player) => player.status === 'confirmed'),
+    [data?.attendance],
   );
 
   const skaters = lineupPlayers
@@ -116,6 +111,9 @@ export function CaptainGameDayPage({
       name: player.fullName ?? 'Player',
       jerseyNumber: player.jerseyNumber,
       position: player.position,
+      isSub: player.isSub,
+      showAsLineupPlayer: player.isSub,
+      replacingName: player.replacedPlayerName,
     }));
 
   const goalies = lineupPlayers
@@ -125,17 +123,18 @@ export function CaptainGameDayPage({
       name: player.fullName ?? 'Player',
       jerseyNumber: player.jerseyNumber,
       position: player.position,
+      isSub: player.isSub,
+      showAsLineupPlayer: player.isSub,
+      replacingName: player.replacedPlayerName,
     }));
 
   const availabilityMap = Object.fromEntries(
-    (data?.lineup.layout.roster ?? [])
-      .filter((player) => player.availability === 'confirmed' || player.availability === 'tentative' || player.availability === 'out')
-      .map((player) => [player.playerId, player.availability]),
+    (data?.attendance ?? [])
+      .filter((player) => player.status === 'confirmed' || player.status === 'tentative' || player.status === 'out')
+      .map((player) => [player.playerId, player.status]),
   ) as Record<string, 'confirmed' | 'tentative' | 'out'>;
 
-  const eligibleForLineupCount = (data?.lineup.layout.roster ?? []).filter(
-    (player) => player.availability === 'confirmed' || player.isSub === true,
-  ).length;
+  const eligibleForLineupCount = lineupPlayers.length;
   const snapshotExtendedGrid = eligibleForLineupCount > 11;
   const snapshotForwardSlots = snapshotExtendedGrid ? 9 : 6;
   const snapshotDefenceSlots = snapshotExtendedGrid ? 6 : 4;
