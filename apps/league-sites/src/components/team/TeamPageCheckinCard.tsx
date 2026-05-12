@@ -14,7 +14,6 @@ import {
 
 interface TeamPageCheckinCardProps {
   leagueId: string;
-  leagueSlug: string;
   seasonId: string | null;
   timezone: string;
   teamId: string;
@@ -41,7 +40,6 @@ interface TeamRosterEntry {
 
 export function TeamPageCheckinCard({
   leagueId,
-  leagueSlug,
   seasonId,
   timezone,
   teamId,
@@ -171,7 +169,10 @@ export function TeamPageCheckinCard({
         minute: '2-digit',
       }).format(scheduledDate);
 
-      const shareUrl = `${window.location.origin}/${leagueSlug}/checkin`;
+      const teamPageUrl = new URL(window.location.href);
+      teamPageUrl.search = '';
+      teamPageUrl.hash = '';
+      const shareUrl = teamPageUrl.toString();
       const result = await shareCheckinReminder({
         teamName,
         opponentName,
@@ -186,7 +187,7 @@ export function TeamPageCheckinCard({
         roster: rosterForShare,
         fileName: `${slugify(teamName)}-vs-${slugify(opponentName)}-checkin.png`,
         shareTitle: `${teamName} vs ${opponentName}`,
-        shareText: `Please check in for ${teamName}'s next game vs ${opponentName}.`,
+        shareText: `Please check in for ${teamName}'s next game vs ${opponentName}. Team page:`,
         shareUrl,
       });
 

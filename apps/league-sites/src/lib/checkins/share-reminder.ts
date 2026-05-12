@@ -295,6 +295,10 @@ async function downloadFile(file: File) {
   }
 }
 
+function buildShareMessage(text: string, url: string) {
+  return `${text.trim()}\n${url}`;
+}
+
 export async function shareCheckinReminder(options: {
   teamName: string;
   opponentName: string;
@@ -329,12 +333,12 @@ export async function shareCheckinReminder(options: {
     }),
     options.fileName,
   );
+  const shareMessage = buildShareMessage(options.shareText, options.shareUrl);
 
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     await navigator.share({
       title: options.shareTitle,
-      text: options.shareText,
-      url: options.shareUrl,
+      text: shareMessage,
       files: [file],
     });
     return 'shared';
@@ -350,7 +354,7 @@ export async function shareCheckinReminder(options: {
   }
 
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(`${options.shareText}\n${options.shareUrl}`);
+    await navigator.clipboard.writeText(shareMessage);
   }
 
   await downloadFile(file);

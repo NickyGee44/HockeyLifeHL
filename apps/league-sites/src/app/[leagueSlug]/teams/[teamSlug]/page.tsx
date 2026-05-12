@@ -330,7 +330,6 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 teamActions={nextTeamGame ? (
                   <TeamPageCheckinCard
                     leagueId={league.id}
-                    leagueSlug={leagueSlug}
                     seasonId={currentSeason?.id ?? null}
                     timezone={league.timezone || 'America/Toronto'}
                     teamId={team.id}
