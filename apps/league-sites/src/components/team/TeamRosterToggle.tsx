@@ -19,6 +19,7 @@ interface TeamRosterToggleProps {
   statsView: ReactNode;
   skaters: LineupPlayer[];
   goalies: LineupPlayer[];
+  substitutionNotes?: string[];
   primaryColor: string;
   secondaryColor: string;
   availabilityGameId?: string | null;
@@ -46,6 +47,7 @@ export function TeamRosterToggle({
   statsView,
   skaters,
   goalies,
+  substitutionNotes = [],
   primaryColor,
   secondaryColor,
   availabilityGameId = null,
@@ -56,6 +58,7 @@ export function TeamRosterToggle({
 
   useEffect(() => {
     if (!availabilityGameId || !availabilityTeamId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears stale availability when there is no next game/team context.
       setAvailabilityMap({});
       return;
     }
@@ -157,6 +160,14 @@ export function TeamRosterToggle({
       ) : (
         statsView
       )}
+
+      {substitutionNotes.length > 0 ? (
+        <div className="mt-5 space-y-1 px-1 text-sm font-medium leading-6 text-[var(--color-text-secondary)]">
+          {substitutionNotes.map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { BarChart3 } from 'lucide-react';
 import {
   getCurrentSeason,
   getLeagueBySlug,
+  getAcceptedGameSubstitutions,
   getSeasons,
   getSeasonGames,
   getStandings,
@@ -194,6 +195,12 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
       if (aPriority !== bPriority) return aPriority - bPriority;
       return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
     })[0] ?? null;
+  const acceptedSubstitutions = await getAcceptedGameSubstitutions(nextTeamGame?.id, team.id);
+  const substitutionNotes = acceptedSubstitutions.map((substitution) => (
+    substitution.replacedPlayerName
+      ? `🥪 ${substitution.subPlayerName} subbing in for ${substitution.replacedPlayerName}`
+      : `🥪 ${substitution.subPlayerName} subbing in`
+  ));
 
   const nextOpponentId = nextTeamGame
     ? nextTeamGame.home_team?.id === team.id
@@ -387,7 +394,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
             <div className="px-1 md:px-2">
               <TeamRosterToggle
-                title="Roster"
+                title="Next Game Roster"
                 primaryColor={(team as any).primary_color || 'var(--league-primary)'}
                 secondaryColor={(team as any).secondary_color || '#e0b84a'}
                 skaters={skaters.map((player) => ({
@@ -404,6 +411,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   position: 'G',
                   isSub: isSubRosterPlayer(goalie),
                 }))}
+                substitutionNotes={substitutionNotes}
                 availabilityGameId={nextTeamGame?.id ?? null}
                 availabilityTeamId={team.id}
                 statsView={

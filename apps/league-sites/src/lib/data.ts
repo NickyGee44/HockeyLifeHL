@@ -865,6 +865,72 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
   });
 }
 
+export interface AcceptedGameSubstitution {
+  id: string;
+  subPlayerId: string;
+  subPlayerName: string;
+  replacedPlayerId: string | null;
+  replacedPlayerName: string | null;
+}
+
+interface RawAcceptedGameSubstitutionRow {
+  id: string;
+  invited_player_id: string | null;
+  replaced_player_id: string | null;
+  invited_player_profile: { full_name: string | null } | Array<{ full_name: string | null }> | null;
+  replaced_player_profile: { full_name: string | null } | Array<{ full_name: string | null }> | null;
+}
+
+export async function getAcceptedGameSubstitutions(
+  gameId: string | null | undefined,
+  teamId: string,
+): Promise<AcceptedGameSubstitution[]> {
+  if (!gameId) return [];
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await (supabase.from('sub_invitations') as any)
+    .select(`
+      id,
+      invited_player_id,
+      replaced_player_id,
+      invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name),
+      replaced_player_profile:profiles!sub_invitations_replaced_player_id_fkey(full_name)
+    `)
+    .eq('game_id', gameId)
+    .eq('team_id', teamId)
+    .eq('status', 'accepted')
+    .order('responded_at', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Failed to load accepted game substitutions:', error);
+    return [];
+  }
+
+  const rows = (data || []) as RawAcceptedGameSubstitutionRow[];
+
+  return rows
+    .map((row): AcceptedGameSubstitution | null => {
+      const invitedProfile = Array.isArray(row.invited_player_profile)
+        ? row.invited_player_profile[0]
+        : row.invited_player_profile;
+      const replacedProfile = Array.isArray(row.replaced_player_profile)
+        ? row.replaced_player_profile[0]
+        : row.replaced_player_profile;
+
+      if (!row.invited_player_id) return null;
+
+      return {
+        id: row.id,
+        subPlayerId: row.invited_player_id,
+        subPlayerName: invitedProfile?.full_name || 'Sub',
+        replacedPlayerId: row.replaced_player_id ?? null,
+        replacedPlayerName: replacedProfile?.full_name || null,
+      };
+    })
+    .filter((row: AcceptedGameSubstitution | null): row is AcceptedGameSubstitution => Boolean(row));
+}
+
 type RosterStatsAccumulator = {
   skater_game_ids: Set<string>;
   goalie_game_ids: Set<string>;
