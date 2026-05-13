@@ -19,6 +19,7 @@ import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall, SectionHeading } from '@/components/shared';
 import { BarChart3 } from 'lucide-react';
+import { getPublishedGameTeamLineups } from '@/lib/actions/game-lineups';
 import {
   getCurrentSeason,
   getLeagueBySlug,
@@ -43,6 +44,11 @@ import {
   summarizeTeamChampionships,
   type TeamLeaderMetric,
 } from '@/lib/team-page';
+import type {
+  LineupPlacedPlayer,
+  LineupRosterPlayer,
+  PublishedGameTeamLineup,
+} from '@/lib/lineups/types';
 
 interface TeamPageProps {
   params: Promise<{ leagueSlug: string; teamSlug: string }>;
@@ -195,7 +201,26 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
       if (aPriority !== bPriority) return aPriority - bPriority;
       return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
     })[0] ?? null;
-  const acceptedSubstitutions = await getAcceptedGameSubstitutions(nextTeamGame?.id, team.id);
+  const [acceptedSubstitutions, publishedLineups] = await Promise.all([
+    getAcceptedGameSubstitutions(nextTeamGame?.id, team.id),
+    nextTeamGame ? getPublishedGameTeamLineups(nextTeamGame.id) : Promise.resolve([]),
+  ]);
+  const publishedTeamLineup = publishedLineups.find((lineup) => lineup.teamId === team.id) ?? null;
+  const nextGameLineupDisplay = buildTeamPageLineupDisplay(publishedTeamLineup);
+  const nextGameDisplaySkaters = nextGameLineupDisplay?.skaters ?? skaters.map((player) => ({
+    playerId: player.player_id,
+    name: player.profile?.full_name || 'Unknown',
+    jerseyNumber: player.jersey_number,
+    position: player.position,
+    isSub: isSubRosterPlayer(player),
+  }));
+  const nextGameDisplayGoalies = nextGameLineupDisplay?.goalies ?? goalies.map((goalie) => ({
+    playerId: goalie.player_id,
+    name: goalie.profile?.full_name || 'Unknown',
+    jerseyNumber: goalie.jersey_number,
+    position: 'G',
+    isSub: isSubRosterPlayer(goalie),
+  }));
   const substitutionNotes = acceptedSubstitutions.map((substitution) => (
     substitution.replacedPlayerName
       ? `🥖 ${substitution.subPlayerName} subbing in for ${substitution.replacedPlayerName}`
@@ -397,23 +422,13 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 title="Next Game Roster"
                 primaryColor={(team as any).primary_color || 'var(--league-primary)'}
                 secondaryColor={(team as any).secondary_color || '#e0b84a'}
-                skaters={skaters.map((player) => ({
-                  playerId: player.player_id,
-                  name: player.profile?.full_name || 'Unknown',
-                  jerseyNumber: player.jersey_number,
-                  position: player.position,
-                  isSub: isSubRosterPlayer(player),
-                }))}
-                goalies={goalies.map((goalie) => ({
-                  playerId: goalie.player_id,
-                  name: goalie.profile?.full_name || 'Unknown',
-                  jerseyNumber: goalie.jersey_number,
-                  position: 'G',
-                  isSub: isSubRosterPlayer(goalie),
-                }))}
+                skaters={nextGameDisplaySkaters}
+                goalies={nextGameDisplayGoalies}
                 substitutionNotes={substitutionNotes}
                 availabilityGameId={nextTeamGame?.id ?? null}
                 availabilityTeamId={team.id}
+                forwardSlots={nextGameLineupDisplay?.forwardSlots}
+                defenceSlots={nextGameLineupDisplay?.defenceSlots}
                 statsView={
                   <div>
                     <StatsTableCard
@@ -694,6 +709,93 @@ function CaptainBadge({ label, muted }: { label: string; muted?: boolean }) {
   );
 }
 
+type TeamPageLineupPlayer = {
+  playerId: string;
+  name: string;
+  jerseyNumber: number | null;
+  position?: string | null;
+  isSub?: boolean;
+  showAsLineupPlayer?: boolean;
+};
+
+type TeamPageLineupSlot = 'forward' | 'defence' | 'goalie';
+
+function deriveLineupSlotFromCoord(coord: LineupPlacedPlayer): TeamPageLineupSlot {
+  if (coord.y >= 86) return 'goalie';
+  if (coord.y >= 50) return 'defence';
+  return 'forward';
+}
+
+function buildTeamPageLineupDisplay(lineup: PublishedGameTeamLineup | null): {
+  skaters: TeamPageLineupPlayer[];
+  goalies: TeamPageLineupPlayer[];
+  forwardSlots: number;
+  defenceSlots: number;
+} | null {
+  if (!lineup) return null;
+
+  const rosterById = new Map<string, LineupRosterPlayer>();
+  for (const player of lineup.layout.roster) {
+    rosterById.set(player.playerId, player);
+  }
+
+  const slotOrder: Record<TeamPageLineupSlot, number> = {
+    forward: 0,
+    defence: 1,
+    goalie: 2,
+  };
+
+  const placed = lineup.layout.placedPlayers
+    .map((entry) => {
+      const player = rosterById.get(entry.playerId);
+      if (!player) return null;
+      return {
+        entry,
+        player,
+        slot: deriveLineupSlotFromCoord(entry),
+      };
+    })
+    .filter(
+      (value): value is {
+        entry: LineupPlacedPlayer;
+        player: LineupRosterPlayer;
+        slot: TeamPageLineupSlot;
+      } => value !== null,
+    )
+    .sort((left, right) => {
+      const slotSort = slotOrder[left.slot] - slotOrder[right.slot];
+      if (slotSort !== 0) return slotSort;
+      const rowSort = left.entry.y - right.entry.y;
+      if (rowSort !== 0) return rowSort;
+      return left.entry.x - right.entry.x;
+    });
+
+  const toDisplayPlayer = (
+    player: LineupRosterPlayer,
+    position: string
+  ): TeamPageLineupPlayer => ({
+    playerId: player.playerId,
+    name: player.fullName || 'Unknown',
+    jerseyNumber: player.jerseyNumber,
+    position,
+    isSub: player.isSub,
+    showAsLineupPlayer: player.isSub ? true : undefined,
+  });
+
+  const forwardCount = placed.filter((item) => item.slot === 'forward').length;
+  const defenceCount = placed.filter((item) => item.slot === 'defence').length;
+
+  return {
+    skaters: placed
+      .filter((item) => item.slot !== 'goalie')
+      .map((item) => toDisplayPlayer(item.player, item.slot === 'defence' ? 'D' : 'C')),
+    goalies: placed
+      .filter((item) => item.slot === 'goalie')
+      .map((item) => toDisplayPlayer(item.player, 'G')),
+    forwardSlots: Math.max(6, forwardCount),
+    defenceSlots: Math.max(4, defenceCount),
+  };
+}
 
 function EmptyPanel({ title, description }: { title: string; description: string }) {
   return (

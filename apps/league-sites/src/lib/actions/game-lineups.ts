@@ -336,6 +336,11 @@ async function persistGameTeamLineup(
     ? access.data.userId
     : existing?.published_by ?? null;
 
+  const lineupTeam =
+    access.data.game.home_team_id === teamId
+      ? formatTeamIdentity(access.data.game.home_team)
+      : formatTeamIdentity(access.data.game.away_team);
+
   const { data, error } = await (serviceSupabase.from('game_team_lineups' as any) as any)
     .upsert(
       {
@@ -364,6 +369,9 @@ async function persistGameTeamLineup(
   revalidatePath(`/${leagueSlug}/checkin`);
   revalidatePath(`/${leagueSlug}/captain/lineups/${gameId}`);
   revalidatePath(`/${leagueSlug}/games/${gameId}`);
+  if (lineupTeam.slug) {
+    revalidatePath(`/${leagueSlug}/teams/${lineupTeam.slug}`);
+  }
 
   return {
     success: true,

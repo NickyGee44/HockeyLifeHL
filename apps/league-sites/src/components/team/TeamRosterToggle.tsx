@@ -12,6 +12,9 @@ interface LineupPlayer {
   position?: string | null;
   /** When true, this player is a spare and must not occupy a jersey slot. */
   isSub?: boolean;
+  /** Game-specific replacement subs can opt into a visible slot. */
+  showAsLineupPlayer?: boolean;
+  replacingName?: string | null;
 }
 
 interface TeamRosterToggleProps {
@@ -24,6 +27,8 @@ interface TeamRosterToggleProps {
   secondaryColor: string;
   availabilityGameId?: string | null;
   availabilityTeamId?: string | null;
+  forwardSlots?: number;
+  defenceSlots?: number;
 }
 
 function JerseyIcon({ className }: { className?: string }) {
@@ -52,6 +57,8 @@ export function TeamRosterToggle({
   secondaryColor,
   availabilityGameId = null,
   availabilityTeamId = null,
+  forwardSlots,
+  defenceSlots,
 }: TeamRosterToggleProps) {
   const [view, setView] = useState<'lineup' | 'stats'>('lineup');
   const [availabilityMap, setAvailabilityMap] = useState<Record<string, 'confirmed' | 'tentative' | 'out'>>({});
@@ -156,6 +163,8 @@ export function TeamRosterToggle({
           primaryColor={primaryColor}
           secondaryColor={secondaryColor}
           availabilityMap={availabilityMap}
+          forwardSlots={forwardSlots}
+          defenceSlots={defenceSlots}
         />
       ) : (
         statsView
