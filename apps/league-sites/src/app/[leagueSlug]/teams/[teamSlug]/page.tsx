@@ -198,8 +198,8 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   const acceptedSubstitutions = await getAcceptedGameSubstitutions(nextTeamGame?.id, team.id);
   const substitutionNotes = acceptedSubstitutions.map((substitution) => (
     substitution.replacedPlayerName
-      ? `🥪 ${substitution.subPlayerName} subbing in for ${substitution.replacedPlayerName}`
-      : `🥪 ${substitution.subPlayerName} subbing in`
+      ? `🥖 ${substitution.subPlayerName} subbing in for ${substitution.replacedPlayerName}`
+      : `🥖 ${substitution.subPlayerName} subbing in`
   ));
 
   const nextOpponentId = nextTeamGame
