@@ -376,12 +376,11 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         </div>
       </div>
 
-      <TeamPushToggle
-        teamId={currentTeam.team_id}
-        initialEnabled={currentTeam.team.push_enabled !== false}
-      />
-
       <div className="relative z-40 mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <TeamPushToggle
+          teamId={currentTeam.team_id}
+          initialEnabled={currentTeam.team.push_enabled !== false}
+        />
         {captainActionItems.map((item) => {
           const Icon = item.icon;
           const content = (

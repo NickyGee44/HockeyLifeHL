@@ -37,36 +37,39 @@ export function TeamPushToggle({ teamId, initialEnabled }: TeamPushToggleProps) 
   }
 
   const Icon = enabled ? Bell : BellOff;
+  const statusLabel = enabled ? 'Enabled' : 'Disabled';
+  const actionLabel = enabled ? 'Tap to turn off' : 'Tap to turn on';
 
   return (
-    <div className="mb-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="rounded-md bg-[var(--league-primary)]/15 p-2 text-[var(--league-primary)]">
-            <Icon className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Team push alerts
-            </h2>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              {enabled
-                ? 'Players can receive reminders and recap alerts for this team.'
-                : 'Push sends are paused for this team. Existing subscriptions stay saved.'}
-            </p>
-            {error ? <p className="mt-2 text-xs text-red-400">{error}</p> : null}
-          </div>
+    <button
+      type="button"
+      disabled={isSaving}
+      onClick={() => updateSetting(!enabled)}
+      aria-pressed={enabled}
+      aria-label={`Team push alerts ${statusLabel.toLowerCase()}. ${actionLabel}.`}
+      className="relative z-40 min-h-[108px] rounded-[24px] border border-white/10 bg-white/[0.05] px-4 py-3 text-center text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] transition-all backdrop-blur-xl hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08] disabled:cursor-wait disabled:opacity-70"
+    >
+      <div className="flex h-full flex-col items-center justify-center gap-2">
+        <div className="rounded-[20px] border border-white/10 bg-black/20 p-3 text-[var(--league-primary)]">
+          {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Icon className="h-5 w-5" />}
         </div>
-        <button
-          type="button"
-          disabled={isSaving}
-          onClick={() => updateSetting(!enabled)}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)] disabled:opacity-60"
+        <p className="text-sm font-black uppercase tracking-[0.12em] sm:text-base">
+          Push Alerts
+        </p>
+        <span
+          className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] ${
+            enabled
+              ? 'border-emerald-400/30 bg-emerald-400/12 text-emerald-300'
+              : 'border-rose-400/30 bg-rose-400/12 text-rose-300'
+          }`}
         >
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-          {enabled ? 'Turn off' : 'Turn on'}
-        </button>
+          {statusLabel}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+          {isSaving ? 'Saving' : actionLabel}
+        </span>
+        {error ? <span className="text-[10px] font-semibold text-red-400">{error}</span> : null}
       </div>
-    </div>
+    </button>
   );
 }
