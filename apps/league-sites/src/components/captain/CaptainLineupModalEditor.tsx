@@ -101,6 +101,7 @@ export function CaptainLineupModalEditor({
   const [publishing, startPublish] = useTransition();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset editor state when a different saved lineup payload is loaded.
     setLayout(initialLayout);
     setStatus(initialStatus);
     setDirty(false);
@@ -108,13 +109,7 @@ export function CaptainLineupModalEditor({
     setSelectedPlayerId(null);
   }, [initialLayout, initialStatus]);
 
-  const eligible = useMemo(
-    () =>
-      layout.roster.filter(
-        (player) => player.availability === 'confirmed' || player.isSub === true,
-      ),
-    [layout.roster],
-  );
+  const eligible = useMemo(() => layout.roster, [layout.roster]);
 
   const extendedGrid = eligible.length > EXTENDED_ATTENDANCE_THRESHOLD;
   const forwardSlotCount = extendedGrid ? EXTENDED_FORWARD_SLOTS : BASE_FORWARD_SLOTS;
@@ -394,17 +389,20 @@ export function CaptainLineupModalEditor({
           <div className="flex items-center gap-2">
             <UserPlus className="h-4 w-4 text-[var(--league-primary)]" />
             <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-              Unassigned Roster
+              Team Roster
             </h3>
           </div>
           <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-background)]/60 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--color-text-secondary)]">
             {unassigned.length} available
           </span>
         </div>
+        <p className="mb-3 text-xs leading-5 text-[var(--color-text-secondary)]">
+          Attendance does not filter this list. Build lines from the full roster, then adjust later if needed.
+        </p>
 
         {unassigned.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-background)]/40 px-4 py-6 text-center text-sm text-[var(--color-text-secondary)]">
-            Everyone marked In is already in the lineup. Mark more players In or invite a sub to add more.
+            Everyone on the roster is already in this lineup. Remove a player from a slot to make changes.
           </p>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">

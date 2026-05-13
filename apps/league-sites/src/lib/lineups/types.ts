@@ -140,7 +140,9 @@ export function sortLineupRoster(players: LineupRosterPlayer[]) {
 }
 
 function isEligibleLineupPlayer(player: LineupRosterPlayer) {
-  return player.availability === 'confirmed' || player.isSub === true;
+  // Line combinations are a captain planning tool, not attendance truth.
+  // Regular roster players stay selectable even before they check in.
+  return Boolean(player.playerId);
 }
 
 export function buildDefaultLineupLayout(roster: LineupRosterPlayer[]): GameTeamLineupLayout {

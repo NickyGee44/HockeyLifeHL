@@ -17,6 +17,7 @@ import {
   Mail,
   Goal,
   UserPlus,
+  Shirt,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
 import { InvitePlayerWizard } from '@/components/captain/InvitePlayerWizard';
@@ -299,6 +300,14 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       }).format(new Date(nextLineupGame.scheduled_at))
     : 'No game scheduled';
   const captainActionItems = [
+    nextLineupGame
+      ? {
+          type: 'link' as const,
+          href: `/${leagueSlug}/captain/lineups/${nextLineupGame.id}?mode=lineup`,
+          label: 'Set Lineup',
+          icon: Shirt,
+        }
+      : null,
     nextLineupGame
       ? {
           type: 'link' as const,

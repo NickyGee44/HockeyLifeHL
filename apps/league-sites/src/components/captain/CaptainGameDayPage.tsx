@@ -38,6 +38,7 @@ type CaptainGameDayPageProps = {
   teamId: string;
   canManage: boolean;
   initialData: CaptainGameDayData | null;
+  initialOpenLineupEditor?: boolean;
 };
 
 export function CaptainGameDayPage({
@@ -46,12 +47,13 @@ export function CaptainGameDayPage({
   teamId,
   canManage,
   initialData,
+  initialOpenLineupEditor = false,
 }: CaptainGameDayPageProps) {
   const router = useRouter();
   const [data, setData] = useState<CaptainGameDayData | null>(initialData);
   const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
-  const [showLineupEditor, setShowLineupEditor] = useState(false);
+  const [showLineupEditor, setShowLineupEditor] = useState(initialOpenLineupEditor);
   const [showAttendanceEditor, setShowAttendanceEditor] = useState(false);
   const [showSubInvite, setShowSubInvite] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);

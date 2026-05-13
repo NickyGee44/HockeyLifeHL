@@ -36,10 +36,13 @@ function RouteMessage({
 
 export default async function CaptainLineupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ leagueSlug: string; gameId: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
   const { leagueSlug, gameId } = await params;
+  const { mode } = await searchParams;
   const auth = await createAuthClient();
   const {
     data: { user },
@@ -134,6 +137,7 @@ export default async function CaptainLineupPage({
       teamId={matchedTeamId}
       canManage
       initialData={gameDayResult.data}
+      initialOpenLineupEditor={mode === 'lineup'}
     />
   );
 }
