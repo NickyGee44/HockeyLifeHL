@@ -339,6 +339,7 @@ export async function shareCheckinReminder(options: {
     await navigator.share({
       title: options.shareTitle,
       text: shareMessage,
+      url: options.shareUrl,
       files: [file],
     });
     return 'shared';
@@ -347,7 +348,7 @@ export async function shareCheckinReminder(options: {
   if (navigator.share) {
     await navigator.share({
       title: options.shareTitle,
-      text: options.shareText,
+      text: shareMessage,
       url: options.shareUrl,
     });
     return 'shared-text';
