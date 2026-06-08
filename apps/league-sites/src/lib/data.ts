@@ -3540,7 +3540,7 @@ async function getNativeUnifiedSkaterStatsRows(
   }
 
   const confirmedCheckins = seasonId
-    ? await getConfirmedCheckinAppearanceRows(supabase, {
+    ? await getConfirmedCheckinAppearanceRows(createServiceRoleClient(), {
         leagueId,
         seasonId,
         teamIds: filteredTeamIds ?? undefined,
