@@ -1080,7 +1080,7 @@ async function getFallbackRosterAppearanceRows(
     .map((teamId) => `home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .join(',');
 
-  const [{ data: gameRows, error: gamesError }, { data: checkinRows }, { data: availabilityRows }, { data: skaterRows }, { data: goalieRows }] = await Promise.all([
+  const [{ data: gameRows, error: gamesError }, { data: outCheckinRows }, { data: outAvailabilityRows }, { data: skaterRows }, { data: goalieRows }] = await Promise.all([
     supabase
       .from('games')
       .select('id, season_id, scheduled_at, status, home_team_id, away_team_id, home_score, away_score')
@@ -1089,13 +1089,14 @@ async function getFallbackRosterAppearanceRows(
       .or(teamFilter),
     supabase
       .from('game_checkins')
-      .select('game_id, team_id')
-      .eq('status', 'confirmed')
+      .select('game_id, team_id, player_id')
+      .eq('status', 'out')
       .in('team_id', teamIds),
     supabase
       .from('player_availability')
-      .select('game_id, team_id')
+      .select('game_id, team_id, player_id')
       .eq('season_id', options.seasonId)
+      .eq('status', 'out')
       .in('team_id', teamIds),
     supabase
       .from('player_stats')
@@ -1113,15 +1114,15 @@ async function getFallbackRosterAppearanceRows(
     return [];
   }
 
-  const attendanceSignals = new Set<string>();
-  for (const row of checkinRows || []) {
-    if (row.game_id && row.team_id) {
-      attendanceSignals.add(`${row.game_id}:${row.team_id}`);
+  const explicitOutSignals = new Set<string>();
+  for (const row of outCheckinRows || []) {
+    if (row.game_id && row.team_id && row.player_id) {
+      explicitOutSignals.add(`${row.player_id}:${row.team_id}:${row.game_id}`);
     }
   }
-  for (const row of availabilityRows || []) {
-    if (row.game_id && row.team_id) {
-      attendanceSignals.add(`${row.game_id}:${row.team_id}`);
+  for (const row of outAvailabilityRows || []) {
+    if (row.game_id && row.team_id && row.player_id) {
+      explicitOutSignals.add(`${row.player_id}:${row.team_id}:${row.game_id}`);
     }
   }
 
@@ -1147,11 +1148,12 @@ async function getFallbackRosterAppearanceRows(
         continue;
       }
 
-      const attendanceKey = `${gameRow.id}:${rosterRow.team_id}`;
-      if (attendanceSignals.has(attendanceKey)) {
+      const appearanceKey = `${rosterRow.player_id}:${rosterRow.team_id}:${gameRow.id}`;
+      if (explicitOutSignals.has(appearanceKey)) {
         continue;
       }
 
+      const attendanceKey = `${gameRow.id}:${rosterRow.team_id}`;
       const hasScore = gameRow.home_score != null || gameRow.away_score != null;
       const hasStats = statSignals.has(attendanceKey);
       if (!hasScore && !hasStats) {
@@ -1166,11 +1168,10 @@ async function getFallbackRosterAppearanceRows(
         continue;
       }
 
-      const key = `${rosterRow.player_id}:${rosterRow.team_id}:${gameRow.id}`;
-      if (seen.has(key)) {
+      if (seen.has(appearanceKey)) {
         continue;
       }
-      seen.add(key);
+      seen.add(appearanceKey);
 
       appearanceRows.push({
         player_id: rosterRow.player_id,
