@@ -3540,13 +3540,19 @@ async function getNativeUnifiedSkaterStatsRows(
     }
   }
 
-  const confirmedCheckins = seasonId
-    ? await getConfirmedCheckinAppearanceRows(createServiceRoleClient(), {
-        leagueId,
-        seasonId,
-        teamIds: filteredTeamIds ?? undefined,
-      })
-    : [];
+  const [confirmedCheckins, fallbackRosterAppearances] = seasonId
+    ? await Promise.all([
+        getConfirmedCheckinAppearanceRows(createServiceRoleClient(), {
+          leagueId,
+          seasonId,
+          teamIds: filteredTeamIds ?? undefined,
+        }),
+        getFallbackRosterAppearanceRows(createServiceRoleClient(), {
+          seasonId,
+          teamIds: filteredTeamIds ?? undefined,
+        }),
+      ])
+    : [[], []];
 
   const playerMap = new Map<string, SkaterStatsAccumulator>();
   for (const row of visibleRows) {
@@ -3679,7 +3685,7 @@ async function getNativeUnifiedSkaterStatsRows(
     }
   }
 
-  for (const row of confirmedCheckins) {
+  for (const row of [...confirmedCheckins, ...fallbackRosterAppearances]) {
     const entry = playerMap.get(row.player_id);
     if (!entry) {
       continue;
