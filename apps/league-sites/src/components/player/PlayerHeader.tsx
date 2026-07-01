@@ -177,12 +177,12 @@ const FEATURED_TROPHY_BADGE_TYPES = new Set<BadgeType>(['championship', ...HERO_
 const HERO_TROPHY_CONFIG: Record<'top_scorer' | 'points_leader', Omit<HeroTrophyItem, 'id' | 'value'>> = {
   top_scorer: {
     label: 'Top Scorer',
-    image: '/trophy.png',
+    image: '/awards/top-scorer-trophy.png',
     tone: 'red',
   },
   points_leader: {
     label: 'Points Leader',
-    image: '/trophy.png',
+    image: '/awards/points-leader-trophy.png',
     tone: 'blue',
   },
 };
@@ -215,7 +215,7 @@ function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: num
     trophies.unshift({
       id: 'championships',
       label: 'Championships',
-      image: '/trophy.png',
+      image: '/awards/championship-trophy.png',
       value: `x${championships}`,
       tone: 'gold',
     });
