@@ -87,7 +87,7 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
           </div>
 
           {heroTrophies.length > 0 && (
-            <div className="mb-4 flex flex-wrap justify-center gap-x-7 gap-y-4 sm:justify-start">
+            <div className="mx-auto mb-4 grid w-full max-w-[330px] grid-cols-3 items-start justify-items-center gap-1 sm:mx-0 sm:max-w-[390px] sm:justify-items-start sm:gap-4">
               {heroTrophies.map((trophy) => (
                 <HeroTrophy key={trophy.id} trophy={trophy} />
               ))}
@@ -168,22 +168,21 @@ type HeroTrophyItem = {
   label: string;
   image: string;
   value: string;
-  detail?: string;
   tone: 'gold' | 'red' | 'blue';
 };
 
 const HERO_TROPHY_BADGE_TYPES = new Set<BadgeType>(['top_scorer', 'points_leader']);
 const FEATURED_TROPHY_BADGE_TYPES = new Set<BadgeType>(['championship', ...HERO_TROPHY_BADGE_TYPES]);
 
-const HERO_TROPHY_CONFIG: Record<'top_scorer' | 'points_leader', Omit<HeroTrophyItem, 'id' | 'value' | 'detail'>> = {
+const HERO_TROPHY_CONFIG: Record<'top_scorer' | 'points_leader', Omit<HeroTrophyItem, 'id' | 'value'>> = {
   top_scorer: {
     label: 'Top Scorer',
-    image: '/badges/top_scorer.png',
+    image: '/trophy.png',
     tone: 'red',
   },
   points_leader: {
     label: 'Points Leader',
-    image: '/badges/points_leader.png',
+    image: '/trophy.png',
     tone: 'blue',
   },
 };
@@ -203,18 +202,12 @@ function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: num
     const matchingBadges = trophyBadges.get(badgeType) ?? [];
     if (matchingBadges.length === 0) return;
 
-    const latestBadge = matchingBadges[0];
     const config = HERO_TROPHY_CONFIG[badgeType];
-    const statKey = badgeType === 'top_scorer' ? 'goals' : 'points';
-    const statValue = latestBadge.metadata?.[statKey];
 
     trophies.push({
       ...config,
       id: badgeType,
       value: `x${matchingBadges.length}`,
-      detail: typeof statValue === 'number'
-        ? `${statValue} ${badgeType === 'top_scorer' ? 'goals' : 'points'}${latestBadge.season?.name ? ` • ${latestBadge.season.name}` : ''}`
-        : latestBadge.season?.name,
     });
   });
 
@@ -224,7 +217,6 @@ function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: num
       label: 'Championships',
       image: '/trophy.png',
       value: `x${championships}`,
-      detail: championships === 1 ? 'League champion' : 'Career hardware',
       tone: 'gold',
     });
   }
@@ -240,8 +232,8 @@ function HeroTrophy({ trophy }: { trophy: HeroTrophyItem }) {
   }[trophy.tone];
 
   return (
-    <div className="relative w-[112px] text-center md:w-[132px]">
-      <div className="relative mx-auto h-[86px] w-[86px] md:h-[102px] md:w-[102px]">
+    <div className="relative w-[96px] text-center md:w-[118px]">
+      <div className="relative mx-auto h-[76px] w-[76px] md:h-[98px] md:w-[98px]">
         <Image
           src={trophy.image}
           alt={trophy.label}
@@ -254,14 +246,9 @@ function HeroTrophy({ trophy }: { trophy: HeroTrophyItem }) {
         </div>
       </div>
       <div className="mt-1.5">
-        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-text-primary)] md:text-[11px]">
+        <div className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-text-primary)] md:text-[11px]">
           {trophy.label}
         </div>
-        {trophy.detail && (
-          <div className="mt-0.5 max-w-full truncate text-[10px] font-semibold text-[var(--color-text-muted)] md:text-[11px]">
-            {trophy.detail}
-          </div>
-        )}
       </div>
     </div>
   );
