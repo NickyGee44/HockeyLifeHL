@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getTeams, getDivisions, getPlayerBadgesByIds } from '@/lib/data';
+import { getLeagueBySlug, getTeams, getDivisions } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { User, Users } from 'lucide-react';
 import { PlayerDirectoryFilters } from '@/components/players/PlayerDirectoryFilters';
@@ -153,10 +153,6 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
     ? allTeams.filter((t: any) => t.division_id === divisionFilter)
     : allTeams;
 
-  // Fetch badges for all players
-  const playerProfileIds = players.map(p => p.profile?.id).filter(Boolean) as string[];
-  const badges = await getPlayerBadgesByIds(playerProfileIds);
-
   // Get unique positions
   const positions = [...new Set(players.map((p) => p.position).filter(Boolean))] as string[];
 
@@ -207,7 +203,7 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
             </p>
           </div>
         ) : (
-          <PlayerGrid players={players} leagueSlug={leagueSlug} badges={badges} />
+          <PlayerGrid players={players} leagueSlug={leagueSlug} />
         )}
       </div>
     </div>

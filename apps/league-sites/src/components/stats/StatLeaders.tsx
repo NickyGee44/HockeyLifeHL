@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Award, Shield, Sparkles, Target, Trophy, X } from 'lucide-react';
-import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 import type {
-  PlayerBadge,
   StatsMode,
   UnifiedGoalieStatsRow,
   UnifiedSkaterStatsRow,
@@ -17,7 +15,6 @@ export type LeaderMetric = SkaterLeaderMetric | GoalieLeaderMetric;
 type StatsLeaderRow = UnifiedSkaterStatsRow | UnifiedGoalieStatsRow;
 
 interface StatLeadersProps {
-  badges?: Record<string, PlayerBadge[]>;
   hideTitle?: boolean;
   isAllTime: boolean;
   leagueSlug: string;
@@ -135,7 +132,6 @@ const PODIUM_AVATAR_STYLES: Record<number, string> = {
 };
 
 export function StatLeaders({
-  badges,
   hideTitle = false,
   isAllTime,
   leagueSlug,
@@ -219,7 +215,6 @@ export function StatLeaders({
               {podiumLeaders.map((leader) => {
                 const rank = leaders.findIndex((entry) => entry.player_id === leader.player_id) + 1;
                 const { firstName, lastName } = splitPlayerName(leader.player_name);
-                const playerBadges = badges?.[leader.player_id] || [];
                 const teamTooltipOpen = openTeamTooltipFor === leader.player_id;
                 const teamLogo = leader.display_team_logo_url || '/blank_team.png';
                 const teamName = leader.display_team_name || leader.team_name || 'Team';
@@ -294,11 +289,6 @@ export function StatLeaders({
                           ) : null}
                         </div>
 
-                        {playerBadges.length > 0 ? (
-                          <div className="mt-1.5 flex items-center justify-center">
-                            <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   </div>

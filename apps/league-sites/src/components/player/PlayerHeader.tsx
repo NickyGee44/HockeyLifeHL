@@ -87,7 +87,7 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
           </div>
 
           {heroTrophies.length > 0 && (
-            <div className="mb-4 flex flex-wrap justify-center gap-3 sm:justify-start">
+            <div className="mb-4 flex flex-wrap justify-center gap-x-7 gap-y-4 sm:justify-start">
               {heroTrophies.map((trophy) => (
                 <HeroTrophy key={trophy.id} trophy={trophy} />
               ))}
@@ -213,7 +213,7 @@ function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: num
       id: badgeType,
       value: `x${matchingBadges.length}`,
       detail: typeof statValue === 'number'
-        ? `${statValue} ${badgeType === 'top_scorer' ? 'goals' : 'points'}${latestBadge.season?.name ? ` - ${latestBadge.season.name}` : ''}`
+        ? `${statValue} ${badgeType === 'top_scorer' ? 'goals' : 'points'}${latestBadge.season?.name ? ` • ${latestBadge.season.name}` : ''}`
         : latestBadge.season?.name,
     });
   });
@@ -222,7 +222,7 @@ function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: num
     trophies.unshift({
       id: 'championships',
       label: 'Championships',
-      image: '/badges/championship.png',
+      image: '/trophy.png',
       value: `x${championships}`,
       detail: championships === 1 ? 'League champion' : 'Career hardware',
       tone: 'gold',
@@ -233,32 +233,32 @@ function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: num
 }
 
 function HeroTrophy({ trophy }: { trophy: HeroTrophyItem }) {
-  const toneClasses = {
-    gold: 'border-amber-300/45 from-amber-300/28 via-yellow-500/12 to-orange-600/10 text-amber-100 shadow-amber-950/30',
-    red: 'border-red-300/40 from-red-300/24 via-rose-500/12 to-orange-600/10 text-red-100 shadow-red-950/25',
-    blue: 'border-sky-300/40 from-sky-300/24 via-blue-500/12 to-indigo-600/10 text-sky-100 shadow-blue-950/25',
+  const counterClasses = {
+    gold: 'border-amber-400/35 text-amber-300',
+    red: 'border-red-300/35 text-red-200',
+    blue: 'border-sky-300/35 text-sky-200',
   }[trophy.tone];
 
   return (
-    <div className={`relative min-h-[118px] w-[150px] overflow-hidden rounded-lg border bg-gradient-to-br p-3 shadow-xl ${toneClasses}`}>
-      <div className="relative flex flex-col items-center text-center">
-        <div className="relative mb-1 flex h-16 w-16 items-center justify-center">
-          <Image
-            src={trophy.image}
-            alt={trophy.label}
-            width={72}
-            height={72}
-            className="relative h-16 w-16 object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.42)]"
-          />
-        </div>
-        <div className="text-[11px] font-black uppercase tracking-normal">
-          {trophy.label}
-        </div>
-        <div className="mt-0.5 text-2xl font-black leading-none text-white">
+    <div className="relative w-[112px] text-center md:w-[132px]">
+      <div className="relative mx-auto h-[86px] w-[86px] md:h-[102px] md:w-[102px]">
+        <Image
+          src={trophy.image}
+          alt={trophy.label}
+          width={132}
+          height={132}
+          className="h-full w-full object-contain drop-shadow-[0_14px_30px_rgba(0,0,0,0.58)]"
+        />
+        <div className={`absolute left-[65%] top-[56%] rounded-full border bg-black/65 px-2.5 py-1 text-base font-black tracking-tight shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl md:px-3 md:py-1.5 md:text-lg ${counterClasses}`}>
           {trophy.value}
         </div>
+      </div>
+      <div className="mt-1.5">
+        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--color-text-primary)] md:text-[11px]">
+          {trophy.label}
+        </div>
         {trophy.detail && (
-          <div className="mt-1 max-w-full truncate text-[11px] font-semibold text-white/72">
+          <div className="mt-0.5 max-w-full truncate text-[10px] font-semibold text-[var(--color-text-muted)] md:text-[11px]">
             {trophy.detail}
           </div>
         )}

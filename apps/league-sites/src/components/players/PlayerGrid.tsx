@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import type { PlayerBadge } from '@/lib/types';
-import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 
 interface PlayerWithTeam {
   id: string;
@@ -26,10 +24,9 @@ interface PlayerWithTeam {
 interface PlayerGridProps {
   players: PlayerWithTeam[];
   leagueSlug: string;
-  badges?: Record<string, PlayerBadge[]>;
 }
 
-export function PlayerGrid({ players, leagueSlug, badges }: PlayerGridProps) {
+export function PlayerGrid({ players, leagueSlug }: PlayerGridProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {players.map((player) => (
@@ -37,7 +34,6 @@ export function PlayerGrid({ players, leagueSlug, badges }: PlayerGridProps) {
           key={player.id}
           player={player}
           leagueSlug={leagueSlug}
-          playerBadges={player.profile?.id ? badges?.[player.profile.id] : undefined}
         />
       ))}
     </div>
@@ -47,11 +43,9 @@ export function PlayerGrid({ players, leagueSlug, badges }: PlayerGridProps) {
 function PlayerCard({
   player,
   leagueSlug,
-  playerBadges,
 }: {
   player: PlayerWithTeam;
   leagueSlug: string;
-  playerBadges?: PlayerBadge[];
 }) {
   const name = player.profile?.full_name || 'Unknown Player';
 
@@ -98,11 +92,6 @@ function PlayerCard({
         <h3 className="text-base font-medium text-[var(--color-text-primary)] truncate group-hover:text-[var(--league-primary)] transition-colors">
           {name}
         </h3>
-        {playerBadges && playerBadges.length > 0 && (
-          <div className="mt-1">
-            <PlayerBadgeGroup badges={playerBadges} maxVisible={3} size="sm" />
-          </div>
-        )}
         <div className="flex items-center gap-2 mt-1">
           {player.team && (
             <>

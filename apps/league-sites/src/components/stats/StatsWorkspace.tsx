@@ -49,11 +49,9 @@ function GoalieHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return <HelmetToggleIcon src="/stats-icons/goalie-helmet-black.png" className={className} />;
 }
 import { useDivisionFilter } from "@/components/DivisionFilterProvider";
-import { PlayerBadgeGroup } from "@/components/shared/PlayerBadgeGroup";
 import { StatLeaders, type LeaderMetric } from "./StatLeaders";
 import type {
   GoalieStatKey,
-  PlayerBadge,
   Season,
   SkaterStatKey,
   StatsMode,
@@ -78,7 +76,6 @@ interface StatsWorkspaceProps {
   isAllTime: boolean;
   skaterRows: UnifiedSkaterStatsRow[];
   goalieRows: UnifiedGoalieStatsRow[];
-  badges: Record<string, PlayerBadge[]>;
 }
 
 interface FilterDraft {
@@ -556,7 +553,6 @@ export function StatsWorkspace({
   isAllTime,
   skaterRows,
   goalieRows,
-  badges,
 }: StatsWorkspaceProps) {
   const defaultLeaderMetric: LeaderMetric = mode === "skaters" ? "goals" : "wins";
   const router = useRouter();
@@ -1129,7 +1125,6 @@ export function StatsWorkspace({
         ) : null}
 
         <StatLeaders
-          badges={badges}
           isAllTime={isAllTime}
           leagueSlug={leagueSlug}
           mode={mode}
@@ -1280,16 +1275,6 @@ export function StatsWorkspace({
                                     </span>
                                   ) : null}
                                 </Link>
-                                {badges[row.player_id] &&
-                                  badges[row.player_id].length > 0 && (
-                                    <div className="mt-1">
-                                      <PlayerBadgeGroup
-                                        badges={badges[row.player_id]}
-                                        maxVisible={3}
-                                        size="sm"
-                                      />
-                                    </div>
-                                  )}
                               </div>
                             </div>
                           </td>

@@ -18,7 +18,6 @@ import {
   getGalleryAlbums,
   getRecentPhotosForReel,
   getCurrentSeason,
-  getPlayerBadgesByIds,
   getSeasons,
   getTeams,
   getUnifiedSkaterStatsRows,
@@ -507,10 +506,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         currentSeason.name,
       )
     : [];
-  const homepageLeaderBadges = await getPlayerBadgesByIds(
-    [...new Set(homepageLeaderRows.map((row) => row.player_id))],
-  );
-
   // Check if registration is open for any season
   const now = new Date();
   const registrationSeason = pickRegistrationSeason(seasons as any[], now);
@@ -595,7 +590,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
               />
               <div className="mt-4">
                 <StatLeaders
-                  badges={homepageLeaderBadges}
                   hideTitle
                   isAllTime={false}
                   leagueSlug={leagueSlug}
