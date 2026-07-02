@@ -324,7 +324,10 @@ export async function addManualSub({
       id: playerId,
       email: syntheticEmail,
       full_name: normalizedName,
-      position: safePosition,
+      // position intentionally omitted: profiles.position is constrained to short
+      // codes (C/LW/RW/D/G), but the picker sends a long label ('Forward' etc.).
+      // The position is stored on team_rosters (the player_position enum) below,
+      // where the long label is the valid form.
       jersey_number: safeJerseyNumber,
       role: 'player',
       is_legacy_import: true,
