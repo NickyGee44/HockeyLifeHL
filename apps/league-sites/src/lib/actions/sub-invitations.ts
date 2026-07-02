@@ -45,6 +45,10 @@ interface ManualSubResult extends ActionResult {
   fullName?: string;
 }
 
+function normalizeProfileName(value: string | null | undefined) {
+  return (value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 async function verifyCaptainRole(
   teamId: string
 ): Promise<{ authorized: boolean; userId?: string; error?: string }> {
@@ -236,6 +240,7 @@ export async function addManualSub({
   }
 
   let playerId: string | null = null;
+  const normalizedNameKey = normalizeProfileName(normalizedName);
 
   if (saveToTeamSpares) {
     const { data: existingTeamSpare, error: existingError } = await (serviceSupabase.from('team_rosters') as any)
@@ -256,10 +261,59 @@ export async function addManualSub({
 
     const matchingSpare = (existingTeamSpare || []).find((row: any) => {
       const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
-      return profile?.full_name?.trim().toLowerCase() === normalizedName.toLowerCase();
+      return normalizeProfileName(profile?.full_name) === normalizedNameKey;
     });
 
     playerId = matchingSpare?.player_id ?? null;
+  }
+
+  if (!playerId) {
+    const { data: existingProfiles, error: profilesError } = await (serviceSupabase.from('profiles') as any)
+      .select('id, full_name')
+      .ilike('full_name', normalizedName)
+      .limit(20);
+
+    if (profilesError) {
+      console.error('Failed to check duplicate manual spare profile:', profilesError);
+      return { success: false, error: profilesError.message };
+    }
+
+    const exactMatches = (existingProfiles || []).filter((profile: { id: string; full_name: string | null }) =>
+      normalizeProfileName(profile.full_name) === normalizedNameKey
+    );
+
+    if (exactMatches.length === 1) {
+      playerId = exactMatches[0].id;
+    } else if (exactMatches.length > 1) {
+      const candidateIds = exactMatches.map((profile: { id: string }) => profile.id);
+      const { data: leagueRosterMatches, error: rosterMatchError } = await (serviceSupabase.from('team_rosters') as any)
+        .select('player_id')
+        .eq('league_id', game.league_id)
+        .in('player_id', candidateIds)
+        .limit(20);
+
+      if (rosterMatchError) {
+        console.error('Failed to resolve duplicate manual spare profile:', rosterMatchError);
+        return { success: false, error: rosterMatchError.message };
+      }
+
+      const leagueMatchIds = Array.from(
+        new Set<string>(
+          (leagueRosterMatches || [])
+            .map((row: { player_id: string | null }) => row.player_id)
+            .filter((id: string | null): id is string => Boolean(id))
+        )
+      );
+
+      if (leagueMatchIds.length === 1) {
+        playerId = leagueMatchIds[0];
+      } else {
+        return {
+          success: false,
+          error: `Found multiple existing players named ${normalizedName}. Use the existing spare search or ask an admin to merge the duplicate first.`,
+        };
+      }
+    }
   }
 
   if (!playerId) {
