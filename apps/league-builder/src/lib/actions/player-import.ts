@@ -142,7 +142,10 @@ export async function importPlayersFromCSV(
           email,
           full_name: fullName,
           phone,
-          position: position ?? undefined,
+          // position intentionally omitted: profiles.position is constrained to
+          // short codes (C/LW/RW/D/G) while the imported value is a long label
+          // ('Forward'/'Defense'/'Goalie'). The label is preserved below on
+          // registration_submissions.preferred_position (unconstrained).
           jersey_number: jerseyNumber ?? undefined,
           is_legacy_import: true,
         });
