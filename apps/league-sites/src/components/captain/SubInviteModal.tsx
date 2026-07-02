@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import {
   inviteSub,
+  addManualSub,
   getLeagueSubPlayers,
   getTeamSubInvitations,
 } from '@/lib/actions/sub-invitations';
@@ -56,6 +57,11 @@ export function SubInviteModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState('');
   const [replacedPlayerId, setReplacedPlayerId] = useState<string>('');
+  const [manualName, setManualName] = useState('');
+  const [manualPosition, setManualPosition] = useState('');
+  const [manualJerseyNumber, setManualJerseyNumber] = useState('');
+  const [saveManualToTeamSpares, setSaveManualToTeamSpares] = useState(false);
+  const [manualAddedMessage, setManualAddedMessage] = useState<string | null>(null);
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
   const [confirmedInvites, setConfirmedInvites] = useState<Set<string>>(new Set());
   const [captainConfirmed, setCaptainConfirmed] = useState(false);
@@ -115,6 +121,11 @@ export function SubInviteModal({
     setSearchQuery('');
     setMessage('');
     setReplacedPlayerId(missingPlayers[0]?.playerId ?? '');
+    setManualName('');
+    setManualPosition('');
+    setManualJerseyNumber('');
+    setSaveManualToTeamSpares(false);
+    setManualAddedMessage(null);
     setSentInvites(new Set());
     setConfirmedInvites(new Set());
     setCaptainConfirmed(false);
@@ -158,6 +169,50 @@ export function SubInviteModal({
 
   const handleMarkIn = (playerId: string) => {
     saveInvite(playerId, true);
+  };
+
+  const handleAddManualSub = () => {
+    const name = manualName.trim();
+    if (!name) {
+      setError('Enter the spare player name.');
+      return;
+    }
+
+    const jerseyNumber = manualJerseyNumber.trim()
+      ? Number.parseInt(manualJerseyNumber.trim(), 10)
+      : null;
+
+    if (jerseyNumber !== null && (!Number.isInteger(jerseyNumber) || jerseyNumber <= 0 || jerseyNumber >= 1000)) {
+      setError('Enter a valid jersey number.');
+      return;
+    }
+
+    setError(null);
+    setManualAddedMessage(null);
+    startTransition(async () => {
+      const result = await addManualSub({
+        gameId,
+        teamId,
+        fullName: name,
+        position: manualPosition || null,
+        jerseyNumber,
+        message: message || undefined,
+        replacedPlayerId: replacedPlayerId || null,
+        saveToTeamSpares: saveManualToTeamSpares,
+      });
+
+      if (!result.success || !result.playerId) {
+        setError(result.error || 'Failed to add manual spare');
+        return;
+      }
+
+      setSentInvites((prev) => new Set([...prev, result.playerId!]));
+      setConfirmedInvites((prev) => new Set([...prev, result.playerId!]));
+      setManualAddedMessage(`${result.fullName || name} added and marked in.`);
+      setManualName('');
+      setManualPosition('');
+      setManualJerseyNumber('');
+    });
   };
 
   if (!isOpen || !mounted) return null;
@@ -244,6 +299,70 @@ export function SubInviteModal({
             className="w-full px-3 py-2 text-sm bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)] resize-none"
             rows={2}
           />
+          <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                Manual spare
+              </p>
+              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-green-300">
+                No invite
+              </span>
+            </div>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={manualName}
+                onChange={(event) => setManualName(event.target.value)}
+                placeholder="Player name"
+                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              />
+              <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-2">
+                <select
+                  value={manualPosition}
+                  onChange={(event) => setManualPosition(event.target.value)}
+                  className="min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                >
+                  <option value="">Position</option>
+                  <option value="Forward">Forward</option>
+                  <option value="Defense">Defense</option>
+                  <option value="Goalie">Goalie</option>
+                </select>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={999}
+                  value={manualJerseyNumber}
+                  onChange={(event) => setManualJerseyNumber(event.target.value)}
+                  placeholder="#"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                <input
+                  type="checkbox"
+                  checked={saveManualToTeamSpares}
+                  onChange={(event) => setSaveManualToTeamSpares(event.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--league-primary)]"
+                />
+                Save to team spares
+              </label>
+              <button
+                type="button"
+                onClick={handleAddManualSub}
+                disabled={isPending || !manualName.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm font-semibold text-green-300 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Add + Mark In
+              </button>
+            </div>
+            {manualAddedMessage && (
+              <p className="mt-2 text-xs font-medium text-green-300">
+                {manualAddedMessage}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Search */}
