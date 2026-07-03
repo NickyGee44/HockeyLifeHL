@@ -453,6 +453,11 @@ export function GameSummaryModal({
                 </div>
               )}
 
+              <div className="rounded-lg border border-neutral-500/20 bg-neutral-500/10 px-3 py-2 text-xs text-neutral-300">
+                No response needed on your end — if the other captain doesn&apos;t confirm within
+                24 hours, the game finalizes automatically.
+              </div>
+
               <div className="space-y-3">
                 {verificationLinkCards.map((link) => {
                   const url = getVerificationUrl(link.token);
