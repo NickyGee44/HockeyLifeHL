@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Upload } from 'lucide-react';
+import { Plus, Calendar, List, Grid, CloudOff, AlertTriangle, Snowflake, MapPin, Upload, CalendarPlus } from 'lucide-react';
 import { cn } from '@hockey-life/ui/lib/utils';
 import { SimpleScheduleWizard } from '@/components/schedule-wizard';
 import { ScheduleCalendar } from '@/components/schedule-wizard/ScheduleCalendar';
@@ -18,6 +18,7 @@ import { BulkMoveVenueWizard } from '@/components/dashboard/seasons/BulkMoveVenu
 import { GameDetailSheet } from '@/components/dashboard/seasons/GameDetailSheet';
 import { saveScheduleGames } from '@/lib/schedule/actions';
 import { ImportScheduleModal } from '@/components/schedule/ImportScheduleModal';
+import { AddGameModal } from '@/components/schedule/AddGameModal';
 import { buildSeasonWorkspaceHref } from '@/lib/dashboard/workspace-routes';
 import type { Team, Venue, ScheduledGame, ScheduleTemplate, ScheduleGenerationResult } from '@/lib/schedule/types';
 
@@ -109,6 +110,7 @@ export function SchedulePageClient({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(defaultImportOpen);
+  const [showAddGame, setShowAddGame] = useState(false);
 
   const teamsById = Object.fromEntries(teams.map((t) => [t.id, t]));
 
@@ -231,6 +233,13 @@ export function SchedulePageClient({
             >
               <Upload className="w-4 h-4" />
               Import CSV
+            </button>
+            <button
+              onClick={() => setShowAddGame(true)}
+              className="flex items-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-medium text-neutral-300 transition-colors hover:bg-neutral-700"
+            >
+              <CalendarPlus className="w-4 h-4" />
+              Add game
             </button>
             <button
               onClick={() => setShowWizard(true)}
@@ -467,6 +476,17 @@ export function SchedulePageClient({
         onOpenChange={setShowImportModal}
         leagueId={leagueId}
         seasonId={seasonId}
+        onSuccess={() => router.refresh()}
+      />
+
+      {/* Add Single Game Modal */}
+      <AddGameModal
+        open={showAddGame}
+        onOpenChange={setShowAddGame}
+        leagueId={leagueId}
+        seasonId={seasonId}
+        teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+        venues={venues.map((v) => ({ id: v.id, name: v.name }))}
         onSuccess={() => router.refresh()}
       />
     </div>
