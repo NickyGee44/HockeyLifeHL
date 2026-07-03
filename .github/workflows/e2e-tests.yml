@@ -64,7 +64,15 @@ jobs:
 
       - name: Run E2E tests
         working-directory: e2e
-        run: pnpm exec playwright test --project=chromium
+        # Read-only smoke only. The authenticated `chromium` project runs
+        # data-mutating specs against the PRODUCTION Supabase (there is no test
+        # project) and depends on a login (auth.setup) whose CI test user is
+        # unavailable. The `unauthenticated` project has no auth dependency and only
+        # navigates/asserts (no writes). We scope to auth-locale (signup + legal
+        # pages, EN/FR) which is deterministic; the league-site smoke specs assert
+        # specific league content and are brittle against live prod data, so they're
+        # excluded here. Restore the full suite once a dedicated test project exists.
+        run: pnpm exec playwright test --project=unauthenticated auth-locale
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -213,7 +221,11 @@ jobs:
 
       - name: Run visual tests
         working-directory: e2e
-        run: pnpm exec playwright test --project=chromium --grep @visual
+        # There are currently no @visual-tagged tests, and the `chromium` project
+        # pulls in the auth.setup dependency (unavailable in CI). Run @visual under
+        # a no-auth project and pass cleanly when none exist yet; this job starts
+        # doing real work as soon as @visual tests are added.
+        run: pnpm exec playwright test --project=league-sites --grep @visual --pass-with-no-tests
         env:
           PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
 

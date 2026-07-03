@@ -1,0 +1,19 @@
+# Gitleaks configuration.
+# Extends the default gitleaks ruleset (so real-secret detection stays fully
+# active) and allowlists known false positives.
+title = "BeerLeagueHockey"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Archived one-off git-cleanup artifacts and API-docs placeholder tokens (no real secrets)."
+# Archived .patch files under this dated cleanup folder are diffs of old
+# code/docs and include example curl commands with placeholder tokens.
+paths = [
+  '''scripts/archive/git-cleanup-.*''',
+]
+# Documentation placeholder — appears in example `curl -H "Authorization: Bearer YOUR_TOKEN"`.
+regexes = [
+  '''YOUR_TOKEN''',
+]
