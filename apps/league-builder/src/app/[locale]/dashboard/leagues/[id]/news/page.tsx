@@ -150,6 +150,8 @@ export default async function LeagueNewsPage({ params }: Props) {
                     <NewsArticleActions
                       articleId={article.id}
                       published={article.published}
+                      gameId={article.article_type === 'game_recap' ? article.game_id : null}
+                      leagueId={leagueId}
                     />
                   </div>
                 </div>

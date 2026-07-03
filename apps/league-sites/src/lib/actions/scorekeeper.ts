@@ -2,6 +2,7 @@
 
 import { createServiceRoleClient, createAuthClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { randomBytes } from 'crypto';
 
@@ -442,6 +443,8 @@ async function lookupSessionByToken(
         scheduled_at,
         home_team_id,
         away_team_id,
+        home_attendance_locked_at,
+        away_attendance_locked_at,
         home_team:teams!games_home_team_id_fkey(name),
         away_team:teams!games_away_team_id_fkey(name)
       )
@@ -472,11 +475,25 @@ async function lookupSessionByToken(
     scheduled_at: string;
     home_team_id: string;
     away_team_id: string;
+    home_attendance_locked_at: string | null;
+    away_attendance_locked_at: string | null;
     home_team: { name: string } | null;
     away_team: { name: string } | null;
   };
 
-  const attendanceLocked = false;
+  // A captain self-score session belongs to the initiating team's captain, so
+  // "attendance locked" means THAT team's pre-game lock is set (done on the
+  // captain game-day page). This lets the scoring surface skip the redundant
+  // PreGameCheckin pass. Previously hardcoded to false, which forced captains
+  // to re-enter attendance a second time.
+  const initiatingTeamTypeValue =
+    (data.initiating_team_type as ScorekeeperTeamType | null) ?? null;
+  const attendanceLocked =
+    initiatingTeamTypeValue === 'home'
+      ? Boolean(game?.home_attendance_locked_at)
+      : initiatingTeamTypeValue === 'away'
+        ? Boolean(game?.away_attendance_locked_at)
+        : false;
 
   return {
     sessionId: data.id,
@@ -492,7 +509,7 @@ async function lookupSessionByToken(
     sessionType: (data.session_type as 'single' | 'multi') || 'single',
     sessionOrigin: (data.session_origin as ScorekeeperSessionOrigin | null) || 'assigned_scorekeeper',
     initiatingTeamId: (data.initiating_team_id as string | null) ?? null,
-    initiatingTeamType: (data.initiating_team_type as ScorekeeperTeamType | null) ?? null,
+    initiatingTeamType: initiatingTeamTypeValue,
     initiatingCaptainId: (data.initiating_captain_id as string | null) ?? null,
     attendanceLocked,
     accessCount,
@@ -601,6 +618,7 @@ function revalidateLeagueSiteGameResultPaths(
       `/${leagueSlug}/playoffs`,
       `/${leagueSlug}/stats`,
       `/${leagueSlug}/teams`,
+      `/${leagueSlug}/news`,
       ...teamSlugs.filter(Boolean).map((teamSlug) => `/${leagueSlug}/teams/${teamSlug}`),
     ]),
   );
@@ -671,9 +689,34 @@ async function finalizeCompletedGameStats(
       revalidateLeagueSiteGameResultPaths(leagueSlug, [homeTeamRelation?.slug, awayTeamRelation?.slug]);
     }
 
-    supabase.functions.invoke('generate-ai-article', {
-      body: { action: 'game_recap', game_id: gameId },
-    }).catch(() => {});
+    // Generate the AI recap after the response is sent so it never delays or
+    // blocks game completion. Previously this was a fire-and-forget promise with
+    // a swallowed error (`.catch(() => {})`), which (a) could be frozen with the
+    // lambda before completing and (b) made failures invisible. The edge function
+    // gates on the ai_news addon and dedups via ai_generation_log, so calling it
+    // unconditionally here is safe.
+    after(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-ai-article', {
+          body: { action: 'game_recap', game_id: gameId },
+        });
+        if (error) {
+          console.error('[scorekeeper] game recap generation failed', { gameId, error: error.message ?? error });
+          return;
+        }
+        console.log('[scorekeeper] game recap generation result', { gameId, data });
+        // The edge function inserts the article before responding — surface it.
+        if (leagueSlug) {
+          try {
+            revalidatePath(`/${leagueSlug}/news`);
+          } catch {
+            // revalidation is best-effort here; the page revalidates on the next write anyway
+          }
+        }
+      } catch (recapError) {
+        console.error('[scorekeeper] game recap generation threw', { gameId, error: recapError });
+      }
+    });
   }
 }
 
@@ -768,6 +811,8 @@ async function resolveTeamCaptainContact(
   return { teamName: team.name, email: null, fullName: null };
 }
 
+type VerificationEmailOutcome = 'sent' | 'no_captain_email' | 'email_disabled';
+
 async function maybeEmailCaptainVerificationLink(params: {
   supabase: ReturnType<typeof createServiceRoleClient>;
   leagueName: string;
@@ -775,12 +820,12 @@ async function maybeEmailCaptainVerificationLink(params: {
   opposingTeamId: string;
   verificationToken: string;
   expiresAt: string;
-}): Promise<void> {
+}): Promise<VerificationEmailOutcome> {
   const { supabase, leagueName, leagueSlug, opposingTeamId, verificationToken, expiresAt } = params;
   const captain = await resolveTeamCaptainContact(supabase, opposingTeamId);
 
   if (!captain.email) {
-    return;
+    return 'no_captain_email';
   }
 
   const { Resend } = await import('resend');
@@ -789,7 +834,7 @@ async function maybeEmailCaptainVerificationLink(params: {
     : null;
 
   if (!resend) {
-    return;
+    return 'email_disabled';
   }
 
   const verifyUrl = buildCaptainVerificationUrl(leagueSlug, verificationToken);
@@ -829,6 +874,7 @@ async function maybeEmailCaptainVerificationLink(params: {
     subject: `Verify your game stats — ${leagueName}`,
     html,
   });
+  return 'sent';
 }
 
 async function recalculateGameDerivedState(supabase: any, gameId: string): Promise<void> {
@@ -2704,6 +2750,10 @@ export async function submitGameForVerification(gameId: string): Promise<{
   autoVerifiedTeamType?: ScorekeeperTeamType;
   homeToken?: string;
   awayToken?: string;
+  /** Whether the opposing captain was emailed the verification link (self-score path). */
+  emailSent?: boolean;
+  /** Why the email was not sent, when emailSent is false. */
+  emailSkipReason?: 'no_captain_email' | 'email_disabled' | 'send_failed' | 'game_completed';
   error?: string;
 }> {
   try {
@@ -2807,9 +2857,13 @@ export async function submitGameForVerification(gameId: string): Promise<{
         ? gameDetails.leagues[0]
         : gameDetails.leagues;
 
+      let emailSent = false;
+      let emailSkipReason: 'no_captain_email' | 'email_disabled' | 'send_failed' | 'game_completed' | undefined =
+        gameCompleted ? 'game_completed' : undefined;
+
       if (!gameCompleted && leagueRelation?.name && leagueRelation?.slug && opposingTeamId) {
         try {
-          await maybeEmailCaptainVerificationLink({
+          const outcome = await maybeEmailCaptainVerificationLink({
             supabase,
             leagueName: leagueRelation.name as string,
             leagueSlug: leagueRelation.slug as string,
@@ -2817,7 +2871,13 @@ export async function submitGameForVerification(gameId: string): Promise<{
             verificationToken: opposingToken,
             expiresAt: expiresAtIso,
           });
+          emailSent = outcome === 'sent';
+          if (outcome !== 'sent') {
+            emailSkipReason = outcome;
+            console.warn('[scorekeeper] captain verification email skipped', { gameId, reason: outcome });
+          }
         } catch (emailError) {
+          emailSkipReason = 'send_failed';
           console.warn('Captain verification email send failed:', emailError);
         }
       }
@@ -2828,6 +2888,8 @@ export async function submitGameForVerification(gameId: string): Promise<{
         autoVerifiedTeamType: initiatingTeamType,
         homeToken: opposingTeamType === 'home' ? opposingToken : undefined,
         awayToken: opposingTeamType === 'away' ? opposingToken : undefined,
+        emailSent,
+        emailSkipReason,
       };
     }
 
