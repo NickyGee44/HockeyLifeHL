@@ -31,7 +31,7 @@ import {
   type CaptainGameDayData,
   type GameDayAttendancePlayer,
 } from '@/lib/actions/game-day';
-import { getOrCreateCaptainScorekeeperSession } from '@/lib/actions/scorekeeper';
+import { startCaptainScoring } from '@/lib/actions/scorekeeper';
 
 type CaptainGameDayPageProps = {
   leagueSlug: string;
@@ -137,9 +137,10 @@ export function CaptainGameDayPage({
     if (!data?.resolvedGameId || !data.scoreSelfEnabled) return;
 
     startScoreTransition(async () => {
-      const result = await getOrCreateCaptainScorekeeperSession(data.resolvedGameId!, teamId);
-      if (result.success && result.token) {
-        window.location.href = `/${result.leagueSlug ?? leagueSlug}/scorekeeper?token=${result.token}`;
+      const result = await startCaptainScoring(data.resolvedGameId!, teamId);
+      if (result.success && result.gameId) {
+        // Session cookie is set server-side, so go straight to the scoring surface.
+        router.push(`/${result.leagueSlug ?? leagueSlug}/scorekeeper/game/${result.gameId}`);
         return;
       }
 

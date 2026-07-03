@@ -1,5 +1,7 @@
 import { getScorekeeperSession, getScorekeeperGameData, getGameEvents, getScorekeeperCheckins } from '@/lib/actions/scorekeeper';
 import { ScoringInterface } from '@/components/scorekeeper/ScoringInterface';
+import { CaptainFlowStepper } from '@/components/scorekeeper/CaptainFlowStepper';
+import { deriveGameFlowStep } from '@/lib/scorekeeper/game-flow';
 import { redirect } from 'next/navigation';
 
 interface GameScoringPageProps {
@@ -34,13 +36,23 @@ export default async function GameScoringPage({ params }: GameScoringPageProps) 
     ? await getScorekeeperCheckins(gameId)
     : null;
 
+  // Captain self-scoring is a single linear workflow — show the progress header
+  // so the captain always knows where they are (Attendance → Score → Verify → Complete).
+  const flowStep =
+    sessionResult.session.sessionOrigin === 'captain_self_score'
+      ? deriveGameFlowStep(gameResult.game.status)
+      : null;
+
   return (
-    <ScoringInterface
-      game={gameResult.game}
-      events={eventsResult.events || []}
-      leagueSlug={leagueSlug}
-      session={sessionResult.session}
-      checkins={checkinsResult?.checkins}
-    />
+    <>
+      {flowStep && <CaptainFlowStepper current={flowStep} />}
+      <ScoringInterface
+        game={gameResult.game}
+        events={eventsResult.events || []}
+        leagueSlug={leagueSlug}
+        session={sessionResult.session}
+        checkins={checkinsResult?.checkins}
+      />
+    </>
   );
 }
