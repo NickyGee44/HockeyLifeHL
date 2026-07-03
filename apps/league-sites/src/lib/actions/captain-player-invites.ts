@@ -308,11 +308,36 @@ export async function consumeCaptainInvite(inviteId: string, authUserId: string)
   const serviceSupabase = createServiceRoleClient();
   const { data: invite } = await (serviceSupabase as any)
     .from('captain_player_invites')
-    .select('id, target_player_id, roster_id, consumed_at')
+    .select('id, target_player_id, roster_id, consumed_at, share_phone, created_at')
     .eq('id', inviteId)
     .maybeSingle();
 
   if (!invite || invite.consumed_at) return;
+
+  // SECURITY: the invite id travels in a shareable registration link. Without the
+  // checks below, anyone who opens a leaked/forwarded link and then authenticates
+  // would have the target player's stub (roster/stats/payments) merged into their
+  // account and the stub deleted. So: (1) reject expired invites, and (2) only
+  // merge when the authenticating user's verified phone matches the phone the
+  // captain addressed the invite to.
+  const INVITE_EXPIRY_MS = 14 * 24 * 60 * 60 * 1000;
+  if (invite.created_at && Date.now() - new Date(invite.created_at).getTime() > INVITE_EXPIRY_MS) {
+    console.warn('[captain-player-invites] invite expired; not consuming', inviteId);
+    return;
+  }
+
+  const invitedPhone = normalizePhone(invite.share_phone);
+  const { data: consumer } = await (serviceSupabase as any)
+    .from('profiles')
+    .select('phone')
+    .eq('id', authUserId)
+    .maybeSingle();
+  const consumerPhone = normalizePhone(consumer?.phone);
+  if (!invitedPhone || !consumerPhone || invitedPhone !== consumerPhone) {
+    // Not the intended invitee (or no phone to verify against) — do not merge.
+    console.warn('[captain-player-invites] invitee phone mismatch; not consuming', inviteId);
+    return;
+  }
 
   try {
     await serviceSupabase.rpc('merge_legacy_profile', {

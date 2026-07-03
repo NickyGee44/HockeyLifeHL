@@ -151,6 +151,32 @@ export async function signUp(formData: FormData) {
     // 3. If the user selected an existing rostered player profile, claim it now.
     // The DB function re-validates that the source profile is rostered and not tied to an auth user.
     if (claimPlayerProfileId) {
+      // SECURITY (identity): a player profile that has a REAL contact email on
+      // file may only be claimed by an account signing up with that same email.
+      // The claim reassigns the player's roster/stats/payments and deletes the
+      // source profile, so without this check anyone could claim an arbitrary
+      // teammate's rostered profile from the public name search. Profiles with no
+      // email or a system placeholder (captain-invite / legacy / manual-spare) are
+      // handled by their own token-based flows and are not gated here.
+      const { data: claimTarget } = await (serviceSupabase.from('profiles') as any)
+        .select('email')
+        .eq('id', claimPlayerProfileId)
+        .maybeSingle();
+      const claimEmail = String(claimTarget?.email ?? '').trim().toLowerCase();
+      const isPlaceholderEmail =
+        claimEmail === '' ||
+        claimEmail.startsWith('captaininvite_') ||
+        claimEmail.startsWith('legacy_') ||
+        claimEmail.startsWith('manual-spare+');
+      if (!isPlaceholderEmail && claimEmail !== email.trim().toLowerCase()) {
+        // Not the person on file — undo the just-created account and refuse.
+        await serviceSupabase.auth.admin.deleteUser(authData.user.id);
+        return {
+          error:
+            'This player is linked to a different email address. Sign up with the email on file, or ask a captain/admin to send you an invite.',
+        };
+      }
+
       const { data: claimData, error: claimError } = await (serviceSupabase.rpc as any)(
         'claim_rostered_player_profile',
         {
