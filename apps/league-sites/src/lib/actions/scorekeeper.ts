@@ -743,6 +743,90 @@ async function finalizeIfBothCaptainsVerified(
   return false;
 }
 
+/**
+ * Auto-finalize games that have been stuck in `pending_verification` for more
+ * than 24 hours because the opposing captain never opened the verify link.
+ *
+ * A self-scored submission auto-verifies the initiating side and issues a 24h
+ * token to the opponent. If they never respond, the game would otherwise sit in
+ * pending_verification forever — never completed, so never recap'd. This treats
+ * the non-responding side as auto-verified after the window and finalizes the
+ * game through the same path a normal verification would (rollup + complete +
+ * stats recalc + recap).
+ *
+ * Intended to be called from a cron route (see /api/cron/auto-finalize-games).
+ * Failure on one game never blocks the others.
+ */
+export async function autoFinalizeExpiredCaptainVerifications(options?: {
+  windowHours?: number;
+  limit?: number;
+}): Promise<{ finalized: number; gameIds: string[]; errors: number }> {
+  const windowHours = options?.windowHours ?? 24;
+  const limit = options?.limit ?? 100;
+  const supabase = createServiceRoleClient();
+  const nowIso = new Date().toISOString();
+  const cutoffIso = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
+
+  const { data: games, error } = await supabase
+    .from('games')
+    .select('id, home_verified_at, away_verified_at, stats_submitted_at')
+    .eq('status', 'pending_verification')
+    .not('stats_submitted_at', 'is', null)
+    .lt('stats_submitted_at', cutoffIso)
+    .limit(limit);
+
+  if (error) {
+    console.error('[scorekeeper] auto-finalize lookup failed', error.message);
+    return { finalized: 0, gameIds: [], errors: 1 };
+  }
+
+  if (!games || games.length === 0) {
+    return { finalized: 0, gameIds: [], errors: 0 };
+  }
+
+  const finalizedIds: string[] = [];
+  let errors = 0;
+
+  for (const game of games as Array<{
+    id: string;
+    home_verified_at: string | null;
+    away_verified_at: string | null;
+  }>) {
+    try {
+      // Treat any side that never confirmed within the window as auto-verified,
+      // and clear the outstanding verification tokens. Already-verified sides
+      // keep their timestamp (COALESCE via explicit checks).
+      const { error: updateError } = await supabase
+        .from('games')
+        .update({
+          home_verified_at: game.home_verified_at ?? nowIso,
+          away_verified_at: game.away_verified_at ?? nowIso,
+          home_verification_token: null,
+          away_verification_token: null,
+          home_verification_token_expires_at: null,
+          away_verification_token_expires_at: null,
+        })
+        .eq('id', game.id)
+        .eq('status', 'pending_verification'); // guard against a race with a real verify
+
+      if (updateError) {
+        console.error('[scorekeeper] auto-finalize update failed', { gameId: game.id, error: updateError.message });
+        errors += 1;
+        continue;
+      }
+
+      await finalizeCompletedGameStats(supabase, game.id);
+      finalizedIds.push(game.id);
+      console.log('[scorekeeper] auto-finalized stuck verification', { gameId: game.id, windowHours });
+    } catch (finalizeError) {
+      console.error('[scorekeeper] auto-finalize failed', { gameId: game.id, error: finalizeError });
+      errors += 1;
+    }
+  }
+
+  return { finalized: finalizedIds.length, gameIds: finalizedIds, errors };
+}
+
 async function resolveTeamCaptainContact(
   supabase: ReturnType<typeof createServiceRoleClient>,
   teamId: string,
