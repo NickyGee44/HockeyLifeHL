@@ -84,7 +84,7 @@ export function MyStats({ playerId, seasonId, leagueSlug }: MyStatsProps) {
 
   if (!playerId) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <div className="glass-card rounded-xl p-6">
         <h3 className="font-semibold text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />
           My Stats
@@ -99,7 +99,7 @@ export function MyStats({ playerId, seasonId, leagueSlug }: MyStatsProps) {
   const hasAnyStats = skaterStats || goalieStats;
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl">
+    <div className="glass-card rounded-xl">
       <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <h3 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />

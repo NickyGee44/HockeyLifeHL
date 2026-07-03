@@ -18,6 +18,7 @@ export interface LogoUploaderProps {
   acceptedTypes?: string[];
   aspectRatio?: number;
   outputSize?: number;
+  outputHeight?: number;
   className?: string;
   disabled?: boolean;
   shape?: 'square' | 'circle';
@@ -53,7 +54,8 @@ export function LogoUploader({
   maxSizeBytes = 2 * 1024 * 1024, // 2MB default for logos
   acceptedTypes = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'],
   aspectRatio = 1, // Square by default
-  outputSize = 500, // Output size for the cropped image
+  outputSize = 500, // Output width for the cropped image
+  outputHeight,
   className,
   disabled = false,
   shape = 'square',
@@ -141,13 +143,12 @@ export function LogoUploader({
 
     const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
     const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+    const resolvedOutputWidth = outputSize;
+    const resolvedOutputHeight = outputHeight ?? Math.max(1, Math.round(outputSize / aspectRatio));
 
-    // Set output size
-    canvas.width = outputSize;
-    canvas.height = outputSize;
-
-    // Create transparent background for PNG
-    ctx.clearRect(0, 0, outputSize, outputSize);
+    canvas.width = resolvedOutputWidth;
+    canvas.height = resolvedOutputHeight;
+    ctx.clearRect(0, 0, resolvedOutputWidth, resolvedOutputHeight);
 
     ctx.drawImage(
       imgRef.current,
@@ -157,11 +158,10 @@ export function LogoUploader({
       completedCrop.height * scaleY,
       0,
       0,
-      outputSize,
-      outputSize
+      resolvedOutputWidth,
+      resolvedOutputHeight
     );
 
-    // Determine output type based on original file
     const outputType = originalFile?.type === 'image/png' ? 'image/png' : 'image/jpeg';
     const quality = outputType === 'image/png' ? 1 : 0.92;
 
@@ -172,7 +172,7 @@ export function LogoUploader({
         quality
       );
     });
-  }, [completedCrop, outputSize, originalFile]);
+  }, [completedCrop, outputHeight, outputSize, aspectRatio, originalFile]);
 
   const handleCropComplete = useCallback(async () => {
     if (!onUpload) {
@@ -264,7 +264,7 @@ export function LogoUploader({
       <div className={cn('fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4', className)}>
         <div className="bg-neutral-900 rounded-2xl p-6 max-w-lg w-full space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-white">Crop Your Logo</h3>
+            <h3 className="text-lg font-semibold text-white">Crop Image</h3>
             <Button
               type="button"
               variant="ghost"
@@ -297,7 +297,7 @@ export function LogoUploader({
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            Drag to reposition. The logo will be resized to {outputSize}x{outputSize}px.
+            Drag to reposition. The image will be resized to {outputSize}x{outputHeight ?? Math.max(1, Math.round(outputSize / aspectRatio))}px.
           </p>
 
           {error && (

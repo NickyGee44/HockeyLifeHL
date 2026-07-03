@@ -53,7 +53,7 @@ export function StandingsWidget({
 
   if (standings.length === 0) {
     return (
-      <div className="card p-6 text-center">
+      <div className="p-6 text-center">
         <p className="text-[var(--color-text-secondary)]">
           No standings available yet
         </p>
@@ -62,12 +62,10 @@ export function StandingsWidget({
   }
 
   return (
-    <div className="card overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="overflow-x-auto">
       <table ref={tableRef} className="standings-table">
         <thead>
           <tr>
-            <th className="w-8">#</th>
             <th>Team</th>
             <th className="text-center">W</th>
             <th className="text-center">L</th>
@@ -96,33 +94,31 @@ export function StandingsWidget({
                   } as React.CSSProperties
                 }
               >
-                <td className="font-medium">
-                  <span
-                    className={`
-                      inline-flex items-center justify-center w-6 h-6 rounded-full text-sm
-                      transition-all duration-300
-                      ${
-                        isTopThree
-                          ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)] font-bold'
-                          : 'text-[var(--color-text-muted)]'
-                      }
-                    `}
-                  >
-                    {rank}
-                  </span>
-                </td>
                 <td>
-                  <div className="flex items-center gap-2 group/team">
-                    <div className="relative overflow-hidden rounded transition-transform duration-300 group-hover/team:scale-110">
+                  <div className="flex items-center gap-3 group/team">
+                    <div className="relative shrink-0 overflow-visible transition-transform duration-300 group-hover/team:scale-110">
                       <Image
                         src={team.team_logo || '/blank_team.png'}
                         alt={team.team_name}
-                        width={32}
-                        height={32}
-                        className="rounded"
+                        width={64}
+                        height={64}
+                        className="h-16 w-16 rounded-lg object-contain"
                       />
+                      {/* Rank badge overlapping bottom-right of logo */}
+                      <span
+                        className={`
+                          absolute -bottom-1.5 -right-1.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold shadow-sm
+                          ${
+                            isTopThree
+                              ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
+                              : 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+                          }
+                        `}
+                      >
+                        {rank}
+                      </span>
                       {/* Subtle shine on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover/team:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 rounded-lg bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover/team:opacity-100 transition-opacity duration-300" />
                     </div>
                     <span className="block max-w-[132px] overflow-hidden text-sm font-medium leading-tight transition-colors duration-300 group-hover/team:text-[var(--color-accent)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] min-h-[2.4rem]">
                       {team.team_name || 'Unknown Team'}
@@ -146,7 +142,6 @@ export function StandingsWidget({
           })}
         </tbody>
       </table>
-      </div>
     </div>
   );
 }
@@ -157,12 +152,10 @@ export function StandingsWidget({
 
 export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="card overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="overflow-x-auto">
       <table className="standings-table">
         <thead>
           <tr>
-            <th className="w-8">#</th>
             <th>Team</th>
             <th className="text-center">W</th>
             <th className="text-center">L</th>
@@ -173,11 +166,11 @@ export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
           {Array.from({ length: rows }).map((_, index) => (
             <tr key={index}>
               <td>
-                <div className="w-6 h-6 rounded-full shimmer-effect" />
-              </td>
-              <td>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded shimmer-effect" />
+                <div className="flex items-center gap-3">
+                  <div className="relative shrink-0">
+                    <div className="h-16 w-16 rounded-lg shimmer-effect" />
+                    <div className="absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-full shimmer-effect" />
+                  </div>
                   <div className="h-4 w-24 rounded shimmer-effect" />
                 </div>
               </td>
@@ -194,7 +187,6 @@ export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
           ))}
         </tbody>
       </table>
-      </div>
     </div>
   );
 }

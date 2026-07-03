@@ -182,6 +182,7 @@ export function RegistrationFormConfigForm({
     referral_source: initialConfig.enabled_fields?.referral_source ?? true,
     paid_team_rep: initialConfig.enabled_fields?.paid_team_rep ?? true,
   });
+  const [autoApprove, setAutoApprove] = useState(initialConfig.auto_approve ?? false);
   const [saving, setSaving] = useState(false);
 
   const toggleNight = (night: string) => {
@@ -201,6 +202,7 @@ export function RegistrationFormConfigForm({
         levels,
         locations,
         nights,
+        auto_approve: autoApprove,
         enabled_fields: enabledFields,
       });
 
@@ -336,6 +338,19 @@ export function RegistrationFormConfigForm({
             description='Show "Have you paid your Team Rep?" for players registering with a team'
             checked={enabledFields.paid_team_rep}
             onChange={(v) => setField('paid_team_rep', v)}
+          />
+        </div>
+      </div>
+
+      {/* Approval */}
+      <div>
+        <h3 className="text-sm font-semibold text-white mb-3">Approval</h3>
+        <div className="bg-neutral-900 rounded-lg p-4 border border-white/5">
+          <ToggleField
+            label="Auto-Approve Registrations"
+            description="Automatically approve player registrations when submitted. When off, registrations require manual approval."
+            checked={autoApprove}
+            onChange={setAutoApprove}
           />
         </div>
       </div>

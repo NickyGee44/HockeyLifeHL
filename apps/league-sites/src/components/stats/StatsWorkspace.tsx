@@ -49,11 +49,9 @@ function GoalieHelmetIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return <HelmetToggleIcon src="/stats-icons/goalie-helmet-black.png" className={className} />;
 }
 import { useDivisionFilter } from "@/components/DivisionFilterProvider";
-import { PlayerBadgeGroup } from "@/components/shared/PlayerBadgeGroup";
-import { StatLeaders } from "./StatLeaders";
+import { StatLeaders, type LeaderMetric } from "./StatLeaders";
 import type {
   GoalieStatKey,
-  PlayerBadge,
   Season,
   SkaterStatKey,
   StatsMode,
@@ -78,7 +76,6 @@ interface StatsWorkspaceProps {
   isAllTime: boolean;
   skaterRows: UnifiedSkaterStatsRow[];
   goalieRows: UnifiedGoalieStatsRow[];
-  badges: Record<string, PlayerBadge[]>;
 }
 
 interface FilterDraft {
@@ -119,7 +116,7 @@ const SKATER_COLUMNS: StatsTableColumn<SkaterStatKey>[] = [
   },
   {
     key: "championships",
-    label: "Championships",
+    label: "Champ",
     align: "center",
     defaultSortDirection: "desc",
   },
@@ -215,7 +212,7 @@ const GOALIE_COLUMNS: StatsTableColumn<GoalieStatKey>[] = [
   { key: "losses", label: "L", align: "center", defaultSortDirection: "desc" },
   {
     key: "championships",
-    label: "Championships",
+    label: "Champ",
     align: "center",
     defaultSortDirection: "desc",
   },
@@ -366,6 +363,21 @@ function isGoaliePresetId(value: string | null): value is GoaliePresetId {
 
 function getDefaultSortKey(mode: StatsMode): SkaterStatKey | GoalieStatKey {
   return mode === "skaters" ? "points" : "wins";
+}
+
+function getLeaderSortKey(
+  mode: StatsMode,
+  metric: LeaderMetric,
+): SkaterStatKey | GoalieStatKey | null {
+  if (mode === "skaters") {
+    return metric === "goals" || metric === "assists" || metric === "points" || metric === "championships"
+      ? metric
+      : null;
+  }
+
+  return metric === "wins" || metric === "goals_against_average" || metric === "shutouts" || metric === "championships"
+    ? metric
+    : null;
 }
 
 function getDefaultSortDirection(
@@ -541,20 +553,35 @@ export function StatsWorkspace({
   isAllTime,
   skaterRows,
   goalieRows,
-  badges,
 }: StatsWorkspaceProps) {
+  const defaultLeaderMetric: LeaderMetric = mode === "skaters" ? "goals" : "wins";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { divisions, selectedDivisionId, setDivision } = useDivisionFilter();
   const prevDivisionRef = useRef<string | null | undefined>(undefined);
   const headerSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const requestedSort = searchParams.get("sort");
+  const currentSort =
+    mode === "skaters"
+      ? isSkaterStatKey(requestedSort)
+        ? requestedSort
+        : "points"
+      : isGoalieStatKey(requestedSort)
+        ? requestedSort
+        : "wins";
+
   const [searchTerm, setSearchTerm] = useState("");
   const deferredSearch = useDeferredValue(searchTerm);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const [isShowingAllRows, setIsShowingAllRows] = useState(false);
+  const [selectedLeaderMetric, setSelectedLeaderMetric] = useState<LeaderMetric>(
+    getLeaderSortKey(mode, currentSort as LeaderMetric)
+      ? (currentSort as LeaderMetric)
+      : defaultLeaderMetric,
+  );
   const [filterDraft, setFilterDraft] = useState<FilterDraft>({
     divisionId: selectedDivisionId || "",
     position: "",
@@ -580,6 +607,7 @@ export function StatsWorkspace({
   useEffect(() => {
     setSearchTerm("");
     setIsHeaderSearchOpen(false);
+    setSelectedLeaderMetric(mode === "skaters" ? "goals" : "wins");
   }, [mode, requestedPreset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -656,20 +684,20 @@ export function StatsWorkspace({
     });
   }, [pathname, router, searchParams, selectedDivisionId]);
 
-  const currentSort =
-    mode === "skaters"
-      ? isSkaterStatKey(searchParams.get("sort"))
-        ? (searchParams.get("sort") as SkaterStatKey)
-        : "points"
-      : isGoalieStatKey(searchParams.get("sort"))
-        ? (searchParams.get("sort") as GoalieStatKey)
-        : "wins";
-
   const requestedDirection = searchParams.get("dir");
   const currentDirection: StatsSortDirection =
     requestedDirection === "asc" || requestedDirection === "desc"
       ? requestedDirection
       : getDefaultSortDirection(mode, currentSort);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const leaderSortKey = getLeaderSortKey(mode, currentSort as LeaderMetric);
+    if (leaderSortKey) {
+      setSelectedLeaderMetric(leaderSortKey as LeaderMetric);
+    }
+  }, [currentSort, mode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const currentTeamFilter = searchParams.get("team") || "";
   const currentPositionFilter = searchParams.get("position") || "";
@@ -869,6 +897,20 @@ export function StatsWorkspace({
         params.set("sort", key);
         params.set("dir", getDefaultSortDirection(mode, key));
       }
+    });
+  };
+
+  const handleLeaderMetricChange = (metric: LeaderMetric) => {
+    setSelectedLeaderMetric(metric);
+
+    const leaderSortKey = getLeaderSortKey(mode, metric);
+    if (!leaderSortKey) {
+      return;
+    }
+
+    updateUrl((params) => {
+      params.set("sort", leaderSortKey);
+      params.set("dir", getDefaultSortDirection(mode, leaderSortKey));
     });
   };
 
@@ -1083,11 +1125,12 @@ export function StatsWorkspace({
         ) : null}
 
         <StatLeaders
-          badges={badges}
           isAllTime={isAllTime}
           leagueSlug={leagueSlug}
           mode={mode}
+          onMetricChange={handleLeaderMetricChange}
           rows={scopeRows}
+          selectedMetric={selectedLeaderMetric}
         />
 
         {filteredRows.length > 0 ? (
@@ -1232,16 +1275,6 @@ export function StatsWorkspace({
                                     </span>
                                   ) : null}
                                 </Link>
-                                {badges[row.player_id] &&
-                                  badges[row.player_id].length > 0 && (
-                                    <div className="mt-1">
-                                      <PlayerBadgeGroup
-                                        badges={badges[row.player_id]}
-                                        maxVisible={3}
-                                        size="sm"
-                                      />
-                                    </div>
-                                  )}
                               </div>
                             </div>
                           </td>

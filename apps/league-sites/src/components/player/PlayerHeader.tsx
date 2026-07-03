@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Shield, Trophy } from 'lucide-react';
-import type { Player, PlayerBadge } from '@/lib/types';
+import { Shield } from 'lucide-react';
+import type { BadgeType, Player, PlayerBadge } from '@/lib/types';
 import type { PlayerCareerAchievements } from '@/lib/career-achievements';
 import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
 
@@ -14,8 +14,10 @@ interface PlayerHeaderProps {
 }
 
 export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAchievements }: PlayerHeaderProps) {
-  const team = (player as any).team;
+  const team = player.team;
   const teamColor = team?.primary_color || 'var(--league-primary)';
+  const heroTrophies = buildHeroTrophies(badges, careerAchievements?.championships ?? 0);
+  const compactBadges = badges?.filter((badge) => !FEATURED_TROPHY_BADGE_TYPES.has(badge.badge_type));
 
   return (
     <div className="league-reading-panel relative isolate overflow-hidden rounded-[30px] mb-6">
@@ -79,10 +81,18 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
             <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--color-text-primary)]">
               {playerName}
             </h1>
-            {badges && badges.length > 0 && (
-              <PlayerBadgeGroup badges={badges} maxVisible={5} size="md" />
+            {compactBadges && compactBadges.length > 0 && (
+              <PlayerBadgeGroup badges={compactBadges} maxVisible={5} size="md" />
             )}
           </div>
+
+          {heroTrophies.length > 0 && (
+            <div className="mx-auto mb-4 grid w-full max-w-[330px] grid-cols-3 items-start justify-items-center gap-1 sm:mx-0 sm:max-w-[390px] sm:justify-items-start sm:gap-4">
+              {heroTrophies.map((trophy) => (
+                <HeroTrophy key={trophy.id} trophy={trophy} />
+              ))}
+            </div>
+          )}
 
           {/* Team link with logo */}
           {team && (
@@ -118,13 +128,6 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
               </span>
             )}
 
-            {careerAchievements && careerAchievements.championships > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/12 text-xs font-semibold uppercase tracking-wide text-amber-300">
-                <Trophy className="w-3 h-3" />
-                {careerAchievements.championships} Championship{careerAchievements.championships === 1 ? '' : 's'}
-              </span>
-            )}
-
             {player.leadership_role === 'captain' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-400 rounded-full text-xs font-bold uppercase tracking-wide border border-amber-500/30">
                 <span className="text-sm">C</span>
@@ -155,6 +158,97 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
             />
           </Link>
         )}
+      </div>
+    </div>
+  );
+}
+
+type HeroTrophyItem = {
+  id: string;
+  label: string;
+  image: string;
+  value: string;
+  tone: 'gold' | 'red' | 'blue';
+};
+
+const HERO_TROPHY_BADGE_TYPES = new Set<BadgeType>(['top_scorer', 'points_leader']);
+const FEATURED_TROPHY_BADGE_TYPES = new Set<BadgeType>(['championship', ...HERO_TROPHY_BADGE_TYPES]);
+
+const HERO_TROPHY_CONFIG: Record<'top_scorer' | 'points_leader', Omit<HeroTrophyItem, 'id' | 'value'>> = {
+  top_scorer: {
+    label: 'Top Scorer',
+    image: '/awards/top-scorer-trophy.png',
+    tone: 'red',
+  },
+  points_leader: {
+    label: 'Points Leader',
+    image: '/awards/points-leader-trophy.png',
+    tone: 'blue',
+  },
+};
+
+function buildHeroTrophies(badges: PlayerBadge[] | undefined, championships: number): HeroTrophyItem[] {
+  const trophies: HeroTrophyItem[] = [];
+  const trophyBadges = new Map<BadgeType, PlayerBadge[]>();
+
+  badges?.forEach((badge) => {
+    if (!HERO_TROPHY_BADGE_TYPES.has(badge.badge_type)) return;
+    const existing = trophyBadges.get(badge.badge_type) ?? [];
+    existing.push(badge);
+    trophyBadges.set(badge.badge_type, existing);
+  });
+
+  (['top_scorer', 'points_leader'] as const).forEach((badgeType) => {
+    const matchingBadges = trophyBadges.get(badgeType) ?? [];
+    if (matchingBadges.length === 0) return;
+
+    const config = HERO_TROPHY_CONFIG[badgeType];
+
+    trophies.push({
+      ...config,
+      id: badgeType,
+      value: `x${matchingBadges.length}`,
+    });
+  });
+
+  if (championships > 0) {
+    trophies.unshift({
+      id: 'championships',
+      label: 'Championships',
+      image: '/awards/championship-trophy.png',
+      value: `x${championships}`,
+      tone: 'gold',
+    });
+  }
+
+  return trophies;
+}
+
+function HeroTrophy({ trophy }: { trophy: HeroTrophyItem }) {
+  const counterClasses = {
+    gold: 'border-amber-400/35 text-amber-300',
+    red: 'border-red-300/35 text-red-200',
+    blue: 'border-sky-300/35 text-sky-200',
+  }[trophy.tone];
+
+  return (
+    <div className="relative w-[96px] text-center md:w-[118px]">
+      <div className="relative mx-auto h-[76px] w-[76px] md:h-[98px] md:w-[98px]">
+        <Image
+          src={trophy.image}
+          alt={trophy.label}
+          width={132}
+          height={132}
+          className="h-full w-full object-contain drop-shadow-[0_14px_30px_rgba(0,0,0,0.58)]"
+        />
+        <div className={`absolute left-[65%] top-[56%] rounded-full border bg-black/65 px-2.5 py-1 text-base font-black tracking-tight shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl md:px-3 md:py-1.5 md:text-lg ${counterClasses}`}>
+          {trophy.value}
+        </div>
+      </div>
+      <div className="mt-1.5">
+        <div className="text-[9px] font-black uppercase tracking-[0.14em] text-[var(--color-text-primary)] md:text-[11px]">
+          {trophy.label}
+        </div>
       </div>
     </div>
   );

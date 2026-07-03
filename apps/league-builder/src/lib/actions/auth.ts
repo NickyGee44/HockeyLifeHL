@@ -39,6 +39,7 @@ export async function signUp(formData: FormData) {
   const password = formData.get('password') as string;
   const fullName = formData.get('fullName') as string;
   const organizationName = formData.get('organizationName') as string;
+  const claimPlayerProfileId = (formData.get('claimPlayerProfileId') as string | null)?.trim() || null;
 
   // GDPR/CCPA Compliance: Validate required consents
   // Checkboxes send 'on' by default, or a custom value if specified
@@ -97,15 +98,17 @@ export async function signUp(formData: FormData) {
       return { error: 'Failed to create account. Please try again.' };
     }
 
-    // 2. Update or create profile with owner role
-    // Note: A trigger might auto-create the profile, so we use upsert
+    // 2. Update or create profile. Claiming players are normal player accounts;
+    // non-claim signups keep the existing league-owner organization path.
+    // Note: A trigger might auto-create the profile, so we use upsert.
+    const isPlayerClaimSignup = !!claimPlayerProfileId;
     const { error: profileError } = await (serviceSupabase
       .from('profiles') as any)
       .upsert({
         id: authData.user.id,
         email,
         full_name: fullName,
-        role: 'owner',
+        role: isPlayerClaimSignup ? 'player' : 'owner',
       }, {
         onConflict: 'id',
       });
@@ -145,44 +148,87 @@ export async function signUp(formData: FormData) {
       // User can still use the platform, but we should track this for audit
     }
 
-    // 3. Create organization with slug
-    const slug = organizationName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+    // 3. If the user selected an existing rostered player profile, claim it now.
+    // The DB function re-validates that the source profile is rostered and not tied to an auth user.
+    if (claimPlayerProfileId) {
+      const { data: claimData, error: claimError } = await (serviceSupabase.rpc as any)(
+        'claim_rostered_player_profile',
+        {
+          p_target_profile_id: authData.user.id,
+          p_claim_profile_id: claimPlayerProfileId,
+        }
+      );
 
-    // Free platform - no trial needed, all features included
-    const { error: orgError } = await serviceSupabase
-      .from('organizations')
-      .insert({
-        name: organizationName,
-        slug,
-        owner_user_id: authData.user.id,
-        subscription_tier: 'free',
-        subscription_status: 'active',
-      })
-      .select()
-      .single();
+      const claimResult = claimData as any;
+      if (claimError || !claimResult?.success) {
+        // The auth trigger may have already auto-merged a single exact legacy match by name.
+        const [{ data: targetAfterClaim }, { data: claimSourceStillExists }] = await Promise.all([
+          serviceSupabase
+            .from('profiles')
+            .select('legacy_merge_completed_at')
+            .eq('id', authData.user.id)
+            .maybeSingle() as any,
+          serviceSupabase
+            .from('profiles')
+            .select('id')
+            .eq('id', claimPlayerProfileId)
+            .maybeSingle() as any,
+        ]);
 
+        const alreadyMergedByTrigger =
+          !!targetAfterClaim?.legacy_merge_completed_at && !claimSourceStillExists;
 
-
-
-
-
-
-
-
-    if (orgError) {
-      if (isDevelopment) {
-        console.error('❌ Organization creation error:', orgError);
+        if (!alreadyMergedByTrigger) {
+          if (isDevelopment) {
+            console.error('[auth] Player claim failed:', claimError || claimResult?.error);
+          }
+          await serviceSupabase.from('profiles').delete().eq('id', authData.user.id);
+          await serviceSupabase.auth.admin.deleteUser(authData.user.id);
+          return { error: 'We could not safely claim that player profile. Please search again or continue without claiming history.' };
+        }
       }
-      // Clean up profile and auth user if org creation fails
-      await serviceSupabase.from('profiles').delete().eq('id', authData.user.id);
-      await serviceSupabase.auth.admin.deleteUser(authData.user.id);
-      return { error: 'Failed to create organization. Please try again.' };
     }
 
-    // 4. Sign in the user with regular client
+    // 4. Non-player signups create a league organization. Player-claim signups
+    // inherit their roster/team context from the claimed profile and should not
+    // be forced to invent an organization.
+    if (!isPlayerClaimSignup) {
+      if (!organizationName?.trim()) {
+        await serviceSupabase.from('profiles').delete().eq('id', authData.user.id);
+        await serviceSupabase.auth.admin.deleteUser(authData.user.id);
+        return { error: 'Organization name is required unless you claim an existing player profile.' };
+      }
+
+      const slug = organizationName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      // Free platform - no trial needed, all features included
+      const { error: orgError } = await serviceSupabase
+        .from('organizations')
+        .insert({
+          name: organizationName,
+          slug,
+          owner_user_id: authData.user.id,
+          subscription_tier: 'free',
+          subscription_status: 'active',
+        })
+        .select()
+        .single();
+
+      if (orgError) {
+        if (isDevelopment) {
+          console.error('❌ Organization creation error:', orgError);
+        }
+        // Clean up profile and auth user if org creation fails
+        await serviceSupabase.from('profiles').delete().eq('id', authData.user.id);
+        await serviceSupabase.auth.admin.deleteUser(authData.user.id);
+        return { error: 'Failed to create organization. Please try again.' };
+      }
+    }
+
+    // 5. Sign in the user with regular client
     const supabase = await createClient();
     const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
       email,

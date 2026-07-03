@@ -1,13 +1,33 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock3, Swords, User } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, Swords, User } from 'lucide-react';
 import { SubscriptionWall } from '@/components/shared';
+import { TeamLogo } from '@/components/shared/TeamLogo';
 import { LeagueNewsFallbackArtwork } from '@/components/news/LeagueNewsFallbackArtwork';
 import { RichArticleContent } from '@/components/news/RichArticleContent';
+import { EditorialHeroImage } from '@/components/news/EditorialHeroImage';
 import { buildArticleMentions } from '@/lib/articles/linkify';
 import { getArticleLinkContext, getArticlePlayerTags, getGamePreview, getLeagueBySlug, getNewsArticleBySlug } from '@/lib/data';
-import { formatLeagueLongCalendarDate } from '@/lib/league-timezone';
+import { stripMarkdownLinks } from '@/lib/news/rich-text';
+
+/** Extract the primary color from a "primary,secondary" colors string. */
+function getPrimaryColor(colors: string | null): string | null {
+  if (!colors) return null;
+  return colors.split(',')[0] || null;
+}
+
+/** Pick white or black text based on a hex background color for readability. */
+function readableTextColor(hex: string | null): string {
+  if (!hex) return '#ffffff';
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  // Relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55 ? '#000000' : '#ffffff';
+}
 
 interface ArticlePageProps {
   params: Promise<{ leagueSlug: string; slug: string }>;
@@ -21,12 +41,14 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const article = await getNewsArticleBySlug(league.id, slug);
   if (!article) return { title: 'Article Not Found' };
 
+  const safeExcerpt = stripMarkdownLinks(article.excerpt);
+
   return {
     title: `${article.title} - ${league.name}`,
-    description: article.excerpt || `Read "${article.title}" on ${league.name}`,
+    description: safeExcerpt || `Read "${article.title}" on ${league.name}`,
     openGraph: {
       title: article.title,
-      description: article.excerpt || undefined,
+      description: safeExcerpt || undefined,
       images: article.image_url ? [article.image_url] : undefined,
     },
   };
@@ -77,13 +99,23 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
         {/* Article */}
         <article className="league-reading-panel overflow-hidden rounded-[32px]">
-          <div className="relative aspect-[16/7.2] min-h-[280px]">
+          <div className="relative aspect-[4/3] sm:aspect-[16/7.2] min-h-[280px]">
             {article.image_url ? (
-              <img
-                src={article.image_url}
-                alt={article.title}
-                className="h-full w-full object-cover"
-              />
+              <>
+                {/* Mobile: simple full-bleed image */}
+                <div className="absolute inset-0 sm:hidden">
+                  <img src={article.image_url} alt={article.title} className="h-full w-full object-cover" />
+                </div>
+                {/* Desktop: layered editorial treatment */}
+                <div className="absolute inset-0 hidden sm:block">
+                  <EditorialHeroImage
+                    src={article.image_url}
+                    alt={article.title}
+                    foregroundClassName="object-contain object-right"
+                    backgroundClassName="object-cover opacity-24"
+                  />
+                </div>
+              </>
             ) : (
               <LeagueNewsFallbackArtwork
                 leagueName={league.name}
@@ -97,14 +129,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="mb-4 inline-flex items-center rounded-full bg-[var(--league-primary)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-accent-text)]">
                 {article.type === 'game_recap' ? 'Game recap' : article.type === 'weekly_wrap' ? 'Weekly wrap' : 'News'}
               </div>
-              <h1 className="max-w-4xl text-3xl font-extrabold leading-tight text-white md:text-5xl">
+              <h1 className="max-w-4xl text-lg font-extrabold leading-[1.18] text-white sm:text-3xl md:text-[2.75rem] md:leading-[1.12]">
                 {article.title}
               </h1>
-              {article.excerpt && (
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/78 md:text-base">
-                  {article.excerpt}
-                </p>
-              )}
               <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/72">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
@@ -130,26 +157,39 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </div>
 
           <div className="border-t border-[var(--color-border)] p-6 md:p-8">
-            <section className="grid gap-4 border-b border-[var(--color-border)] pb-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                  Story context
+            {/* Tagged players */}
+            {taggedPlayers.length > 0 && (
+              <div className="mb-6">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                  Tagged players
                 </p>
-                <h2 className="mt-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
-                  Linked players and matchup
-                </h2>
-                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-                  Use this area to verify which players and games are attached to the article.
-                </p>
-              </div>
-              <div className="grid gap-3">
-                {taggedPlayers.length > 0 ? (
+                {taggedPlayers.length <= 2 ? (
+                  <div className="flex flex-wrap gap-2.5">
+                    {taggedPlayers.map((tag) => (
+                      <Link
+                        key={tag.id}
+                        href={`/${leagueSlug}/players/${tag.player?.id}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/88 px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]"
+                      >
+                        {tag.player?.avatar_url ? (
+                          <img
+                            src={tag.player.avatar_url}
+                            alt={tag.player.full_name}
+                            className="h-7 w-7 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--league-primary)]/12 text-xs font-black text-[var(--league-primary)]">
+                            {tag.player?.full_name.charAt(0)}
+                          </span>
+                        )}
+                        <span>{tag.player?.full_name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-                      Tagged players
-                    </p>
                     <div className="flex flex-wrap gap-2.5">
-                      {taggedPlayers.map((tag) => (
+                      {taggedPlayers.slice(0, 2).map((tag) => (
                         <Link
                           key={tag.id}
                           href={`/${leagueSlug}/players/${tag.player?.id}`}
@@ -170,58 +210,118 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                         </Link>
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                    No player tags are attached to this story yet.
-                  </div>
-                )}
-
-                {relatedGame ? (
-                  <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-                      Related game
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-base font-black text-[var(--color-text-primary)]">
-                      <Link href={`/${leagueSlug}/teams/${relatedGame.away_team?.slug}`} className="hover:text-[var(--league-primary)] transition-colors">
-                        {relatedGame.away_team?.name || 'Away'}
-                      </Link>
-                      <span className="text-[var(--color-text-muted)]">vs</span>
-                      <Link href={`/${leagueSlug}/teams/${relatedGame.home_team?.slug}`} className="hover:text-[var(--league-primary)] transition-colors">
-                        {relatedGame.home_team?.name || 'Home'}
-                      </Link>
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-[var(--color-text-secondary)]">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Clock3 className="h-4 w-4 text-[var(--league-primary)]" />
-                        {formatLeagueLongCalendarDate(relatedGame.scheduled_at, league.timezone)}
-                      </span>
-                      <Link
-                        href={`/${leagueSlug}/games/${relatedGame.id}`}
-                        className="inline-flex items-center gap-1.5 font-semibold text-[var(--league-primary)]"
-                      >
-                        <Swords className="h-4 w-4" />
-                        View game page
-                      </Link>
-                    </div>
-                  </div>
-                ) : primaryGameId ? (
-                  <Link
-                    href={`/${leagueSlug}/games/${primaryGameId}`}
-                    className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 px-4 py-2 text-sm font-semibold text-[var(--league-primary)]"
-                  >
-                    <Swords className="h-4 w-4" />
-                    View related game
-                  </Link>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                    No game link is attached to this story yet.
+                    <details className="group mt-2.5">
+                      <summary className="inline-flex list-none cursor-pointer items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/88 px-3 py-2 text-sm text-[var(--color-text-secondary)]">
+                        <span className="group-open:hidden">+{taggedPlayers.length - 2} more</span>
+                        <span className="hidden group-open:inline">Show less</span>
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="mt-2.5 flex flex-wrap gap-2.5">
+                        {taggedPlayers.slice(2).map((tag) => (
+                          <Link
+                            key={tag.id}
+                            href={`/${leagueSlug}/players/${tag.player?.id}`}
+                            className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/88 px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]"
+                          >
+                            {tag.player?.avatar_url ? (
+                              <img
+                                src={tag.player.avatar_url}
+                                alt={tag.player.full_name}
+                                className="h-7 w-7 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--league-primary)]/12 text-xs font-black text-[var(--league-primary)]">
+                                {tag.player?.full_name.charAt(0)}
+                              </span>
+                            )}
+                            <span>{tag.player?.full_name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </details>
                   </div>
                 )}
               </div>
-            </section>
+            )}
 
-            <div className="pt-6">
+            {/* Game summary */}
+            {relatedGame && (
+              <div className="mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5">
+                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                  Game summary
+                </p>
+                <Link
+                  href={`/${leagueSlug}/games/${relatedGame.id}`}
+                  className="flex items-center justify-center gap-4 sm:gap-6"
+                >
+                  {/* Away team */}
+                  <div className="flex flex-col items-center gap-2 min-w-0">
+                    <TeamLogo
+                      logoUrl={relatedGame.away_team?.logo ?? null}
+                      teamName={relatedGame.away_team?.name || 'Away'}
+                      size="lg"
+                    />
+                    <span
+                      className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide truncate max-w-[120px]"
+                      style={{
+                        backgroundColor: getPrimaryColor(relatedGame.away_team?.colors ?? null) || 'var(--color-surface)',
+                        color: readableTextColor(getPrimaryColor(relatedGame.away_team?.colors ?? null)),
+                      }}
+                    >
+                      {relatedGame.away_team?.name || 'Away'}
+                    </span>
+                  </div>
+
+                  {/* Score */}
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-baseline gap-2 text-3xl font-black tabular-nums text-[var(--color-text-primary)] sm:text-4xl">
+                      <span>{relatedGame.away_score ?? '–'}</span>
+                      <span className="text-lg text-[var(--color-text-muted)]">:</span>
+                      <span>{relatedGame.home_score ?? '–'}</span>
+                    </div>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                      {relatedGame.status === 'completed' || relatedGame.status === 'pending_verification'
+                        ? 'Final'
+                        : relatedGame.status === 'in_progress'
+                          ? 'Live'
+                          : relatedGame.status === 'postponed'
+                            ? 'Postponed'
+                            : 'Upcoming'}
+                    </span>
+                  </div>
+
+                  {/* Home team */}
+                  <div className="flex flex-col items-center gap-2 min-w-0">
+                    <TeamLogo
+                      logoUrl={relatedGame.home_team?.logo ?? null}
+                      teamName={relatedGame.home_team?.name || 'Home'}
+                      size="lg"
+                    />
+                    <span
+                      className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide truncate max-w-[120px]"
+                      style={{
+                        backgroundColor: getPrimaryColor(relatedGame.home_team?.colors ?? null) || 'var(--color-surface)',
+                        color: readableTextColor(getPrimaryColor(relatedGame.home_team?.colors ?? null)),
+                      }}
+                    >
+                      {relatedGame.home_team?.name || 'Home'}
+                    </span>
+                  </div>
+                </Link>
+                <div className="mt-3 text-center">
+                  <Link
+                    href={`/${leagueSlug}/games/${relatedGame.id}`}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--league-primary)] hover:underline"
+                  >
+                    <Swords className="h-4 w-4" />
+                    View game page
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Article body */}
+            <div>
               <RichArticleContent content={article.content} mentions={articleMentions} />
             </div>
           </div>

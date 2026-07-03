@@ -5,7 +5,7 @@ export interface ReplayableGameEvent {
   eventType: string;
   teamType: 'home' | 'away';
   playerId?: string | null;
-  period: number;
+  period: number | null;
   gameTimeSeconds: number | null;
   penaltyMinutes?: number | null;
   penaltyType?: string | null;
@@ -27,7 +27,9 @@ export function compareEventsChronologically(
   a: ReplayableGameEvent,
   b: ReplayableGameEvent
 ): number {
-  if (a.period !== b.period) return a.period - b.period;
+  const aPeriod = a.period ?? 0;
+  const bPeriod = b.period ?? 0;
+  if (aPeriod !== bPeriod) return aPeriod - bPeriod;
 
   const aClock = normalizedClockValue(a.gameTimeSeconds);
   const bClock = normalizedClockValue(b.gameTimeSeconds);
@@ -56,6 +58,10 @@ export function buildPenaltyTrackerFromEvents(
     .sort(compareEventsChronologically);
 
   for (const event of orderedEvents) {
+    if (event.period == null) {
+      continue;
+    }
+
     const eventClock = normalizedClockValue(event.gameTimeSeconds);
 
     if (event.eventType === 'penalty') {

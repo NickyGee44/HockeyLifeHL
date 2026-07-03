@@ -6,7 +6,7 @@ jest.mock('@/lib/supabase/server', () => ({
 }));
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { getLegacyCandidates } from '../legacy-merge';
+import { getLegacyCandidates, searchClaimablePlayerProfiles } from '../legacy-merge';
 
 describe('legacy merge candidate loading', () => {
   const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
@@ -106,6 +106,96 @@ describe('legacy merge candidate loading', () => {
             assists: 12,
             points: 19,
           },
+        },
+      ],
+    });
+  });
+});
+
+describe('signup-time claimable player search', () => {
+  const mockCreateServiceRoleClient = createServiceRoleClient as jest.MockedFunction<
+    typeof createServiceRoleClient
+  >;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('only returns rostered profiles that are not already attached to auth users', async () => {
+    const serviceClient = {
+      auth: {
+        admin: {
+          getUserById: jest.fn((profileId: string) => {
+            if (profileId === 'claimed-user') {
+              return Promise.resolve({ data: { user: { id: profileId } }, error: null });
+            }
+            return Promise.resolve({ data: { user: null }, error: { message: 'not found' } });
+          }),
+        },
+      },
+      from: jest.fn((table: string) => {
+        if (table === 'profiles') {
+          return {
+            select: jest.fn(() => ({
+              or: jest.fn(() => ({
+                is: jest.fn(() => ({
+                  limit: jest.fn().mockResolvedValue({
+                    data: [
+                      { id: 'claimable-1', full_name: 'Alex Claim', email: 'alex@example.com', is_legacy_import: true },
+                      { id: 'claimed-user', full_name: 'Alex Taken', email: 'taken@example.com', is_legacy_import: false },
+                      { id: 'unrostered-1', full_name: 'Alex Bench', email: 'bench@example.com', is_legacy_import: false },
+                    ],
+                    error: null,
+                  }),
+                })),
+              })),
+            })),
+          };
+        }
+
+        if (table === 'team_rosters') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn((_column: string, profileId: string) => Promise.resolve({
+                data:
+                  profileId === 'claimable-1'
+                    ? [{ teams: { name: 'Wolves' }, seasons: { name: 'Winter 2025' } }]
+                    : [],
+                error: null,
+              })),
+            })),
+          };
+        }
+
+        if (table === 'player_season_stats') {
+          return {
+            select: jest.fn(() => ({
+              eq: jest.fn(() => Promise.resolve({
+                data: [{ games_played: 12, goals: 5, assists: 6, points: 11 }],
+                error: null,
+              })),
+            })),
+          };
+        }
+
+        throw new Error(`Unexpected table: ${table}`);
+      }),
+    };
+
+    mockCreateServiceRoleClient.mockReturnValue(serviceClient as never);
+
+    const result = await searchClaimablePlayerProfiles('Alex');
+
+    expect(result).toEqual({
+      success: true,
+      data: [
+        {
+          id: 'claimable-1',
+          fullName: 'Alex Claim',
+          emailHint: 'al••@example.com',
+          isLegacyImport: true,
+          teams: [{ teamName: 'Wolves', seasonName: 'Winter 2025' }],
+          stats: { gamesPlayed: 12, goals: 5, assists: 6, points: 11 },
         },
       ],
     });

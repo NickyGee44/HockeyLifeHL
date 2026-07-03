@@ -171,8 +171,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
 
   const placedCount = layout?.placedPlayers.length ?? 0;
   const confirmedCount = layout?.roster.filter((player) => player.availability === 'confirmed').length ?? 0;
-  const tentativeCount = layout?.roster.filter((player) => player.availability === 'tentative').length ?? 0;
-  const outCount = layout?.roster.filter((player) => player.availability === 'out').length ?? 0;
+  const subCount = layout?.roster.filter((player) => player.isSub).length ?? 0;
 
   const teamName = editorData?.game.team.name ?? 'Your Team';
   const opponentName = editorData?.game.opponent.name ?? 'Opponent';
@@ -193,7 +192,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
   const handleResetFromCheckins = () => {
     if (!layout) return;
     setLayout(buildDefaultLineupLayout(layout.roster));
-    setStatusMessage('Lineup reset from current RSVP status.');
+    setStatusMessage('Lineup reset from current In players and available spares.');
   };
 
   const handleClearIce = () => {
@@ -358,9 +357,9 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Publishing status</p>
             <div className="mt-4 grid grid-cols-3 gap-3">
               {[
-                { label: 'On ice', value: placedCount },
-                { label: 'Confirmed', value: confirmedCount },
-                { label: 'Out', value: outCount },
+                { label: 'Assigned', value: placedCount },
+                { label: 'In', value: confirmedCount },
+                { label: 'Spares', value: subCount },
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-4 text-center">
                   <p className="text-2xl font-black text-white">{item.value}</p>
@@ -369,9 +368,9 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
               ))}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-neutral-400">
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1">{confirmedCount} confirmed</span>
-              <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1">{tentativeCount} tentative</span>
-              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">{layout.roster.length - confirmedCount - tentativeCount - outCount} no reply</span>
+              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1">{confirmedCount} in</span>
+              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1">{subCount} spares</span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">Only In players and spares appear below</span>
             </div>
           </div>
         </div>
@@ -381,7 +380,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Editor</p>
-                <h2 className="mt-2 text-xl font-black text-white">Drag players from the bench onto the rink</h2>
+                <h2 className="mt-2 text-xl font-black text-white">Assign jerseys from the unassigned roster</h2>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -436,13 +435,9 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                   onPointerDown={beginDrag(player.playerId, 'bench')}
                   className={cn(
                     'w-full touch-none rounded-2xl border px-3 py-2 text-left transition-colors hover:border-cyan-300/35 hover:bg-cyan-400/10',
-                    player.availability === 'confirmed'
-                      ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100'
-                      : player.availability === 'tentative'
-                        ? 'border-amber-400/20 bg-amber-400/10 text-amber-100'
-                        : player.availability === 'out'
-                          ? 'border-rose-400/20 bg-rose-400/10 text-rose-100'
-                          : 'border-white/10 bg-white/[0.04] text-neutral-200'
+                    player.isSub
+                      ? 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100'
+                      : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100'
                   )}
                   aria-label={`Drag ${player.fullName || 'player'} onto the rink`}
                 >
@@ -550,8 +545,8 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Publishing notes</p>
               <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral-300">
                 <li>Players will see the published lineup directly on the game page.</li>
-                <li>Confirmed skaters are auto-seeded when you reset from RSVP.</li>
-                <li>Dragging a player back to the bench removes them from the ice card.</li>
+                <li>Reset from RSVP only seeds players marked In plus accepted spares.</li>
+                <li>Out, unsure, and no-response players are hidden from the unassigned roster.</li>
               </ul>
             </div>
 

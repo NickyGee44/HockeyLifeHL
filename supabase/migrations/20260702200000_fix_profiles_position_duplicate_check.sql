@@ -14,8 +14,9 @@
 --
 -- CHECK constraints are AND-ed, and these two share NO common allowed value:
 -- the only value satisfying both is NULL. As a result, EVERY non-null write to
--- profiles.position failed ("invalid ... profile_position_check"), regardless of
--- whether the app sent a short code or a long label.
+-- profiles.position failed, regardless of whether the app sent a short code or a
+-- long label. (This is the "profiles_position_check" error captains hit when
+-- adding a manual spare.)
 --
 -- Resolution: drop the ad-hoc duplicate and keep the original short-code check.
 -- profiles.position stores short hockey codes (C/LW/RW/D/G); team_rosters.position

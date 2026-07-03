@@ -1,5 +1,6 @@
 'use server';
 
+import { getTeamRosterStats } from '@/lib/data';
 import { createAuthClient as createClient } from '@/lib/supabase/server';
 
 export interface RosterPlayer {
@@ -13,6 +14,7 @@ export interface RosterPlayer {
     id: string;
     full_name: string | null;
     email: string | null;
+    phone: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -29,6 +31,10 @@ export interface JoinRequest {
     full_name: string | null;
     email: string | null;
   } | null;
+}
+
+export interface SubRosterPlayer extends RosterPlayer {
+  games_played: number;
 }
 
 async function verifyCaptainRole(
@@ -65,7 +71,8 @@ async function verifyCaptainRole(
 }
 
 export async function getTeamRoster(
-  teamId: string
+  teamId: string,
+  seasonId?: string | null,
 ): Promise<{ success: boolean; data?: RosterPlayer[]; error?: string }> {
   const auth = await verifyCaptainRole(teamId);
   if (!auth.authorized) {
@@ -74,7 +81,7 @@ export async function getTeamRoster(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('team_rosters')
     .select(
       `
@@ -84,13 +91,19 @@ export async function getTeamRoster(
       position,
       leadership_role,
       player_type,
-      profile:profiles(id, full_name, email, avatar_url)
+      profile:profiles(id, full_name, email, phone, avatar_url)
     `
     )
     .eq('team_id', teamId)
     .eq('status', 'active')
-    .is('end_date', null)
-    .order('jersey_number', { ascending: true, nullsFirst: false });
+    .eq('player_type', 'regular')
+    .is('end_date', null);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query.order('jersey_number', { ascending: true, nullsFirst: false });
 
   if (error) {
     console.error('Failed to get team roster:', error);
@@ -103,6 +116,60 @@ export async function getTeamRoster(
   }));
 
   return { success: true, data: roster };
+}
+
+export async function getTeamSubsWhoPlayed(
+  teamId: string,
+  seasonId?: string | null,
+): Promise<{ success: boolean; data?: SubRosterPlayer[]; error?: string }> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('team_rosters')
+    .select(
+      `
+      id,
+      player_id,
+      jersey_number,
+      position,
+      leadership_role,
+      player_type,
+      profile:profiles(id, full_name, email, phone, avatar_url)
+    `
+    )
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .eq('player_type', 'sub')
+    .is('end_date', null);
+
+  if (seasonId) {
+    query = query.eq('season_id', seasonId);
+  }
+
+  const { data, error } = await query.order('jersey_number', { ascending: true, nullsFirst: false });
+
+  if (error) {
+    console.error('Failed to get team subs:', error);
+    return { success: false, error: 'Failed to fetch subs' };
+  }
+
+  const statsByPlayer = await getTeamRosterStats(teamId, seasonId ?? undefined);
+
+  const subs = (data || [])
+    .map((player: any) => ({
+      ...player,
+      profile: Array.isArray(player.profile) ? player.profile[0] : player.profile,
+      games_played: statsByPlayer[player.player_id]?.games_played ?? 0,
+    }))
+    .filter((player) => player.games_played > 0)
+    .sort((a, b) => b.games_played - a.games_played || (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''));
+
+  return { success: true, data: subs };
 }
 
 export async function updatePlayerJerseyNumber(
@@ -151,6 +218,53 @@ export async function updatePlayerPosition(
 
   if (error) {
     console.error('Failed to update position:', error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function updateRosterPlayerDetails(
+  teamId: string,
+  rosterId: string,
+  details: {
+    full_name: string;
+    email: string | null;
+    phone: string | null;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const supabase = await createClient();
+
+  const { data: rosterEntry, error: rosterError } = await supabase
+    .from('team_rosters')
+    .select('player_id')
+    .eq('id', rosterId)
+    .eq('team_id', teamId)
+    .single();
+
+  if (rosterError || !rosterEntry?.player_id) {
+    return { success: false, error: 'Player not found on roster' };
+  }
+
+  const payload = {
+    full_name: details.full_name.trim() || null,
+    email: details.email?.trim() || null,
+    phone: details.phone?.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update(payload)
+    .eq('id', rosterEntry.player_id);
+
+  if (error) {
+    console.error('Failed to update player details:', error);
     return { success: false, error: error.message };
   }
 

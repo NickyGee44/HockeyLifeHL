@@ -271,17 +271,19 @@ export function usePlayerSearch(teamId: string | null) {
     const term = searchTerm.toLowerCase();
     const filtered = players.filter(
       (p) =>
-        p.jersey_number.toString().includes(term) ||
+        (p.jersey_number?.toString() || '').includes(term) ||
         p.full_name.toLowerCase().includes(term)
     );
 
     // Sort by jersey number match first, then name match
     filtered.sort((a, b) => {
-      const aJerseyMatch = a.jersey_number.toString().startsWith(term);
-      const bJerseyMatch = b.jersey_number.toString().startsWith(term);
+      const aJersey = a.jersey_number?.toString() || '';
+      const bJersey = b.jersey_number?.toString() || '';
+      const aJerseyMatch = aJersey.startsWith(term);
+      const bJerseyMatch = bJersey.startsWith(term);
       if (aJerseyMatch && !bJerseyMatch) return -1;
       if (!aJerseyMatch && bJerseyMatch) return 1;
-      return a.jersey_number - b.jersey_number;
+      return (a.jersey_number ?? 999) - (b.jersey_number ?? 999);
     });
 
     setFilteredPlayers(filtered);

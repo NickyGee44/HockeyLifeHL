@@ -60,19 +60,13 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 
     const variantClasses = {
       default: `
-        bg-[var(--color-surface)]
-        border border-[var(--color-border)]
-        ${hover ? 'hover:border-[var(--color-border-emphasis)]' : ''}
+        glass-card
       `,
       glass: `
-        bg-[color-mix(in_srgb,var(--color-background-elevated)_92%,var(--color-surface)_8%)]
-        backdrop-blur-xl
-        border border-[color-mix(in_srgb,var(--color-border)_78%,transparent)]
-        ${hover ? 'hover:bg-[color-mix(in_srgb,var(--color-background-elevated)_96%,var(--color-surface)_4%)] hover:border-[var(--color-border-emphasis)]' : ''}
+        glass-card
       `,
       gradient: `
-        bg-[var(--color-surface)]
-        border border-transparent
+        glass-card
         before:absolute before:inset-0 before:-z-10
         before:rounded-[inherit] before:p-[1px]
         before:bg-gradient-to-br before:from-[var(--league-primary)] before:via-transparent before:to-[var(--league-primary)]/30
@@ -80,10 +74,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         ${hover ? 'hover:before:opacity-100 before:opacity-60' : ''}
       `,
       elevated: `
-        bg-[var(--color-background-elevated)]
-        border border-[var(--color-border)]
-        shadow-lg shadow-black/20
-        ${hover ? 'hover:shadow-xl hover:shadow-black/30' : ''}
+        glass-card
       `,
     };
 

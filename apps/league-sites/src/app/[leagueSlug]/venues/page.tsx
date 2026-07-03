@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getVenues, getVenueObjects } from '@/lib/data';
+import { getLeagueBySlug, getVenueObjects } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { MapPin, Calendar, Clock, ChevronRight, Building2 } from 'lucide-react';
 import { formatLeagueShortWeekdayDate, formatLeagueTime } from '@/lib/league-timezone';
@@ -31,6 +32,7 @@ export async function generateMetadata({
 
 interface VenueWithGames {
   name: string;
+  addressLines: string[];
   mapsUrl?: string;
   upcomingGames: {
     id: string;
@@ -43,28 +45,32 @@ interface VenueWithGames {
 
 async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
   const supabase = await createClient();
+  const venueObjects = await getVenueObjects(leagueId);
+  if (venueObjects.length === 0) return [];
 
-  // Get all venues (names from games) + venue objects (addresses from venues table)
-  const [venues, venueObjects] = await Promise.all([
-    getVenues(leagueId),
-    getVenueObjects(leagueId),
-  ]);
-  if (venues.length === 0) return [];
+  const venueNames = venueObjects.map((venue) => venue.name).filter(Boolean);
+  const venueMetaByName = new Map<string, { addressLines: string[]; mapsUrl?: string }>();
 
-  // Build a name → Google Maps URL map from the venues table
-  const mapsUrlByName = new Map<string, string>();
-  for (const v of venueObjects) {
-    const parts = [v.address, v.city, v.state_province, v.postal_code, v.country].filter(Boolean);
-    if (parts.length > 0) {
-      mapsUrlByName.set(v.name, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`);
-    }
+  for (const venue of venueObjects) {
+    const addressParts = [venue.address, venue.city, venue.state_province, venue.postal_code, venue.country].filter(Boolean);
+    const addressLines = [
+      venue.address,
+      [venue.city, venue.state_province, venue.postal_code].filter(Boolean).join(', '),
+      venue.country,
+    ].filter((line): line is string => Boolean(line && line.trim()));
+
+    venueMetaByName.set(venue.name, {
+      addressLines,
+      mapsUrl: addressParts.length > 0
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressParts.join(', '))}`
+        : undefined,
+    });
   }
 
   const now = new Date();
   const twoWeeksLater = new Date(now);
   twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
 
-  // Fetch ALL upcoming games across all venues in a single query
   const [{ data: allUpcomingGames }, { data: allGameCounts }] = await Promise.all([
     supabase
       .from('games')
@@ -76,7 +82,7 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
         away_team:teams!games_away_team_id_fkey(name, slug)
       `)
       .eq('league_id', leagueId)
-      .in('location', venues)
+      .in('location', venueNames)
       .gte('scheduled_at', now.toISOString())
       .lte('scheduled_at', twoWeeksLater.toISOString())
       .order('scheduled_at', { ascending: true }),
@@ -84,10 +90,9 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
       .from('games')
       .select('location')
       .eq('league_id', leagueId)
-      .in('location', venues),
+      .in('location', venueNames),
   ]);
 
-  // Group upcoming games by venue, taking top 3 per venue
   const upcomingByVenue = new Map<string, VenueWithGames['upcomingGames']>();
   for (const g of allUpcomingGames || []) {
     const loc = (g as any).location as string;
@@ -103,23 +108,21 @@ async function getVenuesWithGames(leagueId: string): Promise<VenueWithGames[]> {
     }
   }
 
-  // Count total games per venue
   const countByVenue = new Map<string, number>();
   for (const row of allGameCounts || []) {
     const loc = (row as any).location as string;
     countByVenue.set(loc, (countByVenue.get(loc) || 0) + 1);
   }
 
-  // Build result array
-  const venuesWithGames: VenueWithGames[] = venues.map((venue) => ({
+  const venuesWithGames: VenueWithGames[] = venueNames.map((venue) => ({
     name: venue,
-    mapsUrl: mapsUrlByName.get(venue),
+    addressLines: venueMetaByName.get(venue)?.addressLines || [],
+    mapsUrl: venueMetaByName.get(venue)?.mapsUrl,
     upcomingGames: upcomingByVenue.get(venue) || [],
     totalGames: countByVenue.get(venue) || 0,
   }));
 
-  // Sort by total games (most active first)
-  return venuesWithGames.sort((a, b) => b.totalGames - a.totalGames);
+  return venuesWithGames.sort((a, b) => b.totalGames - a.totalGames || a.name.localeCompare(b.name));
 }
 
 export default async function VenuesPage({ params }: VenuesPageProps) {
@@ -133,46 +136,57 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen bg-[var(--color-background)]">
-      {/* Header */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/10 flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-[var(--league-primary)]" />
+      <div className="min-h-screen bg-[var(--color-background)]">
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="container mx-auto px-4 py-8">
+            <div className="mb-2 flex items-center gap-3">
+              {league.logo_url ? (
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)]">
+                  <Image
+                    src={league.logo_url}
+                    alt={league.name}
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--league-primary)]/10">
+                  <MapPin className="h-5 w-5 text-[var(--league-primary)]" />
+                </div>
+              )}
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+                Venues & Arenas
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-              Venues & Arenas
-            </h1>
-          </div>
-          <p className="text-[var(--color-text-secondary)]">
-            {venues.length} locations hosting games
-          </p>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {venues.length === 0 ? (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
-            <Building2 className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
             <p className="text-[var(--color-text-secondary)]">
-              No venues have been configured for this league yet.
+              {venues.length} locations hosting games
             </p>
           </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {venues.map((venue) => (
-              <VenueCard
-                key={venue.name}
-                venue={venue}
-                leagueSlug={leagueSlug}
-                timezone={leagueTimezone}
-              />
-            ))}
-          </div>
-        )}
+        </div>
+
+        <div className="container mx-auto px-4 py-8">
+          {venues.length === 0 ? (
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center">
+              <Building2 className="mx-auto mb-4 h-12 w-12 text-[var(--color-text-muted)]" />
+              <p className="text-[var(--color-text-secondary)]">
+                No venues have been configured for this league yet.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {venues.map((venue) => (
+                <VenueCard
+                  key={venue.name}
+                  venue={venue}
+                  leagueSlug={leagueSlug}
+                  timezone={leagueTimezone}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </SubscriptionWall>
   );
 }
@@ -187,65 +201,67 @@ function VenueCard({
   timezone?: string | null;
 }) {
   const formatDate = (dateStr: string) => formatLeagueShortWeekdayDate(dateStr, timezone);
-
   const formatTime = (dateStr: string) => formatLeagueTime(dateStr, timezone);
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-[var(--color-border)]">
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="border-b border-[var(--color-border)] p-4">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-hover)] flex items-center justify-center flex-shrink-0">
-            <MapPin className={`w-5 h-5 ${venue.mapsUrl ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`} />
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-hover)]">
+            <MapPin className={`h-5 w-5 ${venue.mapsUrl ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-secondary)]'}`} />
           </div>
-          <div className="flex-1 min-w-0">
-            {venue.mapsUrl ? (
-              <a
-                href={venue.mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-[var(--color-text-primary)] hover:text-[var(--league-primary)] hover:underline truncate block transition-colors"
-              >
-                {venue.name}
-              </a>
-            ) : (
-              <h3 className="font-semibold text-[var(--color-text-primary)] truncate">
-                {venue.name}
-              </h3>
-            )}
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-semibold text-[var(--color-text-primary)]">{venue.name}</h3>
             <p className="text-sm text-[var(--color-text-secondary)]">
               {venue.totalGames} games scheduled
             </p>
+            {venue.addressLines.length > 0 ? (
+              <div className="mt-2 space-y-0.5 text-xs text-[var(--color-text-secondary)]">
+                {venue.addressLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
+        {venue.mapsUrl ? (
+          <a
+            href={venue.mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+          >
+            <span>Open in Google Maps</span>
+            <ChevronRight className="h-4 w-4" />
+          </a>
+        ) : null}
       </div>
 
-      {/* Upcoming Games */}
       {venue.upcomingGames.length > 0 ? (
         <div className="divide-y divide-[var(--color-border)]">
           {venue.upcomingGames.map((game) => (
             <Link
               key={game.id}
               href={`/${leagueSlug}/games/${game.id}`}
-              className="block p-3 hover:bg-[var(--color-surface-hover)] transition-colors"
+              className="block p-3 transition-colors hover:bg-[var(--color-surface-hover)]"
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
                     {game.home_team?.name || 'TBD'} vs {game.away_team?.name || 'TBD'}
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-[var(--color-text-secondary)] mt-1">
+                  <div className="mt-1 flex items-center gap-3 text-xs text-[var(--color-text-secondary)]">
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                      <Calendar className="h-3 w-3" />
                       {formatDate(game.scheduled_at)}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                      <Clock className="h-3 w-3" />
                       {formatTime(game.scheduled_at)}
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-[var(--color-text-muted)]" />
               </div>
             </Link>
           ))}
@@ -258,14 +274,13 @@ function VenueCard({
         </div>
       )}
 
-      {/* View All Link */}
-      <div className="p-3 border-t border-[var(--color-border)] bg-[var(--color-surface-hover)]/50">
+      <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-hover)]/50 p-3">
         <Link
           href={`/${leagueSlug}/schedule?venue=${encodeURIComponent(venue.name)}`}
           className="flex items-center justify-center gap-2 text-sm text-[var(--league-primary)] hover:underline"
         >
           View all games at this venue
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
     </div>

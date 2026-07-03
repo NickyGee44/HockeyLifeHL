@@ -12,6 +12,8 @@ function baseDraft(overrides: Partial<RegistrationDraftData> = {}): Registration
     current_step: 1,
     registration_type: 'free_agent',
     full_name: 'Jamie Player',
+    phone: '555-123-4567',
+    date_of_birth: '1995-01-15',
     emergency_contact_name: 'Casey Contact',
     emergency_contact_phone: '555-123-4567',
     primary_position: 'C',
@@ -59,6 +61,9 @@ describe('registration form validation', () => {
     ).toBe(false);
     expect(
       canSubmitRegistration(baseDraft({ payment_status: 'completed' }), 5000, 'required')
+    ).toBe(true);
+    expect(
+      canSubmitRegistration(baseDraft({ payment_status: 'alternate_method' }), 5000, 'required')
     ).toBe(true);
     expect(
       canSubmitRegistration(baseDraft({ payment_status: 'pending' }), 0, 'required')

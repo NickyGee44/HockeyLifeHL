@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLeagueBySlug, getLeagueTheme, getAllLeagueSlugs, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
+import { getLeagueBySlug, getLeagueTheme, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
@@ -11,8 +11,22 @@ import { BugReportProvider } from '@/components/bug-report/BugReportProvider';
 import { SubscriptionProvider } from '@/components/shared';
 import type { Metadata } from 'next';
 import { LeagueSiteAnalytics } from '@/components/LeagueSiteAnalytics';
+import { FloatingDock } from '@/components/FloatingDock';
+import { ScrollRevealObserver } from '@/components/ScrollRevealObserver';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
+import { CheckinReminderBanner } from '@/components/checkin/CheckinReminderBanner';
+import { OneTimeAppSetupPrompt } from '@/components/pwa/AppSetupActions';
+
+/**
+ * Force league routes dynamic.
+ *
+ * These routes depend on no-store Supabase reads in shared layout/metadata code,
+ * and Vercel production has been surfacing DYNAMIC_SERVER_USAGE on statically
+ * treated league pages. Stats/player detail routes already opt into dynamic
+ * rendering and were not failing in the same way.
+ */
+export const dynamic = 'force-dynamic';
 
 /**
  * Revalidate every 60 seconds as a time-based fallback.
@@ -67,15 +81,6 @@ export async function generateMetadata({
       images: league.banner_url ? [{ url: league.banner_url }] : [],
     },
   };
-}
-
-/**
- * Generate static params for top leagues
- * Enables ISR for faster initial loads
- */
-export async function generateStaticParams() {
-  const slugs = await getAllLeagueSlugs();
-  return slugs.map((slug) => ({ leagueSlug: slug }));
 }
 
 /**
@@ -144,11 +149,27 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                       isPlayoffSeason={isPlayoffSeason}
                     />
                   </div>
+                  <CheckinReminderBanner leagueId={league.id} leagueSlug={leagueSlug} seasonId={activeSeasonId} />
                   <LeagueSiteAnalytics leagueSlug={leagueSlug} />
-                  <main className="league-site-main flex-1">{children}</main>
+                  <main className="league-site-main flex-1">
+                    <ScrollRevealObserver />
+                    {children}
+                  </main>
+                  <OneTimeAppSetupPrompt leagueName={league.name} leagueSlug={leagueSlug} />
                   <div className="league-site-chrome">
                     <SponsorFooterStrip sponsors={sponsors} />
                   </div>
+                  <FloatingDock
+                    leagueId={league.id}
+                    leagueSlug={leagueSlug}
+                    leagueName={league.name}
+                    leagueLogoUrl={league.logo_url}
+                    seasonId={activeSeasonId}
+                    visiblePages={(league as any).settings?.website?.visiblePages}
+                    customNavItems={(league as any).settings?.website?.navItems}
+                    isPlayoffSeason={isPlayoffSeason}
+                    registrationOpen={registrationOpen}
+                  />
                 </div>
               </DivisionFilterProvider>
             </SubscriptionProvider>

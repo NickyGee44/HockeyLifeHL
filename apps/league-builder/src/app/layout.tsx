@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { RecoveryHashRedirect } from '@/components/auth/RecoveryHashRedirect';
 import { CookieConsentBanner, ConditionalAnalytics } from '@/components/cookie-consent';
 import './globals.css';
 
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-neutral-950 text-white antialiased">
+        <RecoveryHashRedirect />
         {children}
         <ConditionalAnalytics />
         <CookieConsentBanner />

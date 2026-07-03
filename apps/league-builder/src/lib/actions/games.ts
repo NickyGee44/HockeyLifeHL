@@ -95,6 +95,7 @@ async function revalidatePublicLeagueResultPaths(
       `/${league.slug}/schedule`,
       `/${league.slug}/scores`,
       `/${league.slug}/standings`,
+      `/${league.slug}/playoffs`,
       `/${league.slug}/stats`,
       `/${league.slug}/teams`,
       ...(teams ?? [])

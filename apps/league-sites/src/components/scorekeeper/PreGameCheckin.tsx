@@ -112,9 +112,13 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
   // Sorted roster: goalies first, then by jersey number
   const sortedRoster = useMemo(() => {
     return [...currentRoster].sort((a, b) => {
+      if (a.isSub !== b.isSub) return Number(a.isSub) - Number(b.isSub);
       if (a.position === 'Goalie' && b.position !== 'Goalie') return -1;
       if (a.position !== 'Goalie' && b.position === 'Goalie') return 1;
-      return a.jerseyNumber - b.jerseyNumber;
+      if (a.jerseyNumber !== null && b.jerseyNumber !== null) return a.jerseyNumber - b.jerseyNumber;
+      if (a.jerseyNumber !== null) return -1;
+      if (b.jerseyNumber !== null) return 1;
+      return a.fullName.localeCompare(b.fullName);
     });
   }, [currentRoster]);
 
@@ -219,7 +223,7 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
                             color: '#fff',
                           }}
                         >
-                          {player.jerseyNumber}
+                          {player.jerseyNumber ?? 'S'}
                         </div>
                       </>
                     ) : (
@@ -235,7 +239,7 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
                           borderColor: currentTeam.primaryColor || 'var(--color-border)',
                         }}
                       >
-                        {player.jerseyNumber}
+                        {player.jerseyNumber ?? 'S'}
                       </div>
                     )}
                   </div>
@@ -243,8 +247,14 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
                   {/* Name + Position */}
                   <div className={`flex-1 min-w-0 ml-3 transition-opacity ${isOut ? 'opacity-40' : ''}`}>
                     <div className="text-sm font-medium text-[var(--color-text-primary)] truncate">
-                      #{player.jerseyNumber} {player.fullName}
+                      {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}
+                      {player.fullName}
                     </div>
+                    {player.isSub ? (
+                      <span className="mr-1 inline-block rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                        Spare
+                      </span>
+                    ) : null}
                     <span className={`inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded ${
                       player.position === 'Goalie'
                         ? 'bg-purple-500/10 text-purple-400'

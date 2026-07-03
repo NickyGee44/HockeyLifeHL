@@ -10,6 +10,7 @@ export async function getStatsLeaders(
     .from('player_stats')
     .select(`
       player_id,
+      game_id,
       goals,
       assists,
       penalty_minutes,
@@ -40,6 +41,7 @@ export async function getStatsLeaders(
         team_id: row.team_id,
         division_id: team?.division_id || null,
         position: null,
+        game_ids: new Set<string>(),
         games_played: 0,
         goals: 0,
         assists: 0,
@@ -49,7 +51,8 @@ export async function getStatsLeaders(
       });
     }
     const p = playerMap.get(pid)!;
-    p.games_played += 1;
+    if (row.game_id) p.game_ids.add(row.game_id);
+    p.games_played = p.game_ids.size;
     p.goals += row.goals || 0;
     p.assists += row.assists || 0;
     p.points += (row.goals || 0) + (row.assists || 0);
@@ -79,6 +82,7 @@ export async function getGoalieLeaders(
     .from('goalie_stats')
     .select(`
       player_id,
+      game_id,
       saves,
       shots_against,
       goals_against,
@@ -109,6 +113,7 @@ export async function getGoalieLeaders(
         team_name: team?.name || '',
         team_logo: team?.logo_url || null,
         jersey_number: null,
+        game_ids: new Set<string>(),
         games_played: 0,
         wins: 0,
         losses: 0,
@@ -121,7 +126,8 @@ export async function getGoalieLeaders(
       });
     }
     const g = goalieMap.get(pid)!;
-    g.games_played += 1;
+    if (row.game_id) g.game_ids.add(row.game_id);
+    g.games_played = g.game_ids.size;
     g.saves += row.saves || 0;
     g.goals_against += row.goals_against || 0;
     if (row.shutout) g.shutouts += 1;
@@ -153,7 +159,13 @@ export async function getPlayerCareerStats(
   const { data, error } = await supabase
     .from('player_stats')
     .select(`
-      *,
+      game_id,
+      goals,
+      assists,
+      penalty_minutes,
+      plus_minus,
+      team_id,
+      season_id,
       teams(name),
       seasons(name),
       leagues(name)
@@ -174,6 +186,7 @@ export async function getPlayerCareerStats(
         team_name: team?.name || '',
         team_id: row.team_id,
         position: null,
+        game_ids: new Set<string>(),
         games_played: 0,
         goals: 0,
         assists: 0,
@@ -183,7 +196,8 @@ export async function getPlayerCareerStats(
       });
     }
     const s = seasonMap.get(key)!;
-    s.games_played += 1;
+    if (row.game_id) s.game_ids.add(row.game_id);
+    s.games_played = s.game_ids.size;
     s.goals += row.goals || 0;
     s.assists += row.assists || 0;
     s.points += (row.goals || 0) + (row.assists || 0);

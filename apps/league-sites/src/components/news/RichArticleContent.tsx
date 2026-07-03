@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { splitArticleParagraphIntoSegments, type ArticleMention } from '@/lib/articles/linkify';
+import { splitRichTextParagraphs } from '@/lib/news/rich-text';
 
 interface RichArticleContentProps {
   content: string | null | undefined;
@@ -46,13 +47,10 @@ export function RichArticleContent({
   paragraphClassName = 'mb-5 max-w-3xl text-base leading-8 text-[var(--color-text-secondary)] md:text-[1.0625rem]',
   mentions = [],
 }: RichArticleContentProps) {
-  const paragraphs = (content
-    ? content
-        .split(/\n\s*\n/)
-        .map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' ').trim())
-        .filter(Boolean)
-    : [])
-    .slice(0, maxParagraphs ?? Number.POSITIVE_INFINITY);
+  const paragraphs = splitRichTextParagraphs(content).slice(
+    0,
+    maxParagraphs ?? Number.POSITIVE_INFINITY
+  );
 
   if (paragraphs.length === 0) {
     return <p className="text-[var(--color-text-muted)] italic">No content available.</p>;

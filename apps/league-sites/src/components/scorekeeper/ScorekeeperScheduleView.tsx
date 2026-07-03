@@ -93,7 +93,7 @@ export function ScorekeeperScheduleView({ games, leagueSlug }: ScorekeeperSchedu
 
       {/* Games by Week */}
       {gamesByWeek.length === 0 ? (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+        <div className="glass-card rounded-xl p-8 text-center">
           <svg className="w-12 h-12 mx-auto text-[var(--color-text-secondary)] opacity-50 mb-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </svg>

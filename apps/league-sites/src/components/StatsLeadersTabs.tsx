@@ -3,15 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Trophy, Target, Shield, Search, X } from 'lucide-react';
-import type { PlayerStatsWithAvatar, PlayerBadge } from '@/lib/types';
-import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
+import type { PlayerStatsWithAvatar } from '@/lib/types';
 
 interface StatsLeadersTabsProps {
   pointsLeaders: PlayerStatsWithAvatar[];
   goalsLeaders: PlayerStatsWithAvatar[];
   assistsLeaders: PlayerStatsWithAvatar[];
   leagueSlug: string;
-  badges?: Record<string, PlayerBadge[]>;
 }
 
 type TabType = 'points' | 'goals' | 'assists';
@@ -21,7 +19,6 @@ export function StatsLeadersTabs({
   goalsLeaders,
   assistsLeaders,
   leagueSlug,
-  badges,
 }: StatsLeadersTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('points');
   const [searchTerm, setSearchTerm] = useState('');
@@ -131,8 +128,6 @@ export function StatsLeadersTabs({
                   player.team_name.toLowerCase().includes(normalizedSearch)
                 );
                 const playerProfileId = player.player_id || null;
-                const playerBadges = playerProfileId ? badges?.[playerProfileId] : undefined;
-
                 return (
                   <tr
                     key={`${player.player_id}-${index}`}
@@ -176,9 +171,6 @@ export function StatsLeadersTabs({
                               <span className={`font-medium ${isHighlighted ? 'text-[var(--league-primary)]' : ''}`}>
                                 {player.player_name}
                               </span>
-                            )}
-                            {playerBadges && playerBadges.length > 0 && (
-                              <PlayerBadgeGroup badges={playerBadges} maxVisible={3} size="sm" />
                             )}
                           </div>
                           {player.position && (

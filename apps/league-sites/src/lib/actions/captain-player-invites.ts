@@ -1,5 +1,7 @@
 'use server';
 
+import { getPublicCaptainInvitePreview, type CaptainInvitePreview } from '@/lib/captain/invite-preview';
+export type { CaptainInvitePreview } from '@/lib/captain/invite-preview';
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 const LEGACY_EMAIL_DOMAIN = 'captaininvite.hockeylifehl.com';
@@ -12,19 +14,6 @@ export interface ExistingInviteCandidate {
   email: string | null;
   position: string | null;
   playerType: 'regular' | 'sub' | 'part_time';
-}
-
-export interface CaptainInvitePreview {
-  inviteId: string;
-  registrationUrl: string;
-  sharePhone: string | null;
-  shareTitle: string;
-  shareText: string;
-  branding: {
-    name: string;
-    logoUrl: string | null;
-    kind: 'team' | 'league';
-  };
 }
 
 async function verifyCaptain(teamId: string) {
@@ -66,56 +55,6 @@ function legacyInviteEmail(id: string) {
   return `captaininvite_${id}@${LEGACY_EMAIL_DOMAIN}`;
 }
 
-async function buildPreview(serviceSupabase: ReturnType<typeof createServiceRoleClient>, inviteId: string) {
-  const { data: invite } = await (serviceSupabase as any)
-    .from('captain_player_invites')
-    .select(`
-      id,
-      share_phone,
-      invitee_name,
-      registration_path,
-      brand_scope,
-      teams (name, logo_url),
-      leagues (name, logo_url, slug, subdomain, custom_domain, custom_domain_verified)
-    `)
-    .eq('id', inviteId)
-    .single();
-
-  if (!invite) {
-    throw new Error('Invite not found');
-  }
-
-  const team = Array.isArray(invite.teams) ? invite.teams[0] : invite.teams;
-  const league = Array.isArray(invite.leagues) ? invite.leagues[0] : invite.leagues;
-
-  const baseUrl = league?.custom_domain && league?.custom_domain_verified
-    ? (/^https?:\/\//i.test(league.custom_domain) ? league.custom_domain : `https://${league.custom_domain}`)
-    : league?.subdomain
-      ? `https://${league.subdomain}.beerleaguehockey.ca`
-      : league?.slug
-        ? `https://${league.slug}.beerleaguehockey.ca`
-        : (process.env.NEXT_PUBLIC_SITE_URL || 'https://beerleaguehockey.ca');
-
-  const registrationUrl = `${String(baseUrl).replace(/\/$/, '')}${invite.registration_path}`;
-  const brandingKind = invite.brand_scope === 'league' ? 'league' : 'team';
-  const brandingName = brandingKind === 'league' ? (league?.name || 'League') : (team?.name || 'Team');
-  const brandingLogoUrl = brandingKind === 'league' ? (league?.logo_url || null) : (team?.logo_url || null);
-  const inviteeName = invite.invitee_name || 'there';
-
-  return {
-    inviteId,
-    registrationUrl,
-    sharePhone: invite.share_phone || null,
-    shareTitle: `${brandingName} player invite`,
-    shareText: `Hi ${inviteeName}, welcome to ${brandingName}! Finish your Hockey Life registration here: ${registrationUrl}`,
-    branding: {
-      name: brandingName,
-      logoUrl: brandingLogoUrl,
-      kind: brandingKind,
-    },
-  } satisfies CaptainInvitePreview;
-}
-
 export async function getCaptainInviteWizardData(teamId: string, seasonId: string) {
   const auth = await verifyCaptain(teamId);
   if (!auth.ok) return { success: false as const, error: auth.error };
@@ -126,24 +65,51 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
     .select(`
       id,
       player_id,
+      season_id,
+      joined_at,
+      created_at,
       position,
       player_type,
+      leadership_role,
       player:player_id(id, full_name, phone, email, is_legacy_import)
     `)
     .eq('team_id', teamId)
-    .eq('season_id', seasonId)
     .eq('status', 'active')
     .is('end_date', null)
-    .order('position')
-    .order('joined_at');
+    .order('joined_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false, nullsFirst: false });
 
   if (error) {
     return { success: false as const, error: 'Failed to load invite data' };
   }
 
-  const existingPlayers = ((rows || []) as any[])
-    .map((row) => {
+  const latestRosterByPlayer = new Map<string, any>();
+  for (const row of (rows || []) as any[]) {
+    const existing = latestRosterByPlayer.get(row.player_id);
+    const rowMatchesSeason = row.season_id === seasonId;
+    const existingMatchesSeason = existing?.season_id === seasonId;
+
+    if (!existing || (rowMatchesSeason && !existingMatchesSeason)) {
+      latestRosterByPlayer.set(row.player_id, row);
+    }
+  }
+
+  const enrichedRows = await Promise.all(
+    Array.from(latestRosterByPlayer.values()).map(async (row) => {
       const player = Array.isArray(row.player) ? row.player[0] : row.player;
+      const normalizedEmail = String(player?.email || '').trim().toLowerCase();
+      const isPlaceholderEmail = !normalizedEmail
+        || normalizedEmail.includes(LEGACY_EMAIL_DOMAIN)
+        || normalizedEmail.startsWith('legacy_');
+
+      let hasAuthAccount = false;
+      try {
+        const authLookup = await (serviceSupabase as any).auth.admin.getUserById(row.player_id);
+        hasAuthAccount = !authLookup?.error && !!authLookup?.data?.user;
+      } catch {
+        hasAuthAccount = false;
+      }
+
       return {
         rosterId: row.id,
         playerId: row.player_id,
@@ -152,11 +118,16 @@ export async function getCaptainInviteWizardData(teamId: string, seasonId: strin
         email: player?.email || null,
         position: row.position || null,
         playerType: row.player_type || 'regular',
-        isLegacyImport: player?.is_legacy_import === true || String(player?.email || '').includes(LEGACY_EMAIL_DOMAIN) || String(player?.email || '').startsWith('legacy_'),
+        leadershipRole: row.leadership_role || null,
+        isUnlinked: !hasAuthAccount || player?.is_legacy_import === true || isPlaceholderEmail,
       };
     })
-    .filter((row) => row.isLegacyImport)
-    .map(({ isLegacyImport: _ignored, ...row }) => row);
+  );
+
+  const existingPlayers = enrichedRows
+    .filter((row) => row.isUnlinked && !row.leadershipRole)
+    .map(({ isUnlinked: _ignored, leadershipRole: _role, ...row }) => row)
+    .sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
 
   return { success: true as const, data: { existingPlayers } };
 }
@@ -187,15 +158,15 @@ export async function createCaptainPlayerInvite(input: {
   }
 
   const league = Array.isArray(team.leagues) ? team.leagues[0] : team.leagues;
-  const brandScope = input.isSpare && input.shareWithLeague ? 'league' : 'team';
-  const playerType = input.isSpare ? (input.shareWithLeague ? 'sub' : 'part_time') : 'regular';
+  const brandScope = 'team';
+  const playerType = input.isSpare ? 'part_time' : 'regular';
   const normalizedPhone = normalizePhone(input.phone);
 
   let playerId = input.existingPlayerId || null;
   let rosterId = input.existingRosterId || null;
   let inviteeName = input.fullName?.trim() || null;
   let inviteePhone = normalizedPhone;
-  let invitePosition = input.position || null;
+  const invitePosition = input.position || null;
 
   if (playerId) {
     const { data: existing } = await (serviceSupabase as any)
@@ -280,7 +251,7 @@ export async function createCaptainPlayerInvite(input: {
       share_phone: inviteePhone,
       position: invitePosition,
       player_type: playerType,
-      share_with_league: input.isSpare && input.shareWithLeague === true,
+      share_with_league: false,
       brand_scope: brandScope,
       invited_by: auth.userId,
       registration_path: `/${league.slug}/register?captainInvite=`,
@@ -297,7 +268,11 @@ export async function createCaptainPlayerInvite(input: {
     .update({ registration_path: `/${league.slug}/register?captainInvite=${invite.id}` })
     .eq('id', invite.id);
 
-  const preview = await buildPreview(serviceSupabase, invite.id);
+  const preview = await getPublicCaptainInvitePreview(invite.id);
+  if (!preview) {
+    return { success: false as const, error: 'Failed to build invite preview' };
+  }
+
   return { success: true as const, data: preview };
 }
 
@@ -317,6 +292,7 @@ export async function getCaptainInvitePrefill(inviteId: string) {
     success: true as const,
     data: {
       current_step: 1,
+      season_id: invite.season_id,
       full_name: invite.invitee_name || '',
       phone: invite.share_phone || '',
       primary_position: invite.position || '',

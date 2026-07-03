@@ -180,9 +180,20 @@ class ScorekeeperSyncService {
         .eq('team_id', teamId)
         .eq('season_id', game.season_id)
         .is('end_date', null)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('player_type', 'regular');
 
       if (error) throw error;
+
+      const { data: acceptedSubs } = await this.supabase
+        .from('sub_invitations')
+        .select(`
+          invited_player_id,
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name)
+        `)
+        .eq('game_id', gameId)
+        .eq('team_id', teamId)
+        .eq('status', 'accepted');
 
       const players: Player[] = (roster || []).map((r: any) => ({
         id: r.player_id,
@@ -191,6 +202,20 @@ class ScorekeeperSyncService {
         position: r.position,
         team_id: teamId,
       }));
+
+      for (const row of acceptedSubs || []) {
+        const profile = Array.isArray((row as any).invited_player_profile)
+          ? (row as any).invited_player_profile[0]
+          : (row as any).invited_player_profile;
+        if (!row.invited_player_id || players.some((player) => player.id === row.invited_player_id)) continue;
+        players.push({
+          id: row.invited_player_id,
+          full_name: profile?.full_name || 'Spare Player',
+          jersey_number: null,
+          position: 'Forward',
+          team_id: teamId,
+        });
+      }
 
       await savePlayers(players);
     } catch (error) {

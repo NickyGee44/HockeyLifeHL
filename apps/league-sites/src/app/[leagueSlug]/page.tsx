@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { ReactNode } from 'react';
-import { SubscriptionWall } from '@/components/shared';
+import { SubscriptionWall, SectionHeading } from '@/components/shared';
 import {
   Trophy,
-  ChevronRight,
   Camera,
+  BarChart3,
 } from 'lucide-react';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import {
@@ -17,8 +16,8 @@ import {
   getDivisions,
   getAllArticles,
   getGalleryAlbums,
+  getRecentPhotosForReel,
   getCurrentSeason,
-  getPlayerBadgesByIds,
   getSeasons,
   getTeams,
   getUnifiedSkaterStatsRows,
@@ -41,11 +40,12 @@ import type { HomepagePhotoHighlight } from '@/components/home/HomepagePulseRail
 import { HomepageStoryHero } from '@/components/home/HomepageStoryHero';
 import { HomepageSeasonBand } from '@/components/home/HomepageSeasonBand';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
-import { AuthRedirect } from '@/components/home/AuthRedirect';
-import { SponsorBanner } from '@/components/sponsors/SponsorBanner';
+// AuthRedirect removed — homepage always visible now
+import { LeagueLandingSignInPrompt } from '@/components/auth/LeagueLandingSignInPrompt';
 import type { HomepageRecognitionCard } from '@/components/home/HomepageEditorialRow';
 import { StatLeaders } from '@/components/stats/StatLeaders';
 import { buildSportsOrganizationJsonLd } from '@/lib/jsonld';
+import PhotoReelCarousel from '@/components/gallery/PhotoReelCarousel';
 import { pickRegistrationSeason } from '@/lib/registration/seasons';
 
 interface HomePageProps {
@@ -460,6 +460,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     teams,
     seasons,
     sponsors,
+    reelPhotosRaw,
   ] = await Promise.all([
     getLeagueStats(league.id, currentSeason?.id),
     getHomepageWeeklyGames(league.id, {
@@ -475,11 +476,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     getTeams(league.id),
     getSeasons(league.id),
     getLeagueSponsors(league.id),
+    getRecentPhotosForReel(league.id, 12),
   ]);
 
   const newsArticles = filterArticlesForSeason(allNewsArticles, currentSeason);
   const albums = filterAlbumsForSeason(allAlbums, currentSeason);
 
+  const reelPhotos = reelPhotosRaw.map((p) => ({
+    ...p,
+    album_href: `/${leagueSlug}/gallery/${p.album_id}`,
+  }));
   const hasAlbums = albums.length > 0;
   const websiteSettings = league.settings?.website;
   const hasSocialLinks = !!(
@@ -500,10 +506,6 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         currentSeason.name,
       )
     : [];
-  const homepageLeaderBadges = await getPlayerBadgesByIds(
-    [...new Set(homepageLeaderRows.map((row) => row.player_id))],
-  );
-
   // Check if registration is open for any season
   const now = new Date();
   const registrationSeason = pickRegistrationSeason(seasons as any[], now);
@@ -522,20 +524,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         opensAt: (registrationSeason as any).registration_opens_at ?? null,
         closesAt: registrationSeason.registration_closes_at ?? null,
       }
-    : recentGames.length > 0
-      ? {
-          type: 'results' as const,
-          title: 'Latest finals from around the rink',
-          href: `/${leagueSlug}/scores`,
-          games: recentGames.slice(0, 2),
-        }
-      : homepagePhotoHighlight
-        ? {
-            type: 'gallery' as const,
-            title: 'Latest gallery',
-            highlight: homepagePhotoHighlight,
-          }
-        : null;
+    : null;
 
   const templateVariant =
     league.settings?.website?.themePreset === 'light' || league.settings?.website?.themePreset === 'custom'
@@ -547,9 +536,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   return (
     <SubscriptionWall>
+    <LeagueLandingSignInPrompt />
     <div className={`animate-fade-in league-home league-home-${templateVariant} league-home-shell`}>
-      {/* Redirect authenticated users to their player dashboard */}
-      <AuthRedirect />
+      {/* Auth redirect removed — homepage should always be visible */}
 
       {/* JSON-LD Structured Data for SEO */}
       <script
@@ -579,7 +568,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         leadersDescription=""
         scoringLeaders={[]}
         goalieLeaders={[]}
-        spotlight={seasonSpotlight?.type === 'registration' ? null : seasonSpotlight}
+        spotlight={null}
       />
 
       <div className="mx-auto max-w-[1400px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
@@ -590,28 +579,33 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 games={weeklyGames}
                 leagueSlug={leagueSlug}
                 timezone={league.timezone}
+                backgroundPreset={websiteSettings?.backgroundPreset ?? 'weekly-games'}
               />
             </section>
 
             <section>
-              <StatLeaders
-                badges={homepageLeaderBadges}
-                isAllTime={false}
-                leagueSlug={leagueSlug}
-                mode="skaters"
-                rows={homepageLeaderRows}
+              <SectionHeading
+                title="League Leaders"
+                icon={<BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />}
               />
+              <div className="mt-4">
+                <StatLeaders
+                  hideTitle
+                  isAllTime={false}
+                  leagueSlug={leagueSlug}
+                  mode="skaters"
+                  rows={homepageLeaderRows}
+                />
+              </div>
             </section>
           </div>
 
-          <section className={`${panelClass} p-6 md:p-7`}>
+          <section>
             <SectionHeading
               title="Standings"
               icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/standings`}
-              cta="Full Standings"
             />
-            <div className="mt-6">
+            <div className={`${panelClass} mt-4 p-6 md:p-7`}>
               {divisions.length > 1 ? (
                 <DivisionStandingsWidget standings={standings} divisions={divisions} />
               ) : (
@@ -621,16 +615,34 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           </section>
         </div>
 
-        {hasAlbums && (
-          <section className={panelClass}>
+        {reelPhotos.length > 0 ? (
+          <section>
+            <div className="flex items-center justify-between">
+              <SectionHeading
+                title="League Photos"
+                icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
+              />
+              <Link
+                href={`/${leagueSlug}/gallery`}
+                className="text-sm font-medium text-[var(--league-primary)] hover:underline"
+              >
+                View All Photos
+              </Link>
+            </div>
+
+            <div className="mt-4">
+              <PhotoReelCarousel photos={reelPhotos} galleryHref={`/${leagueSlug}/gallery`} />
+            </div>
+          </section>
+        ) : hasAlbums ? (
+          <section>
             <SectionHeading
-              title="Galleries"
+              title="League Photos"
               icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
-              href={`/${leagueSlug}/gallery`}
-              cta="View All Albums"
             />
 
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className={`${panelClass} mt-4`}>
+            <div className="grid gap-4 md:grid-cols-3">
               {albums.slice(0, 3).map((album) => (
                 <Link
                   key={album.id}
@@ -660,8 +672,9 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 </Link>
               ))}
             </div>
+            </div>
           </section>
-        )}
+        ) : null}
 
         {socialSettings && (
           <section className={`${panelClass} p-6 md:p-8`}>
@@ -695,45 +708,8 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         )}
       </div>
 
-      {sponsors.length > 0 && (
-        <SponsorBanner sponsors={sponsors} />
-      )}
-
     </div>
     </SubscriptionWall>
-  );
-}
-
-function SectionHeading({
-  title,
-  icon,
-  href,
-  cta,
-}: {
-  title: string;
-  icon: ReactNode;
-  href?: string;
-  cta?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <h2 className="flex items-center gap-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-        {icon}
-        {title}
-      </h2>
-      {href && cta && (
-        <Link
-          href={href}
-          className="group inline-flex items-center gap-1 text-sm text-[var(--league-primary)] transition-all duration-300"
-        >
-          <span className="relative">
-            {cta}
-            <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--league-primary)] transition-all duration-300 group-hover:w-full" />
-          </span>
-          <ChevronRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-        </Link>
-      )}
-    </div>
   );
 }
 

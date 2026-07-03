@@ -1,0 +1,182 @@
+'use client';
+
+import { useEffect, useState, type ReactNode } from 'react';
+import { List } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { TeamLineupView } from './TeamLineupView';
+
+interface LineupPlayer {
+  playerId: string;
+  name: string;
+  jerseyNumber: number | null;
+  position?: string | null;
+  /** When true, this player is a spare and must not occupy a jersey slot. */
+  isSub?: boolean;
+  /** Game-specific replacement subs can opt into a visible slot. */
+  showAsLineupPlayer?: boolean;
+  replacingName?: string | null;
+}
+
+interface TeamRosterToggleProps {
+  title?: string;
+  statsView: ReactNode;
+  skaters: LineupPlayer[];
+  goalies: LineupPlayer[];
+  substitutionNotes?: string[];
+  primaryColor: string;
+  secondaryColor: string;
+  availabilityGameId?: string | null;
+  availabilityTeamId?: string | null;
+  forwardSlots?: number;
+  defenceSlots?: number;
+}
+
+function JerseyIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M5 5 L8.5 3 Q12 6 15.5 3 L19 5 L22 8 L20.5 11 L18.5 10 L18.5 21 Q12 22 5.5 21 L5.5 10 L3.5 11 L2 8 Z" />
+    </svg>
+  );
+}
+
+export function TeamRosterToggle({
+  title = 'Roster',
+  statsView,
+  skaters,
+  goalies,
+  substitutionNotes = [],
+  primaryColor,
+  secondaryColor,
+  availabilityGameId = null,
+  availabilityTeamId = null,
+  forwardSlots,
+  defenceSlots,
+}: TeamRosterToggleProps) {
+  const [view, setView] = useState<'lineup' | 'stats'>('lineup');
+  const [availabilityMap, setAvailabilityMap] = useState<Record<string, 'confirmed' | 'tentative' | 'out'>>({});
+
+  useEffect(() => {
+    if (!availabilityGameId || !availabilityTeamId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears stale availability when there is no next game/team context.
+      setAvailabilityMap({});
+      return;
+    }
+
+    const loadAvailability = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('game_checkins')
+        .select('player_id, status')
+        .eq('team_id', availabilityTeamId)
+        .eq('game_id', availabilityGameId);
+
+      const nextMap: Record<string, 'confirmed' | 'tentative' | 'out'> = {};
+      for (const row of data || []) {
+        if (row.status === 'confirmed' || row.status === 'tentative' || row.status === 'out') {
+          nextMap[row.player_id] = row.status;
+        }
+      }
+
+      setAvailabilityMap(nextMap);
+    };
+
+    const handleAvailabilityUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        gameId: string;
+        playerId: string;
+        status: string;
+      }>).detail;
+
+      if (!detail || detail.gameId !== availabilityGameId) return;
+      if (
+        detail.status !== 'confirmed' &&
+        detail.status !== 'tentative' &&
+        detail.status !== 'out'
+      ) {
+        return;
+      }
+
+      const nextStatus = detail.status as 'confirmed' | 'tentative' | 'out';
+
+      setAvailabilityMap((prev) => ({
+        ...prev,
+        [detail.playerId]: nextStatus,
+      }));
+    };
+
+    loadAvailability();
+    window.addEventListener('team-checkin-updated', handleAvailabilityUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('team-checkin-updated', handleAvailabilityUpdate as EventListener);
+    };
+  }, [availabilityGameId, availabilityTeamId]);
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
+          {title}
+        </h2>
+        <div className="inline-flex items-center self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <button
+            type="button"
+            onClick={() => setView('lineup')}
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              view === 'lineup'
+                ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+                : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
+            }`}
+            aria-label="Lineup view"
+            title="Lineup view"
+          >
+            <JerseyIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('stats')}
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              view === 'stats'
+                ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
+                : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
+            }`}
+            aria-label="Stats view"
+            title="Stats view"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {view === 'lineup' ? (
+        <TeamLineupView
+          skaters={skaters}
+          goalies={goalies}
+          primaryColor={primaryColor}
+          secondaryColor={secondaryColor}
+          availabilityMap={availabilityMap}
+          forwardSlots={forwardSlots}
+          defenceSlots={defenceSlots}
+        />
+      ) : (
+        statsView
+      )}
+
+      {substitutionNotes.length > 0 ? (
+        <div className="mt-5 space-y-1 px-1 text-sm font-medium leading-6 text-[var(--color-text-secondary)]">
+          {substitutionNotes.map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}

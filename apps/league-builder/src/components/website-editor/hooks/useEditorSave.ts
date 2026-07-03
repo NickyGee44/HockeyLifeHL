@@ -23,6 +23,7 @@ export function useEditorSave() {
 
       const websiteSettings = {
         themePreset: state.themePreset,
+        backgroundPreset: state.backgroundPreset,
         socialFacebook: state.socialFacebook,
         socialTwitter: state.socialTwitter,
         socialInstagram: state.socialInstagram,
@@ -31,6 +32,7 @@ export function useEditorSave() {
         visiblePages: state.visiblePages,
         navItems: state.navItems,
         showGameTicker: state.showGameTicker,
+        showCaptainPhone: state.showCaptainPhone,
         seoTitle: state.seoTitle,
         seoDescription: state.seoDescription,
       };

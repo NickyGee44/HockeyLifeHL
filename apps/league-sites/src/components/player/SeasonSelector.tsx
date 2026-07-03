@@ -20,7 +20,7 @@ export function SeasonSelector({
 
   const handleSeasonChange = (seasonId: string) => {
     if (seasonId === 'all') {
-      router.push(`/${leagueSlug}/players/${playerId}`);
+      router.push(`/${leagueSlug}/players/${playerId}?season=all`);
     } else {
       router.push(`/${leagueSlug}/players/${playerId}?season=${seasonId}`);
     }

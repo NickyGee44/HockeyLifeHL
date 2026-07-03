@@ -58,7 +58,7 @@ export interface GameSubmission {
 export interface Player {
   id: string;
   full_name: string;
-  jersey_number: number;
+  jersey_number: number | null;
   position: 'Forward' | 'Defense' | 'Goalie';
   team_id: string;
 }

@@ -8,6 +8,7 @@ export interface LineupRosterPlayer {
   jerseyNumber: number | null;
   position: string | null;
   availability: LineupAvailability;
+  isSub?: boolean;
 }
 
 export interface LineupPlacedPlayer {
@@ -138,11 +139,17 @@ export function sortLineupRoster(players: LineupRosterPlayer[]) {
   });
 }
 
+function isEligibleLineupPlayer(player: LineupRosterPlayer) {
+  // Line combinations are a captain planning tool, not attendance truth.
+  // Regular roster players stay selectable even before they check in.
+  return Boolean(player.playerId);
+}
+
 export function buildDefaultLineupLayout(roster: LineupRosterPlayer[]): GameTeamLineupLayout {
   const sortedRoster = sortLineupRoster(roster);
-  const preferredPlayers = sortedRoster.filter((player) => player.availability !== 'out');
-  const goalies = preferredPlayers.filter((player) => isGoaliePosition(player.position));
-  const skaters = preferredPlayers.filter((player) => !isGoaliePosition(player.position));
+  const eligiblePlayers = sortedRoster.filter(isEligibleLineupPlayer);
+  const goalies = eligiblePlayers.filter((player) => isGoaliePosition(player.position));
+  const skaters = eligiblePlayers.filter((player) => !isGoaliePosition(player.position));
 
   const placedPlayers: LineupPlacedPlayer[] = [];
   const placed = new Set<string>();
@@ -198,11 +205,13 @@ export function normalizeLineupLayout(
   }
 
   const inputRecord = input as Record<string, unknown>;
-  const rosterIds = new Set(roster.map((player) => player.playerId));
+  const hasExplicitPlacements = Array.isArray(inputRecord.placedPlayers);
+  const eligibleRoster = sortLineupRoster(roster).filter(isEligibleLineupPlayer);
+  const rosterIds = new Set(eligibleRoster.map((player) => player.playerId));
   const seen = new Set<string>();
 
-  const placedPlayers = Array.isArray(inputRecord.placedPlayers)
-    ? inputRecord.placedPlayers
+  const placedPlayers = hasExplicitPlacements
+    ? (inputRecord.placedPlayers as unknown[])
         .map((entry) => {
           if (!entry || typeof entry !== 'object') return null;
           const record = entry as Record<string, unknown>;
@@ -222,16 +231,18 @@ export function normalizeLineupLayout(
           } satisfies LineupPlacedPlayer;
         })
         .filter((entry): entry is LineupPlacedPlayer => entry !== null)
-    : [];
+    : null;
 
+  // Respect an explicit empty placements array (captain cleared the ice) —
+  // only fall back to defaults when the caller sent no placedPlayers field at all.
   return {
     version: DEFAULT_LINEUP_VERSION,
-    roster: sortLineupRoster(roster),
-    placedPlayers: placedPlayers.length > 0 ? placedPlayers : fallback.placedPlayers,
+    roster: eligibleRoster,
+    placedPlayers: placedPlayers ?? fallback.placedPlayers,
   };
 }
 
 export function getBenchPlayers(layout: GameTeamLineupLayout) {
   const placedIds = new Set(layout.placedPlayers.map((player) => player.playerId));
-  return layout.roster.filter((player) => !placedIds.has(player.playerId));
+  return layout.roster.filter((player) => isEligibleLineupPlayer(player) && !placedIds.has(player.playerId));
 }

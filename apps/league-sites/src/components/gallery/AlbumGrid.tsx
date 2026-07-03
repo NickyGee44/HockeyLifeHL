@@ -29,7 +29,7 @@ export function AlbumGrid({ albums, leagueSlug }: AlbumGridProps) {
         <Link
           key={album.id}
           href={`/${leagueSlug}/gallery/${album.id}`}
-          className="group block overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--league-primary)]/50 transition-all duration-300"
+          className="group block glass-card overflow-hidden rounded-xl"
         >
           {/* Cover Image */}
           <div className="relative aspect-video bg-[var(--color-background)] overflow-hidden">
@@ -58,11 +58,6 @@ export function AlbumGrid({ albums, leagueSlug }: AlbumGridProps) {
             <h3 className="text-lg font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)] transition-colors">
               {album.title}
             </h3>
-            {album.description && (
-              <p className="text-sm text-[var(--color-text-secondary)] mt-1 line-clamp-2">
-                {album.description}
-              </p>
-            )}
           </div>
         </Link>
       ))}

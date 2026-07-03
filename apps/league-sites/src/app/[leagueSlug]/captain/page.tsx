@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, use } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
@@ -12,24 +13,24 @@ import {
   Loader2,
   AlertCircle,
   Calendar,
-  Trophy,
   DollarSign,
-  CheckCircle2,
   Mail,
   Goal,
-  PlayCircle,
+  UserPlus,
+  Shirt,
 } from 'lucide-react';
 import { RosterManager } from '@/components/captain/RosterManager';
-import { TeamAttendance } from '@/components/captain/TeamAttendance';
-import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import { InvitePlayerWizard } from '@/components/captain/InvitePlayerWizard';
-import { getOrCreateCaptainScorekeeperSession } from '@/lib/actions/scorekeeper';
 import {
   getTeamRoster,
+  getTeamSubsWhoPlayed,
   getJoinRequests,
   type RosterPlayer,
   type JoinRequest,
+  type SubRosterPlayer,
 } from '@/lib/actions/captain-roster';
+import { getCaptainTeamReturnRequests } from '@/lib/actions/team-return';
+import { TeamPushToggle } from '@/components/push/TeamPushToggle';
 
 interface CaptainPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -41,6 +42,7 @@ interface TeamStats {
   ties: number;
   points: number;
   division_rank: number | null;
+  division_name: string | null;
 }
 
 interface UpcomingLineupGame {
@@ -51,6 +53,14 @@ interface UpcomingLineupGame {
   opponentName: string;
 }
 
+interface CaptainActionItem {
+  type: 'link' | 'button';
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  icon: typeof Calendar;
+}
+
 export default function CaptainPage({ params }: CaptainPageProps) {
   const { leagueSlug } = use(params);
   const { league } = useLeague();
@@ -59,39 +69,39 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     league?.current_season_id
   );
   const [roster, setRoster] = useState<RosterPlayer[]>([]);
+  const [subs, setSubs] = useState<SubRosterPlayer[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [teamStats, setTeamStats] = useState<TeamStats | null>(null);
   const [nextLineupGame, setNextLineupGame] = useState<UpcomingLineupGame | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [subInviteGameId, setSubInviteGameId] = useState<string | null>(null);
   const [inviteWizardOpen, setInviteWizardOpen] = useState(false);
-  const [startingScore, setStartingScore] = useState(false);
-  const [scoreError, setScoreError] = useState<string | null>(null);
+  const [hasPendingTeamReturn, setHasPendingTeamReturn] = useState(false);
 
   const isCaptain = currentTeam?.is_captain || currentTeam?.is_alternate;
-  const leagueSettings = (league?.settings ?? null) as Record<string, unknown> | null;
-  const selfScorekeeperEnabled =
-    leagueSettings?.self_scorekeeper_enabled === true ||
-    leagueSettings?.scorekeepingMode === 'self_scorekeeping' ||
-    leagueSettings?.statEntryMode === 'captain';
 
   const teamId = currentTeam?.team_id;
 
   const fetchRosterData = useCallback(async () => {
     if (!teamId) return;
 
-    const [rosterResult, requestsResult] = await Promise.all([
-      getTeamRoster(teamId),
+    const currentSeasonId = league?.current_season_id ?? null;
+
+    const [rosterResult, subsResult, requestsResult] = await Promise.all([
+      getTeamRoster(teamId, currentSeasonId),
+      getTeamSubsWhoPlayed(teamId, currentSeasonId),
       getJoinRequests(teamId),
     ]);
 
     if (rosterResult.success && rosterResult.data) {
       setRoster(rosterResult.data);
     }
+    if (subsResult.success && subsResult.data) {
+      setSubs(subsResult.data);
+    }
     if (requestsResult.success && requestsResult.data) {
       setJoinRequests(requestsResult.data);
     }
-  }, [teamId]);
+  }, [league?.current_season_id, teamId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,28 +116,51 @@ export default function CaptainPage({ params }: CaptainPageProps) {
       await fetchRosterData();
 
       // Fetch team stats (actual RPC: get_team_standings)
-      const { data: standings } = await supabase.rpc('get_team_standings', {
-        check_league_id: currentTeam.team.league_id,
-        check_season_id: null,
-      });
+      const [{ data: standings }, { data: leagueTeams }] = await Promise.all([
+        supabase.rpc('get_team_standings', {
+          check_league_id: currentTeam.team.league_id,
+          check_season_id: league?.current_season_id || null,
+        }),
+        supabase
+          .from('teams')
+          .select('id, division_id')
+          .eq('league_id', currentTeam.team.league_id),
+      ]);
 
       if (standings) {
         const myTeam = standings.find((s: any) => s.team_id === currentTeam.team_id);
         if (myTeam) {
-          // Calculate division rank
-          const divisionTeams = standings.filter(
-            (s: any) => s.division_id === myTeam.division_id
+          const divisionIdByTeam = new Map(
+            (leagueTeams || []).map((team: any) => [team.id, team.division_id ?? null])
           );
-          divisionTeams.sort((a: any, b: any) => b.points - a.points);
-          const divisionRank =
-            divisionTeams.findIndex((s: any) => s.team_id === currentTeam.team_id) + 1;
+
+          // Calculate division rank from real team division membership, not RPC rows.
+          const divisionTeams = standings.filter((s: any) => {
+            if (!currentTeam.team?.division_id) return true;
+            return divisionIdByTeam.get(s.team_id) === currentTeam.team.division_id;
+          });
+
+          divisionTeams.sort((a: any, b: any) => {
+            const pointsDiff = Number(b.points || 0) - Number(a.points || 0);
+            if (pointsDiff !== 0) return pointsDiff;
+            const winsDiff = Number(b.wins || 0) - Number(a.wins || 0);
+            if (winsDiff !== 0) return winsDiff;
+            const goalDiff = Number(b.goal_differential || 0) - Number(a.goal_differential || 0);
+            if (goalDiff !== 0) return goalDiff;
+            const goalsForDiff = Number(b.goals_for || 0) - Number(a.goals_for || 0);
+            if (goalsForDiff !== 0) return goalsForDiff;
+            return String(a.team_id || '').localeCompare(String(b.team_id || ''));
+          });
+
+          const divisionRank = divisionTeams.findIndex((s: any) => s.team_id === currentTeam.team_id) + 1;
 
           setTeamStats({
-            wins: myTeam.wins || 0,
-            losses: myTeam.losses || 0,
-            ties: myTeam.ties || 0,
-            points: myTeam.points || 0,
-            division_rank: divisionRank,
+            wins: Number(myTeam.wins || 0),
+            losses: Number(myTeam.losses || 0),
+            ties: Number(myTeam.ties || 0),
+            points: Number(myTeam.points || 0),
+            division_rank: divisionRank || null,
+            division_name: null,
           });
         }
       }
@@ -176,35 +209,28 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         setNextLineupGame(null);
       }
 
+      // Only show the Team Return button when the captain actually has a
+      // pending request to respond to — anything confirmed/declined is done.
+      const teamReturnResult = await getCaptainTeamReturnRequests({
+        leagueSlug,
+        teamId: currentTeam.team_id,
+      });
+      if (teamReturnResult.success) {
+        const pending = teamReturnResult.data.entries.some(
+          (entry) => entry.status !== 'confirmed' && entry.status !== 'declined',
+        );
+        setHasPendingTeamReturn(pending);
+      } else {
+        setHasPendingTeamReturn(false);
+      }
+
       setIsLoading(false);
     };
 
     if (!profileLoading) {
       fetchData();
     }
-  }, [currentTeam, isCaptain, profileLoading, fetchRosterData, league]);
-
-  const handleStartScoring = useCallback(async () => {
-    if (!teamId || !nextLineupGame) return;
-
-    setScoreError(null);
-    setStartingScore(true);
-
-    try {
-      const result = await getOrCreateCaptainScorekeeperSession(nextLineupGame.id, teamId);
-
-      if (result.success && result.token) {
-        window.location.href = `/${result.leagueSlug ?? leagueSlug}/scorekeeper?token=${result.token}`;
-        return;
-      }
-
-      setScoreError(result.error || 'Failed to start scoring session');
-    } catch {
-      setScoreError('Failed to start scoring session. Please try again.');
-    } finally {
-      setStartingScore(false);
-    }
-  }, [leagueSlug, nextLineupGame, teamId]);
+  }, [currentTeam, isCaptain, profileLoading, fetchRosterData, league, leagueSlug]);
 
   if (profileLoading || isLoading) {
     return (
@@ -262,229 +288,142 @@ export default function CaptainPage({ params }: CaptainPageProps) {
     );
   }
 
+  const regularRoster = roster.filter((player) => player.player_type === 'regular');
   const record = `${teamStats?.wins || 0}-${teamStats?.losses || 0}-${teamStats?.ties || 0}`;
-  const captainNavItems = [
+  const rankLabel = teamStats?.division_rank ? `#${teamStats.division_rank}` : '-';
+  const nextGameDateLabel = nextLineupGame
+    ? new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(new Date(nextLineupGame.scheduled_at))
+    : 'No game scheduled';
+  const captainActionItems = [
     nextLineupGame
       ? {
+          type: 'link' as const,
+          href: `/${leagueSlug}/captain/lineups/${nextLineupGame.id}?mode=lineup`,
+          label: 'Set Lineup',
+          icon: Shirt,
+        }
+      : null,
+    nextLineupGame
+      ? {
+          type: 'link' as const,
           href: `/${leagueSlug}/captain/lineups/${nextLineupGame.id}`,
-          label: 'Lineup',
+          label: 'Game Day',
           icon: Calendar,
-          tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
         }
       : null,
     {
-      href: `/${leagueSlug}/captain/duties`,
-      label: 'Game Duties',
-      icon: CheckCircle2,
-      tone: 'bg-[var(--league-primary)]/10 border-[var(--league-primary)]/20 text-[var(--league-primary)]',
-    },
-    {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/goalies`,
       label: 'Goalies',
       icon: Goal,
-      tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
     },
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/fees`,
       label: 'Team Fees',
       icon: DollarSign,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
     },
     {
+      type: 'link' as const,
       href: `/${leagueSlug}/captain/player-payments`,
       label: 'Player Payments',
       icon: Users,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
     },
     {
-      href: `/${leagueSlug}/captain/team-return`,
-      label: 'Team Return',
-      icon: Mail,
-      tone: 'bg-cyan-500/10 border-cyan-400/20 text-cyan-100',
+      type: 'button' as const,
+      label: 'Invite Player',
+      icon: UserPlus,
+      onClick: () => setInviteWizardOpen(true),
     },
-    {
-      href: `/${leagueSlug}/schedule?team=${currentTeam.team_id}`,
-      label: 'Schedule',
-      icon: Calendar,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
-    },
-    {
-      href: `/${leagueSlug}/teams/${currentTeam.team.slug}`,
-      label: 'Team Page',
-      icon: Users,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
-    },
-    {
-      href: `/${leagueSlug}/standings`,
-      label: 'Standings',
-      icon: Trophy,
-      tone: 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]',
-    },
-  ].filter(Boolean) as Array<{
-    href: string;
-    label: string;
-    icon: typeof Calendar;
-    tone: string;
-  }>;
+    hasPendingTeamReturn
+      ? {
+          type: 'link' as const,
+          href: `/${leagueSlug}/captain/team-return`,
+          label: 'Team Return',
+          icon: Mail,
+        }
+      : null,
+  ].filter(Boolean) as CaptainActionItem[];
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <Link
-          href={`/${leagueSlug}/me`}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <Shield className="w-6 h-6 text-amber-400" />
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-              Captain Dashboard
-            </h1>
+      <div className="mb-8 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)]">
+        <div className="flex items-center gap-5">
+          <div className="flex h-48 w-48 shrink-0 items-center justify-center overflow-hidden">
+            {currentTeam.team.logo ? (
+              <Image
+                src={currentTeam.team.logo}
+                alt={currentTeam.team.name}
+                width={192}
+                height={192}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <Shield className="h-16 w-16 text-[var(--league-primary)]" />
+            )}
           </div>
-          <p className="text-[var(--color-text-secondary)]">
-            Manage your team: {currentTeam.team.name}
-          </p>
-        </div>
-      </div>
-
-      <div className="mb-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-        <div className="flex flex-wrap gap-2">
-          {captainNavItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors hover:opacity-90 ${item.tone}`}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {scoreError && (
-        <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {scoreError}
-        </div>
-      )}
-
-      {/* Team Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          icon={<Users className="w-5 h-5 text-[var(--league-primary)]" />}
-          value={roster.length}
-          label="Players"
-        />
-        <StatCard
-          icon={<Trophy className="w-5 h-5 text-amber-400" />}
-          value={record}
-          label="Record"
-        />
-        <StatCard
-          icon={<DollarSign className="w-5 h-5 text-green-400" />}
-          value={teamStats?.points || 0}
-          label="Points"
-        />
-        <StatCard
-          icon={<Calendar className="w-5 h-5 text-blue-400" />}
-          value={teamStats?.division_rank ? `#${teamStats.division_rank}` : '-'}
-          label="Division Rank"
-        />
-      </div>
-
-      <div className="mb-8">
-        {nextLineupGame ? (
-          <div className="rounded-3xl border border-cyan-400/20 bg-[linear-gradient(135deg,rgba(34,211,238,0.16),rgba(15,23,42,0.92))] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.28)]">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-100/80">
-                  Tonight&apos;s Lineup
-                </p>
-                <h2 className="mt-3 text-2xl font-bold text-white">
-                  Build your card for {nextLineupGame.opponentName}
-                </h2>
-                <p className="mt-2 text-sm text-cyan-50/80">
-                  Drag skaters onto the ice, publish the lineup, and share it to the room before puck drop.
-                </p>
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-cyan-50/85">
-                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                    {new Intl.DateTimeFormat(undefined, {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    }).format(new Date(nextLineupGame.scheduled_at))}
-                  </span>
-                  {nextLineupGame.location && (
-                    <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                      {nextLineupGame.location}
-                    </span>
-                  )}
-                  <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
-                    {nextLineupGame.status === 'in_progress' ? 'Live now' : 'Upcoming'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {selfScorekeeperEnabled && (
-                  <button
-                    type="button"
-                    onClick={handleStartScoring}
-                    disabled={startingScore}
-                    className="inline-flex items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 text-sm font-semibold text-emerald-50 transition-colors hover:bg-emerald-400/25 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {startingScore ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <PlayCircle className="h-4 w-4" />
-                    )}
-                    {startingScore ? 'Starting...' : 'Score Game'}
-                  </button>
-                )}
-                <Link
-                  href={`/${leagueSlug}/captain/lineups/${nextLineupGame.id}`}
-                  className="rounded-full border border-white/10 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15"
-                >
-                  Open lineup studio
-                </Link>
-              </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+              Captains Home
+            </h1>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              {currentTeam.team.name}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-text-secondary)] sm:text-sm">
+              <span>Record: {record}</span>
+              <span>Rank: {rankLabel}</span>
+              <span>Next Opponent: {nextLineupGame?.opponentName ?? 'TBD'}</span>
+              <span>Next Game: {nextGameDateLabel}</span>
+              <span>Players on Roster: {regularRoster.length}</span>
             </div>
           </div>
-        ) : (
-          <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-text-muted)]">
-              Tonight&apos;s Lineup
-            </p>
-            <h2 className="mt-3 text-xl font-bold text-[var(--color-text-primary)]">
-              No current game ready for lineup setup
-            </h2>
-            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              As soon as your next scheduled game is available, you&apos;ll be able to build and publish a lineup card here.
-            </p>
-          </div>
-        )}
+        </div>
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Roster tools</h2>
-          <p className="text-sm text-[var(--color-text-secondary)]">Invite a new or existing player, then send their registration link.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setInviteWizardOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--league-primary)]/30 bg-[var(--league-primary)]/10 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/20"
-        >
-          <Users className="h-4 w-4" />
-          Invite player
-        </button>
+      <div className="relative z-40 mb-8 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <TeamPushToggle
+          teamId={currentTeam.team_id}
+          initialEnabled={currentTeam.team.push_enabled !== false}
+        />
+        {captainActionItems.map((item) => {
+          const Icon = item.icon;
+          const content = (
+            <>
+              <div className="flex h-full flex-col items-center justify-center gap-2">
+                <div className="rounded-[20px] border border-white/10 bg-black/20 p-3 text-[var(--league-primary)]">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="text-sm font-black uppercase tracking-[0.12em] sm:text-base">{item.label}</p>
+              </div>
+            </>
+          );
+
+          const className = 'relative z-40 min-h-[108px] rounded-[24px] border border-white/10 bg-white/[0.05] px-4 py-3 text-center text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] transition-all backdrop-blur-xl hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08]';
+
+          if (item.type === 'button') {
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.onClick}
+                className={className}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <Link key={item.href} href={item.href!} className={className}>
+              {content}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Roster Manager (editable roster + join requests) */}
@@ -495,14 +434,37 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         onRosterUpdate={fetchRosterData}
       />
 
-      {/* Team Attendance Matrix */}
-      <div className="mt-8">
-        <TeamAttendance
-          teamId={currentTeam.team_id}
-          roster={roster}
-          leagueSlug={leagueSlug}
-          onRequestSub={(gameId) => setSubInviteGameId(gameId)}
-        />
+      <div className="mt-8 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Subs</h2>
+          <span className="text-sm text-[var(--color-text-secondary)]">{subs.length} played this season</span>
+        </div>
+        {subs.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[var(--color-surface-hover)]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Player</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Position</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-[var(--color-text-secondary)]">Games</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {subs.map((player) => (
+                  <tr key={player.id} className="hover:bg-[var(--color-surface-hover)] transition-colors">
+                    <td className="px-4 py-3 font-medium text-[var(--color-text-primary)]">{player.profile?.full_name || 'Unknown Player'}</td>
+                    <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">{player.position || '-'}</td>
+                    <td className="px-4 py-3 text-center text-[var(--color-text-primary)]">{player.games_played}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="px-4 py-5 text-sm text-[var(--color-text-secondary)]">
+            No subs have appeared in a game yet this season.
+          </div>
+        )}
       </div>
 
       <InvitePlayerWizard
@@ -514,42 +476,6 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         teamId={currentTeam.team_id}
         seasonId={league?.current_season_id || ''}
       />
-
-      {/* Sub Invite Modal */}
-      {subInviteGameId && currentTeam.team && (
-        <SubInviteModal
-          isOpen={!!subInviteGameId}
-          onClose={() => setSubInviteGameId(null)}
-          gameId={subInviteGameId}
-          teamId={currentTeam.team_id}
-          leagueId={currentTeam.team.league_id}
-          roster={roster}
-        />
-      )}
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: string | number;
-  label: string;
-}) {
-  return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-[var(--color-surface-hover)] flex items-center justify-center">
-          {icon}
-        </div>
-        <div>
-          <p className="text-xl font-bold text-[var(--color-text-primary)]">{value}</p>
-          <p className="text-sm text-[var(--color-text-secondary)]">{label}</p>
-        </div>
-      </div>
     </div>
   );
 }

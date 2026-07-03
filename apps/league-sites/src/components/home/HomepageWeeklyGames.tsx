@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -25,15 +25,28 @@ type WeeklyGameTeam = ScheduleGame['home_team'] | undefined;
 
 const COOL_HERO_IMAGE_MASK =
   [
-    'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.72) 14%, rgba(0,0,0,1) 28%, rgba(0,0,0,1) 100%)',
-    'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.78) 12%, rgba(0,0,0,1) 24%, rgba(0,0,0,1) 76%, rgba(0,0,0,0.78) 88%, transparent 100%)',
-    'radial-gradient(138% 124% at 50% 42%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.97) 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.48) 72%, rgba(0,0,0,0.18) 86%, transparent 100%)',
+    'radial-gradient(140% 132% at 50% 46%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.98) 34%, rgba(0,0,0,0.92) 50%, rgba(0,0,0,0.72) 64%, rgba(0,0,0,0.44) 76%, rgba(0,0,0,0.18) 88%, transparent 100%)',
+    'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.18) 6%, rgba(0,0,0,0.58) 18%, rgba(0,0,0,0.9) 32%, rgba(0,0,0,1) 46%, rgba(0,0,0,1) 68%, rgba(0,0,0,0.84) 82%, rgba(0,0,0,0.38) 92%, transparent 100%)',
+    'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.24) 7%, rgba(0,0,0,0.68) 18%, rgba(0,0,0,0.98) 30%, rgba(0,0,0,1) 50%, rgba(0,0,0,0.98) 70%, rgba(0,0,0,0.68) 82%, rgba(0,0,0,0.24) 93%, transparent 100%)',
   ].join(',');
+
+type BackgroundPreset = 'none' | 'weekly-games';
 
 interface HomepageWeeklyGamesProps {
   games: ScheduleGame[];
   leagueSlug: string;
   timezone?: string | null;
+  eyebrowLabel?: string;
+  title?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  showViewToggle?: boolean;
+  /** 'team' hides eyebrow, overlay badges, detail team names, status card, and dots */
+  variant?: 'homepage' | 'team';
+  hideTitle?: boolean;
+  teamActions?: ReactNode;
+  /** Which background image preset to render (default: 'weekly-games') */
+  backgroundPreset?: BackgroundPreset;
 }
 
 interface TeamSideProps {
@@ -288,16 +301,31 @@ function CoolView({
   onNavigate,
   leagueSlug,
   timezone,
+  minimal = false,
+  blendToPage = false,
+  teamActions,
+  backgroundPreset = 'weekly-games',
 }: {
   games: ScheduleGame[];
   activeIndex: number;
   onNavigate: (direction: number) => void;
   leagueSlug: string;
   timezone?: string | null;
+  minimal?: boolean;
+  blendToPage?: boolean;
+  teamActions?: ReactNode;
+  backgroundPreset?: BackgroundPreset;
 }) {
   const game = games[activeIndex];
   const hasControls = games.length > 1;
   const heroHref = getGameHref(game, leagueSlug);
+  const heroEdgeColor = blendToPage ? 'var(--color-background)' : 'var(--color-surface)';
+  const heroTopGlow = `radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, ${heroEdgeColor} 44%, transparent) 0%, color-mix(in srgb, ${heroEdgeColor} 12%, transparent) 34%, color-mix(in srgb, ${heroEdgeColor} 70%, transparent) 74%, ${heroEdgeColor} 100%)`;
+  const heroCenterFade = `radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, ${heroEdgeColor} 18%, transparent) 52%, color-mix(in srgb, ${heroEdgeColor} 62%, transparent) 76%, ${heroEdgeColor} 100%)`;
+  const heroBottomFade = `linear-gradient(180deg, transparent 0%, color-mix(in srgb, ${heroEdgeColor} 34%, transparent) 24%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 54%, ${heroEdgeColor} 100%)`;
+  const heroLeftFade = `linear-gradient(90deg, ${heroEdgeColor} 0%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 42%, transparent 100%)`;
+  const heroRightFade = `linear-gradient(270deg, ${heroEdgeColor} 0%, color-mix(in srgb, ${heroEdgeColor} 72%, transparent) 42%, transparent 100%)`;
+  const heroTopFade = `linear-gradient(180deg, ${heroEdgeColor} 0%, color-mix(in srgb, ${heroEdgeColor} 68%, transparent) 42%, transparent 100%)`;
 
   const renderHeroSlide = (slideGame: ScheduleGame) => (
     <div className="pointer-events-none col-start-1 row-start-1">
@@ -340,32 +368,36 @@ function CoolView({
           )}
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
-          <CoolCardTeam
-            team={slideGame.away_team}
-            leagueSlug={leagueSlug}
-            align="left"
-          />
-          <div
-            className="rounded-[18px] border border-white/10 px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
-            style={{
-              backgroundColor:
-                'color-mix(in srgb, var(--color-background-elevated) 76%, transparent)',
-            }}
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-              {centerDisplay.label}
-            </p>
-            <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
-              {centerDisplay.primary}
-            </p>
+        {!minimal && (
+          <div className="mt-4 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+            <CoolCardTeam
+              team={slideGame.away_team}
+              leagueSlug={leagueSlug}
+              align="left"
+            />
+            <div
+              className="rounded-[18px] border border-white/10 px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+              style={{
+                backgroundColor:
+                  'color-mix(in srgb, var(--color-background-elevated) 76%, transparent)',
+              }}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                {centerDisplay.label}
+              </p>
+              <p className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
+                {centerDisplay.primary}
+              </p>
+            </div>
+            <CoolCardTeam
+              team={slideGame.home_team}
+              leagueSlug={leagueSlug}
+              align="right"
+            />
           </div>
-          <CoolCardTeam
-            team={slideGame.home_team}
-            leagueSlug={leagueSlug}
-            align="right"
-          />
-        </div>
+        )}
+
+        {minimal && teamActions ? <div className="mt-3">{teamActions}</div> : null}
       </div>
     );
   };
@@ -373,54 +405,98 @@ function CoolView({
   return (
     <div className="mt-6 animate-fade-in">
       <div className="relative">
-        <div className="relative overflow-hidden rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]">
+        <div
+          className={`relative overflow-hidden ${
+            blendToPage
+              ? ''
+              : 'rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]'
+          }`}
+        >
           <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at top left, color-mix(in srgb, var(--league-primary) 14%, transparent), transparent 46%), linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 44%, transparent) 0%, color-mix(in srgb, var(--color-surface) 12%, transparent) 34%, color-mix(in srgb, var(--color-surface) 70%, transparent) 74%, var(--color-surface) 100%)',
-            }}
-          />
-          <div
-            className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
-            style={{
-              backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
-              WebkitMaskImage: COOL_HERO_IMAGE_MASK,
-              maskImage: COOL_HERO_IMAGE_MASK,
-            }}
-          />
-          <div className="absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
-          <div className="absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_72%,transparent)_42%,transparent_100%)] sm:w-24" />
-          <div className="absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,var(--color-surface)_0%,color-mix(in_srgb,var(--color-surface)_68%,transparent)_42%,transparent_100%)] sm:h-24" />
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 50% 42%, transparent 0%, transparent 28%, color-mix(in srgb, var(--color-surface) 18%, transparent) 52%, color-mix(in srgb, var(--color-surface) 62%, transparent) 76%, var(--color-surface) 100%)',
-            }}
-          />
-          <div
-            className="absolute inset-x-0 bottom-0 h-56 sm:h-64"
-            style={{
-              backgroundImage:
-                'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 34%, transparent) 24%, color-mix(in srgb, var(--color-surface) 72%, transparent) 54%, var(--color-surface) 100%)',
-            }}
-          />
+            className="relative"
+            style={
+              blendToPage
+                ? {
+                    WebkitMaskImage: COOL_HERO_IMAGE_MASK,
+                    maskImage: COOL_HERO_IMAGE_MASK,
+                  }
+                : undefined
+            }
+          >
+            <div className="absolute inset-0">
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: heroTopGlow,
+                }}
+              />
+              {backgroundPreset === 'weekly-games' && (
+                <div
+                  className="absolute inset-0 scale-[1.05] bg-cover bg-center opacity-95"
+                  style={{
+                    backgroundImage: "url('/homepage/weekly-games-bg.jpg')",
+                    ...(blendToPage
+                      ? {}
+                      : {
+                          WebkitMaskImage: COOL_HERO_IMAGE_MASK,
+                          maskImage: COOL_HERO_IMAGE_MASK,
+                        }),
+                  }}
+                />
+              )}
+              <div
+                className="absolute inset-y-0 left-0 w-20 sm:w-24"
+                style={{ backgroundImage: heroLeftFade }}
+              />
+              <div
+                className="absolute inset-y-0 right-0 w-20 sm:w-24"
+                style={{ backgroundImage: heroRightFade }}
+              />
+              <div
+                className="absolute inset-x-0 top-0 h-20 sm:h-24"
+                style={{ backgroundImage: heroTopFade }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: heroCenterFade,
+                }}
+              />
+              <div
+                className="absolute inset-x-0 bottom-0 h-56 sm:h-64"
+                style={{
+                  backgroundImage: heroBottomFade,
+                }}
+              />
+            </div>
+
+            <div className="relative z-20 grid">
+              {renderHeroSlide(game)}
+            </div>
+          </div>
 
           <Link
             href={heroHref}
             aria-label={getGameAriaLabel(game)}
-            className="absolute inset-0 z-10 block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--color-surface)]"
+            className={`absolute inset-0 z-10 block cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] focus-visible:ring-offset-4 ${
+              blendToPage
+                ? 'focus-visible:ring-offset-[var(--color-background)]'
+                : 'focus-visible:ring-offset-[var(--color-surface)]'
+            }`}
           >
             <span className="sr-only">{getGameAriaLabel(game)}</span>
           </Link>
 
-          <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-            {activeIndex + 1} / {games.length}
-          </div>
-          <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
-            {getStatusLabel(game.status)}
-          </div>
+          {!minimal && (
+            <>
+              <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+                {activeIndex + 1} / {games.length}
+              </div>
+              <div className="pointer-events-none absolute right-4 top-4 z-30 rounded-full border border-white/16 bg-black/38 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+                {getStatusLabel(game.status)}
+              </div>
+            </>
+          )}
 
           {hasControls && (
             <>
@@ -442,16 +518,12 @@ function CoolView({
               </button>
             </>
           )}
-
-          <div className="relative z-20 grid">
-            {renderHeroSlide(game)}
-          </div>
         </div>
 
         <div
-          className="relative z-30 -mt-20 px-3 sm:-mt-24 sm:px-6 lg:-mt-28"
+          className={`relative z-30 px-3 sm:px-6 ${minimal ? '-mt-10 lg:-mt-14' : '-mt-20 sm:-mt-24 lg:-mt-28'}`}
           style={{
-            filter: 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
+            filter: minimal ? 'none' : 'drop-shadow(0 28px 56px rgba(0,0,0,0.38))',
           }}
         >
           <div
@@ -472,7 +544,7 @@ function CoolView({
               {renderDetailsSlide(game)}
             </div>
 
-            <div className="mt-4 flex items-center justify-center gap-2">
+            {!minimal && <div className="mt-4 flex items-center justify-center gap-2">
               {games.map((entry, index) => (
                 <button
                   key={entry.id}
@@ -487,7 +559,7 @@ function CoolView({
                   }`}
                 />
               ))}
-            </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -514,7 +586,7 @@ function CompactView({
             key={game.id}
             className="relative overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background-elevated)_94%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))] p-4 shadow-[0_26px_60px_-42px_rgba(0,0,0,0.82)]"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.15),transparent_58%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,var(--league-primary-soft,rgba(192,192,192,0.16)),transparent_58%)]" />
             <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
               <CompactTeam
                 team={game.away_team}
@@ -563,7 +635,18 @@ export function HomepageWeeklyGames({
   games,
   leagueSlug,
   timezone,
+  eyebrowLabel = 'This Week',
+  title = "This Week\u2019s Games",
+  emptyTitle = 'No games scheduled this week',
+  emptyDescription = 'Check the full schedule for the next slate and recent scores.',
+  showViewToggle = true,
+  variant = 'homepage',
+  hideTitle = false,
+  teamActions,
+  backgroundPreset = 'weekly-games',
 }: HomepageWeeklyGamesProps) {
+  const isTeamVariant = variant === 'team';
+  const shouldBlendHeroToPage = isTeamVariant || variant === 'homepage';
   const [view, setView] = useState<WeeklyGamesView>('cool');
   const [activeIndex, setActiveIndex] = useState(0);
   const isCompactView = view === 'compact';
@@ -584,30 +667,39 @@ export function HomepageWeeklyGames({
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            <Calendar className="h-3.5 w-3.5" />
-            This Week
-            <span className="text-[var(--color-text-muted)]">•</span>
-            {games.length} {games.length === 1 ? 'game' : 'games'}
+      {(!hideTitle || showViewToggle) ? (
+        <div className="flex items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            {!hideTitle && !isTeamVariant && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                <Calendar className="h-3.5 w-3.5" />
+                {eyebrowLabel}
+                <span className="text-[var(--color-text-muted)]">•</span>
+                {games.length} {games.length === 1 ? 'game' : 'games'}
+              </div>
+            )}
+            {!hideTitle ? (
+              <h2 className={`${isTeamVariant ? '' : 'mt-3 '}flex items-center gap-2 text-2xl font-black tracking-tight text-[var(--color-text-primary)]`}>
+                {isTeamVariant && <Calendar className="h-5 w-5 text-[var(--league-primary)]" />}
+                {title}
+              </h2>
+            ) : null}
           </div>
-          <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-            This Week’s Games
-          </h2>
-        </div>
 
-        <button
-          type="button"
-          aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
-          aria-pressed={isCompactView}
-          onClick={() => setView((current) => (current === 'cool' ? 'compact' : 'cool'))}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
-          title={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
-        >
-          {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
-        </button>
-      </div>
+          {showViewToggle ? (
+          <button
+            type="button"
+            aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
+            aria-pressed={isCompactView}
+            onClick={() => setView((current) => (current === 'cool' ? 'compact' : 'cool'))}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
+            title={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
+          >
+            {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
+          </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {games.length > 0 ? (
         view === 'cool' ? (
@@ -617,6 +709,10 @@ export function HomepageWeeklyGames({
             onNavigate={handleNavigate}
             leagueSlug={leagueSlug}
             timezone={timezone}
+            minimal={isTeamVariant}
+            blendToPage={shouldBlendHeroToPage}
+            teamActions={teamActions}
+            backgroundPreset={backgroundPreset}
           />
         ) : (
           <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
@@ -629,10 +725,10 @@ export function HomepageWeeklyGames({
             </div>
             <div>
               <p className="text-lg font-bold text-[var(--color-text-primary)]">
-                No games scheduled this week
+                {emptyTitle}
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Check the full schedule for the next slate and recent scores.
+                {emptyDescription}
               </p>
             </div>
           </div>

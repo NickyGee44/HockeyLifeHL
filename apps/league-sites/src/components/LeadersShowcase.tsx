@@ -1,13 +1,11 @@
 import Link from 'next/link';
 import { TrendingUp, Shield, ChevronRight } from 'lucide-react';
-import type { PlayerStatsWithAvatar, GoalieStats, PlayerBadge } from '@/lib/types';
-import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
+import type { PlayerStatsWithAvatar, GoalieStats } from '@/lib/types';
 
 interface LeadersShowcaseProps {
   scoringLeaders: PlayerStatsWithAvatar[];
   goalieLeaders: GoalieStats[];
   leagueSlug: string;
-  badges?: Record<string, PlayerBadge[]>;
 }
 
 function PlayerAvatar({ name, avatarUrl, rank }: { name: string; avatarUrl: string | null; rank: number }) {
@@ -38,7 +36,7 @@ function PlayerAvatar({ name, avatarUrl, rank }: { name: string; avatarUrl: stri
   );
 }
 
-export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, badges }: LeadersShowcaseProps) {
+export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug }: LeadersShowcaseProps) {
   const hasScoring = scoringLeaders.length > 0;
   const hasGoalies = goalieLeaders.length > 0;
 
@@ -80,12 +78,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, bad
                   >
                     {player.player_name}
                   </Link>
-                  <div className="flex items-center gap-1">
-                    <p className="truncate text-xs text-[var(--color-text-muted)]">{player.team_name}</p>
-                    {badges?.[player.player_id] && badges[player.player_id].length > 0 && (
-                      <PlayerBadgeGroup badges={badges[player.player_id]} maxVisible={3} size="sm" />
-                    )}
-                  </div>
+                  <p className="truncate text-xs text-[var(--color-text-muted)]">{player.team_name}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <span className="text-lg font-black text-[var(--league-primary)]">
@@ -135,12 +128,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug, bad
                   >
                     {goalie.player_name}
                   </Link>
-                  <div className="flex items-center gap-1">
-                    <p className="truncate text-xs text-[var(--color-text-muted)]">{goalie.team_name}</p>
-                    {badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
-                      <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
-                    )}
-                  </div>
+                  <p className="truncate text-xs text-[var(--color-text-muted)]">{goalie.team_name}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <span className="text-lg font-black text-[var(--league-primary)]">

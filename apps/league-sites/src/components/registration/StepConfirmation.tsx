@@ -230,19 +230,21 @@ export function StepConfirmation({
             <p className="mt-1 text-xs text-green-400">
               {formData.payment_status === 'completed'
                 ? 'Payment completed'
-                : paymentMode === 'hidden'
-                  ? isTeamBilledSeason
-                    ? registrationFee > 0
-                    ? 'Your team will be billed for this registration'
-                    : 'Your captain or league can pay the full team invoice after registrations are collected.'
-                    : 'This season does not currently require an individual player payment.'
-                  : isTeamContribution
-                    ? 'This amount counts toward your team invoice. Your captain can still record offline payments later.'
-                  : paymentMode === 'optional'
-                    ? 'You are registering now and can let your team handle payment later'
-                    : formData.payment_status === 'not_required'
-                      ? 'No payment required'
-                      : 'Payment pending'}
+                : formData.payment_status === 'alternate_method'
+                  ? 'Alternate payment method selected'
+                  : paymentMode === 'hidden'
+                    ? isTeamBilledSeason
+                      ? registrationFee > 0
+                        ? 'Your team will be billed for this registration'
+                        : 'Your captain or league can pay the full team invoice after registrations are collected.'
+                      : 'This season does not currently require an individual player payment.'
+                    : isTeamContribution
+                      ? 'This amount counts toward your team invoice. Your captain can still record offline payments later.'
+                    : paymentMode === 'optional'
+                      ? 'You are registering now and can let your team handle payment later'
+                      : formData.payment_status === 'not_required'
+                        ? 'No payment required'
+                        : 'Payment pending'}
             </p>
           </div>
         )}
@@ -264,7 +266,7 @@ export function StepConfirmation({
           <div>
             <p className="text-sm font-medium text-amber-400">Payment Required</p>
             <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-              Please go back to the Payment step to complete your payment before submitting.
+              Please go back to the Payment step to complete payment or choose an alternate payment method before submitting.
             </p>
           </div>
         </div>

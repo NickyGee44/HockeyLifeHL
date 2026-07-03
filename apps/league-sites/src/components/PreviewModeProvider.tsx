@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, createContext, useContext } from 'react';
-import type { ThemePreset } from '@/lib/types';
+import type { ThemePreset, BackgroundPreset } from '@/lib/types';
 import { getBalancedLeagueColors } from '@/lib/theme-palette';
 
 /**
@@ -24,6 +24,9 @@ export interface PreviewTheme {
   logoUrl: string | null;
   bannerUrl: string | null;
   faviconUrl: string | null;
+
+  // Background
+  backgroundPreset: BackgroundPreset;
 
   // Content
   tagline: string;

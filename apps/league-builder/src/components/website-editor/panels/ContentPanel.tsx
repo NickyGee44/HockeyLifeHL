@@ -1,6 +1,6 @@
 'use client';
 
-import { Type, Mail, Phone, LinkIcon } from 'lucide-react';
+import { Type, Mail, Phone, LinkIcon, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEditor } from '../EditorContext';
 
@@ -115,6 +115,36 @@ export function ContentPanel() {
             className="w-full px-3 py-2 bg-neutral-800 border border-white/10 rounded-lg text-sm text-neutral-300 placeholder:text-neutral-500 focus:border-rink-500 focus:ring-1 focus:ring-rink-500/20"
           />
         </div>
+      </div>
+
+      {/* Team page settings */}
+      <div className="pt-4 border-t border-white/10">
+        <h4 className="text-xs font-medium text-neutral-400 mb-4">Team Page</h4>
+
+        <label className="flex items-center justify-between gap-3 cursor-pointer">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300">
+            <MessageSquare className="w-3.5 h-3.5 text-neutral-500" />
+            Show captain phone on team page
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={state.showCaptainPhone}
+            onClick={() => setField('showCaptainPhone', !state.showCaptainPhone)}
+            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+              state.showCaptainPhone ? 'bg-rink-500' : 'bg-neutral-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                state.showCaptainPhone ? 'translate-x-[18px]' : 'translate-x-[3px]'
+              }`}
+            />
+          </button>
+        </label>
+        <p className="text-xs text-neutral-500 mt-1.5">
+          When enabled, a &quot;Text Captain&quot; button appears on team pages for captains with a phone number on file.
+        </p>
       </div>
 
       {/* Tips */}

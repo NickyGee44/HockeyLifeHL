@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import { ImageIcon } from 'lucide-react';
-import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getGalleryAlbums } from '@/lib/data';
+import { SubscriptionWall, SectionHeading } from '@/components/shared';
+import { getLeagueBySlug, getGalleryAlbums, getSeasons } from '@/lib/data';
 import { AlbumGrid } from '@/components/gallery/AlbumGrid';
 import type { Metadata } from 'next';
+import type { GalleryAlbum, Season } from '@/lib/types';
 
 interface GalleryPageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -27,36 +28,78 @@ export async function generateMetadata({
   };
 }
 
+function groupAlbumsBySeason(
+  albums: GalleryAlbum[],
+  seasons: Season[],
+): { season: Season; albums: GalleryAlbum[] }[] {
+  const seasonMap = new Map(seasons.map((s) => [s.id, s]));
+  const groups = new Map<string, GalleryAlbum[]>();
+
+  for (const album of albums) {
+    if (!album.season_id || !seasonMap.has(album.season_id)) continue;
+    const list = groups.get(album.season_id);
+    if (list) {
+      list.push(album);
+    } else {
+      groups.set(album.season_id, [album]);
+    }
+  }
+
+  // Return in the same order as seasons (most recent first)
+  return seasons
+    .filter((s) => groups.has(s.id))
+    .map((s) => ({ season: s, albums: groups.get(s.id)! }));
+}
+
 export default async function GalleryPage({ params }: GalleryPageProps) {
   const { leagueSlug } = await params;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
 
-  const albums = await getGalleryAlbums(league.id);
+  const [albums, seasons] = await Promise.all([
+    getGalleryAlbums(league.id),
+    getSeasons(league.id),
+  ]);
+
+  const seasonGroups = groupAlbumsBySeason(albums, seasons);
+
+  // Albums without a matching season
+  const ungroupedAlbums = albums.filter(
+    (a) => !a.season_id || !seasons.some((s) => s.id === a.season_id),
+  );
 
   return (
     <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
-      {/* Header */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/10 flex items-center justify-center">
-              <ImageIcon className="w-5 h-5 text-[var(--league-primary)]" />
-            </div>
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
-              Photo Gallery
-            </h1>
-          </div>
-          <p className="text-[var(--color-text-secondary)]">
-            {albums.length} album{albums.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-      </div>
+      <div className="container mx-auto px-4 py-8 space-y-10">
+        <SectionHeading
+          title="Photo Gallery"
+          icon={<ImageIcon className="w-5 h-5 text-[var(--league-primary)]" />}
+        />
 
-      <div className="container mx-auto px-4 py-8">
-        <AlbumGrid albums={albums} leagueSlug={leagueSlug} />
+        {albums.length === 0 ? (
+          <AlbumGrid albums={[]} leagueSlug={leagueSlug} />
+        ) : (
+          <>
+            {seasonGroups.map(({ season, albums: seasonAlbums }) => (
+              <section key={season.id}>
+                <h3 className="text-lg font-semibold text-[var(--color-text-secondary)] mb-4">
+                  {season.name}
+                </h3>
+                <AlbumGrid albums={seasonAlbums} leagueSlug={leagueSlug} />
+              </section>
+            ))}
+            {ungroupedAlbums.length > 0 && (
+              <section>
+                <h3 className="text-lg font-semibold text-[var(--color-text-secondary)] mb-4">
+                  Other
+                </h3>
+                <AlbumGrid albums={ungroupedAlbums} leagueSlug={leagueSlug} />
+              </section>
+            )}
+          </>
+        )}
       </div>
     </div>
     </SubscriptionWall>

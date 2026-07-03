@@ -10,6 +10,7 @@ import {
   type CaptainInvitePreview,
 } from '@/lib/actions/captain-player-invites';
 import {
+  buildInviteShareMessage,
   buildSmsShareUrl,
   buildWhatsAppShareUrl,
   shareCaptainPlayerInvite,
@@ -39,6 +40,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
 
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- modal loading state intentionally resets when opened.
     setLoading(true);
     setError(null);
     getCaptainInviteWizardData(teamId, seasonId).then((result) => {
@@ -53,6 +55,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
 
   useEffect(() => {
     if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- modal form state intentionally resets when opened.
     setStep(1);
     setMode(null);
     setSelectedExisting(null);
@@ -66,9 +69,8 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
   }, [isOpen]);
 
   const isSpare = rosterType === 'spare';
-  const reviewName = selectedExisting?.fullName || fullName;
   const reviewPhone = phone || selectedExisting?.phone || '';
-  const brandLabel = isSpare && shareWithLeague ? 'League branding' : 'Team branding';
+  const brandLabel = 'Team branding';
   const canCreate = mode === 'existing'
     ? !!selectedExisting && !!reviewPhone
     : !!fullName.trim() && !!phone.trim();
@@ -86,12 +88,12 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
     return [
       ['Position', position],
       ['Roster spot', isSpare ? 'Spare' : 'Full-time'],
-      ...(isSpare ? [['League shared', shareWithLeague ? 'Yes' : 'No']] : []),
+      ...(isSpare ? [['Spare list', 'Team-only']] : []),
       ['Player', fullName],
       ['Phone', phone],
       ['Branding', preview?.branding.name || brandLabel],
     ];
-  }, [mode, selectedExisting, reviewPhone, position, isSpare, shareWithLeague, fullName, phone, preview, brandLabel]);
+  }, [mode, selectedExisting, reviewPhone, position, isSpare, fullName, phone, preview, brandLabel]);
 
   const handleComplete = () => {
     setError(null);
@@ -201,14 +203,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
           {!loading && mode === 'new' && step === 3 ? (
             <div className="space-y-3">
               <button onClick={() => { setRosterType('full_time'); setShareWithLeague(false); setStep(5); }} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 text-left">Full-time player</button>
-              <button onClick={() => { setRosterType('spare'); setStep(4); }} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 text-left">Spare</button>
-            </div>
-          ) : null}
-
-          {!loading && mode === 'new' && step === 4 ? (
-            <div className="space-y-3">
-              <button onClick={() => { setShareWithLeague(false); setStep(5); }} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 text-left">Keep this spare team-only</button>
-              <button onClick={() => { setShareWithLeague(true); setStep(5); }} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 text-left">Share this spare with the whole league</button>
+              <button onClick={() => { setRosterType('spare'); setShareWithLeague(false); setStep(5); }} className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 text-left">Spare</button>
             </div>
           ) : null}
 
@@ -255,9 +250,9 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
               </div>
               <div className="grid gap-2 md:grid-cols-4">
                 <button onClick={() => shareCaptainPlayerInvite({ title: preview.shareTitle, text: preview.shareText, url: preview.registrationUrl, phone: preview.sharePhone })} className="rounded-lg bg-[var(--league-primary)] px-4 py-2 text-sm font-medium text-[var(--color-accent-text)]">Share sheet</button>
-                <a href={buildSmsShareUrl(preview.sharePhone, preview.shareText)} className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-center text-sm font-medium text-[var(--color-text-primary)]">SMS / iMessage</a>
-                <a href={buildWhatsAppShareUrl(preview.sharePhone, preview.shareText)} target="_blank" rel="noreferrer" className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-center text-sm font-medium text-[var(--color-text-primary)]">WhatsApp</a>
-                <button onClick={async () => navigator.clipboard?.writeText(preview.shareText)} className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]">Copy message</button>
+                <a href={buildSmsShareUrl(preview.sharePhone, preview.shareText, preview.registrationUrl)} className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-center text-sm font-medium text-[var(--color-text-primary)]">SMS / iMessage</a>
+                <a href={buildWhatsAppShareUrl(preview.sharePhone, preview.shareText, preview.registrationUrl)} target="_blank" rel="noreferrer" className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-center text-sm font-medium text-[var(--color-text-primary)]">WhatsApp</a>
+                <button onClick={async () => navigator.clipboard?.writeText(buildInviteShareMessage(preview.shareText, preview.registrationUrl))} className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]">Copy message</button>
               </div>
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-xs text-[var(--color-text-secondary)] break-all">{preview.registrationUrl}</div>
               <button onClick={onClose} className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]"><Phone className="h-4 w-4" />Done</button>

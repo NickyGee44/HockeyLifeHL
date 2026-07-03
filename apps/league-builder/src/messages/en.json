@@ -953,6 +953,9 @@
     "saving": "Saving...",
     "generalSettings": "General Settings",
     "updateInfo": "Update basic information for {name}",
+    "recapTone": "AI Recap Tone",
+    "recapToneDescription": "Choose the writing style for auto-generated game recaps. Requires the AI News add-on.",
+    "recapToneSaved": "Recap tone updated",
     "waiver": {
       "title": "Waiver Settings",
       "description": "Manage liability waiver and view signed agreements",
@@ -1722,7 +1725,14 @@
       "faviconSubtitle": "The small icon shown in browser tabs. Supports ICO, PNG, SVG up to 1MB.",
       "faviconUpload": "Upload Favicon",
       "faviconReplace": "Replace Favicon",
-      "faviconRemove": "Remove"
+      "faviconRemove": "Remove",
+      "background": "Background",
+      "backgroundSubtitle": "Choose a background image preset for the games section. Colors adapt to your league theme.",
+      "backgroundPresetWeeklyGames": "Hockey Rink",
+      "backgroundPresetNone": "No Background",
+      "backgroundPresetNoneLabel": "None",
+      "backgroundTipColors": "The background adapts to your league's primary color",
+      "backgroundTipNone": "Use 'No Background' for a clean, color-only look"
     },
     "content": {
       "title": "Website Content",

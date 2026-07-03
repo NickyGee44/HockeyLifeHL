@@ -1,4 +1,11 @@
-import type { Player, ScheduleGame, Season, TeamStanding } from './types';
+import type {
+  Player,
+  ScheduleGame,
+  Season,
+  TeamStanding,
+  UnifiedGoalieStatsRow,
+  UnifiedSkaterStatsRow,
+} from './types';
 
 export type TeamPageRosterStatsByPlayer = Record<string, {
   games_played: number;
@@ -17,7 +24,13 @@ export type TeamPageRosterStatsByPlayer = Record<string, {
 export type TeamScheduleView = 'upcoming' | 'past';
 
 export type RivalSummary = {
-  team: { id: string; name: string; slug: string; logo: string | null };
+  team: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+    primaryColor?: string | null;
+  };
   wins: number;
   losses: number;
   ties: number;
@@ -48,11 +61,9 @@ export type TeamLeaderCard = {
   name: string;
   avatarUrl: string | null;
   jerseyNumber: number | null;
-  leadershipRole: Player['leadership_role'];
   metric: TeamLeaderMetric;
   value: number;
   gamesPlayed: number;
-  positionLabel: string;
 };
 
 export type TeamPointInsight = {
@@ -111,6 +122,45 @@ export function partitionTeamSchedule(
   return { upcomingGames, pastGames };
 }
 
+function isSparePlayer(player: Player): boolean {
+  const playerType = (player as { player_type?: string | null }).player_type?.toLowerCase?.() ?? '';
+  return playerType === 'sub' || playerType === 'spare' || playerType === 'part_time';
+}
+
+function compareRosterPlayers(
+  left: Player,
+  right: Player,
+  rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
+  goalieMode: boolean,
+) {
+  const leftSpare = isSparePlayer(left);
+  const rightSpare = isSparePlayer(right);
+  if (leftSpare !== rightSpare) return Number(leftSpare) - Number(rightSpare);
+
+  const leftJersey = left.jersey_number ?? Number.MAX_SAFE_INTEGER;
+  const rightJersey = right.jersey_number ?? Number.MAX_SAFE_INTEGER;
+  if (leftJersey !== rightJersey) return leftJersey - rightJersey;
+
+  const leftStats = rosterStatsByPlayer[left.player_id];
+  const rightStats = rosterStatsByPlayer[right.player_id];
+
+  if (goalieMode) {
+    const byWins = (rightStats?.wins ?? 0) - (leftStats?.wins ?? 0);
+    if (byWins !== 0) return byWins;
+
+    const bySavePct = (rightStats?.save_percentage ?? 0) - (leftStats?.save_percentage ?? 0);
+    if (bySavePct !== 0) return bySavePct;
+  } else {
+    const byPoints = (rightStats?.points ?? 0) - (leftStats?.points ?? 0);
+    if (byPoints !== 0) return byPoints;
+
+    const byGoals = (rightStats?.goals ?? 0) - (leftStats?.goals ?? 0);
+    if (byGoals !== 0) return byGoals;
+  }
+
+  return (left.profile?.full_name || '').localeCompare(right.profile?.full_name || '');
+}
+
 export function splitRosterByRole(
   roster: Player[],
   rosterStatsByPlayer: TeamPageRosterStatsByPlayer,
@@ -124,29 +174,8 @@ export function splitRosterByRole(
     return Boolean(player.is_goalie || isGoaliePosition(player.position) || stats?.is_goalie);
   });
 
-  skaters.sort((left, right) => {
-    const leftStats = rosterStatsByPlayer[left.player_id];
-    const rightStats = rosterStatsByPlayer[right.player_id];
-    const byPoints = (rightStats?.points ?? 0) - (leftStats?.points ?? 0);
-    if (byPoints !== 0) return byPoints;
-
-    const byGoals = (rightStats?.goals ?? 0) - (leftStats?.goals ?? 0);
-    if (byGoals !== 0) return byGoals;
-
-    return (left.profile?.full_name || '').localeCompare(right.profile?.full_name || '');
-  });
-
-  goalies.sort((left, right) => {
-    const leftStats = rosterStatsByPlayer[left.player_id];
-    const rightStats = rosterStatsByPlayer[right.player_id];
-    const byWins = (rightStats?.wins ?? 0) - (leftStats?.wins ?? 0);
-    if (byWins !== 0) return byWins;
-
-    const bySavePct = (rightStats?.save_percentage ?? 0) - (leftStats?.save_percentage ?? 0);
-    if (bySavePct !== 0) return bySavePct;
-
-    return (left.profile?.full_name || '').localeCompare(right.profile?.full_name || '');
-  });
+  skaters.sort((left, right) => compareRosterPlayers(left, right, rosterStatsByPlayer, false));
+  goalies.sort((left, right) => compareRosterPlayers(left, right, rosterStatsByPlayer, true));
 
   return { skaters, goalies };
 }
@@ -186,21 +215,16 @@ export function buildTeamLeaders(
   return skaters
     .map((player) => {
       const stats = rosterStatsByPlayer[player.player_id];
-      if (!stats || stats.games_played === 0) return null;
-
       return {
         playerId: player.player_id,
         name: player.profile?.full_name || 'Unknown Player',
         avatarUrl: player.profile?.avatar_url || null,
         jerseyNumber: player.jersey_number ?? null,
-        leadershipRole: player.leadership_role,
         metric,
-        value: stats[metric] ?? 0,
-        gamesPlayed: stats.games_played,
-        positionLabel: getPositionShortLabel(player.position, false),
+        value: stats?.[metric] ?? 0,
+        gamesPlayed: stats?.games_played ?? 0,
       } satisfies TeamLeaderCard;
     })
-    .filter((player): player is TeamLeaderCard => Boolean(player))
     .sort((left, right) => {
       const valueDiff = right.value - left.value;
       if (valueDiff !== 0) return valueDiff;
@@ -367,4 +391,329 @@ function formatSeasonSpan(startDate: string, endDate: string): string {
   return startYear === endYear
     ? `${startYear}`
     : `${startYear}-${String(endYear).slice(-2)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Tale-of-the-Tape rival matchup data
+// ---------------------------------------------------------------------------
+
+export type TeamStrengthLabel = 'offense' | 'defence' | 'goaltending' | 'balanced';
+
+export type TaleOfTheTapeTeamSide = {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  primaryColor: string;
+  overallRecord: string;       // e.g. "12-4-2"
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifferential: number;
+  strength: TeamStrengthLabel;
+  weakness: TeamStrengthLabel;
+  sniper: {
+    name: string;
+    goals: number;
+  };
+  playmaker: {
+    name: string;
+    assists: number;
+  };
+  tendy: {
+    name: string;
+    gamesPlayed: number;
+    goalsAgainstAverage: number | null;
+    emoji: string;
+  };
+};
+
+export type TaleOfTheTapeRival = {
+  /** The viewed team (left side) */
+  team: TaleOfTheTapeTeamSide;
+  /** The rival (right side) */
+  rival: TaleOfTheTapeTeamSide;
+  /** Head-to-head record from the viewed team's perspective (W-L-T) */
+  h2hRecord: string;
+  /** Rival's head-to-head record (mirror) */
+  h2hRecordRival: string;
+  /** Total games between the two teams this season */
+  gamesPlayed: number;
+};
+
+type SkaterLeaderMetric = 'goals' | 'assists';
+
+type TaleOfTheTapeBuildInput = {
+  teamId: string;
+  teamName?: string;
+  teamPrimaryColor?: string | null;
+  rivals: RivalSummary[];
+  standings: TeamStanding[];
+  skaterRows: Pick<UnifiedSkaterStatsRow, 'team_id' | 'player_id' | 'player_name' | 'goals' | 'assists' | 'points'>[];
+  goalieRows: Pick<UnifiedGoalieStatsRow, 'team_id' | 'player_id' | 'player_name' | 'games_played' | 'goals_against_average'>[];
+};
+
+const DEFAULT_TALE_OF_THE_TAPE_COLOR = 'var(--league-primary)';
+const EMPTY_PLAYER_NAME = 'No data';
+
+function normalizeTeamPrimaryColor(color?: string | null): string {
+  return color?.trim() || DEFAULT_TALE_OF_THE_TAPE_COLOR;
+}
+
+function buildSkaterLeaderLookup(
+  rows: Pick<UnifiedSkaterStatsRow, 'team_id' | 'player_name' | 'goals' | 'assists' | 'points'>[],
+  metric: SkaterLeaderMetric,
+): Map<string, { name: string; value: number }> {
+  const compare = (
+    left: Pick<UnifiedSkaterStatsRow, 'player_name' | 'goals' | 'assists' | 'points'>,
+    right: Pick<UnifiedSkaterStatsRow, 'player_name' | 'goals' | 'assists' | 'points'>,
+  ) => {
+    const primaryDiff = (right[metric] ?? 0) - (left[metric] ?? 0);
+    if (primaryDiff !== 0) return primaryDiff;
+
+    const pointDiff = (right.points ?? 0) - (left.points ?? 0);
+    if (pointDiff !== 0) return pointDiff;
+
+    const goalDiff = (right.goals ?? 0) - (left.goals ?? 0);
+    if (goalDiff !== 0) return goalDiff;
+
+    const assistDiff = (right.assists ?? 0) - (left.assists ?? 0);
+    if (assistDiff !== 0) return assistDiff;
+
+    return (left.player_name || '').localeCompare(right.player_name || '');
+  };
+
+  const leaders = new Map<string, Pick<UnifiedSkaterStatsRow, 'player_name' | 'goals' | 'assists' | 'points'>>();
+
+  for (const row of rows) {
+    const existing = leaders.get(row.team_id);
+    if (!existing || compare(row, existing) < 0) {
+      leaders.set(row.team_id, row);
+    }
+  }
+
+  return new Map(
+    Array.from(leaders.entries()).map(([teamId, row]) => [
+      teamId,
+      {
+        name: row.player_name || EMPTY_PLAYER_NAME,
+        value: row[metric] ?? 0,
+      },
+    ]),
+  );
+}
+
+function compareGoalieRows(
+  left: Pick<UnifiedGoalieStatsRow, 'player_name' | 'games_played' | 'goals_against_average'>,
+  right: Pick<UnifiedGoalieStatsRow, 'player_name' | 'games_played' | 'goals_against_average'>,
+) {
+  const gamesDiff = (right.games_played ?? 0) - (left.games_played ?? 0);
+  if (gamesDiff !== 0) return gamesDiff;
+
+  const leftGaa = left.goals_against_average;
+  const rightGaa = right.goals_against_average;
+  if (leftGaa != null && rightGaa != null && leftGaa !== rightGaa) {
+    return leftGaa - rightGaa;
+  }
+  if (leftGaa == null && rightGaa != null) return 1;
+  if (leftGaa != null && rightGaa == null) return -1;
+
+  return (left.player_name || '').localeCompare(right.player_name || '');
+}
+
+function buildGoalieLeaderLookup(
+  rows: Pick<UnifiedGoalieStatsRow, 'team_id' | 'player_id' | 'player_name' | 'games_played' | 'goals_against_average'>[],
+): Map<string, Pick<UnifiedGoalieStatsRow, 'team_id' | 'player_id' | 'player_name' | 'games_played' | 'goals_against_average'>> {
+  const leaders = new Map<string, Pick<UnifiedGoalieStatsRow, 'team_id' | 'player_id' | 'player_name' | 'games_played' | 'goals_against_average'>>();
+
+  for (const row of rows) {
+    const existing = leaders.get(row.team_id);
+    if (!existing || compareGoalieRows(row, existing) < 0) {
+      leaders.set(row.team_id, row);
+    }
+  }
+
+  return leaders;
+}
+
+export function getTendyEmoji(
+  goalie: Pick<UnifiedGoalieStatsRow, 'team_id' | 'player_id' | 'games_played' | 'goals_against_average'> | null | undefined,
+  leagueGoalies: Pick<UnifiedGoalieStatsRow, 'team_id' | 'player_id' | 'games_played' | 'goals_against_average'>[],
+): string {
+  if (!goalie || goalie.games_played <= 0 || goalie.goals_against_average == null) {
+    return '🥅';
+  }
+
+  const ranked = leagueGoalies
+    .filter((row) => row.games_played > 0 && row.goals_against_average != null)
+    .sort((left, right) => {
+      if (left.goals_against_average !== right.goals_against_average) {
+        return (left.goals_against_average ?? Number.POSITIVE_INFINITY)
+          - (right.goals_against_average ?? Number.POSITIVE_INFINITY);
+      }
+      if (right.games_played !== left.games_played) {
+        return right.games_played - left.games_played;
+      }
+      return `${left.team_id}:${left.player_id}`.localeCompare(`${right.team_id}:${right.player_id}`);
+    });
+
+  if (ranked.length === 0) {
+    return '🥅';
+  }
+
+  const rank = ranked.findIndex((row) => row.team_id === goalie.team_id && row.player_id === goalie.player_id);
+  if (rank === -1) {
+    return '🥅';
+  }
+
+  const percentile = ranked.length === 1 ? 1 : 1 - rank / (ranked.length - 1);
+
+  if (percentile >= 0.75) return '🧱';
+  if (percentile >= 0.5) return '🧤';
+  if (percentile >= 0.25) return '😬';
+  return '🧀';
+}
+
+/**
+ * Derive a team's primary strength and weakness from league-relative rankings.
+ *
+ * Heuristic (deterministic, easy to explain):
+ * 1. Rank the team by goals_for (desc) → offense_pct (0 = best, 1 = worst).
+ * 2. Rank the team by goals_against (asc) → defense_pct (0 = best, 1 = worst).
+ * 3. If |offense_pct − defense_pct| ≤ 0.15 → strength & weakness are both "balanced".
+ * 4. Otherwise the better percentile is the strength; the worse is the weakness.
+ * 5. On the defensive side we distinguish "goaltending" (top-40 % GA) from "defence"
+ *    (bottom-60 % GA) to give some variety, since standings don't separate the two.
+ */
+export function deriveStrengthWeakness(
+  standings: TeamStanding[],
+  teamId: string,
+): { strength: TeamStrengthLabel; weakness: TeamStrengthLabel } {
+  const total = standings.length;
+  if (total <= 1) return { strength: 'balanced', weakness: 'balanced' };
+
+  const offenseRank = rankStandingValue(standings, teamId, 'goals_for', 'desc');
+  const defenseRank = rankStandingValue(standings, teamId, 'goals_against', 'asc');
+
+  if (offenseRank == null || defenseRank == null) {
+    return { strength: 'balanced', weakness: 'balanced' };
+  }
+
+  // Normalise to 0-1 where 0 = best
+  const offPct = (offenseRank - 1) / (total - 1);
+  const defPct = (defenseRank - 1) / (total - 1);
+
+  if (Math.abs(offPct - defPct) <= 0.15) {
+    return { strength: 'balanced', weakness: 'balanced' };
+  }
+
+  const defensiveLabel = (pct: number): TeamStrengthLabel =>
+    pct <= 0.4 ? 'goaltending' : 'defence';
+
+  if (offPct < defPct) {
+    // Offense is the stronger side
+    return { strength: 'offense', weakness: defensiveLabel(defPct) };
+  }
+  // Defense is the stronger side
+  return { strength: defensiveLabel(defPct), weakness: 'offense' };
+}
+
+/**
+ * Build the full tale-of-the-tape data for each rival, ready for the UI.
+ * Requires the current-season standings so we can attach GF/GA/record/strength
+ * for both the viewed team and each rival.
+ */
+export function buildTaleOfTheTapeRivals(input: TaleOfTheTapeBuildInput): TaleOfTheTapeRival[] {
+  const { teamId, teamName, teamPrimaryColor, rivals, standings, skaterRows, goalieRows } = input;
+  const standingMap = new Map(standings.map((s) => [s.team_id, s]));
+  const teamStanding = standingMap.get(teamId);
+
+  if (!teamStanding) return [];
+
+  const teamSW = deriveStrengthWeakness(standings, teamId);
+  const sniperLeaders = buildSkaterLeaderLookup(skaterRows, 'goals');
+  const playmakerLeaders = buildSkaterLeaderLookup(skaterRows, 'assists');
+  const goalieLeaders = buildGoalieLeaderLookup(goalieRows);
+
+  const teamSniper = sniperLeaders.get(teamId) ?? { name: EMPTY_PLAYER_NAME, value: 0 };
+  const teamPlaymaker = playmakerLeaders.get(teamId) ?? { name: EMPTY_PLAYER_NAME, value: 0 };
+  const teamGoalie = goalieLeaders.get(teamId);
+
+  return rivals
+    .map((rival) => {
+      const rivalStanding = standingMap.get(rival.team.id);
+      if (!rivalStanding) return null;
+
+      const rivalSW = deriveStrengthWeakness(standings, rival.team.id);
+      const rivalSniper = sniperLeaders.get(rival.team.id) ?? { name: EMPTY_PLAYER_NAME, value: 0 };
+      const rivalPlaymaker = playmakerLeaders.get(rival.team.id) ?? { name: EMPTY_PLAYER_NAME, value: 0 };
+      const rivalGoalie = goalieLeaders.get(rival.team.id);
+
+      const teamSide: TaleOfTheTapeTeamSide = {
+        id: teamId,
+        name: teamName || teamStanding.team_name,
+        slug: '',
+        logo: teamStanding.team_logo,
+        primaryColor: normalizeTeamPrimaryColor(teamPrimaryColor),
+        overallRecord: `${teamStanding.wins}-${teamStanding.losses}-${teamStanding.ties}`,
+        goalsFor: teamStanding.goals_for,
+        goalsAgainst: teamStanding.goals_against,
+        goalDifferential: teamStanding.goal_differential,
+        strength: teamSW.strength,
+        weakness: teamSW.weakness,
+        sniper: {
+          name: teamSniper.name,
+          goals: teamSniper.value,
+        },
+        playmaker: {
+          name: teamPlaymaker.name,
+          assists: teamPlaymaker.value,
+        },
+        tendy: {
+          name: teamGoalie && teamGoalie.games_played > 0 ? teamGoalie.player_name || EMPTY_PLAYER_NAME : EMPTY_PLAYER_NAME,
+          gamesPlayed: teamGoalie?.games_played ?? 0,
+          goalsAgainstAverage: teamGoalie?.goals_against_average ?? null,
+          emoji: getTendyEmoji(teamGoalie, goalieRows),
+        },
+      };
+
+      const rivalSide: TaleOfTheTapeTeamSide = {
+        id: rival.team.id,
+        name: rival.team.name,
+        slug: rival.team.slug,
+        logo: rival.team.logo,
+        primaryColor: normalizeTeamPrimaryColor(rival.team.primaryColor),
+        overallRecord: `${rivalStanding.wins}-${rivalStanding.losses}-${rivalStanding.ties}`,
+        goalsFor: rivalStanding.goals_for,
+        goalsAgainst: rivalStanding.goals_against,
+        goalDifferential: rivalStanding.goal_differential,
+        strength: rivalSW.strength,
+        weakness: rivalSW.weakness,
+        sniper: {
+          name: rivalSniper.name,
+          goals: rivalSniper.value,
+        },
+        playmaker: {
+          name: rivalPlaymaker.name,
+          assists: rivalPlaymaker.value,
+        },
+        tendy: {
+          name: rivalGoalie && rivalGoalie.games_played > 0 ? rivalGoalie.player_name || EMPTY_PLAYER_NAME : EMPTY_PLAYER_NAME,
+          gamesPlayed: rivalGoalie?.games_played ?? 0,
+          goalsAgainstAverage: rivalGoalie?.goals_against_average ?? null,
+          emoji: getTendyEmoji(rivalGoalie, goalieRows),
+        },
+      };
+
+      const h2hRecord = `${rival.wins}-${rival.losses}${rival.ties > 0 ? `-${rival.ties}` : ''}`;
+      const h2hRecordRival = `${rival.losses}-${rival.wins}${rival.ties > 0 ? `-${rival.ties}` : ''}`;
+
+      return {
+        team: teamSide,
+        rival: rivalSide,
+        h2hRecord,
+        h2hRecordRival,
+        gamesPlayed: rival.games_played,
+      } satisfies TaleOfTheTapeRival;
+    })
+    .filter((entry): entry is TaleOfTheTapeRival => entry !== null);
 }

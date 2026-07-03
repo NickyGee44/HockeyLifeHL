@@ -166,7 +166,8 @@ export default function CheckinPage() {
         .select('player_id, position, jersey_number, profile:profiles(id, full_name, avatar_url)')
         .eq('team_id', teamId)
         .eq('status', 'active')
-        .is('end_date', null);
+        .is('end_date', null)
+        .eq('player_type', 'regular');
 
       if (rosterData) {
         setRoster(
@@ -247,6 +248,18 @@ export default function CheckinPage() {
             ...prev,
             [gameId]: { ...(prev[gameId] ?? {}), [user.id]: status },
           }));
+
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('team-checkin-updated', {
+                detail: {
+                  gameId,
+                  playerId: user.id,
+                  status,
+                },
+              })
+            );
+          }
         }
       } else {
         setSaveError(result.error || 'Failed to save your response. Please try again.');

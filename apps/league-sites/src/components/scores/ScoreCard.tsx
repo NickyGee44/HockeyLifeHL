@@ -27,9 +27,7 @@ export function ScoreCard({ game, leagueSlug }: ScoreCardProps) {
     >
       <div
         className={`
-          relative bg-[var(--color-background-elevated)] border border-[var(--color-border)]
-          rounded-xl p-4 transition-all duration-300
-          hover:border-[var(--league-primary)]/50 hover:shadow-lg hover:shadow-[var(--league-primary)]/10
+          glass-card rounded-xl p-4
           ${isLive ? 'border-red-500/50' : ''}
         `}
       >

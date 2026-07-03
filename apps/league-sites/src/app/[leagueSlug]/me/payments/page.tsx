@@ -316,7 +316,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
         </div>
 
         {/* Total Paid */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+        <div className="glass-card rounded-xl p-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-[var(--league-primary)]/10 flex items-center justify-center">
               <CreditCard className="w-6 h-6 text-[var(--league-primary)]" />
@@ -346,7 +346,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                 return (
                   <div
                     key={reg.id}
-                    className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4"
+                    className="glass-card rounded-xl p-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-1">
@@ -421,14 +421,14 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
         </h2>
 
         {payments.length === 0 ? (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+          <div className="glass-card rounded-xl p-8 text-center">
             <Receipt className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
             <p className="text-[var(--color-text-secondary)]">
               No payment history yet.
             </p>
           </div>
         ) : (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+          <div className="glass-card rounded-xl overflow-hidden">
             <div className="divide-y divide-[var(--color-border)]">
               {payments.map((payment) => (
                 <div

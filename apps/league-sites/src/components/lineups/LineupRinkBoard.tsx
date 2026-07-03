@@ -129,16 +129,16 @@ export function LineupRinkBoard({
         <div ref={benchRef} className="mt-4 rounded-[24px] border border-white/10 bg-black/20 p-4" data-lineup-bench="true">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Bench</p>
-              <h4 className="mt-2 text-sm font-bold text-white">Available off-ice players</h4>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Unassigned Roster</p>
+              <h4 className="mt-2 text-sm font-bold text-white">In players and available spares not yet assigned</h4>
             </div>
             <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-300">
-              {benchPlayers.length} waiting
+              {benchPlayers.length} unassigned
             </div>
           </div>
 
           {benchPlayers.length === 0 ? (
-            <p className="mt-4 text-sm text-neutral-400">Everyone on the roster is currently placed on the rink.</p>
+            <p className="mt-4 text-sm text-neutral-400">All in players and spares are already assigned to jerseys.</p>
           ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {benchPlayers.map((player) => (

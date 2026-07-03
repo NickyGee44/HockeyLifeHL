@@ -157,7 +157,7 @@ async function handleGameRecap(supabase: any, gameId: string) {
 
   try {
     // Call OpenAI
-    const systemPrompt = getGameRecapSystemPrompt();
+    const systemPrompt = getGameRecapSystemPrompt(gameData.recapTone);
     const userPrompt = getGameRecapUserPrompt(gameData);
     const { parsed, usage, model } = await callOpenAI(systemPrompt, userPrompt);
 

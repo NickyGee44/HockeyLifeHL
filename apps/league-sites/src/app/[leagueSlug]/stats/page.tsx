@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import {
   getCurrentSeason,
   getLeagueBySlug,
-  getPlayerBadgesByIds,
   getSeasons,
   getTeams,
   getUnifiedGoalieStatsRows,
@@ -66,8 +65,6 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
       : Promise.resolve([]),
   ]);
 
-  const activePlayerIds = [...new Set((mode === 'skaters' ? skaterRows : goalieRows).map((row) => row.player_id))];
-  const badges = await getPlayerBadgesByIds(activePlayerIds);
   const seasonLabel = isAllTime
     ? 'All-Time Career Stats'
     : selectedSeason?.name || null;
@@ -86,7 +83,6 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
             isAllTime={isAllTime}
             skaterRows={skaterRows}
             goalieRows={goalieRows}
-            badges={badges}
           />
         </div>
       </div>

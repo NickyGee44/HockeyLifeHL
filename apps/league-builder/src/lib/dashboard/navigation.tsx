@@ -239,6 +239,7 @@ export function buildDashboardNavigation({
           createItem('league-setup-overview', 'Teams & Divisions', `${leagueHub}/teams-divisions`, Users, 'league', {
             matchPrefixes: [`${leagueHub}/teams-divisions`, `${leagueHub}/divisions`, `${leagueHub}/teams`],
           }),
+          createItem('league-spares', 'Active Spares', `${leagueHub}/spares`, Shield, 'league', { locked: !isSubscribed }),
           createItem('league-staff', t('staff') || 'Staff', `${leagueHub}/staff`, Flag, 'league', { locked: !isSubscribed }),
           createItem('league-game-rules', t('gameRules') || 'Game Rules', `${leagueHub}/settings/game-rules`, ClipboardCheck, 'league', { locked: !isSubscribed }),
           createItem('league-registration', t('registration') || 'Registration', `${leagueHub}/settings/registration`, ClipboardCheck, 'league', { locked: !isSubscribed }),

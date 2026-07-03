@@ -1197,6 +1197,7 @@ export async function submitPlayerRegistration(
         emergency_contact_phone: data.emergency_contact_phone,
         emergency_contact_relationship: data.emergency_contact_relationship,
         medical_notes: data.medical_notes || null,
+        avatar_url: existingProfile?.avatar_url || registrationPhotoUrl,
         photo_url: registrationPhotoUrl,
       })
       .eq('id', user.id);
