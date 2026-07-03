@@ -13,8 +13,11 @@ import {
   getCurrentSeason,
   getPlayerBadges,
   getPlayerArticles,
+  getPlayerCareerStatsTimeline,
   getPlayerGoalieMatchups,
   getGoaliePlayerMatchups,
+  generatePlayerCareerHotFacts,
+  filterVisiblePlayerCareerTimelineRows,
 } from '@/lib/data';
 import { PlayerHeader } from '@/components/player/PlayerHeader';
 import { PlayerBadgesSection } from '@/components/player/PlayerBadgesSection';
@@ -22,7 +25,9 @@ import { PlayerStatsCards } from '@/components/player/PlayerStatsCards';
 import { PlayerGameLog } from '@/components/player/PlayerGameLog';
 import { SeasonSelector } from '@/components/player/SeasonSelector';
 import { PlayerArticleCard } from '@/components/player/PlayerArticleCard';
+import { PlayerCareerStatsSection } from '@/components/player/PlayerCareerStatsSection';
 import { PlayerMatchups } from '@/components/player/PlayerMatchups';
+import { PlayerQuickActions } from '@/components/player/PlayerQuickActions';
 import { isAggregateOnlySeasonView } from '@/lib/imported-aggregate-season-overrides';
 import { countChampionshipBadges, summarizePlayerCareerAchievements } from '@/lib/career-achievements';
 
@@ -62,9 +67,10 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
     notFound();
   }
 
-  // Get current season if no filter specified
+  // Treat ?season=all as the explicit career/all-time view.
   const currentSeason = await getCurrentSeason(league.id);
-  const seasonId = seasonFilter || currentSeason?.id;
+  const isCareerView = seasonFilter === 'all';
+  const seasonId = isCareerView ? undefined : (seasonFilter || currentSeason?.id);
 
   // Use profile ID (player_id) for stats queries, not the URL param
   const profileId = player.player_id;
@@ -72,7 +78,7 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   const isGoalie = player.position === 'G' || player.position === 'Goalie';
 
   // Fetch data in parallel
-  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData] = await Promise.all([
+  const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData, careerTimeline, careerTimelineWithBaseline] = await Promise.all([
     getSeasons(league.id),
     getPlayerCareerStats(profileId, seasonId),
     getPlayerGameLog(profileId, seasonId, 20),
@@ -82,6 +88,8 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
     isGoalie
       ? getGoaliePlayerMatchups(profileId, seasonId)
       : getPlayerGoalieMatchups(profileId, seasonId),
+    getPlayerCareerStatsTimeline(league.id, profileId, isGoalie),
+    getPlayerCareerStatsTimeline(league.id, profileId, isGoalie, { includeHistoricalBaseline: true }),
   ]);
 
   const playerName = player.profile?.full_name || 'Unknown Player';
@@ -102,6 +110,16 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   }));
   const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
   const showPerGameHistory = !isAggregateOnlySeasonView(seasonId, currentSeasonName);
+  const visibleCareerTimeline = filterVisiblePlayerCareerTimelineRows(careerTimeline);
+  const careerTotalsTimeline = filterVisiblePlayerCareerTimelineRows(careerTimelineWithBaseline, {
+    includeHistoricalBaseline: true,
+  });
+  const careerHotFacts = await generatePlayerCareerHotFacts({
+    playerName,
+    seasons: visibleCareerTimeline,
+    careerTotalsSeasons: careerTotalsTimeline,
+    isGoalie,
+  });
 
   return (
     <SubscriptionWall>
@@ -124,6 +142,9 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
           badges={badges}
           careerAchievements={careerAchievements}
         />
+
+        {/* Quick Actions (only visible to the player themselves) */}
+        <PlayerQuickActions playerId={playerId} leagueSlug={leagueSlug} />
 
         {/* Achievements Section */}
         <PlayerBadgesSection badges={badges} seasonId={seasonId} />
@@ -156,6 +177,12 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
             </p>
           </div>
         )}
+
+        <PlayerCareerStatsSection
+          seasons={visibleCareerTimeline}
+          isGoalie={isGoalie}
+          hotFacts={careerHotFacts}
+        />
 
         {/* Game Log */}
         {showPerGameHistory && (

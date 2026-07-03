@@ -11,6 +11,7 @@ import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WeekPickerDay, ScheduleGame } from '@/lib/types';
 import { buildScheduleJsonLd } from '@/lib/jsonld';
+import { SeasonCompletionArc } from '@/components/shared/SeasonCompletionArc';
 
 interface SchedulePageProps {
   params: Promise<{ leagueSlug: string }>;
@@ -252,6 +253,13 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
                 timezone={leagueTimezone}
               />
             </div>
+          </div>
+        )}
+
+        {/* Season Completion Arc — baseline sits flush against sponsor bar */}
+        {seasonGames.length > 0 && (
+          <div className="max-w-[1200px] mx-auto mt-6 -mb-8">
+            <SeasonCompletionArc games={seasonGames as ScheduleGame[]} />
           </div>
         )}
     </div>

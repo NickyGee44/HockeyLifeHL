@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { cn } from '@hockey-life/ui';
-import { Image as ImageIcon, Layout, Globe, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Layout, Globe, Loader2, Layers } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import type { BackgroundPreset } from '../types';
 import { LogoUploader } from '@/components/ui/logo-uploader';
 import { LeagueLogo } from '@/components/ui/league-logo';
 import {
@@ -53,6 +55,14 @@ export function ImagesPanel() {
         leagueId={state.selectedLeagueId}
         onFaviconChange={(url) => {
           setField('faviconUrl', url);
+        }}
+      />
+
+      {/* Background Section */}
+      <BackgroundSection
+        backgroundPreset={state.backgroundPreset}
+        onPresetChange={(preset) => {
+          setField('backgroundPreset', preset);
         }}
       />
     </div>
@@ -414,6 +424,90 @@ function FaviconSection({
           <li>Use a 32x32 or 64x64 pixel image</li>
           <li>PNG with transparency is recommended</li>
           <li>ICO files work in all browsers</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BackgroundSection
+// ---------------------------------------------------------------------------
+
+const BACKGROUND_PRESETS: Array<{
+  id: BackgroundPreset;
+  labelKey: string;
+  thumbnail: string | null;
+}> = [
+  { id: 'weekly-games', labelKey: 'backgroundPresetWeeklyGames', thumbnail: '/homepage/weekly-games-bg.jpg' },
+  { id: 'none', labelKey: 'backgroundPresetNone', thumbnail: null },
+];
+
+function BackgroundSection({
+  backgroundPreset,
+  onPresetChange,
+}: {
+  backgroundPreset: BackgroundPreset;
+  onPresetChange: (preset: BackgroundPreset) => void;
+}) {
+  const t = useTranslations('websiteEditor.images');
+
+  return (
+    <div className="space-y-4 pt-4 border-t border-white/10">
+      <div>
+        <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+          <Layers className="w-4 h-4 text-rink-500" />
+          {t('background')}
+        </h3>
+        <p className="text-xs text-neutral-500 mb-4">
+          {t('backgroundSubtitle')}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {BACKGROUND_PRESETS.map((preset) => {
+          const isSelected = backgroundPreset === preset.id;
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onPresetChange(preset.id)}
+              className={cn(
+                'group relative overflow-hidden rounded-lg border-2 transition-all',
+                isSelected
+                  ? 'border-rink-500 ring-1 ring-rink-500/40'
+                  : 'border-white/10 hover:border-white/20'
+              )}
+            >
+              <div className="aspect-[16/9] bg-neutral-800 flex items-center justify-center">
+                {preset.thumbnail ? (
+                  <img
+                    src={preset.thumbnail}
+                    alt={t(preset.labelKey)}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-neutral-500 text-xs">{t('backgroundPresetNoneLabel')}</span>
+                )}
+              </div>
+              <div className="px-2 py-1.5 bg-neutral-900 text-center">
+                <span className={cn(
+                  'text-xs font-medium',
+                  isSelected ? 'text-rink-400' : 'text-neutral-400'
+                )}>
+                  {t(preset.labelKey)}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="pt-3 border-t border-white/10">
+        <h4 className="text-xs font-medium text-neutral-400 mb-2">Tips</h4>
+        <ul className="text-xs text-neutral-500 space-y-1 list-disc list-inside">
+          <li>{t('backgroundTipColors')}</li>
+          <li>{t('backgroundTipNone')}</li>
         </ul>
       </div>
     </div>

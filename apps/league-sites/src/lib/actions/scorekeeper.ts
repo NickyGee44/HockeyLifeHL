@@ -7,6 +7,7 @@ import { randomBytes } from 'crypto';
 
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
+const ASSUMED_GOALIE_SHOTS_AGAINST = 20;
 
 export type ScorekeeperSessionOrigin = 'assigned_scorekeeper' | 'captain_self_score';
 export type ScorekeeperTeamType = 'home' | 'away';
@@ -99,6 +100,172 @@ function clearFailures(token: string) {
   tokenFailureStore.delete(`token:${token.toUpperCase()}`);
 }
 
+function isGoalieRosterPosition(position: string | null | undefined, isGoalie?: boolean | null): boolean {
+  const normalized = position?.trim().toLowerCase();
+  return Boolean(isGoalie) || normalized === 'g' || normalized === 'goalie' || normalized === 'goaltender';
+}
+
+function buildAssumedGoalieStat({
+  game,
+  goalie,
+  teamId,
+  goalsFor,
+  goalsAgainst,
+}: {
+  game: {
+    id: string;
+    league_id: string;
+    season_id: string;
+  };
+  goalie: {
+    player_id: string;
+  };
+  teamId: string;
+  goalsFor: number;
+  goalsAgainst: number;
+}) {
+  const safeGoalsAgainst = Math.max(0, Math.trunc(Number(goalsAgainst) || 0));
+  return {
+    game_id: game.id,
+    league_id: game.league_id,
+    season_id: game.season_id,
+    team_id: teamId,
+    player_id: goalie.player_id,
+    goals_against: safeGoalsAgainst,
+    shots_against: ASSUMED_GOALIE_SHOTS_AGAINST,
+    saves: Math.max(0, ASSUMED_GOALIE_SHOTS_AGAINST - safeGoalsAgainst),
+    shutout: safeGoalsAgainst === 0,
+    game_result: goalsFor > goalsAgainst ? 'W' : goalsFor < goalsAgainst ? 'L' : 'T',
+  };
+}
+
+async function ensureAssumedGoalieStatsForGame(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+): Promise<void> {
+  const { data: game, error: gameError } = await supabase
+    .from('games')
+    .select('id, league_id, season_id, status, scheduled_at, home_team_id, away_team_id, home_score, away_score')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (gameError || !game || game.status !== 'completed' || !game.league_id || !game.season_id) {
+    if (gameError) {
+      console.error('[scorekeeper] Failed to load game for goalie stat generation', gameError);
+    }
+    return;
+  }
+
+  if (!game.home_team_id || !game.away_team_id || game.home_score == null || game.away_score == null) {
+    return;
+  }
+
+  const { data: rosterRows, error: rosterError } = await supabase
+    .from('team_rosters')
+    .select('player_id, team_id, position, is_goalie, joined_at, end_date, status')
+    .eq('season_id', game.season_id)
+    .in('team_id', [game.home_team_id, game.away_team_id])
+    .eq('status', 'active');
+
+  if (rosterError || !rosterRows) {
+    if (rosterError) {
+      console.error('[scorekeeper] Failed to load goalies for goalie stat generation', rosterError);
+    }
+    return;
+  }
+
+  const scheduledAt = game.scheduled_at ? new Date(game.scheduled_at).getTime() : null;
+  const goaliesByTeam = new Map<string, Array<{ player_id: string }>>();
+
+  for (const row of rosterRows as Array<{
+    player_id: string | null;
+    team_id: string | null;
+    position: string | null;
+    is_goalie: boolean | null;
+    joined_at: string | null;
+    end_date: string | null;
+  }>) {
+    if (!row.player_id || !row.team_id || !isGoalieRosterPosition(row.position, row.is_goalie)) {
+      continue;
+    }
+
+    if (scheduledAt != null) {
+      if (row.joined_at && new Date(row.joined_at).getTime() > scheduledAt) {
+        continue;
+      }
+      if (row.end_date && new Date(row.end_date).getTime() < scheduledAt) {
+        continue;
+      }
+    }
+
+    const rowsForTeam = goaliesByTeam.get(row.team_id) || [];
+    rowsForTeam.push({ player_id: row.player_id });
+    goaliesByTeam.set(row.team_id, rowsForTeam);
+  }
+
+  const homeGoalies = goaliesByTeam.get(game.home_team_id) || [];
+  const awayGoalies = goaliesByTeam.get(game.away_team_id) || [];
+
+  if (homeGoalies.length !== 1 || awayGoalies.length !== 1) {
+    console.warn('[scorekeeper] Skipping assumed goalie stat generation because goalie assignment is ambiguous', {
+      gameId,
+      homeGoalies: homeGoalies.length,
+      awayGoalies: awayGoalies.length,
+    });
+    return;
+  }
+
+  const homeScore = Number(game.home_score);
+  const awayScore = Number(game.away_score);
+  const rows = [
+    buildAssumedGoalieStat({
+      game,
+      goalie: homeGoalies[0],
+      teamId: game.home_team_id,
+      goalsFor: homeScore,
+      goalsAgainst: awayScore,
+    }),
+    buildAssumedGoalieStat({
+      game,
+      goalie: awayGoalies[0],
+      teamId: game.away_team_id,
+      goalsFor: awayScore,
+      goalsAgainst: homeScore,
+    }),
+  ];
+
+  for (const row of rows) {
+    const { data: existing, error: existingError } = await supabase
+      .from('goalie_stats')
+      .select('id')
+      .eq('game_id', row.game_id)
+      .eq('player_id', row.player_id);
+
+    if (existingError) {
+      console.error('[scorekeeper] Failed to check existing goalie stat row', existingError);
+      continue;
+    }
+
+    if (existing && existing.length > 0) {
+      const { error: updateError } = await supabase
+        .from('goalie_stats')
+        .update(row)
+        .eq('game_id', row.game_id)
+        .eq('player_id', row.player_id);
+
+      if (updateError) {
+        console.error('[scorekeeper] Failed to update assumed goalie stat row', updateError);
+      }
+    } else {
+      const { error: insertError } = await supabase.from('goalie_stats').insert(row);
+
+      if (insertError) {
+        console.error('[scorekeeper] Failed to insert assumed goalie stat row', insertError);
+      }
+    }
+  }
+}
+
 // Cleanup every 5 minutes
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
@@ -131,6 +298,7 @@ export interface ScorekeeperSession {
   initiatingTeamId: string | null;
   initiatingTeamType: ScorekeeperTeamType | null;
   initiatingCaptainId: string | null;
+  attendanceLocked: boolean;
 }
 
 export interface GameOfficial {
@@ -147,6 +315,7 @@ export interface PenaltyRule {
 
 export interface GameData {
   id: string;
+  scorekeeperTracksTimePeriods: boolean;
   homeTeam: TeamData;
   awayTeam: TeamData;
   scheduledAt: string;
@@ -196,7 +365,7 @@ export interface GameEventData {
   id: string;
   clientEventId: string;
   eventType: string;
-  period: number;
+  period: number | null;
   gameTimeSeconds: number | null;
   teamId: string;
   teamType: 'home' | 'away';
@@ -252,6 +421,7 @@ type SessionLookupResult = {
   initiatingTeamId: string | null;
   initiatingTeamType: ScorekeeperTeamType | null;
   initiatingCaptainId: string | null;
+  attendanceLocked: boolean;
   accessCount: number;
 };
 
@@ -270,6 +440,8 @@ async function lookupSessionByToken(
       games!inner(
         status,
         scheduled_at,
+        home_team_id,
+        away_team_id,
         home_team:teams!games_home_team_id_fkey(name),
         away_team:teams!games_away_team_id_fkey(name)
       )
@@ -298,9 +470,13 @@ async function lookupSessionByToken(
   const game = data.games as {
     status: string | null;
     scheduled_at: string;
+    home_team_id: string;
+    away_team_id: string;
     home_team: { name: string } | null;
     away_team: { name: string } | null;
   };
+
+  const attendanceLocked = false;
 
   return {
     sessionId: data.id,
@@ -318,6 +494,7 @@ async function lookupSessionByToken(
     initiatingTeamId: (data.initiating_team_id as string | null) ?? null,
     initiatingTeamType: (data.initiating_team_type as ScorekeeperTeamType | null) ?? null,
     initiatingCaptainId: (data.initiating_captain_id as string | null) ?? null,
+    attendanceLocked,
     accessCount,
   };
 }
@@ -373,6 +550,23 @@ function normalizeGameClockValue(value: number | null | undefined): number | nul
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function normalizeEventPeriod(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function leagueTracksScorekeeperTimePeriods(leagueOrSettings: unknown): boolean {
+  if (leagueOrSettings && typeof leagueOrSettings === 'object' && !Array.isArray(leagueOrSettings)) {
+    const row = leagueOrSettings as Record<string, unknown>;
+    if (typeof row.scorekeeper_tracks_time_periods === 'boolean') return row.scorekeeper_tracks_time_periods;
+    const settings = row.settings;
+    if (settings && typeof settings === 'object' && !Array.isArray(settings)) {
+      const value = (settings as Record<string, unknown>).scorekeeper_tracks_time_periods;
+      if (typeof value === 'boolean') return value;
+    }
+  }
+  return true;
+}
+
 function normalizeVerificationToken(token: string): string {
   return token.replace(/[,.()"\\]/g, '');
 }
@@ -404,6 +598,7 @@ function revalidateLeagueSiteGameResultPaths(
       `/${leagueSlug}/schedule`,
       `/${leagueSlug}/scores`,
       `/${leagueSlug}/standings`,
+      `/${leagueSlug}/playoffs`,
       `/${leagueSlug}/stats`,
       `/${leagueSlug}/teams`,
       ...teamSlugs.filter(Boolean).map((teamSlug) => `/${leagueSlug}/teams/${teamSlug}`),
@@ -448,7 +643,10 @@ async function finalizeCompletedGameStats(
 
   const { error: statusUpdateError } = await supabase
     .from('games')
-    .update({ status: 'completed' })
+    .update({
+      status: 'completed',
+      stats_locked_at: new Date().toISOString(),
+    })
     .eq('id', gameId);
 
   if (statusUpdateError) {
@@ -477,6 +675,29 @@ async function finalizeCompletedGameStats(
       body: { action: 'game_recap', game_id: gameId },
     }).catch(() => {});
   }
+}
+
+async function finalizeIfBothCaptainsVerified(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  gameId: string,
+): Promise<boolean> {
+  const { data: verificationState, error: verificationStateError } = await supabase
+    .from('games')
+    .select('home_verified_at, away_verified_at')
+    .eq('id', gameId)
+    .single();
+
+  if (verificationStateError) {
+    console.error('Verify captain state reload error:', verificationStateError);
+    return false;
+  }
+
+  if (verificationState?.home_verified_at && verificationState?.away_verified_at) {
+    await finalizeCompletedGameStats(supabase, gameId);
+    return true;
+  }
+
+  return false;
 }
 
 async function resolveTeamCaptainContact(
@@ -664,6 +885,8 @@ async function recalculateGameDerivedState(supabase: any, gameId: string): Promi
       console.error(`[scorekeeper] Failed to run ${fnName}`, error);
     }
   }
+
+  await ensureAssumedGoalieStatsForGame(supabase, gameId);
 }
 
 // =============================================================================
@@ -854,6 +1077,7 @@ export async function validateScorekeeperToken(token: string): Promise<{
         initiatingTeamId: session.initiatingTeamId,
         initiatingTeamType: session.initiatingTeamType,
         initiatingCaptainId: session.initiatingCaptainId,
+        attendanceLocked: session.attendanceLocked,
       },
     };
   } catch (error) {
@@ -902,6 +1126,7 @@ export async function getScorekeeperSession(): Promise<{
         initiatingTeamId: session.initiatingTeamId,
         initiatingTeamType: session.initiatingTeamType,
         initiatingCaptainId: session.initiatingCaptainId,
+        attendanceLocked: session.attendanceLocked,
       },
     };
   } catch (error) {
@@ -1052,14 +1277,17 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       return { success: false, error: 'Game not found' };
     }
 
-    // Fetch league settings for custom penalty rules
+    // Fetch league settings for custom penalty rules and scorekeeper clock behavior.
     let penaltyRules: PenaltyRule[] | undefined;
+    let scorekeeperTracksTimePeriods = true;
     if (game.league_id) {
       const { data: leagueData } = await (supabase as any)
         .from('leagues')
-        .select('settings')
+        .select('settings, scorekeeper_tracks_time_periods')
         .eq('id', game.league_id)
         .single();
+
+      scorekeeperTracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueData);
 
       if (leagueData?.settings?.penalty_rules && Array.isArray(leagueData.settings.penalty_rules)) {
         penaltyRules = leagueData.settings.penalty_rules as PenaltyRule[];
@@ -1137,6 +1365,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
       success: true,
       game: {
         id: game.id,
+        scorekeeperTracksTimePeriods,
         homeTeam: {
           id: homeTeam.id,
           name: homeTeam.name,
@@ -1245,8 +1474,8 @@ export async function refreshGameEvents(gameId: string): Promise<{
         assist2:profiles!game_events_assist2_player_id_fkey(full_name)
       `)
       .eq('game_id', gameId)
-      .order('period', { ascending: true })
-      .order('game_time_seconds', { ascending: false })
+      .order('period', { ascending: true, nullsFirst: false })
+      .order('game_time_seconds', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -1342,8 +1571,8 @@ export async function getGameEvents(gameId: string): Promise<{
         assist2:profiles!game_events_assist2_player_id_fkey(full_name)
       `)
       .eq('game_id', gameId)
-      .order('period', { ascending: true })
-      .order('game_time_seconds', { ascending: false })
+      .order('period', { ascending: true, nullsFirst: false })
+      .order('game_time_seconds', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -1417,8 +1646,8 @@ export async function addGoalEvent(data: {
   scorerId: string;
   assist1Id?: string;
   assist2Id?: string;
-  period: number;
-  gameTimeSeconds?: number;
+  period?: number | null;
+  gameTimeSeconds?: number | null;
   isPowerPlay?: boolean;
   isShortHanded?: boolean;
   isEmptyNet?: boolean;
@@ -1430,12 +1659,19 @@ export async function addGoalEvent(data: {
 
     const { data: game } = await supabase
       .from('games')
-      .select('league_id, status')
+      .select('league_id, status, leagues(settings, scorekeeper_tracks_time_periods)')
       .eq('id', data.gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
     if (game.status !== 'in_progress') return { success: false, error: 'Game is not in progress' };
+
+    const leagueRelation = Array.isArray((game as any).leagues) ? (game as any).leagues[0] : (game as any).leagues;
+    const tracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueRelation);
+    const period = normalizeEventPeriod(data.period);
+    if (tracksTimePeriods && period == null) {
+      return { success: false, error: 'Period is required for this league' };
+    }
 
     const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -1452,8 +1688,8 @@ export async function addGoalEvent(data: {
         team_type: data.teamType,
         player_id: data.scorerId,
         event_type: 'goal',
-        period: data.period,
-        game_time_seconds: normalizeGameClockValue(data.gameTimeSeconds),
+        period,
+        game_time_seconds: tracksTimePeriods ? normalizeGameClockValue(data.gameTimeSeconds) : null,
         assist1_player_id: data.assist1Id || null,
         assist2_player_id: data.assist2Id || null,
         is_power_play: data.isPowerPlay || false,
@@ -1488,8 +1724,8 @@ export async function addPenaltyEvent(data: {
   teamId: string;
   teamType: 'home' | 'away';
   playerId: string;
-  period: number;
-  gameTimeSeconds?: number;
+  period?: number | null;
+  gameTimeSeconds?: number | null;
   penaltyType: string;
   penaltyMinutes: number;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
@@ -1499,12 +1735,19 @@ export async function addPenaltyEvent(data: {
 
     const { data: game } = await supabase
       .from('games')
-      .select('league_id, status')
+      .select('league_id, status, leagues(settings, scorekeeper_tracks_time_periods)')
       .eq('id', data.gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
     if (game.status !== 'in_progress') return { success: false, error: 'Game is not in progress' };
+
+    const leagueRelation = Array.isArray((game as any).leagues) ? (game as any).leagues[0] : (game as any).leagues;
+    const tracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueRelation);
+    const period = normalizeEventPeriod(data.period);
+    if (tracksTimePeriods && period == null) {
+      return { success: false, error: 'Period is required for this league' };
+    }
 
     const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -1521,8 +1764,8 @@ export async function addPenaltyEvent(data: {
         team_type: data.teamType,
         player_id: data.playerId,
         event_type: 'penalty',
-        period: data.period,
-        game_time_seconds: normalizeGameClockValue(data.gameTimeSeconds),
+        period,
+        game_time_seconds: tracksTimePeriods ? normalizeGameClockValue(data.gameTimeSeconds) : null,
         penalty_type: data.penaltyType,
         penalty_minutes: data.penaltyMinutes,
         entered_by: enteredByProfileId,
@@ -1554,8 +1797,8 @@ export async function addShotEvent(data: {
   teamType: 'home' | 'away';
   goalieId: string;
   shotByPlayerId?: string;
-  period: number;
-  gameTimeSeconds?: number;
+  period?: number | null;
+  gameTimeSeconds?: number | null;
 }): Promise<{ success: boolean; eventId?: string; error?: string }> {
   try {
     const enteredByProfileId = await verifyActiveSession(data.gameId);
@@ -1563,12 +1806,19 @@ export async function addShotEvent(data: {
 
     const { data: game } = await supabase
       .from('games')
-      .select('league_id, status')
+      .select('league_id, status, leagues(settings, scorekeeper_tracks_time_periods)')
       .eq('id', data.gameId)
       .single();
 
     if (!game) return { success: false, error: 'Game not found' };
     if (game.status !== 'in_progress') return { success: false, error: 'Game is not in progress' };
+
+    const leagueRelation = Array.isArray((game as any).leagues) ? (game as any).leagues[0] : (game as any).leagues;
+    const tracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueRelation);
+    const period = normalizeEventPeriod(data.period);
+    if (tracksTimePeriods && period == null) {
+      return { success: false, error: 'Period is required for this league' };
+    }
 
     const clientEventId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 15)}`;
 
@@ -1586,8 +1836,8 @@ export async function addShotEvent(data: {
         player_id: data.goalieId,
         assist1_player_id: data.shotByPlayerId || null,
         event_type: 'save',
-        period: data.period,
-        game_time_seconds: normalizeGameClockValue(data.gameTimeSeconds),
+        period,
+        game_time_seconds: tracksTimePeriods ? normalizeGameClockValue(data.gameTimeSeconds) : null,
         entered_by: enteredByProfileId,
         entered_at: new Date().toISOString(),
       })
@@ -1737,8 +1987,8 @@ export async function batchAddEvents(
   events: Array<{
     type: 'goal' | 'penalty';
     teamType: 'home' | 'away';
-    period: number;
-    gameTimeSeconds: number;
+    period?: number | null;
+    gameTimeSeconds?: number | null;
     scorerJersey?: number;
     assist1Jersey?: number | null;
     assist2Jersey?: number | null;
@@ -1805,6 +2055,13 @@ export async function batchAddEvents(
       awayJerseyMap.set(r.jersey_number, r.player_id);
     });
 
+    const { data: leagueRow } = await supabase
+      .from('leagues')
+      .select('settings, scorekeeper_tracks_time_periods')
+      .eq('id', game.league_id)
+      .maybeSingle();
+    const tracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueRow);
+
     const getPlayerId = (teamType: 'home' | 'away', jersey: number | undefined | null): string | null => {
       if (jersey == null) return null;
       const map = teamType === 'home' ? homeJerseyMap : awayJerseyMap;
@@ -1825,6 +2082,10 @@ export async function batchAddEvents(
           errors.push(`Goal #${i + 1}: Could not find player with jersey #${evt.scorerJersey} on ${evt.teamType} team`);
           continue;
         }
+        if (tracksTimePeriods && normalizeEventPeriod(evt.period) == null) {
+          errors.push(`Goal #${i + 1}: Period is required for this league`);
+          continue;
+        }
 
         const assist1Id = getPlayerId(evt.teamType, evt.assist1Jersey);
         const assist2Id = getPlayerId(evt.teamType, evt.assist2Jersey);
@@ -1842,8 +2103,8 @@ export async function batchAddEvents(
             team_type: evt.teamType,
             player_id: scorerId,
             event_type: 'goal',
-            period: evt.period,
-            game_time_seconds: normalizeGameClockValue(evt.gameTimeSeconds),
+            period: tracksTimePeriods ? normalizeEventPeriod(evt.period) : null,
+            game_time_seconds: tracksTimePeriods ? normalizeGameClockValue(evt.gameTimeSeconds) : null,
             assist1_player_id: assist1Id,
             assist2_player_id: assist2Id,
             entered_by: enteredByProfileId,
@@ -1862,6 +2123,10 @@ export async function batchAddEvents(
           errors.push(`Penalty #${i + 1}: Could not find player with jersey #${evt.playerJersey} on ${evt.teamType} team`);
           continue;
         }
+        if (tracksTimePeriods && normalizeEventPeriod(evt.period) == null) {
+          errors.push(`Penalty #${i + 1}: Period is required for this league`);
+          continue;
+        }
 
         const { error } = await supabase
           .from('game_events')
@@ -1876,8 +2141,8 @@ export async function batchAddEvents(
             team_type: evt.teamType,
             player_id: playerId,
             event_type: 'penalty',
-            period: evt.period,
-            game_time_seconds: normalizeGameClockValue(evt.gameTimeSeconds),
+            period: tracksTimePeriods ? normalizeEventPeriod(evt.period) : null,
+            game_time_seconds: tracksTimePeriods ? normalizeGameClockValue(evt.gameTimeSeconds) : null,
             penalty_type: evt.penaltyType || 'Minor',
             penalty_minutes: evt.penaltyMinutes || 2,
             entered_by: enteredByProfileId,
@@ -1955,9 +2220,10 @@ export interface CheckinPlayer {
   id: string;
   fullName: string;
   avatarUrl: string | null;
-  jerseyNumber: number;
+  jerseyNumber: number | null;
   position: string;
   checkinStatus: 'confirmed' | 'tentative' | 'out' | null;
+  isSub?: boolean;
 }
 
 /**
@@ -1984,8 +2250,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
       return { success: false, error: 'Game not found' };
     }
 
-    // Fetch rosters and existing checkins in parallel
-    const [homeRosterResult, awayRosterResult, checkinsResult] = await Promise.all([
+    // Fetch regular rosters, accepted game spares, and existing checkins in parallel.
+    const [homeRosterResult, awayRosterResult, homeSubResult, awaySubResult, checkinsResult] = await Promise.all([
       (() => {
         let query = (supabase as any)
           .from('team_rosters')
@@ -1995,7 +2261,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           `)
           .eq('team_id', game.home_team_id)
           .eq('status', 'active')
-          .is('end_date', null);
+          .is('end_date', null)
+          .eq('player_type', 'regular');
 
         if (game.season_id) {
           query = query.eq('season_id', game.season_id);
@@ -2012,7 +2279,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           `)
           .eq('team_id', game.away_team_id)
           .eq('status', 'active')
-          .is('end_date', null);
+          .is('end_date', null)
+          .eq('player_type', 'regular');
 
         if (game.season_id) {
           query = query.eq('season_id', game.season_id);
@@ -2020,6 +2288,24 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
 
         return query;
       })(),
+      (supabase as any)
+        .from('sub_invitations')
+        .select(`
+          invited_player_id,
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('game_id', gameId)
+        .eq('team_id', game.home_team_id)
+        .eq('status', 'accepted'),
+      (supabase as any)
+        .from('sub_invitations')
+        .select(`
+          invited_player_id,
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url)
+        `)
+        .eq('game_id', gameId)
+        .eq('team_id', game.away_team_id)
+        .eq('status', 'accepted'),
       (supabase as any)
         .from('game_checkins')
         .select('player_id, status')
@@ -2032,9 +2318,8 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
       checkinMap.set(row.player_id, row.status);
     }
 
-    const formatCheckinRoster = (roster: any[] | null): CheckinPlayer[] => {
-      if (!roster) return [];
-      return roster
+    const formatCheckinRoster = (roster: any[] | null, subs: any[] | null): CheckinPlayer[] => {
+      const regulars = (roster || [])
         .filter((r: any) => r.profiles)
         .map((r: any) => ({
           id: r.player_id,
@@ -2043,15 +2328,42 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           jerseyNumber: r.jersey_number,
           position: r.position as string,
           checkinStatus: (checkinMap.get(r.player_id) as CheckinPlayer['checkinStatus']) || null,
-        }))
-        .sort((a: CheckinPlayer, b: CheckinPlayer) => a.jerseyNumber - b.jerseyNumber);
+          isSub: false,
+        }));
+
+      const seen = new Set(regulars.map((player: CheckinPlayer) => player.id));
+      const acceptedSubs = (subs || [])
+        .filter((row: any) => row.invited_player_id && !seen.has(row.invited_player_id))
+        .map((row: any) => {
+          const profile = Array.isArray(row.invited_player_profile)
+            ? row.invited_player_profile[0]
+            : row.invited_player_profile;
+
+          return {
+            id: row.invited_player_id,
+            fullName: profile?.full_name ?? 'Spare Player',
+            avatarUrl: profile?.avatar_url ?? null,
+            jerseyNumber: null,
+            position: 'Spare',
+            checkinStatus: (checkinMap.get(row.invited_player_id) as CheckinPlayer['checkinStatus']) || 'confirmed',
+            isSub: true,
+          };
+        });
+
+      return [...regulars, ...acceptedSubs].sort((a: CheckinPlayer, b: CheckinPlayer) => {
+        if (a.isSub !== b.isSub) return Number(a.isSub) - Number(b.isSub);
+        if (a.jerseyNumber !== null && b.jerseyNumber !== null) return a.jerseyNumber - b.jerseyNumber;
+        if (a.jerseyNumber !== null) return -1;
+        if (b.jerseyNumber !== null) return 1;
+        return a.fullName.localeCompare(b.fullName);
+      });
     };
 
     return {
       success: true,
       checkins: {
-        homeTeam: formatCheckinRoster(homeRosterResult.data),
-        awayTeam: formatCheckinRoster(awayRosterResult.data),
+        homeTeam: formatCheckinRoster(homeRosterResult.data, homeSubResult.data),
+        awayTeam: formatCheckinRoster(awayRosterResult.data, awaySubResult.data),
       },
     };
   } catch (error) {
@@ -2490,11 +2802,12 @@ export async function submitGameForVerification(gameId: string): Promise<{
         return { success: false, error: 'Failed to submit for verification' };
       }
 
+      const gameCompleted = await finalizeIfBothCaptainsVerified(supabase, gameId);
       const leagueRelation = Array.isArray(gameDetails.leagues)
         ? gameDetails.leagues[0]
         : gameDetails.leagues;
 
-      if (leagueRelation?.name && leagueRelation?.slug && opposingTeamId) {
+      if (!gameCompleted && leagueRelation?.name && leagueRelation?.slug && opposingTeamId) {
         try {
           await maybeEmailCaptainVerificationLink({
             supabase,
@@ -2651,7 +2964,7 @@ export async function verifyCaptainStats(token: string): Promise<{
 
     const { data: verificationState, error: verificationStateError } = await supabase
       .from('games')
-      .select('home_verified_at, away_verified_at, stats_locked_at')
+      .select('home_verified_at, away_verified_at')
       .eq('id', gameId)
       .single();
 
@@ -2660,11 +2973,7 @@ export async function verifyCaptainStats(token: string): Promise<{
       return { success: true, gameId, teamType };
     }
 
-    if (
-      verificationState?.home_verified_at &&
-      verificationState?.away_verified_at &&
-      verificationState?.stats_locked_at
-    ) {
+    if (verificationState?.home_verified_at && verificationState?.away_verified_at) {
       await finalizeCompletedGameStats(supabase, gameId);
     }
 
@@ -2712,6 +3021,7 @@ export async function getGameDataForVerification(
         home_verified_at, away_verified_at, stats_locked_at,
         timer_running, timer_started_at, timer_elapsed_seconds,
         home_goalie_pulled, away_goalie_pulled, scorekeeper_notes,
+        leagues(settings, scorekeeper_tracks_time_periods),
         home_team:teams!games_home_team_id_fkey(
           id, name, short_name, logo_url, primary_color, secondary_color, captain_id
         ),
@@ -2725,6 +3035,9 @@ export async function getGameDataForVerification(
     if (gameError || !game) {
       return { success: false, error: 'Game not found' };
     }
+
+    const leagueRelation = Array.isArray((game as any).leagues) ? (game as any).leagues[0] : (game as any).leagues;
+    const scorekeeperTracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueRelation);
 
     const [homeRosterResult, awayRosterResult] = await Promise.all([
       (supabase as any)
@@ -2777,6 +3090,7 @@ export async function getGameDataForVerification(
       success: true,
       game: {
         id: game.id,
+        scorekeeperTracksTimePeriods,
         homeTeam: {
           id: homeTeam.id, name: homeTeam.name, shortName: homeTeam.short_name,
           logoUrl: homeTeam.logo_url, primaryColor: homeTeam.primary_color,
@@ -3055,11 +3369,14 @@ export async function getOrCreateCaptainScorekeeperSession(
     const initiatingTeamType: ScorekeeperTeamType =
       game.home_team_id === teamId ? 'home' : 'away';
 
-    // Look for any existing active session for this game (shared between both team captains)
+    // Reuse only this captain team's active session. Sharing one token across
+    // both captains loses the initiating team context and can leave games stuck.
     const { data: existing } = await supabase
       .from('scorekeeper_sessions')
       .select('token, expires_at')
       .eq('game_id', gameId)
+      .eq('session_origin', 'captain_self_score')
+      .eq('initiating_team_id', teamId)
       .eq('is_active', true)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })

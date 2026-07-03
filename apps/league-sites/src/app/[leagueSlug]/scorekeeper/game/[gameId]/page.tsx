@@ -25,8 +25,12 @@ export default async function GameScoringPage({ params }: GameScoringPageProps) 
     redirect(`/${leagueSlug}/scorekeeper`);
   }
 
-  // Load checkins only for scheduled games (pre-game check-in screen)
-  const checkinsResult = gameResult.game.status === 'scheduled'
+  // Load checkins only when a scheduled game still needs the pre-game attendance step.
+  const shouldShowPreGameCheckin =
+    gameResult.game.status === 'scheduled' &&
+    !(sessionResult.session.sessionOrigin === 'captain_self_score' && sessionResult.session.attendanceLocked);
+
+  const checkinsResult = shouldShowPreGameCheckin
     ? await getScorekeeperCheckins(gameId)
     : null;
 

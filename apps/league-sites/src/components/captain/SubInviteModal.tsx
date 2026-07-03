@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   UserPlus,
@@ -11,7 +12,9 @@ import {
 } from 'lucide-react';
 import {
   inviteSub,
+  addManualSub,
   getLeagueSubPlayers,
+  getTeamSubInvitations,
 } from '@/lib/actions/sub-invitations';
 import type { RosterPlayer } from '@/lib/actions/captain-roster';
 
@@ -23,12 +26,19 @@ interface SubInviteModalProps {
   leagueId: string;
   roster: RosterPlayer[];
   gameDateLabel?: string;
+  missingPlayers?: Array<{
+    playerId: string;
+    fullName: string;
+    jerseyNumber: number | null;
+  }>;
 }
 
 interface SubPlayer {
   id: string;
   full_name: string | null;
   email: string | null;
+  source: 'team' | 'league';
+  position: string | null;
 }
 
 export function SubInviteModal({
@@ -39,36 +49,88 @@ export function SubInviteModal({
   leagueId,
   roster,
   gameDateLabel,
+  missingPlayers = [],
 }: SubInviteModalProps) {
   const [availableSubs, setAvailableSubs] = useState<SubPlayer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState('');
+  const [replacedPlayerId, setReplacedPlayerId] = useState<string>('');
+  const [manualName, setManualName] = useState('');
+  const [manualPosition, setManualPosition] = useState('');
+  const [manualJerseyNumber, setManualJerseyNumber] = useState('');
+  const [saveManualToTeamSpares, setSaveManualToTeamSpares] = useState(false);
+  const [manualAddedMessage, setManualAddedMessage] = useState<string | null>(null);
   const [sentInvites, setSentInvites] = useState<Set<string>>(new Set());
+  const [confirmedInvites, setConfirmedInvites] = useState<Set<string>>(new Set());
+  const [captainConfirmed, setCaptainConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted gates client-only portal rendering.
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const fetchSubs = async () => {
       setIsLoading(true);
-      const result = await getLeagueSubPlayers(leagueId, teamId);
-      if (result.success && result.data) {
+      const [subsResult, invitesResult] = await Promise.all([
+        getLeagueSubPlayers(leagueId, teamId),
+        getTeamSubInvitations(teamId, [gameId]),
+      ]);
+
+      if (subsResult.success && subsResult.data) {
         // Also include own team's sub/part_time players
         const rosterPlayerIds = new Set(roster.map((r) => r.player_id));
-        const allSubs = result.data.filter(
+        const allSubs = subsResult.data.filter(
           (s) => !rosterPlayerIds.has(s.id)
         );
         setAvailableSubs(allSubs);
       }
+
+      if (invitesResult.success && invitesResult.data) {
+        const invitedPlayerIds = invitesResult.data.map((invite) => invite.invited_player_id);
+        const confirmedPlayerIds = invitesResult.data
+          .filter((invite) => invite.status === 'accepted')
+          .map((invite) => invite.invited_player_id);
+
+        setSentInvites(new Set(invitedPlayerIds));
+        setConfirmedInvites(new Set(confirmedPlayerIds));
+      }
+
       setIsLoading(false);
     };
 
     fetchSubs();
     // Reset state when opening
-    setSearchQuery(''); setMessage(''); setSentInvites(new Set()); setError(null); // eslint-disable-line -- intentional reset on modal open
-  }, [isOpen, leagueId, teamId, roster]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- modal form state intentionally resets when opened.
+    setSearchQuery('');
+    setMessage('');
+    setReplacedPlayerId(missingPlayers[0]?.playerId ?? '');
+    setManualName('');
+    setManualPosition('');
+    setManualJerseyNumber('');
+    setSaveManualToTeamSpares(false);
+    setManualAddedMessage(null);
+    setSentInvites(new Set());
+    setConfirmedInvites(new Set());
+    setCaptainConfirmed(false);
+    setError(null);
+  }, [isOpen, leagueId, teamId, gameId, roster, missingPlayers]);
 
   const filteredSubs = availableSubs.filter((sub) => {
     if (!searchQuery) return true;
@@ -79,22 +141,84 @@ export function SubInviteModal({
     );
   });
 
-  const handleInvite = (playerId: string) => {
+  const saveInvite = (playerId: string, markConfirmed: boolean) => {
     setError(null);
     startTransition(async () => {
-      const result = await inviteSub(gameId, teamId, playerId, message || undefined);
+      const result = await inviteSub(
+        gameId,
+        teamId,
+        playerId,
+        message || undefined,
+        replacedPlayerId || null,
+        markConfirmed,
+      );
       if (result.success) {
         setSentInvites((prev) => new Set([...prev, playerId]));
+        if (markConfirmed) {
+          setConfirmedInvites((prev) => new Set([...prev, playerId]));
+        }
       } else {
         setError(result.error || 'Failed to send invitation');
       }
     });
   };
 
-  if (!isOpen) return null;
+  const handleInvite = (playerId: string) => {
+    saveInvite(playerId, Boolean(captainConfirmed));
+  };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const handleMarkIn = (playerId: string) => {
+    saveInvite(playerId, true);
+  };
+
+  const handleAddManualSub = () => {
+    const name = manualName.trim();
+    if (!name) {
+      setError('Enter the spare player name.');
+      return;
+    }
+
+    const jerseyNumber = manualJerseyNumber.trim()
+      ? Number.parseInt(manualJerseyNumber.trim(), 10)
+      : null;
+
+    if (jerseyNumber !== null && (!Number.isInteger(jerseyNumber) || jerseyNumber <= 0 || jerseyNumber >= 1000)) {
+      setError('Enter a valid jersey number.');
+      return;
+    }
+
+    setError(null);
+    setManualAddedMessage(null);
+    startTransition(async () => {
+      const result = await addManualSub({
+        gameId,
+        teamId,
+        fullName: name,
+        position: manualPosition || null,
+        jerseyNumber,
+        message: message || undefined,
+        replacedPlayerId: replacedPlayerId || null,
+        saveToTeamSpares: saveManualToTeamSpares,
+      });
+
+      if (!result.success || !result.playerId) {
+        setError(result.error || 'Failed to add manual spare');
+        return;
+      }
+
+      setSentInvites((prev) => new Set([...prev, result.playerId!]));
+      setConfirmedInvites((prev) => new Set([...prev, result.playerId!]));
+      setManualAddedMessage(`${result.fullName || name} added and marked in.`);
+      setManualName('');
+      setManualPosition('');
+      setManualJerseyNumber('');
+    });
+  };
+
+  if (!isOpen || !mounted) return null;
+
+  const modal = (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -108,7 +232,7 @@ export function SubInviteModal({
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-[var(--league-primary)]" />
-              Invite Sub
+              Find Spare
             </h2>
             {gameDateLabel && (
               <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
@@ -124,8 +248,50 @@ export function SubInviteModal({
           </button>
         </div>
 
-        {/* Optional message */}
+        {/* Replacement target + optional message */}
         <div className="px-4 pt-3">
+          {missingPlayers.length > 0 ? (
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
+              Replacing
+              <select
+                value={replacedPlayerId}
+                onChange={(event) => {
+                  setReplacedPlayerId(event.target.value);
+                  if (!event.target.value) {
+                    setCaptainConfirmed(false);
+                  }
+                }}
+                className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm normal-case tracking-normal text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              >
+                <option value="">No specific player</option>
+                {missingPlayers.map((player) => (
+                  <option key={player.playerId} value={player.playerId}>
+                    {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}{player.fullName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="mb-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+              Tip: mark the missing player Out first so the spare is tied to the right replacement.
+            </p>
+          )}
+          {replacedPlayerId && (
+            <label className="mb-2 flex cursor-pointer gap-3 rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-[var(--color-text-primary)]">
+              <input
+                type="checkbox"
+                checked={captainConfirmed}
+                onChange={(event) => setCaptainConfirmed(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface-hover)] accent-[var(--league-primary)]"
+              />
+              <span>
+                <span className="block font-semibold">Sub already confirmed in</span>
+                <span className="block text-xs text-[var(--color-text-secondary)]">
+                  Use this when you already called or texted the sub. They will show as In immediately.
+                </span>
+              </span>
+            </label>
+          )}
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
@@ -133,6 +299,70 @@ export function SubInviteModal({
             className="w-full px-3 py-2 text-sm bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)] resize-none"
             rows={2}
           />
+          <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                Manual spare
+              </p>
+              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-green-300">
+                No invite
+              </span>
+            </div>
+            <div className="grid gap-2">
+              <input
+                type="text"
+                value={manualName}
+                onChange={(event) => setManualName(event.target.value)}
+                placeholder="Player name"
+                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              />
+              <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-2">
+                <select
+                  value={manualPosition}
+                  onChange={(event) => setManualPosition(event.target.value)}
+                  className="min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                >
+                  <option value="">Position</option>
+                  <option value="Forward">Forward</option>
+                  <option value="Defense">Defense</option>
+                  <option value="Goalie">Goalie</option>
+                </select>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={999}
+                  value={manualJerseyNumber}
+                  onChange={(event) => setManualJerseyNumber(event.target.value)}
+                  placeholder="#"
+                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                <input
+                  type="checkbox"
+                  checked={saveManualToTeamSpares}
+                  onChange={(event) => setSaveManualToTeamSpares(event.target.checked)}
+                  className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--league-primary)]"
+                />
+                Save to team spares
+              </label>
+              <button
+                type="button"
+                onClick={handleAddManualSub}
+                disabled={isPending || !manualName.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm font-semibold text-green-300 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Add + Mark In
+              </button>
+            </div>
+            {manualAddedMessage && (
+              <p className="mt-2 text-xs font-medium text-green-300">
+                {manualAddedMessage}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -177,6 +407,7 @@ export function SubInviteModal({
           ) : (
             filteredSubs.map((sub) => {
               const alreadyInvited = sentInvites.has(sub.id);
+              const confirmedIn = confirmedInvites.has(sub.id);
 
               return (
                 <div
@@ -184,21 +415,43 @@ export function SubInviteModal({
                   className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)]/80"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-[var(--color-text-primary)] truncate">
-                      {sub.full_name || 'Unknown Player'}
-                    </p>
-                    {sub.email && (
-                      <p className="text-xs text-[var(--color-text-muted)] truncate">
-                        {sub.email}
+                    <div className="flex items-center gap-2">
+                      <p className="truncate font-medium text-[var(--color-text-primary)]">
+                        {sub.full_name || 'Unknown Player'}
                       </p>
-                    )}
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                        sub.source === 'team'
+                          ? 'bg-cyan-500/10 text-cyan-300'
+                          : 'bg-emerald-500/10 text-emerald-300'
+                      }`}>
+                        {sub.source === 'team' ? 'Team' : 'League'}
+                      </span>
+                    </div>
+                    <p className="truncate text-xs text-[var(--color-text-muted)]">
+                      {[sub.position, sub.email].filter(Boolean).join(' · ') || 'Active spare'}
+                    </p>
                   </div>
 
                   {alreadyInvited ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium">
-                      <Check className="w-3 h-3" />
-                      Invited
-                    </span>
+                    confirmedIn ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium">
+                        <Check className="w-3 h-3" />
+                        Confirmed In
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleMarkIn(sub.id)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                      >
+                        {isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                        Mark In
+                      </button>
+                    )
                   ) : (
                     <button
                       onClick={() => handleInvite(sub.id)}
@@ -210,7 +463,7 @@ export function SubInviteModal({
                       ) : (
                         <UserPlus className="w-3 h-3" />
                       )}
-                      Invite
+                      {captainConfirmed ? 'Invite + Mark In' : 'Invite'}
                     </button>
                   )}
                 </div>
@@ -231,4 +484,6 @@ export function SubInviteModal({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

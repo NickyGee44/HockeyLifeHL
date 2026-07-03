@@ -174,6 +174,48 @@ export async function updateScorekeeperMode(
 }
 
 // ============================================================================
+// Recap Tone
+// ============================================================================
+
+export type RecapTone = 'friendly' | 'competitive' | 'savage';
+
+const VALID_RECAP_TONES: RecapTone[] = ['friendly', 'competitive', 'savage'];
+
+export async function updateRecapTone(
+  leagueId: string,
+  tone: RecapTone
+): Promise<{ success: boolean; error?: string }> {
+  const access = await verifyLeagueOwnerAccess(leagueId);
+  if (!access.authorized) {
+    return { success: false, error: access.error || 'Not authorized' };
+  }
+
+  if (!VALID_RECAP_TONES.includes(tone)) {
+    return { success: false, error: 'Invalid recap tone' };
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('leagues')
+    .update({
+      recap_tone: tone,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq('id', leagueId);
+
+  if (error) {
+    console.error('[updateRecapTone] Error:', error.message);
+    return { success: false, error: 'Failed to update recap tone' };
+  }
+
+  revalidatePath(`/dashboard/leagues/${leagueId}/settings`);
+  revalidatePath(`/dashboard/leagues/${leagueId}/settings/general`);
+
+  return { success: true };
+}
+
+// ============================================================================
 // Registration Form Config
 // ============================================================================
 
@@ -181,6 +223,7 @@ export interface RegistrationFormConfig {
   levels: string[];
   locations: string[];
   nights: string[];
+  auto_approve: boolean;
   enabled_fields: {
     played_last_season: boolean;
     level: boolean;
@@ -205,6 +248,7 @@ export async function updateRegistrationFormConfig(
     levels: config.levels.map((l) => l.trim()).filter(Boolean),
     locations: config.locations.map((l) => l.trim()).filter(Boolean),
     nights: config.nights.map((n) => n.trim()).filter(Boolean),
+    auto_approve: config.auto_approve ?? false,
     enabled_fields: config.enabled_fields,
   };
 

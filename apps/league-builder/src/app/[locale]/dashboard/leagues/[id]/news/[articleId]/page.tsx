@@ -363,7 +363,8 @@ export default function EditNewsArticlePage() {
                   }
                 }}
                 aspectRatio={16 / 9}
-                outputSize={1200}
+                outputSize={1600}
+                outputHeight={900}
                 maxSizeBytes={5 * 1024 * 1024}
                 placeholder="Upload Featured Image"
                 shape="square"

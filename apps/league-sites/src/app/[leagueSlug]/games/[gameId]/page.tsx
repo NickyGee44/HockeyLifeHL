@@ -102,7 +102,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
     getGameRecap(gameId),
     isCompleted ? getGameSheet(gameId) : Promise.resolve(null),
     isCompleted ? getGamePlayerStats(gameId) : Promise.resolve([]),
-    getPublishedGameTeamLineups(gameId),
+    isCompleted ? Promise.resolve([]) : getPublishedGameTeamLineups(gameId),
   ]);
 
   // Parse team colors for future matchups
@@ -124,7 +124,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
         initialLiveState={initialLiveState}
       />
 
-      {publishedLineups.length > 0 && (
+      {!isCompleted && publishedLineups.length > 0 && (
         <GameLineupsSection
           lineups={publishedLineups}
           homeTeamId={game.home_team.id}

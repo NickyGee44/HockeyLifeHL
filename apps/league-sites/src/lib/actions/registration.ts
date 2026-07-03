@@ -54,6 +54,7 @@ type ActionResult<T = void> = Promise<
 
 export interface RegistrationDraftData {
   current_step: number;
+  season_id?: string | null;
   registration_type: 'team_registration' | 'free_agent' | 'individual';
   registration_intent?: RegistrationIntent;
   team_id?: string | null;
@@ -478,6 +479,82 @@ export async function getRegistrationJourneyData(
 // League & Season Data
 // ============================================================================
 
+function uniqueIds(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+}
+
+async function getRegistrationSeasonTeamOptions(
+  leagueId: string,
+  seasonId: string
+): Promise<Array<{ id: string; name: string }>> {
+  const serviceSupabase = createServiceRoleClient();
+
+  const [preferenceResult, rosterResult, registrationResult, gameResult] = await Promise.all([
+    serviceSupabase
+      .from('team_schedule_preferences')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+    serviceSupabase
+      .from('team_rosters')
+      .select('team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .eq('status', 'active'),
+    serviceSupabase
+      .from('registration_submissions')
+      .select('team_id, requested_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId)
+      .not('submitted_at', 'is', null)
+      .in('status', ['pending', 'approved', 'waitlisted']),
+    serviceSupabase
+      .from('games')
+      .select('home_team_id, away_team_id')
+      .eq('league_id', leagueId)
+      .eq('season_id', seasonId),
+  ]);
+
+  const hardParticipationIds = uniqueIds([
+    ...((rosterResult.data ?? []) as Array<{ team_id: string | null }>).map((row) => row.team_id),
+    ...((registrationResult.data ?? []) as Array<{ team_id: string | null; requested_team_id?: string | null }>).flatMap((row) => [
+      row.team_id,
+      row.requested_team_id,
+    ]),
+    ...((gameResult.data ?? []) as Array<{ home_team_id: string | null; away_team_id: string | null }>).flatMap((row) => [
+      row.home_team_id,
+      row.away_team_id,
+    ]),
+  ]);
+
+  const seasonTeamIds =
+    hardParticipationIds.length > 0
+      ? hardParticipationIds
+      : uniqueIds(
+          ((preferenceResult.data ?? []) as Array<{ team_id: string | null }>).map(
+            (row) => row.team_id
+          )
+        );
+
+  if (seasonTeamIds.length === 0) return [];
+
+  const { data: teams, error } = await serviceSupabase
+    .from('teams')
+    .select('id, name, team_type, status')
+    .eq('league_id', leagueId)
+    .in('id', seasonTeamIds)
+    .neq('status', 'inactive')
+    .not('team_type', 'in', '(free_agents,placeholder,exhibition)')
+    .order('name', { ascending: true });
+
+  if (error || !teams) return [];
+
+  return teams.map((team: any) => ({
+    id: team.id,
+    name: team.name,
+  }));
+}
+
 export async function getLeagueRegistrationData(leagueSlug: string) {
   const supabase = await createClient();
 
@@ -500,10 +577,6 @@ export async function getLeagueRegistrationData(leagueSlug: string) {
         registration_type,
         status
       ),
-      teams (
-        id,
-        name
-      ),
       divisions (
         id,
         name,
@@ -516,6 +589,13 @@ export async function getLeagueRegistrationData(leagueSlug: string) {
 
   if (error || !league) return null;
   return league;
+}
+
+export async function getRegistrationTeamOptions(
+  leagueId: string,
+  seasonId: string
+): Promise<Array<{ id: string; name: string }>> {
+  return getRegistrationSeasonTeamOptions(leagueId, seasonId);
 }
 
 export async function getSeasonRegistrationFee(
@@ -536,7 +616,8 @@ export async function getSeasonRegistrationPaymentConfig(
   const feeConfigured = !isPlayerFeeConfigurationMissing(
     settings.feeCollectionModel,
     settings.feeAmountCents,
-    settings.feeBasis
+    settings.feeBasis,
+    settings.feeRecordExists
   );
   const registrationFee = getPlayerRegistrationFeeAmount(settings.feeBasis, settings.feeAmountCents);
   const paymentQuote = await getRegistrationPaymentQuoteForLeague(leagueId, registrationFee);
@@ -855,8 +936,9 @@ export async function submitPlayerRegistration(
       paymentSettings.feeBasis
     );
     let amountPaidCents = 0;
+    const usedAlternatePaymentMethod = data.payment_status === 'alternate_method';
 
-    if (paymentMode === 'required' && data.payment_status !== 'completed') {
+    if (paymentMode === 'required' && data.payment_status !== 'completed' && !usedAlternatePaymentMethod) {
       return {
         success: false,
         error: 'Payment is required for this registration. Please complete payment before submitting.',
@@ -913,7 +995,7 @@ export async function submitPlayerRegistration(
       data.amount_cents = expectedPaymentQuote.totalChargeCents;
       amountPaidCents = expectedFeeCents;
     } else {
-      data.payment_status = 'not_required';
+      data.payment_status = usedAlternatePaymentMethod ? 'alternate_method' : 'not_required';
       data.amount_cents = 0;
       data.payment_intent_id = undefined;
     }
@@ -1021,6 +1103,14 @@ export async function submitPlayerRegistration(
       })
       .eq('id', user.id);
 
+    // Check league auto-approve setting
+    const { data: leagueRow } = await serviceSupabase
+      .from('leagues')
+      .select('registration_form_config')
+      .eq('id', data.league_id)
+      .maybeSingle();
+    const autoApprove = !!(leagueRow?.registration_form_config as any)?.auto_approve;
+
     // Upsert registration
     const { data: registration, error: regError } = await serviceSupabase
       .from('registration_submissions')
@@ -1032,7 +1122,7 @@ export async function submitPlayerRegistration(
           team_id: registrationContext.storedTeamId,
           waiver_id: waiverId,
           registration_type: registrationContext.registrationType,
-          status: 'pending',
+          status: autoApprove ? 'approved' : 'pending',
           preferred_position: normalizedPrimaryPosition,
           secondary_position: normalizedSecondaryPosition,
           preferred_jersey_number: data.preferred_jersey_number || null,

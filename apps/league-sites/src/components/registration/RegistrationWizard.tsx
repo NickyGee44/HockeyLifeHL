@@ -61,6 +61,7 @@ interface RegistrationWizardProps {
   previousTeams: PreviousTeamOption[];
   confirmedTeamIds: string[];
   teamReturnStatuses: Record<string, NonNullable<RegistrationDraftData['team_return_status']>>;
+  allowAlternatePaymentBypass?: boolean;
 }
 
 const STEPS = [
@@ -102,6 +103,7 @@ export function RegistrationWizard({
   previousTeams,
   confirmedTeamIds,
   teamReturnStatuses,
+  allowAlternatePaymentBypass = false,
 }: RegistrationWizardProps) {
   const { user } = useUser();
   const { openLogin } = useAuth();
@@ -247,7 +249,11 @@ export function RegistrationWizard({
     }
 
     if (paymentMode === 'required' && !paymentReady) {
-      setSubmitError('Payment is required before submitting your registration. Please go back to the Payment step to complete your payment.');
+      setSubmitError(
+        allowAlternatePaymentBypass
+          ? 'Payment or an alternate payment method is required before submitting your registration. Please go back to the Payment step.'
+          : 'Payment is required before submitting your registration. Please go back to the Payment step to complete your payment.'
+      );
       return;
     }
     if (!formData.tos_accepted) {
@@ -453,6 +459,7 @@ export function RegistrationWizard({
             leagueId={leagueId}
             seasonId={seasonId}
             leagueSlug={leagueSlug}
+            allowAlternatePaymentBypass={allowAlternatePaymentBypass}
             onUpdate={updateFormData}
             onNext={goNext}
           />
@@ -474,7 +481,7 @@ export function RegistrationWizard({
           teams={teams}
           previousTeams={previousTeams}
             onUpdate={updateFormData}
-            canSubmit={paymentMode !== 'required' || formData.payment_status === 'completed'}
+            canSubmit={paymentMode !== 'required' || formData.payment_status === 'completed' || formData.payment_status === 'alternate_method'}
           />
         )}
 

@@ -1,54 +1,58 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 import {
-  ArrowLeft,
-  BarChart3,
-  Calendar,
+  CalendarDays,
   Mail,
-  Medal,
+  MessageSquare,
   Phone,
   Shield,
   Swords,
-  Users,
-  type LucideIcon,
 } from 'lucide-react';
+import { RivalsTaleOfTheTape } from '@/components/team/RivalsTaleOfTheTape';
+import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
+import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
+import { TeamPageCheckinCard } from '@/components/team/TeamPageCheckinCard';
+import { TeamScheduleList } from '@/components/schedule/TeamScheduleList';
+import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { notFound } from 'next/navigation';
-import { SubscriptionWall } from '@/components/shared';
+import { SubscriptionWall, SectionHeading } from '@/components/shared';
+import { BarChart3 } from 'lucide-react';
+import { getPublishedGameTeamLineups } from '@/lib/actions/game-lineups';
 import {
   getCurrentSeason,
-  getGameRecap,
   getLeagueBySlug,
+  getAcceptedGameSubstitutions,
   getSeasons,
+  getSeasonGames,
   getStandings,
   getTeamRoster,
   getTeamRosterStats,
   getTeamRivals,
-  getTeamSchedule,
   getTeamWithCaptain,
+  getUnifiedGoalieStatsRows,
+  getUnifiedSkaterStatsRows,
 } from '@/lib/data';
-import type { ScheduleGame } from '@/lib/types';
 import {
-  buildRivalCardInsights,
+  buildTaleOfTheTapeRivals,
   buildTeamLeaders,
-  buildTeamPointInsights,
   formatSavePercentage,
   getPositionShortLabel,
   getTeamStandingRank,
-  normalizeTeamScheduleView,
-  partitionTeamSchedule,
   splitRosterByRole,
   summarizeTeamChampionships,
-  type TeamLeaderCard,
   type TeamLeaderMetric,
-  type TeamPageRosterStatsByPlayer,
 } from '@/lib/team-page';
-import { formatLeagueLongWeekdayDate, formatLeagueTime } from '@/lib/league-timezone';
+import type {
+  LineupPlacedPlayer,
+  LineupRosterPlayer,
+  PublishedGameTeamLineup,
+} from '@/lib/lineups/types';
 
 interface TeamPageProps {
   params: Promise<{ leagueSlug: string; teamSlug: string }>;
-  searchParams: Promise<{ schedule?: string; tab?: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
 export async function generateMetadata({ params }: TeamPageProps): Promise<Metadata> {
@@ -70,7 +74,7 @@ export const revalidate = 60;
 
 export default async function TeamPage({ params, searchParams }: TeamPageProps) {
   const { leagueSlug, teamSlug } = await params;
-  const { schedule: scheduleViewParam, tab: leaderTabParam } = await searchParams;
+  const { tab: leaderTabParam } = await searchParams;
   const league = await getLeagueBySlug(leagueSlug);
 
   if (!league) notFound();
@@ -80,33 +84,58 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   const currentSeason = await getCurrentSeason(league.id);
 
-  const [roster, rosterStatsByPlayer, standings, schedule, rivals, seasons] = await Promise.all([
+  const [
+    roster,
+    rosterStatsByPlayer,
+    standings,
+    rivals,
+    seasons,
+    seasonGames,
+    leagueSkaterRows,
+    leagueGoalieRows,
+  ] = await Promise.all([
     getTeamRoster(team.id, currentSeason?.id),
     getTeamRosterStats(team.id, currentSeason?.id),
     getStandings(league.id, currentSeason?.id),
-    getTeamSchedule(team.id, { seasonId: currentSeason?.id }),
-    getTeamRivals(team.id, 4),
+    getTeamRivals(team.id, 4, currentSeason?.id),
     getSeasons(league.id),
+    currentSeason?.id ? getSeasonGames(league.id, currentSeason.id) : Promise.resolve([]),
+    getUnifiedSkaterStatsRows(league.id, currentSeason?.id),
+    getUnifiedGoalieStatsRows(league.id, currentSeason?.id),
   ]);
 
   const teamStats = standings.find((standing) => standing.team_id === team.id) ?? null;
   const teamRank = getTeamStandingRank(standings, team.id);
 
+  // Compute current streak from completed games (most recent first)
+  const computeStreak = (): string => {
+    const completed = (seasonGames as any[])
+      .filter((g) => g.status === 'completed' && (g.home_team?.id === team.id || g.away_team?.id === team.id))
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+    if (completed.length === 0) return 'N/A';
+    let kind: 'W' | 'L' | 'T' | null = null;
+    let count = 0;
+    for (const g of completed) {
+      const isHome = g.home_team?.id === team.id;
+      const teamScore = isHome ? Number(g.home_score) || 0 : Number(g.away_score) || 0;
+      const oppScore = isHome ? Number(g.away_score) || 0 : Number(g.home_score) || 0;
+      const result: 'W' | 'L' | 'T' = teamScore > oppScore ? 'W' : teamScore < oppScore ? 'L' : 'T';
+      if (kind === null) {
+        kind = result;
+        count = 1;
+      } else if (result === kind) {
+        count += 1;
+      } else {
+        break;
+      }
+    }
+    return kind ? `${kind}${count}` : 'N/A';
+  };
+  const teamStreak = computeStreak();
+
   const now = new Date();
   const { skaters, goalies } = splitRosterByRole(roster, rosterStatsByPlayer);
-  const { upcomingGames, pastGames } = partitionTeamSchedule(schedule, now);
-  const scheduleView = normalizeTeamScheduleView(scheduleViewParam);
-  const visibleGames = (scheduleView === 'past' ? pastGames : upcomingGames).slice(0, 6);
   const leaderTab = normalizeLeaderTab(leaderTabParam);
-
-  const recapEntries = scheduleView === 'past'
-    ? await Promise.all(
-        visibleGames
-          .filter((game) => game.status === 'completed')
-          .map(async (game) => [game.id, await getGameRecap(game.id)] as const),
-      )
-    : [];
-  const recapByGameId = new Map(recapEntries);
 
   const completedSeasons = seasons.filter((season) => {
     const endDate = new Date(season.end_date);
@@ -126,56 +155,141 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   );
 
   const captain = roster.find((player) => player.leadership_role === 'captain');
-  const rivalCards = buildRivalCardInsights(rivals);
-  const teamLeaders = buildTeamLeaders(skaters, rosterStatsByPlayer, leaderTab);
-  const pointInsights = buildTeamPointInsights({
-    teamName: team.name,
+  const taleOfTheTapeRivals = buildTaleOfTheTapeRivals({
     teamId: team.id,
+    teamName: team.name,
+    teamPrimaryColor: (team as any).primary_color || null,
+    rivals,
     standings,
-    teamStats,
-    rosterStatsByPlayer,
+    skaterRows: leagueSkaterRows,
+    goalieRows: leagueGoalieRows,
   });
-  const teamScheduleHref = `/${leagueSlug}/schedule?team=${encodeURIComponent(team.id)}`;
+  const leadersByMetric = {
+    points: buildTeamLeaders(skaters, rosterStatsByPlayer, 'points'),
+    goals: buildTeamLeaders(skaters, rosterStatsByPlayer, 'goals'),
+    assists: buildTeamLeaders(skaters, rosterStatsByPlayer, 'assists'),
+    penalty_minutes: buildTeamLeaders(skaters, rosterStatsByPlayer, 'penalty_minutes'),
+  };
+
+  // Build bar chart data: one row per player with all metric values
+  const barChartPlayers = skaters.map((player) => {
+    const stats = rosterStatsByPlayer[player.player_id];
+    return {
+      playerId: player.player_id,
+      name: player.profile?.full_name || 'Unknown',
+      avatarUrl: player.profile?.avatar_url || '/blank_player.png',
+      jerseyNumber: player.jersey_number,
+      values: {
+        points: stats?.points ?? 0,
+        goals: stats?.goals ?? 0,
+        assists: stats?.assists ?? 0,
+        penalty_minutes: stats?.penalty_minutes ?? 0,
+      },
+    };
+  });
+
   const logoSrc = team.logo_url || team.logo || '/blank_team.png';
-  const titleMeta = [team.division?.name ? `${team.division.name} Division` : null, currentSeason?.name ?? null].filter(Boolean);
+  const teamBrand = team as {
+    primary_color?: string | null;
+  };
+  const teamScheduleGames = seasonGames.filter((game) => game.home_team?.id === team.id || game.away_team?.id === team.id);
+  const nextTeamGame = [...teamScheduleGames]
+    .filter((game) => game.status === 'scheduled' || game.status === 'in_progress')
+    .sort((a, b) => {
+      const aPriority = a.status === 'in_progress' ? 0 : 1;
+      const bPriority = b.status === 'in_progress' ? 0 : 1;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
+    })[0] ?? null;
+  const [acceptedSubstitutions, publishedLineups] = await Promise.all([
+    getAcceptedGameSubstitutions(nextTeamGame?.id, team.id),
+    nextTeamGame ? getPublishedGameTeamLineups(nextTeamGame.id) : Promise.resolve([]),
+  ]);
+  const publishedTeamLineup = publishedLineups.find((lineup) => lineup.teamId === team.id) ?? null;
+  const nextGameLineupDisplay = buildTeamPageLineupDisplay(publishedTeamLineup);
+  const nextGameDisplaySkaters = nextGameLineupDisplay?.skaters ?? skaters.map((player) => ({
+    playerId: player.player_id,
+    name: player.profile?.full_name || 'Unknown',
+    jerseyNumber: player.jersey_number,
+    position: player.position,
+    isSub: isSubRosterPlayer(player),
+  }));
+  const nextGameDisplayGoalies = nextGameLineupDisplay?.goalies ?? goalies.map((goalie) => ({
+    playerId: goalie.player_id,
+    name: goalie.profile?.full_name || 'Unknown',
+    jerseyNumber: goalie.jersey_number,
+    position: 'G',
+    isSub: isSubRosterPlayer(goalie),
+  }));
+  const substitutionNotes = acceptedSubstitutions.map((substitution) => (
+    substitution.replacedPlayerName
+      ? `🥖 ${substitution.subPlayerName} subbing in for ${substitution.replacedPlayerName}`
+      : `🥖 ${substitution.subPlayerName} subbing in`
+  ));
+
+  const nextOpponentId = nextTeamGame
+    ? nextTeamGame.home_team?.id === team.id
+      ? nextTeamGame.away_team?.id ?? null
+      : nextTeamGame.home_team?.id ?? null
+    : null;
+  const nextOpponentName = nextTeamGame
+    ? nextTeamGame.home_team?.id === team.id
+      ? nextTeamGame.away_team?.name || 'Opponent'
+      : nextTeamGame.home_team?.name || 'Opponent'
+    : 'Opponent';
+  const nextOpponent = nextTeamGame
+    ? nextTeamGame.home_team?.id === team.id
+      ? nextTeamGame.away_team ?? null
+      : nextTeamGame.home_team ?? null
+    : null;
+  const nextOpponentBrand = nextOpponent as {
+    logo?: string | null;
+    logo_url?: string | null;
+    primary_color?: string | null;
+  } | null;
+  const opponentSeriesGames = nextOpponentId
+    ? (seasonGames as any[]).filter((game) => {
+        const homeId = game.home_team?.id;
+        const awayId = game.away_team?.id;
+        return (
+          game.status === 'completed' &&
+          ((homeId === team.id && awayId === nextOpponentId) ||
+            (homeId === nextOpponentId && awayId === team.id))
+        );
+      })
+    : [];
+  const opponentSeriesRecord = opponentSeriesGames.reduce(
+    (record, game) => {
+      const isHome = game.home_team?.id === team.id;
+      const teamScore = isHome ? Number(game.home_score) || 0 : Number(game.away_score) || 0;
+      const opponentScore = isHome ? Number(game.away_score) || 0 : Number(game.home_score) || 0;
+
+      if (teamScore > opponentScore) record.wins += 1;
+      else if (teamScore < opponentScore) record.losses += 1;
+      else record.ties += 1;
+
+      return record;
+    },
+    { wins: 0, losses: 0, ties: 0 },
+  );
+  const seasonRecord = teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : '0-0-0';
+  const headToHeadRecord = formatRecord(
+    opponentSeriesRecord.wins,
+    opponentSeriesRecord.losses,
+    opponentSeriesRecord.ties,
+  );
+
+  // Compute win percentage
+  const gamesPlayed = (teamStats?.wins ?? 0) + (teamStats?.losses ?? 0) + (teamStats?.ties ?? 0);
+  const winPctDisplay = gamesPlayed > 0
+    ? `${((teamStats?.wins ?? 0) / gamesPlayed * 100).toFixed(0)}%`
+    : '-';
 
   return (
     <SubscriptionWall>
       <div className="min-h-screen bg-[var(--color-background)] px-4 py-8">
         <div className="mx-auto max-w-[1200px] animate-fade-in">
-          <Link
-            href={`/${leagueSlug}/teams`}
-            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Teams
-          </Link>
-
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                {titleMeta.map((item) => (
-                  <span
-                    key={item}
-                    className="inline-flex items-center rounded-full border border-[var(--league-primary)]/20 bg-[var(--color-surface)]/60 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-              <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)] md:text-5xl">
-                {team.name}
-              </h1>
-            </div>
-            {teamStats?.points != null ? (
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                {teamStats.points} points in {teamStats.games_played} games
-              </p>
-            ) : null}
-          </div>
-
-          <section className="league-reading-panel relative isolate overflow-hidden rounded-[34px]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(212,175,55,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_30%)]" />
+          <section className="relative isolate overflow-hidden rounded-[34px]">
             <div className="relative p-6 md:p-8 lg:p-10">
               <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="flex flex-col items-center text-center xl:items-start xl:text-left">
@@ -201,318 +315,228 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="mt-2 space-y-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                      Team Record
+                      {team.name}
                     </p>
                     <p className="text-3xl font-black text-[var(--color-text-primary)] md:text-4xl">
                       {teamStats ? formatRecord(teamStats.wins, teamStats.losses, teamStats.ties) : 'No games yet'}
                     </p>
-                    <p className="max-w-sm text-sm leading-6 text-[var(--color-text-secondary)]">
-                      {championshipSummary.count > 0
-                        ? championshipSummary.latestTitleSeasonName
-                          ? `Latest championship: ${championshipSummary.latestTitleSeasonName}${championshipSummary.latestTitleLabel ? ` (${championshipSummary.latestTitleLabel})` : ''}.`
-                          : 'Championship history found in league records.'
-                        : 'No recorded championships yet in league history data.'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-5">
-                  <div className="overflow-hidden rounded-[26px] border border-white/10 bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
-                    <div className="grid grid-cols-2 divide-x divide-y divide-white/10 sm:grid-cols-3 xl:grid-cols-6 xl:divide-y-0">
-                      <HeroMetric label="Points" value={teamStats?.points ?? '-'} accent />
-                      <HeroMetric label="Rank" value={teamRank ? `#${teamRank}` : '-'} accent />
-                      <HeroMetric label="GF" value={teamStats?.goals_for ?? '-'} />
-                      <HeroMetric label="GA" value={teamStats?.goals_against ?? '-'} />
-                      <HeroMetric
-                        label="Differential"
+                    <div className="flex flex-wrap justify-center gap-2 xl:justify-start">
+                      <HeroPill label="Rank" value={teamRank ? `#${teamRank}` : '-'} />
+                      <HeroPill label="Win %" value={winPctDisplay} />
+                      <HeroPill label="Streak" value={teamStreak} />
+                      <HeroPill label="GF" value={teamStats?.goals_for ?? '-'} />
+                      <HeroPill label="GA" value={teamStats?.goals_against ?? '-'} />
+                      <HeroPill
+                        label="Diff"
                         value={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'}
                         accent={Boolean(teamStats && teamStats.goal_differential > 0)}
                       />
-                      <HeroMetric label="Streak" value={teamStats?.streak || 'N/A'} />
                     </div>
+                    {championshipSummary.count > 0 && championshipSummary.latestTitleSeasonName ? (
+                      <p className="max-w-sm text-sm leading-6 text-[var(--color-text-secondary)]">
+                        Latest championship: {championshipSummary.latestTitleSeasonName}{championshipSummary.latestTitleLabel ? ` (${championshipSummary.latestTitleLabel})` : ''}.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
+
+                <div className="hidden xl:block" />
               </div>
             </div>
           </section>
 
           <div className="mt-6 space-y-6">
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <SectionHeader
-                  icon={BarChart3}
-                  title="Team Leaders"
-                />
-
-                <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-                  {([
-                    ['points', 'P'],
-                    ['goals', 'G'],
-                    ['assists', 'A'],
-                    ['penalty_minutes', 'PM'],
-                  ] as const).map(([value, label]) => (
-                    <ScheduleToggleLink
-                      key={value}
-                      href={`/${leagueSlug}/teams/${teamSlug}?tab=${value}${scheduleView === 'past' ? '&schedule=past' : ''}`}
-                      active={leaderTab === value}
-                    >
-                      {label}
-                    </ScheduleToggleLink>
-                  ))}
-                </div>
-              </div>
-
-              {teamLeaders.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-3">
-                  {teamLeaders.map((leader, index) => (
-                    <TeamLeaderPodiumCard key={`${leader.playerId}-${leader.metric}`} leader={leader} place={index + 1} leagueSlug={leagueSlug} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanel
-                  title="No team leaders yet"
-                  description="Leader cards will populate once current-season player stats are recorded."
-                />
-              )}
-
-              {pointInsights.length > 0 ? (
-                <div className="mt-8 border-t border-[var(--color-border)]/50 pt-6">
-                  <div className="mb-4 flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-[var(--league-primary)]" />
-                    <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Points Insights</h3>
-                  </div>
-                  <div className="space-y-3">
-                    {pointInsights.map((insight) => (
-                      <div key={insight.key} className="rounded-[22px] border border-white/10 bg-[var(--color-surface)]/72 p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                          {insight.label}
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">{insight.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </section>
-
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Users}
-                title="Roster"
+            <section id="next-game" className="scroll-mt-28">
+              <HomepageWeeklyGames
+                games={nextTeamGame ? [nextTeamGame] : []}
+                leagueSlug={leagueSlug}
+                timezone={league.timezone || 'America/Toronto'}
+                backgroundPreset={league.settings?.website?.backgroundPreset ?? 'weekly-games'}
+                title="Next Game"
+                emptyTitle="No upcoming games scheduled"
+                emptyDescription="This team does not have another game on the current slate yet."
+                showViewToggle={false}
+                variant="team"
+                teamActions={nextTeamGame ? (
+                  <TeamPageCheckinCard
+                    leagueId={league.id}
+                    seasonId={currentSeason?.id ?? null}
+                    timezone={league.timezone || 'America/Toronto'}
+                    teamId={team.id}
+                    teamName={team.name}
+                    teamLogoUrl={logoSrc}
+                    teamPrimaryColor={teamBrand.primary_color || null}
+                    opponentName={nextOpponentName}
+                    opponentLogoUrl={nextOpponentBrand?.logo_url || nextOpponentBrand?.logo || null}
+                    opponentPrimaryColor={nextOpponentBrand?.primary_color || null}
+                    nextGame={{
+                      id: nextTeamGame.id,
+                      scheduledAt: nextTeamGame.scheduled_at,
+                      venue: nextTeamGame.venue,
+                    }}
+                    seasonRecord={seasonRecord}
+                    opponentRecord={headToHeadRecord}
+                  />
+                ) : null}
               />
-
-              <StatsTableCard
-                columns={['Player', 'GP', 'G', 'A', 'PTS', 'PIM', 'Pos']}
-                emptyTitle="No skater statistics yet"
-                emptyDescription="Skater stats will populate once official games are recorded."
-              >
-                {skaters.map((player) => {
-                  const stats = rosterStatsByPlayer[player.player_id];
-                  const gp = stats?.games_played ?? 0;
-                  return (
-                    <tr key={player.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
-                      <td className="px-4 py-3">
-                        <RosterPlayerCell
-                          leagueSlug={leagueSlug}
-                          playerId={player.player_id}
-                          name={player.profile?.full_name || 'Unknown Player'}
-                          avatarUrl={player.profile?.avatar_url || '/blank_player.png'}
-                          leadershipRole={player.leadership_role}
-                          jerseyNumber={player.jersey_number}
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.goals ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.assists ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center font-semibold">{gp > 0 ? stats?.points ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center">{gp > 0 ? stats?.penalty_minutes ?? 0 : '-'}</td>
-                      <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">
-                        {getPositionShortLabel(player.position, false)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </StatsTableCard>
-
-              {goalies.length > 0 && (
-                <div className="mt-6">
-                  <div className="mb-4 flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-[var(--league-primary)]" />
-                    <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Goalies</h3>
-                  </div>
-                  <StatsTableCard
-                    columns={['Goalie', 'GP', 'W', 'L', 'GAA', 'SV%', 'SO']}
-                    emptyTitle="No goalie statistics yet"
-                    emptyDescription="Goalie stats will appear once this team has official goaltending entries."
-                  >
-                    {goalies.map((goalie) => {
-                      const stats = rosterStatsByPlayer[goalie.player_id];
-                      const gp = stats?.games_played ?? 0;
-                      return (
-                        <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
-                          <td className="px-4 py-3">
-                            <RosterPlayerCell
-                              leagueSlug={leagueSlug}
-                              playerId={goalie.player_id}
-                              name={goalie.profile?.full_name || 'Unknown Goalie'}
-                              avatarUrl={goalie.profile?.avatar_url || '/blank_player.png'}
-                              leadershipRole={goalie.leadership_role}
-                              jerseyNumber={goalie.jersey_number}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.wins ?? 0 : '-'}</td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.losses ?? 0 : '-'}</td>
-                          <td className="px-4 py-3 text-center">
-                            {gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage) : '-'}</td>
-                          <td className="px-4 py-3 text-center">{gp > 0 ? stats?.shutouts ?? 0 : '-'}</td>
-                        </tr>
-                      );
-                    })}
-                  </StatsTableCard>
-                </div>
-              )}
             </section>
 
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <SectionHeader
-                  icon={Calendar}
+            <section>
+              <SectionHeading
+                title="Team Leaders"
+                icon={<BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />}
+              />
+              <div className="mt-4">
+                <TeamLeadersSection
+                  hideTitle
+                  leadersByMetric={leadersByMetric}
+                  barChartPlayers={barChartPlayers}
+                  leagueSlug={leagueSlug}
+                  initialMetric={leaderTab}
+                />
+              </div>
+            </section>
+
+            {teamScheduleGames.length > 0 && (
+              <section>
+                <SectionHeading
                   title="Schedule"
-                  description="Flip between upcoming games and recent results. Recaps surface when a published game story exists."
+                  icon={<CalendarDays className="w-5 h-5 text-[var(--league-primary)]" />}
                 />
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
-                    <ScheduleToggleLink
-                      href={`/${leagueSlug}/teams/${teamSlug}?schedule=upcoming${leaderTab ? `&tab=${leaderTab}` : ''}`}
-                      active={scheduleView === 'upcoming'}
-                    >
-                      Upcoming
-                    </ScheduleToggleLink>
-                    <ScheduleToggleLink
-                      href={`/${leagueSlug}/teams/${teamSlug}?schedule=past${leaderTab ? `&tab=${leaderTab}` : ''}`}
-                      active={scheduleView === 'past'}
-                    >
-                      Past
-                    </ScheduleToggleLink>
-                  </div>
-                  <Link
-                    href={teamScheduleHref}
-                    className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]"
-                  >
-                    Full Schedule
-                  </Link>
+                <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
+                  <TeamScheduleList
+                    games={teamScheduleGames as any}
+                    leagueSlug={leagueSlug}
+                    timezone={league.timezone || 'America/Toronto'}
+                    teamId={team.id}
+                    collapsible
+                  />
                 </div>
-              </div>
+              </section>
+            )}
 
-              {visibleGames.length > 0 ? (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {visibleGames.map((game) => (
-                    <ScheduleCard
-                      key={game.id}
-                      game={game}
-                      leagueSlug={leagueSlug}
-                      teamId={team.id}
-                      recapSlug={recapByGameId.get(game.id)?.slug ?? null}
-                      timezone={league.timezone}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanel
-                  title={scheduleView === 'past' ? 'No completed games yet' : 'No upcoming games scheduled'}
-                  description={scheduleView === 'past'
-                    ? 'Recent results and recap links will appear here once games have been completed.'
-                    : 'The next scheduled game will show up here as soon as it is published.'}
-                />
-              )}
-            </section>
-
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Swords}
-                title="Rivals"
-                description="Derived matchup notes based on recorded head-to-head results only."
-              />
-
-              {rivalCards.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {rivalCards.map((rival) => (
-                    <Link
-                      key={rival.team.id}
-                      href={`/${leagueSlug}/teams/${rival.team.slug}`}
-                      className="group overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--league-primary)]/35"
+            <div className="px-1 md:px-2">
+              <TeamRosterToggle
+                title="Next Game Roster"
+                primaryColor={(team as any).primary_color || 'var(--league-primary)'}
+                secondaryColor={(team as any).secondary_color || '#e0b84a'}
+                skaters={nextGameDisplaySkaters}
+                goalies={nextGameDisplayGoalies}
+                substitutionNotes={substitutionNotes}
+                availabilityGameId={nextTeamGame?.id ?? null}
+                availabilityTeamId={team.id}
+                forwardSlots={nextGameLineupDisplay?.forwardSlots}
+                defenceSlots={nextGameLineupDisplay?.defenceSlots}
+                statsView={
+                  <div>
+                    <StatsTableCard
+                      columns={['Player', 'GP', 'G', 'A', 'PTS', 'PIM', 'Pos']}
+                      emptyTitle="No skater statistics yet"
+                      emptyDescription="Skater stats will populate once official games are recorded."
                     >
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          {rival.team.logo ? (
-                            <Image
-                              src={rival.team.logo}
-                              alt={rival.team.name}
-                              width={44}
-                              height={44}
-                              className="h-11 w-11 rounded-2xl object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--league-primary)]/12 text-sm font-black text-[var(--league-primary)]">
-                              {rival.team.name.charAt(0)}
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)]">
-                              {rival.team.name}
-                            </p>
-                            <p className="text-sm text-[var(--color-text-secondary)]">
-                              {rival.games_played} {rival.games_played === 1 ? 'game' : 'games'}
-                            </p>
-                          </div>
+                      {skaters.filter((player) => !isSubRosterPlayer(player)).map((player) => {
+                        const stats = rosterStatsByPlayer[player.player_id];
+                        const gp = stats?.games_played ?? 0;
+                        return (
+                          <tr key={player.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
+                            <td className="px-4 py-3">
+                              <RosterPlayerCell
+                                leagueSlug={leagueSlug}
+                                playerId={player.player_id}
+                                name={player.profile?.full_name || 'Unknown Player'}
+                                avatarUrl={player.profile?.avatar_url || '/blank_player.png'}
+                                leadershipRole={player.leadership_role}
+                                jerseyNumber={player.jersey_number}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? stats?.goals ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? stats?.assists ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center font-semibold">{gp > 0 ? stats?.points ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center">{gp > 0 ? stats?.penalty_minutes ?? 0 : '-'}</td>
+                            <td className="px-4 py-3 text-center text-[var(--color-text-secondary)]">
+                              {getPositionShortLabel(player.position, false)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </StatsTableCard>
+
+                    {goalies.length > 0 && (
+                      <div className="mt-6">
+                        <div className="mb-4 flex items-center gap-2">
+                          <Shield className="h-5 w-5 text-[var(--league-primary)]" />
+                          <h3 className="text-lg font-bold tracking-tight text-[var(--color-text-primary)]">Goalies</h3>
                         </div>
-                        <StatusChip status={rival.status}>
-                          {rival.status === 'leading' ? 'Edge' : rival.status === 'trailing' ? 'Chasing' : 'Even'}
-                        </StatusChip>
+                        <StatsTableCard
+                          columns={['Goalie', 'GP', 'W', 'L', 'GAA', 'SV%', 'SO']}
+                          emptyTitle="No goalie statistics yet"
+                          emptyDescription="Goalie stats will appear once this team has official goaltending entries."
+                        >
+                          {goalies.filter((goalie) => !isSubRosterPlayer(goalie)).map((goalie) => {
+                            const stats = rosterStatsByPlayer[goalie.player_id];
+                            const gp = stats?.games_played ?? 0;
+                            return (
+                              <tr key={goalie.id} className="border-b border-[var(--color-border)]/50 last:border-b-0 hover:bg-[var(--color-surface-hover)]/50">
+                                <td className="px-4 py-3">
+                                  <RosterPlayerCell
+                                    leagueSlug={leagueSlug}
+                                    playerId={goalie.player_id}
+                                    name={goalie.profile?.full_name || 'Unknown Goalie'}
+                                    avatarUrl={goalie.profile?.avatar_url || '/blank_player.png'}
+                                    leadershipRole={goalie.leadership_role}
+                                    jerseyNumber={goalie.jersey_number}
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? gp : '-'}</td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? stats?.wins ?? 0 : '-'}</td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? stats?.losses ?? 0 : '-'}</td>
+                                <td className="px-4 py-3 text-center">
+                                  {gp > 0 && stats?.goals_against_average != null ? stats.goals_against_average.toFixed(2) : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? formatSavePercentage(stats?.save_percentage) : '-'}</td>
+                                <td className="px-4 py-3 text-center">{gp > 0 ? stats?.shutouts ?? 0 : '-'}</td>
+                              </tr>
+                            );
+                          })}
+                        </StatsTableCard>
                       </div>
+                    )}
+                  </div>
+                }
+              />
+            </div>
 
-                      <div className="mb-3 rounded-[18px] border border-[var(--league-primary)]/15 bg-[var(--league-primary)]/8 px-4 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-                          Head-to-head
-                        </p>
-                        <p className="mt-1 text-2xl font-black text-[var(--color-text-primary)]">
-                          {rival.recordLabel}
-                        </p>
-                      </div>
-
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-                          Key Insight
-                        </p>
-                        <p className="text-sm leading-6 text-[var(--color-text-secondary)]">
-                          {rival.insight}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanel
-                  title="No rivalry sample yet"
-                  description="Rival cards will appear after this team logs completed games against opponents."
-                />
-              )}
+            <section>
+              <SectionHeading
+                title="Rivals"
+                icon={<Swords className="w-5 h-5 text-[var(--league-primary)]" />}
+              />
+              <div className="mt-4">
+                {taleOfTheTapeRivals.length > 0 ? (
+                  <RivalsTaleOfTheTape
+                    matchups={taleOfTheTapeRivals}
+                    leagueSlug={leagueSlug}
+                  />
+                ) : (
+                  <EmptyPanel
+                    title="No rivalry sample yet"
+                    description="Tale-of-the-tape rival matchups will appear after this team logs completed games against opponents."
+                  />
+                )}
+              </div>
             </section>
 
-            <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
-              <SectionHeader
-                icon={Shield}
+            <section>
+              <SectionHeading
                 title="Captain Contact"
+                icon={<Shield className="w-5 h-5 text-[var(--league-primary)]" />}
               />
-
+              <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
               {captain ? (
-                <div className="mt-4 flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <Image
                     src={captain.profile?.avatar_url || '/blank_player.png'}
                     alt={captain.profile?.full_name || 'Captain'}
@@ -551,12 +575,22 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     <span>{team.contact_phone}</span>
                   </div>
                 ) : null}
+                {league.settings?.website?.showCaptainPhone !== false && captain?.profile?.phone ? (
+                  <a
+                    href={`sms:${captain.profile.phone}`}
+                    className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Text Captain</span>
+                  </a>
+                ) : null}
               </div>
               {!team.contact_email && !team.contact_phone && !captain && (
                 <p className="mt-4 text-sm text-[var(--color-text-secondary)]">
                   Public contact details are not available for this team.
                 </p>
               )}
+              </div>
             </section>
           </div>
         </div>
@@ -565,97 +599,14 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
   );
 }
 
-function SectionHeader({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description?: string;
-}) {
+function HeroPill({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
-    <div>
-      <div className="mb-2 flex items-center gap-2">
-        <Icon className="h-5 w-5 text-[var(--league-primary)]" />
-        <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">{title}</h2>
-      </div>
-      {description ? (
-        <p className="max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
-      ) : null}
-    </div>
-  );
-}
-
-function HeroMetric({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
-  return (
-    <div className="px-4 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</p>
-      <p className={`mt-2 text-2xl font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
+    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 backdrop-blur-sm">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">{label}</span>
+      <span className={`text-sm font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
         {value}
-      </p>
+      </span>
     </div>
-  );
-}
-
-function TeamLeaderPodiumCard({
-  leader,
-  place,
-  leagueSlug,
-}: {
-  leader: TeamLeaderCard;
-  place: number;
-  leagueSlug: string;
-}) {
-  const medalStyles = [
-    'from-amber-400/30 via-amber-300/18 to-transparent border-amber-300/35 text-amber-200',
-    'from-slate-200/25 via-slate-100/15 to-transparent border-slate-300/30 text-slate-100',
-    'from-orange-500/22 via-orange-300/14 to-transparent border-orange-300/25 text-orange-200',
-  ];
-  const labels: Record<TeamLeaderMetric, string> = {
-    goals: 'Goals',
-    assists: 'Assists',
-    points: 'Points',
-    penalty_minutes: 'PIM',
-  };
-
-  return (
-    <Link
-      href={`/${leagueSlug}/players/${leader.playerId}`}
-      className={`rounded-[24px] border bg-gradient-to-br p-5 transition-transform duration-200 hover:-translate-y-0.5 ${medalStyles[place - 1] || medalStyles[2]}`}
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="inline-flex items-center gap-2 rounded-full border border-current/20 bg-black/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]">
-          <Medal className="h-3.5 w-3.5" />
-          {place === 1 ? 'Gold' : place === 2 ? 'Silver' : 'Bronze'}
-        </div>
-        <span className="text-3xl font-black leading-none">{leader.value}</span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Image
-          src={leader.avatarUrl || '/blank_player.png'}
-          alt={leader.name}
-          width={60}
-          height={60}
-          className="h-14 w-14 rounded-full border border-white/10 object-cover"
-        />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-lg font-bold text-[var(--color-text-primary)]">{leader.name}</p>
-            {leader.leadershipRole === 'captain' ? <CaptainBadge label="C" /> : null}
-            {leader.leadershipRole === 'alternate_captain' ? <CaptainBadge label="A" muted /> : null}
-          </div>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            {labels[leader.metric]} leader • {leader.positionLabel}
-            {leader.jerseyNumber != null ? ` • #${leader.jerseyNumber}` : ''}
-          </p>
-          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-            {leader.gamesPlayed} GP
-          </p>
-        </div>
-      </div>
-    </Link>
   );
 }
 
@@ -758,133 +709,92 @@ function CaptainBadge({ label, muted }: { label: string; muted?: boolean }) {
   );
 }
 
-function ScheduleToggleLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-        active
-          ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-          : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
-      }`}
-    >
-      {children}
-    </Link>
-  );
+type TeamPageLineupPlayer = {
+  playerId: string;
+  name: string;
+  jerseyNumber: number | null;
+  position?: string | null;
+  isSub?: boolean;
+  showAsLineupPlayer?: boolean;
+};
+
+type TeamPageLineupSlot = 'forward' | 'defence' | 'goalie';
+
+function deriveLineupSlotFromCoord(coord: LineupPlacedPlayer): TeamPageLineupSlot {
+  if (coord.y >= 86) return 'goalie';
+  if (coord.y >= 50) return 'defence';
+  return 'forward';
 }
 
-function ScheduleCard({
-  game,
-  leagueSlug,
-  teamId,
-  recapSlug,
-  timezone,
-}: {
-  game: ScheduleGame;
-  leagueSlug: string;
-  teamId: string;
-  recapSlug: string | null;
-  timezone?: string | null;
-}) {
-  const isHome = game.home_team?.id === teamId;
-  const opponent = isHome ? game.away_team : game.home_team;
-  const result = buildGameResult(game, teamId);
+function buildTeamPageLineupDisplay(lineup: PublishedGameTeamLineup | null): {
+  skaters: TeamPageLineupPlayer[];
+  goalies: TeamPageLineupPlayer[];
+  forwardSlots: number;
+  defenceSlots: number;
+} | null {
+  if (!lineup) return null;
 
-  return (
-    <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82 p-5">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
-            {formatLeagueLongWeekdayDate(game.scheduled_at, timezone)}
-          </p>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{formatLeagueTime(game.scheduled_at, timezone)}</p>
-        </div>
-        <StatusChip status={game.status === 'completed' ? result.outcome : 'level'}>
-          {game.status === 'completed' ? result.label : formatScheduleStatus(game.status)}
-        </StatusChip>
-      </div>
+  const rosterById = new Map<string, LineupRosterPlayer>();
+  for (const player of lineup.layout.roster) {
+    rosterById.set(player.playerId, player);
+  }
 
-      <div className="mb-4 flex items-center gap-3">
-        <span className="inline-flex rounded-full border border-[var(--color-border)] px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
-          {isHome ? 'vs' : '@'}
-        </span>
-        {opponent?.logo ? (
-          <Image
-            src={opponent.logo}
-            alt={opponent.name}
-            width={42}
-            height={42}
-            className="h-10 w-10 rounded-2xl object-cover"
-          />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--league-primary)]/12 text-sm font-black text-[var(--league-primary)]">
-            {opponent?.name?.charAt(0) || '?'}
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="truncate text-lg font-bold text-[var(--color-text-primary)]">{opponent?.name || 'TBD'}</p>
-          <p className="text-sm text-[var(--color-text-secondary)]">{game.venue || 'Venue TBD'}</p>
-        </div>
-      </div>
+  const slotOrder: Record<TeamPageLineupSlot, number> = {
+    forward: 0,
+    defence: 1,
+    goalie: 2,
+  };
 
-      <div className="mb-4 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-hover)]/45 px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-          {game.status === 'completed' ? 'Final' : 'Game Details'}
-        </p>
-        <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)]">
-          {game.status === 'completed'
-            ? `${result.myScore}-${result.opponentScore}${result.label ? ` ${result.label}` : ''}`
-            : `${opponent?.id ? (isHome ? 'Home game' : 'Road game') : 'Opponent TBD'}${game.division?.name ? ` • ${game.division.name}` : ''}`}
-        </p>
-      </div>
+  const placed = lineup.layout.placedPlayers
+    .map((entry) => {
+      const player = rosterById.get(entry.playerId);
+      if (!player) return null;
+      return {
+        entry,
+        player,
+        slot: deriveLineupSlotFromCoord(entry),
+      };
+    })
+    .filter(
+      (value): value is {
+        entry: LineupPlacedPlayer;
+        player: LineupRosterPlayer;
+        slot: TeamPageLineupSlot;
+      } => value !== null,
+    )
+    .sort((left, right) => {
+      const slotSort = slotOrder[left.slot] - slotOrder[right.slot];
+      if (slotSort !== 0) return slotSort;
+      const rowSort = left.entry.y - right.entry.y;
+      if (rowSort !== 0) return rowSort;
+      return left.entry.x - right.entry.x;
+    });
 
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href={`/${leagueSlug}/games/${game.id}`}
-          className="inline-flex items-center rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
-        >
-          Game Center
-        </Link>
-        {recapSlug ? (
-          <Link
-            href={`/${leagueSlug}/news/${recapSlug}`}
-            className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]"
-          >
-            Read Recap
-          </Link>
-        ) : null}
-      </div>
-    </div>
-  );
-}
+  const toDisplayPlayer = (
+    player: LineupRosterPlayer,
+    position: string
+  ): TeamPageLineupPlayer => ({
+    playerId: player.playerId,
+    name: player.fullName || 'Unknown',
+    jerseyNumber: player.jerseyNumber,
+    position,
+    isSub: player.isSub,
+    showAsLineupPlayer: player.isSub ? true : undefined,
+  });
 
-function StatusChip({
-  status,
-  children,
-}: {
-  status: 'leading' | 'trailing' | 'level' | 'W' | 'L' | 'T';
-  children: ReactNode;
-}) {
-  const className =
-    status === 'leading' || status === 'W'
-      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
-      : status === 'trailing' || status === 'L'
-        ? 'border-rose-500/20 bg-rose-500/10 text-rose-500'
-        : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]';
+  const forwardCount = placed.filter((item) => item.slot === 'forward').length;
+  const defenceCount = placed.filter((item) => item.slot === 'defence').length;
 
-  return (
-    <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] ${className}`}>
-      {children}
-    </span>
-  );
+  return {
+    skaters: placed
+      .filter((item) => item.slot !== 'goalie')
+      .map((item) => toDisplayPlayer(item.player, item.slot === 'defence' ? 'D' : 'C')),
+    goalies: placed
+      .filter((item) => item.slot === 'goalie')
+      .map((item) => toDisplayPlayer(item.player, 'G')),
+    forwardSlots: Math.max(6, forwardCount),
+    defenceSlots: Math.max(4, defenceCount),
+  };
 }
 
 function EmptyPanel({ title, description }: { title: string; description: string }) {
@@ -894,20 +804,6 @@ function EmptyPanel({ title, description }: { title: string; description: string
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
     </div>
   );
-}
-
-function buildGameResult(game: ScheduleGame, teamId: string) {
-  const isHome = game.home_team?.id === teamId;
-  const myScore = isHome ? game.home_score ?? 0 : game.away_score ?? 0;
-  const opponentScore = isHome ? game.away_score ?? 0 : game.home_score ?? 0;
-
-  if (myScore > opponentScore) {
-    return { label: 'W', outcome: 'W' as const, myScore, opponentScore };
-  }
-  if (myScore < opponentScore) {
-    return { label: 'L', outcome: 'L' as const, myScore, opponentScore };
-  }
-  return { label: 'T', outcome: 'T' as const, myScore, opponentScore };
 }
 
 function normalizeLeaderTab(value: string | undefined): TeamLeaderMetric {
@@ -922,16 +818,19 @@ function formatRecord(wins: number, losses: number, ties: number) {
   return `${wins}-${losses}-${ties}`;
 }
 
+/**
+ * Matches the spare detection used by `splitRosterByRole` (team-page.ts): any
+ * roster row classified as 'sub', 'spare', or 'part_time' is a spare. Synthetic
+ * entries (player with stats but no roster row) leave player_type undefined and
+ * are also treated as spares. Real roster players have player_type === 'regular'.
+ */
+function isSubRosterPlayer(player: { player_type?: string | null }): boolean {
+  const playerType = (player.player_type ?? '').toLowerCase();
+  if (playerType === 'regular') return false;
+  return true;
+}
+
 function formatGoalDifferential(value: number) {
   if (value > 0) return `+${value}`;
   return `${value}`;
-}
-
-function formatScheduleStatus(status: ScheduleGame['status']) {
-  if (status === 'in_progress') return 'Live';
-  if (status === 'pending_verification') return 'Pending';
-  return status
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }

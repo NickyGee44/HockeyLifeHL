@@ -14,6 +14,7 @@ const DEFAULT_CONFIG: RegistrationFormConfig = {
   levels: [],
   locations: [],
   nights: [],
+  auto_approve: false,
   enabled_fields: {
     played_last_season: true,
     level: true,

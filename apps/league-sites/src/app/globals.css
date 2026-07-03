@@ -44,6 +44,9 @@
   --league-glow-color: var(--league-primary-soft);
   --league-secondary-contrast: var(--league-on-secondary);
   --league-font-family: "Rajdhani", "Sora", "Inter", system-ui, -apple-system, sans-serif;
+  --league-ambient-color: var(--league-primary-strong);
+  --league-ambient-soft: rgba(143, 106, 0, 0.16);
+  --league-ambient-strong: rgba(143, 106, 0, 0.3);
 }
 
 /* =============================================================================
@@ -77,6 +80,14 @@
 
   --glass-opacity: 72%;
   --glass-border-opacity: 60%;
+  --glass-card-top: rgba(24, 24, 26, 0.58);
+  --glass-card-bottom: rgba(8, 8, 10, 0.46);
+  --glass-card-border: rgba(255, 255, 255, 0.16);
+  --glass-card-border-hover: rgba(255, 255, 255, 0.24);
+  --glass-card-highlight: rgba(255, 255, 255, 0.12);
+  --glass-card-shadow: 0 26px 72px -34px rgba(0, 0, 0, 0.72);
+  --glass-card-shadow-hover: 0 34px 92px -34px rgba(0, 0, 0, 0.82);
+  --glass-card-glow: color-mix(in srgb, var(--league-ambient-color) 18%, transparent);
 }
 
 /* =============================================================================
@@ -109,6 +120,14 @@
 
   --glass-opacity: 78%;
   --glass-border-opacity: 70%;
+  --glass-card-top: rgba(255, 255, 255, 0.6);
+  --glass-card-bottom: rgba(244, 245, 248, 0.46);
+  --glass-card-border: rgba(255, 255, 255, 0.68);
+  --glass-card-border-hover: rgba(255, 255, 255, 0.88);
+  --glass-card-highlight: rgba(255, 255, 255, 0.56);
+  --glass-card-shadow: 0 18px 52px -22px rgba(15, 23, 42, 0.18);
+  --glass-card-shadow-hover: 0 24px 64px -20px rgba(15, 23, 42, 0.22);
+  --glass-card-glow: color-mix(in srgb, var(--league-ambient-color) 12%, transparent);
 }
 
 /* =============================================================================
@@ -121,12 +140,7 @@ html {
 
 body {
   font-family: var(--league-font-family);
-  background-color: var(--color-background);
-  background-image:
-    radial-gradient(circle at 12% 8%, var(--league-surface-tint-strong) 0%, transparent 50%),
-    radial-gradient(circle at 88% -12%, var(--league-surface-tint) 0%, transparent 45%),
-    radial-gradient(circle at 50% 60%, var(--league-primary-muted) 0%, transparent 55%);
-  background-repeat: no-repeat;
+  background: linear-gradient(180deg, #070707 0%, #030303 58%, #000000 100%);
   background-attachment: fixed;
   color: var(--color-text-primary);
   min-height: 100vh;
@@ -135,21 +149,19 @@ body {
   position: relative;
 }
 
-/* Tiled texture overlay with league color tint */
+/* Aurora light band behind glass surfaces */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: url('/bg.png');
-  background-repeat: repeat;
-  background-size: 300px;
-  opacity: 0.18;
-  mix-blend-mode: luminosity;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.04), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0) 18%, rgba(0, 0, 0, 0.08) 100%);
 }
 
-/* League-primary color highlight spots over the texture */
+/* Subtle vignette to keep the page smoked and contrasty */
 body::after {
   content: '';
   position: fixed;
@@ -157,28 +169,23 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 600px 400px at 5% 15%, var(--league-surface-tint-strong), transparent),
-    radial-gradient(ellipse 500px 350px at 92% 80%, var(--league-surface-tint), transparent),
-    radial-gradient(ellipse 400px 300px at 50% 50%, var(--league-primary-muted), transparent);
+    radial-gradient(circle at 50% 88%, rgba(0, 0, 0, 0.34), transparent 42%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.01) 0%, rgba(0, 0, 0, 0.24) 100%);
 }
 
 [data-theme='light'] body {
-  background-image:
-    radial-gradient(circle at 12% 8%, var(--league-surface-tint) 0%, transparent 50%),
-    radial-gradient(circle at 88% -12%, var(--league-primary-muted) 0%, transparent 45%),
-    radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--league-surface-tint) 70%, transparent) 0%, transparent 60%);
+  background: linear-gradient(180deg, #fafafa 0%, #f5f5f7 100%);
 }
 
 [data-theme='light'] body::before {
-  opacity: 0.12;
-  mix-blend-mode: multiply;
+  opacity: 0.36;
+  filter: blur(32px);
 }
 
 [data-theme='light'] body::after {
   background:
-    radial-gradient(ellipse 600px 400px at 5% 15%, color-mix(in srgb, var(--league-surface-tint) 90%, transparent), transparent),
-    radial-gradient(ellipse 500px 350px at 92% 80%, color-mix(in srgb, var(--league-primary-muted) 90%, transparent), transparent),
-    radial-gradient(ellipse 400px 300px at 50% 50%, color-mix(in srgb, var(--league-primary-muted) 60%, transparent), transparent);
+    radial-gradient(circle at 50% 8%, rgba(255, 255, 255, 0.45), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(15, 23, 42, 0.04) 100%);
 }
 
 /* =============================================================================
@@ -314,23 +321,31 @@ body::after {
 
 .league-site-main::before {
   content: '';
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-background) 76%, transparent) 0%,
-      color-mix(in srgb, var(--color-background) 88%, transparent) 18%,
-      color-mix(in srgb, var(--color-background) 94%, transparent) 42%,
-      var(--color-background) 100%
-    );
+    radial-gradient(ellipse 42% 12% at 18% 12%, var(--league-ambient-strong), transparent 72%),
+    radial-gradient(ellipse 48% 14% at 82% 24%, color-mix(in srgb, var(--league-ambient-color) 22%, transparent), transparent 74%),
+    radial-gradient(ellipse 36% 12% at 22% 52%, var(--league-ambient-soft), transparent 70%),
+    radial-gradient(ellipse 50% 14% at 78% 68%, color-mix(in srgb, var(--league-ambient-color) 26%, transparent), transparent 76%),
+    radial-gradient(ellipse 34% 12% at 26% 92%, color-mix(in srgb, var(--league-ambient-color) 18%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(0, 0, 0, 0.18) 100%);
+  filter: blur(44px) saturate(138%);
+  opacity: 0.98;
   z-index: 0;
 }
 
 .league-site-main > * {
   position: relative;
   z-index: 1;
+  opacity: 1;
+  transform: none;
+}
+
+.league-site-main > .in-view {
+  opacity: 1;
+  transform: none;
 }
 
 .league-home-light .card,
@@ -352,47 +367,73 @@ body::after {
 
 .league-home-shell::before {
   content: '';
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 16% 0%, var(--league-surface-tint-strong), transparent 55%),
-    radial-gradient(circle at 88% 100%, var(--league-surface-tint), transparent 50%);
-  opacity: 0.7;
+    radial-gradient(ellipse 40% 14% at 18% 74%, var(--league-ambient-strong), transparent 72%),
+    radial-gradient(ellipse 52% 16% at 54% 78%, color-mix(in srgb, var(--league-ambient-color) 24%, transparent), transparent 74%),
+    radial-gradient(ellipse 28% 10% at 92% 70%, var(--league-ambient-soft), transparent 68%);
+  filter: blur(30px) saturate(132%);
+  opacity: 0.94;
 }
 
+
 .league-shell-panel {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-background-elevated) 97%, var(--league-surface-tint) 3%) 0%,
-      color-mix(in srgb, var(--color-surface) 93%, var(--league-surface-tint) 7%) 100%
-    );
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-color: color-mix(in srgb, var(--color-border) 86%, var(--league-primary-border));
-  box-shadow: 0 28px 68px -36px rgba(0, 0, 0, 0.44);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--glass-card-top) 98%, transparent) 0%,
+    color-mix(in srgb, var(--glass-card-bottom) 99%, transparent) 100%
+  );
+  backdrop-filter: blur(32px) saturate(128%);
+  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  border-color: var(--glass-card-border);
+  border-radius: 1.6rem;
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.26);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .league-shell-panel:hover {
-  border-color: var(--color-border-emphasis);
-  box-shadow: 0 22px 54px -16px rgba(0, 0, 0, 0.32);
+  border-color: var(--glass-card-border-hover);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    0 0 24px var(--glass-card-glow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
 }
 
 .league-pulse-link {
-  border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--league-primary-border));
-  background: color-mix(in srgb, var(--color-background-elevated) 90%, var(--league-surface-tint) 10%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  border: 1px solid var(--glass-card-border);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--glass-card-top) 98%, transparent) 0%,
+    color-mix(in srgb, var(--glass-card-bottom) 99%, transparent) 100%
+  );
+  backdrop-filter: blur(32px) saturate(128%);
+  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.26);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .league-pulse-link:hover {
   transform: translateY(-2px);
-  border-color: var(--color-border-emphasis);
-  box-shadow: 0 14px 34px -14px var(--league-glow-color);
+  border-color: var(--glass-card-border-hover);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    0 0 20px var(--glass-card-glow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
 }
 
 .league-feature-band {
@@ -417,29 +458,47 @@ body::after {
 .league-reading-panel {
   position: relative;
   background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--league-secondary) 18%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 82% 115%, color-mix(in srgb, var(--league-secondary) 16%, transparent) 0%, transparent 48%),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--color-background-elevated) 97%, var(--league-surface-tint) 3%) 0%,
-      color-mix(in srgb, var(--color-surface) 94%, var(--league-surface-tint) 6%) 100%
+      color-mix(in srgb, var(--glass-card-top) 92%, transparent) 0%,
+      color-mix(in srgb, var(--glass-card-bottom) 96%, transparent) 100%
     );
-  border: 1px solid color-mix(in srgb, var(--color-border) 88%, var(--league-primary-border));
-  box-shadow: 0 30px 78px -42px rgba(0, 0, 0, 0.48);
-}
-
-.league-reading-panel::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 1px;
-  background: color-mix(in srgb, white 36%, transparent);
-  border-radius: inherit;
-  pointer-events: none;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid var(--glass-card-border);
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 -1px 0 0 color-mix(in srgb, black 18%, transparent);
 }
 
 .league-reading-cell {
-  background: color-mix(in srgb, var(--color-background-elevated) 96%, var(--league-surface-tint) 4%);
-  border: 1px solid color-mix(in srgb, var(--color-border) 84%, var(--league-primary-border));
-  box-shadow: 0 18px 44px -32px rgba(0, 0, 0, 0.4);
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--league-secondary) 16%, transparent) 0%, transparent 44%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-card-top) 92%, transparent) 0%,
+      color-mix(in srgb, var(--glass-card-bottom) 96%, transparent) 100%
+    );
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  border: 1px solid var(--glass-card-border);
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 -1px 0 0 color-mix(in srgb, black 18%, transparent);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.league-reading-cell:hover {
+  border-color: var(--glass-card-border-hover);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    0 0 16px var(--glass-card-glow),
+    inset 0 1px 0 0 color-mix(in srgb, white 16%, transparent),
+    inset 0 -1px 0 0 color-mix(in srgb, black 22%, transparent);
 }
 
 /* League hero section uses league colors prominently */
@@ -490,31 +549,69 @@ body::after {
    COMPONENT STYLES
    ============================================================================= */
 
-/* Cards with league theming + glassmorphism */
+/* ----------------------------------------------------------------
+   GLASS CARD SYSTEM
+   Unified glassmorphism card surfaces with league color tinting.
+   Use .glass-card on any container that should feel like a card.
+   .card is kept as an alias for backward compatibility.
+   ---------------------------------------------------------------- */
+
+.glass-card,
 .card {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--color-background-elevated) 97%, var(--league-surface-tint) 3%) 0%,
-      color-mix(in srgb, var(--color-surface) 94%, var(--league-surface-tint) 6%) 100%
-    );
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 86%, var(--league-primary-border));
-  border-radius: 1rem;
-  transition-property: border-color, box-shadow, background-color;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
-  box-shadow: 0 20px 52px -34px rgba(0, 0, 0, 0.44);
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--glass-card-top) 98%, transparent) 0%,
+    color-mix(in srgb, var(--glass-card-bottom) 99%, transparent) 100%
+  );
+  backdrop-filter: blur(32px) saturate(128%);
+  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  border: 1px solid var(--glass-card-border);
+  border-radius: 1.6rem;
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.26);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
 }
 
+.glass-card::before,
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 1px 1px auto 1px;
+  height: 40%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 100%);
+  opacity: 0.84;
+  pointer-events: none;
+}
+
+.glass-card:hover,
 .card:hover {
-  border-color: var(--color-border-emphasis);
-  box-shadow: 0 0 20px var(--league-glow-color);
+  border-color: var(--glass-card-border-hover);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    0 0 24px var(--glass-card-glow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
 }
 
+[data-theme='light'] .glass-card,
+[data-theme='light'] .card {
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight);
+}
+
+[data-theme='light'] .glass-card:hover,
 [data-theme='light'] .card:hover {
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    inset 0 1px 0 0 color-mix(in srgb, white 76%, transparent);
 }
 
 .card-header {
@@ -607,12 +704,20 @@ body::after {
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: color-mix(in srgb, var(--color-background-elevated) 95%, var(--color-surface) 5%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
-  border-radius: 1rem;
-  box-shadow: 0 20px 44px -32px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--glass-card-top) 98%, transparent) 0%,
+    color-mix(in srgb, var(--glass-card-bottom) 99%, transparent) 100%
+  );
+  backdrop-filter: blur(32px) saturate(128%);
+  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  border: 1px solid var(--glass-card-border);
+  border-radius: 1.6rem;
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.26);
   transition:
     transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
     box-shadow 0.3s ease,
@@ -623,26 +728,25 @@ body::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    color-mix(in srgb, var(--league-primary) 8%, transparent) 0%,
-    transparent 50%
-  );
-  opacity: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.08) 0%, transparent 52%);
+  opacity: 0.62;
   transition: opacity 0.3s ease;
   pointer-events: none;
 }
 
 .game-card:hover {
   transform: translateY(-4px) scale(1.01);
-  border-color: color-mix(in srgb, var(--league-primary) 40%, transparent);
+  border-color: var(--glass-card-border-hover);
   box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.3),
-    0 0 20px color-mix(in srgb, var(--league-primary) 15%, transparent);
+    var(--glass-card-shadow-hover),
+    0 0 22px var(--glass-card-glow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3);
 }
 
 .game-card:hover::before {
-  opacity: 1;
+  opacity: 0.78;
 }
 
 .game-card:active {
@@ -687,24 +791,38 @@ body::after {
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: color-mix(in srgb, var(--color-background-elevated) 95%, var(--color-surface) 5%);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid color-mix(in srgb, var(--color-border) 84%, transparent);
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--league-secondary) 18%, transparent) 0%, transparent 46%),
+    radial-gradient(circle at 82% 115%, color-mix(in srgb, var(--league-secondary) 16%, transparent) 0%, transparent 48%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--glass-card-top) 92%, transparent) 0%,
+      color-mix(in srgb, var(--glass-card-bottom) 96%, transparent) 100%
+    );
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid var(--glass-card-border);
   border-radius: 1rem;
-  box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.38);
-  transition-property: border-color, box-shadow, background-color;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
+  box-shadow:
+    var(--glass-card-shadow),
+    inset 0 1px 0 0 var(--glass-card-highlight),
+    inset 0 -1px 0 0 color-mix(in srgb, black 18%, transparent);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .stat-card:hover {
-  border-color: var(--color-border-emphasis);
-  box-shadow: 0 0 20px var(--league-glow-color);
+  border-color: var(--glass-card-border-hover);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    0 0 22px var(--glass-card-glow),
+    inset 0 1px 0 0 color-mix(in srgb, white 16%, transparent),
+    inset 0 -1px 0 0 color-mix(in srgb, black 22%, transparent);
 }
 
 [data-theme='light'] .stat-card:hover {
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    var(--glass-card-shadow-hover),
+    inset 0 1px 0 0 color-mix(in srgb, white 76%, transparent);
 }
 
 .stat-card .rank {
@@ -1905,6 +2023,13 @@ body::after {
     animation: none !important;
   }
 
+  /* Disable scroll-reveal in reduced-motion mode — show everything immediately */
+  .league-site-main > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
   .game-card,
   .game-card::before,
   .game-card .team,
@@ -1930,4 +2055,13 @@ html[data-scorekeeper-mode='true'] .league-site-chrome {
 
 html[data-scorekeeper-mode='true'] .league-site-main {
   min-height: 100vh;
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 1024px) {
+  body::before,
+  body::after,
+  .league-site-main::before,
+  .league-home-shell::before {
+    display: none;
+  }
 }

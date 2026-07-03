@@ -9,7 +9,7 @@
 export interface GoalEvent {
   id: string;
   teamType: 'home' | 'away';
-  period: number;
+  period: number | null;
   gameTimeSeconds: number | null;
 }
 
@@ -38,7 +38,9 @@ export function detectGWG(goals: GoalEvent[]): string | null {
   const winningTeamGoals = goals
     .filter(g => g.teamType === winningTeam)
     .sort((a, b) => {
-      if (a.period !== b.period) return a.period - b.period;
+      const aPeriod = a.period ?? 0;
+      const bPeriod = b.period ?? 0;
+      if (aPeriod !== bPeriod) return aPeriod - bPeriod;
       // gameTimeSeconds is elapsed time (counts up) — sort ascending = earliest first
       return (a.gameTimeSeconds ?? 0) - (b.gameTimeSeconds ?? 0);
     });

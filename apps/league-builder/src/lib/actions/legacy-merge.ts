@@ -20,6 +20,11 @@ export interface LegacyCandidate {
   };
 }
 
+export interface ClaimablePlayerCandidate extends LegacyCandidate {
+  emailHint: string | null;
+  isLegacyImport: boolean;
+}
+
 export interface LegacyMergeStatus {
   hasPendingMatches: boolean;
   matchCount: number;
@@ -234,4 +239,104 @@ export async function dismissLegacyMatch(): Promise<
   }
 
   return { success: true };
+}
+
+// ============================================================================
+// SIGNUP-TIME PLAYER CLAIM SEARCH
+// ============================================================================
+
+function maskEmail(email: string | null | undefined): string | null {
+  if (!email || !email.includes('@')) return null;
+  const [local, domain] = email.split('@');
+  if (!domain) return null;
+  const visible = local.slice(0, 2);
+  return `${visible}${'•'.repeat(Math.max(2, local.length - visible.length))}@${domain}`;
+}
+
+async function hasAuthUser(serviceSupabase: ReturnType<typeof createServiceRoleClient>, profileId: string): Promise<boolean> {
+  const { data, error } = await serviceSupabase.auth.admin.getUserById(profileId);
+  return !error && !!data?.user;
+}
+
+async function buildClaimableCandidate(
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>,
+  profile: any
+): Promise<ClaimablePlayerCandidate | null> {
+  // Never offer an already-auth-backed profile for claiming.
+  if (await hasAuthUser(serviceSupabase, profile.id)) {
+    return null;
+  }
+
+  const { data: rosters } = await serviceSupabase
+    .from('team_rosters')
+    .select('teams:team_id(name), seasons:season_id(name)')
+    .eq('player_id', profile.id) as any;
+
+  if (!rosters || rosters.length === 0) {
+    return null;
+  }
+
+  const { data: stats } = await serviceSupabase
+    .from('player_season_stats')
+    .select('games_played, goals, assists, points')
+    .eq('player_id', profile.id) as any;
+
+  const aggregatedStats = (stats || []).reduce(
+    (acc: any, s: any) => ({
+      gamesPlayed: acc.gamesPlayed + (s.games_played || 0),
+      goals: acc.goals + (s.goals || 0),
+      assists: acc.assists + (s.assists || 0),
+      points: acc.points + (s.points || 0),
+    }),
+    { gamesPlayed: 0, goals: 0, assists: 0, points: 0 }
+  );
+
+  return {
+    id: profile.id,
+    fullName: profile.full_name || 'Unknown Player',
+    emailHint: maskEmail(profile.email),
+    isLegacyImport: !!profile.is_legacy_import,
+    teams: (rosters || []).slice(0, 6).map((r: any) => ({
+      teamName: r.teams?.name || 'Unknown Team',
+      seasonName: r.seasons?.name || 'Unknown Season',
+    })),
+    stats: aggregatedStats,
+  };
+}
+
+/**
+ * Find rostered, unclaimed player profile stubs that a signup user may claim.
+ * This intentionally returns limited context only and excludes any profile already
+ * tied to an auth.users row so a real account cannot be stolen from signup.
+ */
+export async function searchClaimablePlayerProfiles(
+  query: string
+): Promise<{ success: true; data: ClaimablePlayerCandidate[] } | { success: false; error: string }> {
+  const trimmed = query.trim();
+  const safeQuery = trimmed.replace(/[%_,]/g, '').trim();
+  if (safeQuery.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+
+  const { data: profiles, error } = await serviceSupabase
+    .from('profiles')
+    .select('id, full_name, email, is_legacy_import, legacy_merge_completed_at')
+    .or(`full_name.ilike.%${safeQuery}%,email.ilike.%${safeQuery}%`)
+    .is('legacy_merge_completed_at', null)
+    .limit(12) as any;
+
+  if (error) {
+    if (isDevelopment) console.error('[legacy-merge] Claimable player search error:', error.message);
+    return { success: false, error: 'Player search failed' };
+  }
+
+  const candidates: ClaimablePlayerCandidate[] = [];
+  for (const profile of profiles || []) {
+    const candidate = await buildClaimableCandidate(serviceSupabase, profile);
+    if (candidate) candidates.push(candidate);
+  }
+
+  return { success: true, data: candidates.slice(0, 8) };
 }

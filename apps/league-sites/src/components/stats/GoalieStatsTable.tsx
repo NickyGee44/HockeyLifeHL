@@ -4,14 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronUp, ChevronDown, Medal } from 'lucide-react';
-import type { GoalieStats, PlayerBadge } from '@/lib/types';
-import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
+import type { GoalieStats } from '@/lib/types';
 
 interface GoalieStatsTableProps {
   goalies: GoalieStats[];
   leagueSlug: string;
   currentSort: 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
-  badges?: Record<string, PlayerBadge[]>;
 }
 
 type SortKey = 'wins' | 'save_percentage' | 'goals_against_average' | 'shutouts';
@@ -55,7 +53,7 @@ function SortHeader({
   );
 }
 
-export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: GoalieStatsTableProps) {
+export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieStatsTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -115,9 +113,6 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort, badges }: G
                         )}
                         <span className="font-medium">{goalie.player_name}</span>
                       </div>
-                    )}
-                    {goalie.player_id && badges?.[goalie.player_id] && badges[goalie.player_id].length > 0 && (
-                      <PlayerBadgeGroup badges={badges[goalie.player_id]} maxVisible={3} size="sm" />
                     )}
                   </div>
                 </div>

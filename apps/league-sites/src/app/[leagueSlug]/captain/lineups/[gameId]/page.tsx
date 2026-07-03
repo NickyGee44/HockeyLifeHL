@@ -1,81 +1,143 @@
-'use client';
-
+import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { use } from 'react';
-import { AlertCircle, ArrowLeft, Loader2, Shield } from 'lucide-react';
-import { useLeague } from '@/hooks/useLeague';
-import { usePlayerProfile } from '@/hooks/usePlayerProfile';
-import { CaptainLineupEditor } from '@/components/lineups/CaptainLineupEditor';
+import { AlertCircle, ArrowLeft, Shield } from 'lucide-react';
+import { CaptainGameDayPage } from '@/components/captain/CaptainGameDayPage';
+import { getCaptainGameDayDataForAuthorizedTeam } from '@/lib/actions/game-day';
+import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
 
-export default function CaptainLineupPage({
+function RouteMessage({
+  leagueSlug,
+  title,
+  body,
+  icon,
+}: {
+  leagueSlug: string;
+  title: string;
+  body: string;
+  icon: ReactNode;
+}) {
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-10">
+      <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-6 text-center">
+        {icon}
+        <h1 className="mt-4 text-2xl font-black text-white">{title}</h1>
+        <p className="mt-3 text-sm leading-6 text-amber-100/85">{body}</p>
+        <Link
+          href={`/${leagueSlug}/captain`}
+          className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to captain dashboard
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default async function CaptainLineupPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ leagueSlug: string; gameId: string }>;
+  searchParams: Promise<{ mode?: string }>;
 }) {
-  const { leagueSlug, gameId } = use(params);
-  const { league } = useLeague();
-  const { currentTeam, isLoading } = usePlayerProfile(
-    league?.id,
-    league?.current_season_id
-  );
+  const { leagueSlug, gameId } = await params;
+  const { mode } = await searchParams;
+  const auth = await createAuthClient();
+  const {
+    data: { user },
+  } = await auth.auth.getUser();
 
-  const canManage = !!(currentTeam?.is_captain || currentTeam?.is_alternate);
-
-  if (isLoading) {
+  if (!user) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="space-y-4 text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--league-primary)]" />
-          <p className="text-[var(--color-text-secondary)]">Loading lineup studio...</p>
-        </div>
-      </div>
+      <RouteMessage
+        leagueSlug={leagueSlug}
+        title="Captain access required"
+        body="Sign in to manage Game Day."
+        icon={<Shield className="mx-auto h-10 w-10 text-amber-300" />}
+      />
     );
   }
 
-  if (!currentTeam?.team) {
+  const supabase = createServiceRoleClient();
+  const { data: game, error: gameError } = await (supabase.from('games') as any)
+    .select(`
+      id,
+      league_id,
+      home_team_id,
+      away_team_id,
+      league:leagues!inner(slug)
+    `)
+    .eq('id', gameId)
+    .maybeSingle();
+
+  const gameLeague = Array.isArray(game?.league) ? game?.league[0] : game?.league;
+
+  if (gameError || !game || gameLeague?.slug !== leagueSlug) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-6 text-center">
-          <AlertCircle className="mx-auto h-10 w-10 text-amber-300" />
-          <h1 className="mt-4 text-2xl font-black text-white">No team found</h1>
-          <p className="mt-3 text-sm leading-6 text-amber-100/85">You need an active team before you can build a game-day lineup.</p>
-          <Link
-            href={`/${leagueSlug}/captain`}
-            className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to captain dashboard
-          </Link>
-        </div>
-      </div>
+      <RouteMessage
+        leagueSlug={leagueSlug}
+        title="Could not load Game Day"
+        body={gameError?.message || 'Game not found.'}
+        icon={<AlertCircle className="mx-auto h-10 w-10 text-amber-300" />}
+      />
     );
   }
 
-  if (!canManage) {
+  const { data: memberships, error: membershipError } = await (supabase.from('team_rosters') as any)
+    .select('team_id, leadership_role')
+    .eq('player_id', user.id)
+    .eq('status', 'active')
+    .is('end_date', null)
+    .in('team_id', [game.home_team_id, game.away_team_id])
+    .in('leadership_role', ['captain', 'alternate_captain'])
+    .limit(2);
+
+  if (membershipError) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <div className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 p-6 text-center">
-          <Shield className="mx-auto h-10 w-10 text-amber-300" />
-          <h1 className="mt-4 text-2xl font-black text-white">Captain access required</h1>
-          <p className="mt-3 text-sm leading-6 text-amber-100/85">Only captains and alternate captains can manage game-day lineups.</p>
-          <Link
-            href={`/${leagueSlug}/captain`}
-            className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to captain dashboard
-          </Link>
-        </div>
-      </div>
+      <RouteMessage
+        leagueSlug={leagueSlug}
+        title="Could not load Game Day"
+        body={membershipError.message}
+        icon={<AlertCircle className="mx-auto h-10 w-10 text-amber-300" />}
+      />
+    );
+  }
+
+  const matchedTeamId = memberships?.[0]?.team_id ?? null;
+
+  if (!matchedTeamId) {
+    return (
+      <RouteMessage
+        leagueSlug={leagueSlug}
+        title="Captain access required"
+        body="You need to be a captain or alternate on one of the teams in this game."
+        icon={<Shield className="mx-auto h-10 w-10 text-amber-300" />}
+      />
+    );
+  }
+
+  const gameDayResult = await getCaptainGameDayDataForAuthorizedTeam(matchedTeamId, gameId);
+
+  if (!gameDayResult.success) {
+    return (
+      <RouteMessage
+        leagueSlug={leagueSlug}
+        title="Could not load Game Day"
+        body={gameDayResult.error}
+        icon={<AlertCircle className="mx-auto h-10 w-10 text-amber-300" />}
+      />
     );
   }
 
   return (
-    <CaptainLineupEditor
+    <CaptainGameDayPage
       leagueSlug={leagueSlug}
-      gameId={gameId}
-      teamId={currentTeam.team_id}
-      canManage={canManage}
+      requestedGameId={gameId}
+      teamId={matchedTeamId}
+      canManage
+      initialData={gameDayResult.data}
+      initialOpenLineupEditor={mode === 'lineup'}
     />
   );
 }

@@ -20,13 +20,21 @@ export function isSeasonRegistrationOpen(
   const opensAt = season.registration_opens_at ? new Date(season.registration_opens_at) : null;
   const closesAt = season.registration_closes_at ? new Date(season.registration_closes_at) : null;
 
+  const isAfterOpen = !opensAt || now >= opensAt;
+
+  // For active seasons, registration stays open regardless of registration_closes_at.
+  // The closes-at deadline only hard-blocks when the season is NOT active (e.g. upcoming
+  // window expired, or season moved to playoffs/completed).
+  if (season.status === 'active') {
+    return isAfterOpen;
+  }
+
   if (opensAt || closesAt) {
-    const isAfterOpen = !opensAt || now >= opensAt;
     const isBeforeClose = !closesAt || now <= closesAt;
     return isAfterOpen && isBeforeClose;
   }
 
-  return season.status === 'upcoming' || season.status === 'active';
+  return season.status === 'upcoming';
 }
 
 export function pickRegistrationSeason<T extends RegistrationSeasonLike>(

@@ -3,20 +3,17 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import {
-  Bell,
-  Calendar,
   CreditCard,
   FileCheck,
-  Trophy,
   Users,
   Settings,
   Shield,
   ClipboardCheck,
   Loader2,
-  UserSearch,
 } from 'lucide-react';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
+import { AppSetupQuickActionButton, PushAlertsQuickActionButton } from '@/components/pwa/AppSetupActions';
 
 interface QuickActionsProps {
   leagueSlug: string;
@@ -58,22 +55,10 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
       variant: 'primary',
     },
     {
-      label: 'View Schedule',
-      href: `/${leagueSlug}/schedule`,
-      icon: Calendar,
-      description: 'See all upcoming games',
-    },
-    {
       label: 'Sign Waivers',
       href: `/${leagueSlug}/me/waivers`,
       icon: FileCheck,
       description: 'Complete required forms',
-    },
-    {
-      label: 'Standings',
-      href: `/${leagueSlug}/standings`,
-      icon: Trophy,
-      description: 'Check league standings',
     },
     {
       label: 'My Team',
@@ -84,22 +69,10 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
       description: 'View team roster',
     },
     {
-      label: 'Find Players',
-      href: `/${leagueSlug}/players`,
-      icon: UserSearch,
-      description: 'Browse league players',
-    },
-    {
       label: 'Settings',
       href: `/${leagueSlug}/me/profile`,
       icon: Settings,
       description: 'Update your profile',
-    },
-    {
-      label: 'Notifications',
-      href: `/${leagueSlug}/me/notifications`,
-      icon: Bell,
-      description: 'Email & push preferences',
     },
   ];
 
@@ -117,7 +90,7 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
   // Show skeleton loader while profile is loading
   if (profileLoading) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+      <div className="glass-card rounded-xl p-4">
         <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
           Quick Actions
         </h3>
@@ -143,7 +116,7 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+    <div className="glass-card rounded-xl p-4">
       <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
         Quick Actions
       </h3>
@@ -195,6 +168,8 @@ export function QuickActions({ leagueSlug, hasOutstandingPayment }: QuickActions
             </Link>
           );
         })}
+        <AppSetupQuickActionButton leagueName={league?.name || 'Hockey Life'} />
+        <PushAlertsQuickActionButton />
       </div>
     </div>
   );

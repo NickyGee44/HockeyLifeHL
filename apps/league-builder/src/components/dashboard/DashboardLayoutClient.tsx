@@ -81,7 +81,7 @@ export default function DashboardLayoutClient({
 
   return (
     <AppSidebarProvider>
-      <div className="min-h-screen bg-neutral-950">
+      <div className="dashboard-shell min-h-screen bg-neutral-950">
         {/* Mobile header — visible on mobile only */}
         {!isFocusedFlow ? <MobileAppHeader dashboardData={dashboardData} /> : null}
 

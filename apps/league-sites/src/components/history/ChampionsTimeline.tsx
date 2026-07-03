@@ -112,7 +112,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
 
   if (champions.length === 0) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+      <div className="glass-card rounded-xl p-8 text-center">
         <Trophy className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
         <p className="text-[var(--color-text-secondary)]">No champions crowned yet. Check back after the current season ends!</p>
       </div>
@@ -226,7 +226,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
       </div>
 
       {/* Expanded detail panel for selected champion */}
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl overflow-hidden">
+      <div className="glass-card rounded-2xl overflow-hidden">
         {/* Header with photo */}
         <div className="relative">
           {selected.photo && (

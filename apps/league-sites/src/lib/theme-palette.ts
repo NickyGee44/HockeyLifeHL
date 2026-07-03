@@ -1,8 +1,8 @@
 import type { ThemePreset } from './types';
 
-const DEFAULT_PRIMARY = '#D4AF37';
+const DEFAULT_PRIMARY = '#C0C0C0';
 const DEFAULT_SECONDARY = '#1A1A1A';
-const DEFAULT_ACCENT = '#D4AF37';
+const DEFAULT_ACCENT = '#C0C0C0';
 const DARK_BASE = '#08111F';
 const SAFE_PRIMARY_TARGET_LUMINANCE = 0.18;
 const SAFE_PRIMARY_MIN_LUMINANCE = 0.16;
@@ -163,7 +163,7 @@ function createReadableAccent(color: string): string {
   const safeColor = normalizeHexColor(color, DEFAULT_PRIMARY);
   const rgb = parseHexColor(safeColor);
   if (!rgb) {
-    return '#8F6A00';
+    return '#8A8A8A';
   }
 
   const luminance = getRelativeLuminance(rgb);

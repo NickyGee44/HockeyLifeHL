@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { SubscriptionWall } from '@/components/shared';
-import { getLeagueBySlug, getTeams, getDivisions, getPlayerBadgesByIds } from '@/lib/data';
+import { getLeagueBySlug, getTeams, getDivisions } from '@/lib/data';
 import { createClient } from '@/lib/supabase/server';
 import { User, Users } from 'lucide-react';
 import { PlayerDirectoryFilters } from '@/components/players/PlayerDirectoryFilters';
@@ -99,15 +99,28 @@ async function getPlayers(
     return [];
   }
 
-  // Transform and filter, map logo_url to logo
-  let players: PlayerWithTeam[] = data.map((p: any) => {
+  // Transform rows, then dedupe by profile so one player only appears once
+  const rosterRows: PlayerWithTeam[] = data.map((p: any) => {
     const rawTeam = Array.isArray(p.team) ? p.team[0] : p.team;
+    const profile = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+
     return {
       ...p,
-      profile: Array.isArray(p.profile) ? p.profile[0] : p.profile,
+      id: profile?.id || p.id,
+      profile,
       team: rawTeam ? { ...rawTeam, logo: rawTeam.logo_url } : null,
     };
   });
+
+  const uniquePlayers = new Map<string, PlayerWithTeam>();
+  for (const player of rosterRows) {
+    const dedupeKey = player.profile?.id || player.id;
+    if (!uniquePlayers.has(dedupeKey)) {
+      uniquePlayers.set(dedupeKey, player);
+    }
+  }
+
+  let players = Array.from(uniquePlayers.values());
 
   // Client-side search filter
   if (filters?.search) {
@@ -139,10 +152,6 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
   const filteredTeams = divisionFilter
     ? allTeams.filter((t: any) => t.division_id === divisionFilter)
     : allTeams;
-
-  // Fetch badges for all players
-  const playerProfileIds = players.map(p => p.profile?.id).filter(Boolean) as string[];
-  const badges = await getPlayerBadgesByIds(playerProfileIds);
 
   // Get unique positions
   const positions = [...new Set(players.map((p) => p.position).filter(Boolean))] as string[];
@@ -194,7 +203,7 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
             </p>
           </div>
         ) : (
-          <PlayerGrid players={players} leagueSlug={leagueSlug} badges={badges} />
+          <PlayerGrid players={players} leagueSlug={leagueSlug} />
         )}
       </div>
     </div>

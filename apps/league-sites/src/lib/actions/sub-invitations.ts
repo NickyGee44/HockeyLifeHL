@@ -1,6 +1,6 @@
 'use server';
 
-import { createAuthClient as createClient } from '@/lib/supabase/server';
+import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export interface SubInvitation {
   id: string;
@@ -8,6 +8,8 @@ export interface SubInvitation {
   team_id: string;
   invited_by: string;
   invited_player_id: string;
+  replaced_player_id: string | null;
+  source_type: 'team' | 'league';
   status: 'pending' | 'accepted' | 'declined' | 'expired';
   message: string | null;
   responded_at: string | null;
@@ -36,6 +38,15 @@ export interface SubInvitation {
 interface ActionResult {
   success: boolean;
   error?: string;
+}
+
+interface ManualSubResult extends ActionResult {
+  playerId?: string;
+  fullName?: string;
+}
+
+function normalizeProfileName(value: string | null | undefined) {
+  return (value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
 async function verifyCaptainRole(
@@ -75,7 +86,9 @@ export async function inviteSub(
   gameId: string,
   teamId: string,
   playerId: string,
-  message?: string
+  message?: string,
+  replacedPlayerId?: string | null,
+  captainConfirmed = false
 ): Promise<ActionResult> {
   const auth = await verifyCaptainRole(teamId);
   if (!auth.authorized) {
@@ -83,22 +96,415 @@ export async function inviteSub(
   }
 
   const supabase = await createClient();
+  const serviceSupabase = createServiceRoleClient();
+
+  const { data: teamRow } = await serviceSupabase
+    .from('teams')
+    .select('league_id')
+    .eq('id', teamId)
+    .maybeSingle();
+
+  if (!teamRow?.league_id) {
+    return { success: false, error: 'Team not found' };
+  }
+
+  const [{ data: teamRosterRow }, { data: activeLeagueSpare }] = await Promise.all([
+    serviceSupabase
+      .from('team_rosters')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('player_id', playerId)
+      .eq('status', 'active')
+      .is('end_date', null)
+      .in('player_type', ['sub', 'part_time'])
+      .maybeSingle(),
+    (serviceSupabase as any)
+      .from('league_spare_pool')
+      .select('id')
+      .eq('league_id', teamRow.league_id)
+      .eq('player_id', playerId)
+      .eq('active', true)
+      .maybeSingle(),
+  ]);
+
+  if (!teamRosterRow && !activeLeagueSpare) {
+    return { success: false, error: 'That player is not an active team spare or league spare.' };
+  }
+
+  const confirmedByCaptain = Boolean(captainConfirmed);
+  const now = new Date().toISOString();
 
   const { error } = await supabase.from('sub_invitations').insert({
     game_id: gameId,
     team_id: teamId,
     invited_by: auth.userId!,
     invited_player_id: playerId,
-    status: 'pending',
+    replaced_player_id: replacedPlayerId || null,
+    source_type: teamRosterRow ? 'team' : 'league',
+    status: confirmedByCaptain ? 'accepted' : 'pending',
     message: message || null,
+    responded_at: confirmedByCaptain ? now : null,
   });
 
   if (error) {
     if (error.code === '23505') {
+      if (confirmedByCaptain) {
+        const confirmed = await confirmExistingSubInvitation({
+          gameId,
+          teamId,
+          playerId,
+          replacedPlayerId,
+          now,
+          serviceSupabase,
+        });
+
+        if (confirmed.success) {
+          return { success: true };
+        }
+
+        return confirmed;
+      }
+
       return { success: false, error: 'This player has already been invited to this game' };
     }
     console.error('Failed to invite sub:', error);
     return { success: false, error: error.message };
+  }
+
+  if (confirmedByCaptain) {
+    const confirmed = await upsertCaptainConfirmedCheckin({
+      gameId,
+      teamId,
+      playerId,
+      now,
+      serviceSupabase,
+    });
+
+    if (!confirmed.success) {
+      return confirmed;
+    }
+  }
+
+  return { success: true };
+}
+
+export async function addManualSub({
+  gameId,
+  teamId,
+  fullName,
+  position,
+  jerseyNumber,
+  message,
+  replacedPlayerId,
+  saveToTeamSpares = false,
+}: {
+  gameId: string;
+  teamId: string;
+  fullName: string;
+  position?: string | null;
+  jerseyNumber?: number | null;
+  message?: string;
+  replacedPlayerId?: string | null;
+  saveToTeamSpares?: boolean;
+}): Promise<ManualSubResult> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const normalizedName = fullName.trim().replace(/\s+/g, ' ');
+  if (normalizedName.length < 2) {
+    return { success: false, error: 'Enter the spare player name.' };
+  }
+
+  const safeJerseyNumber =
+    typeof jerseyNumber === 'number' && Number.isInteger(jerseyNumber) && jerseyNumber > 0 && jerseyNumber < 1000
+      ? jerseyNumber
+      : null;
+  const safePosition = position?.trim() || null;
+  const now = new Date().toISOString();
+  const serviceSupabase = createServiceRoleClient();
+
+  const { data: game, error: gameError } = await (serviceSupabase.from('games') as any)
+    .select('id, league_id, season_id, home_team_id, away_team_id')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (gameError) {
+    console.error('Failed to verify manual spare game:', gameError);
+    return { success: false, error: gameError.message };
+  }
+
+  if (!game || (game.home_team_id !== teamId && game.away_team_id !== teamId)) {
+    return { success: false, error: 'Game not found for this team.' };
+  }
+
+  let playerId: string | null = null;
+  const normalizedNameKey = normalizeProfileName(normalizedName);
+
+  if (saveToTeamSpares) {
+    const { data: existingTeamSpare, error: existingError } = await (serviceSupabase.from('team_rosters') as any)
+      .select(`
+        player_id,
+        profile:profiles!team_rosters_player_id_fkey(full_name)
+      `)
+      .eq('team_id', teamId)
+      .eq('status', 'active')
+      .is('end_date', null)
+      .in('player_type', ['sub', 'part_time'])
+      .limit(100);
+
+    if (existingError) {
+      console.error('Failed to search existing manual spare:', existingError);
+      return { success: false, error: existingError.message };
+    }
+
+    const matchingSpare = (existingTeamSpare || []).find((row: any) => {
+      const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+      return normalizeProfileName(profile?.full_name) === normalizedNameKey;
+    });
+
+    playerId = matchingSpare?.player_id ?? null;
+  }
+
+  if (!playerId) {
+    const { data: existingProfiles, error: profilesError } = await (serviceSupabase.from('profiles') as any)
+      .select('id, full_name')
+      .ilike('full_name', normalizedName)
+      .limit(20);
+
+    if (profilesError) {
+      console.error('Failed to check duplicate manual spare profile:', profilesError);
+      return { success: false, error: profilesError.message };
+    }
+
+    const exactMatches = (existingProfiles || []).filter((profile: { id: string; full_name: string | null }) =>
+      normalizeProfileName(profile.full_name) === normalizedNameKey
+    );
+
+    if (exactMatches.length === 1) {
+      playerId = exactMatches[0].id;
+    } else if (exactMatches.length > 1) {
+      const candidateIds = exactMatches.map((profile: { id: string }) => profile.id);
+      const { data: leagueRosterMatches, error: rosterMatchError } = await (serviceSupabase.from('team_rosters') as any)
+        .select('player_id')
+        .eq('league_id', game.league_id)
+        .in('player_id', candidateIds)
+        .limit(20);
+
+      if (rosterMatchError) {
+        console.error('Failed to resolve duplicate manual spare profile:', rosterMatchError);
+        return { success: false, error: rosterMatchError.message };
+      }
+
+      const leagueMatchIds = Array.from(
+        new Set<string>(
+          (leagueRosterMatches || [])
+            .map((row: { player_id: string | null }) => row.player_id)
+            .filter((id: string | null): id is string => Boolean(id))
+        )
+      );
+
+      if (leagueMatchIds.length === 1) {
+        playerId = leagueMatchIds[0];
+      } else {
+        return {
+          success: false,
+          error: `Found multiple existing players named ${normalizedName}. Use the existing spare search or ask an admin to merge the duplicate first.`,
+        };
+      }
+    }
+  }
+
+  if (!playerId) {
+    playerId = crypto.randomUUID();
+    const syntheticEmail = `manual-spare+${playerId}@beerleaguehockey.local`;
+
+    const { error: profileError } = await serviceSupabase.from('profiles').insert({
+      id: playerId,
+      email: syntheticEmail,
+      full_name: normalizedName,
+      // position intentionally omitted: profiles.position is constrained to short
+      // codes (C/LW/RW/D/G), but the picker sends a long label ('Forward' etc.).
+      // The position is stored on team_rosters (the player_position enum) below,
+      // where the long label is the valid form.
+      jersey_number: safeJerseyNumber,
+      role: 'player',
+      is_legacy_import: true,
+      created_at: now,
+      updated_at: now,
+    });
+
+    if (profileError) {
+      console.error('Failed to create manual spare profile:', profileError);
+      return { success: false, error: profileError.message };
+    }
+  }
+
+  if (saveToTeamSpares) {
+    const { data: existingRoster } = await (serviceSupabase.from('team_rosters') as any)
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('player_id', playerId)
+      .eq('status', 'active')
+      .is('end_date', null)
+      .maybeSingle();
+
+    const rosterPayload = {
+      league_id: game.league_id,
+      season_id: game.season_id,
+      team_id: teamId,
+      player_id: playerId,
+      position: safePosition,
+      jersey_number: safeJerseyNumber,
+      status: 'active',
+      player_type: 'sub',
+      leadership_role: null,
+      notes: 'Captain-added manual spare',
+    };
+
+    const rosterResult = existingRoster
+      ? await serviceSupabase.from('team_rosters').update(rosterPayload).eq('id', existingRoster.id)
+      : await serviceSupabase.from('team_rosters').insert(rosterPayload);
+
+    if (rosterResult.error) {
+      console.error('Failed to save manual spare to team roster:', rosterResult.error);
+      return { success: false, error: rosterResult.error.message };
+    }
+  }
+
+  const invitationPayload = {
+    game_id: gameId,
+    team_id: teamId,
+    invited_by: auth.userId!,
+    invited_player_id: playerId,
+    replaced_player_id: replacedPlayerId || null,
+    source_type: 'team',
+    status: 'accepted',
+    message: message || 'Captain-added manual spare',
+    responded_at: now,
+    updated_at: now,
+  };
+
+  const { error: inviteError } = await serviceSupabase.from('sub_invitations').insert(invitationPayload);
+
+  if (inviteError) {
+    if (inviteError.code === '23505') {
+      const confirmed = await confirmExistingSubInvitation({
+        gameId,
+        teamId,
+        playerId,
+        replacedPlayerId,
+        now,
+        serviceSupabase,
+      });
+
+      return confirmed.success
+        ? { success: true, playerId, fullName: normalizedName }
+        : confirmed;
+    }
+
+    console.error('Failed to add manual spare:', inviteError);
+    return { success: false, error: inviteError.message };
+  }
+
+  const confirmed = await upsertCaptainConfirmedCheckin({
+    gameId,
+    teamId,
+    playerId,
+    now,
+    serviceSupabase,
+  });
+
+  if (!confirmed.success) {
+    return confirmed;
+  }
+
+  return { success: true, playerId, fullName: normalizedName };
+}
+
+async function confirmExistingSubInvitation({
+  gameId,
+  teamId,
+  playerId,
+  replacedPlayerId,
+  now,
+  serviceSupabase,
+}: {
+  gameId: string;
+  teamId: string;
+  playerId: string;
+  replacedPlayerId?: string | null;
+  now: string;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<ActionResult> {
+  const updatePayload: Record<string, string | null> = {
+    status: 'accepted',
+    responded_at: now,
+    updated_at: now,
+  };
+
+  if (replacedPlayerId) {
+    updatePayload.replaced_player_id = replacedPlayerId;
+  }
+
+  const { data, error } = await serviceSupabase
+    .from('sub_invitations')
+    .update(updatePayload)
+    .eq('game_id', gameId)
+    .eq('team_id', teamId)
+    .eq('invited_player_id', playerId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to confirm existing sub invitation:', error);
+    return { success: false, error: error.message };
+  }
+
+  if (!data) {
+    return { success: false, error: 'This player has already been invited to this game by another team.' };
+  }
+
+  return upsertCaptainConfirmedCheckin({
+    gameId,
+    teamId,
+    playerId,
+    now,
+    serviceSupabase,
+  });
+}
+
+async function upsertCaptainConfirmedCheckin({
+  gameId,
+  teamId,
+  playerId,
+  now,
+  serviceSupabase,
+}: {
+  gameId: string;
+  teamId: string;
+  playerId: string;
+  now: string;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<ActionResult> {
+  const { error: checkinError } = await serviceSupabase
+    .from('game_checkins')
+    .upsert(
+      {
+        game_id: gameId,
+        team_id: teamId,
+        player_id: playerId,
+        status: 'confirmed',
+        note: 'Captain confirmed replacement sub',
+        updated_at: now,
+      },
+      { onConflict: 'game_id,player_id' }
+    );
+
+  if (checkinError) {
+    console.error('Failed to confirm invited sub:', checkinError);
+    return { success: false, error: checkinError.message };
   }
 
   return { success: true };
@@ -194,6 +600,8 @@ export async function getMySubInvitations(
       team_id,
       invited_by,
       invited_player_id,
+      replaced_player_id,
+      source_type,
       status,
       message,
       responded_at,
@@ -271,6 +679,8 @@ export async function getTeamSubInvitations(
       team_id,
       invited_by,
       invited_player_id,
+      replaced_player_id,
+      source_type,
       status,
       message,
       responded_at,
@@ -329,8 +739,18 @@ export async function updatePlayerType(
 
 export async function getLeagueSubPlayers(
   leagueId: string,
-  excludeTeamId?: string
-): Promise<{ success: boolean; data?: { id: string; full_name: string | null; email: string | null }[]; error?: string }> {
+  teamId?: string
+): Promise<{
+  success: boolean;
+  data?: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    source: 'team' | 'league';
+    position: string | null;
+  }[];
+  error?: string;
+}> {
   const supabase = await createClient();
 
   const {
@@ -341,33 +761,53 @@ export async function getLeagueSubPlayers(
     return { success: false, error: 'Not authenticated' };
   }
 
-  // Get all players registered as subs in this league
-  let query = supabase
-    .from('team_rosters')
-    .select(`
-      player_id,
-      profile:profiles!team_rosters_player_id_fkey(id, full_name, email)
-    `)
-    .eq('league_id', leagueId)
-    .eq('status', 'active')
-    .in('player_type', ['sub', 'part_time']);
+  const serviceSupabase = createServiceRoleClient();
+  const [teamSparesResult, leagueSparesResult] = await Promise.all([
+    teamId
+      ? serviceSupabase
+          .from('team_rosters')
+          .select(`
+            player_id,
+            position,
+            profile:profiles!team_rosters_player_id_fkey(id, full_name, email)
+          `)
+          .eq('league_id', leagueId)
+          .eq('team_id', teamId)
+          .eq('status', 'active')
+          .is('end_date', null)
+          .in('player_type', ['sub', 'part_time'])
+      : Promise.resolve({ data: [], error: null }),
+    (serviceSupabase as any)
+      .from('league_spare_pool')
+      .select(`
+        player_id,
+        position,
+        profile:profiles!league_spare_pool_player_id_fkey(id, full_name, email)
+      `)
+      .eq('league_id', leagueId)
+      .eq('active', true),
+  ]);
 
-  if (excludeTeamId) {
-    query = query.neq('team_id', excludeTeamId);
+  if (teamSparesResult.error) {
+    console.error('Failed to get team spare players:', teamSparesResult.error);
+    return { success: false, error: teamSparesResult.error.message };
   }
 
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Failed to get league sub players:', error);
-    return { success: false, error: error.message };
+  if (leagueSparesResult.error) {
+    console.error('Failed to get league spare players:', leagueSparesResult.error);
+    return { success: false, error: leagueSparesResult.error.message };
   }
 
-  // Deduplicate by player_id
   const seen = new Set<string>();
-  const players: { id: string; full_name: string | null; email: string | null }[] = [];
+  const players: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    source: 'team' | 'league';
+    position: string | null;
+  }[] = [];
 
-  for (const row of data || []) {
+  for (const row of teamSparesResult.data || []) {
     const profile = Array.isArray((row as any).profile)
       ? (row as any).profile[0]
       : (row as any).profile;
@@ -377,9 +817,33 @@ export async function getLeagueSubPlayers(
         id: profile.id,
         full_name: profile.full_name,
         email: profile.email,
+        source: 'team',
+        position: (row as any).position ?? null,
       });
     }
   }
 
-  return { success: true, data: players };
+  for (const row of leagueSparesResult.data || []) {
+    const profile = Array.isArray((row as any).profile)
+      ? (row as any).profile[0]
+      : (row as any).profile;
+    if (profile && !seen.has(profile.id)) {
+      seen.add(profile.id);
+      players.push({
+        id: profile.id,
+        full_name: profile.full_name,
+        email: profile.email,
+        source: 'league',
+        position: (row as any).position ?? null,
+      });
+    }
+  }
+
+  return {
+    success: true,
+    data: players.sort((left, right) => {
+      if (left.source !== right.source) return left.source === 'team' ? -1 : 1;
+      return (left.full_name || '').localeCompare(right.full_name || '');
+    }),
+  };
 }

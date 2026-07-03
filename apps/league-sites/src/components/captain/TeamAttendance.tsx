@@ -30,6 +30,8 @@ interface CheckinEntry {
 interface TeamAttendanceProps {
   teamId: string;
   roster: RosterPlayer[];
+  leagueId?: string | null;
+  seasonId?: string | null;
   leagueSlug: string;
   onRequestSub?: (gameId: string) => void;
 }
@@ -39,6 +41,8 @@ const MIN_ROSTER_THRESHOLD = 8;
 export function TeamAttendance({
   teamId,
   roster,
+  leagueId,
+  seasonId,
   leagueSlug: _leagueSlug,
   onRequestSub,
 }: TeamAttendanceProps) {
@@ -51,12 +55,14 @@ export function TeamAttendance({
       const supabase = createClient();
 
       // Fetch next 6 upcoming games for this team
-      const { data: gamesData } = await supabase
+      let gamesQuery = supabase
         .from('games')
         .select(`
           id,
           scheduled_at,
-          venue,
+          location,
+          league_id,
+          season_id,
           home_team_id,
           away_team_id,
           home_team:teams!games_home_team_id_fkey(name),
@@ -67,6 +73,16 @@ export function TeamAttendance({
         .gte('scheduled_at', new Date().toISOString())
         .order('scheduled_at', { ascending: true })
         .limit(6);
+
+      if (leagueId) {
+        gamesQuery = gamesQuery.eq('league_id', leagueId);
+      }
+
+      if (seasonId) {
+        gamesQuery = gamesQuery.eq('season_id', seasonId);
+      }
+
+      const { data: gamesData } = await gamesQuery;
 
       if (gamesData) {
         const transformed = gamesData.map((g: any) => ({
@@ -95,7 +111,7 @@ export function TeamAttendance({
     };
 
     fetchData();
-  }, [teamId]);
+  }, [leagueId, seasonId, teamId]);
 
   const getPlayerStatus = (
     playerId: string,
@@ -136,7 +152,7 @@ export function TeamAttendance({
 
   if (isLoading) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <div className="glass-card rounded-xl p-6">
         <div className="flex items-center justify-center gap-2 text-[var(--color-text-secondary)]">
           <Loader2 className="w-5 h-5 animate-spin" />
           Loading attendance...
@@ -147,7 +163,7 @@ export function TeamAttendance({
 
   if (games.length === 0) {
     return (
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+      <div className="glass-card rounded-xl p-6">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
           Team Attendance
@@ -186,7 +202,7 @@ export function TeamAttendance({
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+    <div className="glass-card rounded-xl overflow-hidden">
       <div className="p-4 border-b border-[var(--color-border)]">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />

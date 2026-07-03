@@ -1,5 +1,10 @@
 import { createClient } from './client';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+import {
+  createClient as createSupabaseClient,
+  type User,
+  type Session,
+  type AuthError,
+} from '@supabase/supabase-js';
 
 export interface AuthResult {
   user: User | null;
@@ -100,9 +105,26 @@ export async function getUser(): Promise<AuthResult> {
  * Send password reset email
  */
 export async function resetPassword(email: string): Promise<{ error: AuthError | null }> {
-  const supabase = createClient();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    return { error: new Error('Password reset is temporarily unavailable.') as AuthError };
+  }
+
+  const supabase = createSupabaseClient(url, anonKey, {
+    auth: {
+      flowType: 'implicit',
+      detectSessionInUrl: false,
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+  const callbackUrl = new URL('/api/auth/callback', window.location.origin);
+  callbackUrl.searchParams.set('next', '/reset-password');
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: callbackUrl.toString(),
   });
   return { error };
 }

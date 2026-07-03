@@ -64,11 +64,15 @@ export function getRegistrationPaymentMode(
 export function isPlayerFeeConfigurationMissing(
   feeCollectionModel: FeeCollectionModel,
   feeAmountCents: number,
-  feeBasis: FeeBasis = 'player'
+  feeBasis: FeeBasis = 'player',
+  feeRecordExists: boolean = true
 ): boolean {
   void feeCollectionModel;
   void feeBasis;
-  return feeAmountCents <= 0;
+  void feeAmountCents;
+  // Only block registration if no season_fees record exists at all.
+  // A record with amount_cents = 0 is a valid "free registration" config.
+  return !feeRecordExists;
 }
 
 export async function getSeasonFeeCollectionModel(
@@ -105,6 +109,7 @@ export async function getSeasonPaymentSettings(
   feeBasis: FeeBasis;
   defaultPlayerContributionCents: number;
   currency: string;
+  feeRecordExists: boolean;
 }> {
   const [feeResult, model] = await Promise.all([
     (async () => {
@@ -170,5 +175,6 @@ export async function getSeasonPaymentSettings(
     defaultPlayerContributionCents:
       feeResult.data?.default_player_contribution_cents ?? 0,
     currency: feeResult.data?.currency ?? 'cad',
+    feeRecordExists: feeResult.data !== null,
   };
 }

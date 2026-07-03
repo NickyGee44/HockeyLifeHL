@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import supabaseTestQuality from "./eslint-rules/index.mjs";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -38,6 +39,16 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-empty-object-type": "warn",
       "@next/next/no-html-link-for-pages": "off",
       "@next/next/no-img-element": "warn",
+    },
+  },
+  // Custom Supabase test quality rules (test files only)
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+    plugins: { 'supabase-test-quality': supabaseTestQuality },
+    rules: {
+      'supabase-test-quality/no-unscoped-service-test': 'error',
+      'supabase-test-quality/require-error-code-assertion': 'warn',
+      'supabase-test-quality/no-mock-echo': 'warn',
     },
   },
 ]);

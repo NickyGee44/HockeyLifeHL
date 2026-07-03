@@ -56,6 +56,16 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'hockeylifehl.com',
+        pathname: '/wp-content/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.hockeylifehl.com',
+        pathname: '/wp-content/uploads/**',
+      },
     ],
   },
 

@@ -3,6 +3,7 @@ import { Calendar, ChevronRight } from 'lucide-react';
 import type { NewsArticle } from '@/lib/types';
 import { LeagueNewsFallbackArtwork } from './LeagueNewsFallbackArtwork';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
+import { EditorialHeroImage } from './EditorialHeroImage';
 
 interface FeaturedNewsBannerProps {
   articles: NewsArticle[];
@@ -44,10 +45,11 @@ export function FeaturedNewsBanner({
       >
         <div className="relative aspect-[16/7.1] min-h-[240px] overflow-hidden">
           {featured.image_url ? (
-            <img
+            <EditorialHeroImage
               src={featured.image_url}
               alt={featured.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              foregroundClassName="object-contain object-right transition-transform duration-500 group-hover:translate-x-1"
+              backgroundClassName="object-cover opacity-24 transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <LeagueNewsFallbackArtwork

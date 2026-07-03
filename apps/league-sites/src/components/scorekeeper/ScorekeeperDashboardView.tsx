@@ -104,7 +104,7 @@ export function ScorekeeperDashboardView({ data, leagueSlug }: ScorekeeperDashbo
 
         <Link
           href={`/${leagueSlug}/scorekeeper/schedule`}
-          className="flex items-center gap-3 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
+          className="flex items-center gap-3 p-4 glass-card rounded-xl hover:bg-[var(--color-surface-hover)] transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
             <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -165,7 +165,7 @@ export function ScorekeeperDashboardView({ data, leagueSlug }: ScorekeeperDashbo
           Upcoming Games ({upcomingCount})
         </h2>
         {upcomingCount === 0 ? (
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 text-center">
+          <div className="glass-card rounded-xl p-6 text-center">
             <p className="text-[var(--color-text-secondary)]">No upcoming assignments</p>
           </div>
         ) : (
@@ -222,7 +222,7 @@ function StatCard({ value, label, color }: { value: number; label: string; color
   };
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-center">
+    <div className="glass-card rounded-xl p-4 text-center">
       <p className={`text-2xl font-bold ${colorMap[color]}`}>{value}</p>
       <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>
     </div>
@@ -244,7 +244,7 @@ function GameCard({
   const isCompleted = game.status === 'completed' || game.status === 'final';
 
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4">
+    <div className="glass-card rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {isLive && (

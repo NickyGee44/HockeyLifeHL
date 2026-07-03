@@ -35,9 +35,21 @@ const PRODUCTION_DOMAIN = 'beerleaguehockey.ca';
 // Development domain patterns
 const DEV_DOMAINS = ['localhost', '127.0.0.1', '.local'];
 
+const PASSTHROUGH_PATHS = new Set([
+  '/reset-password',
+  '/sw.js',
+  '/manifest.webmanifest',
+  '/api/push/subscribe',
+  '/api/cron/push-reminders',
+]);
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get('host') || '';
+
+  if (PASSTHROUGH_PATHS.has(url.pathname)) {
+    return NextResponse.next();
+  }
 
   // Extract subdomain
   const subdomain = getSubdomain(hostname);
@@ -320,6 +332,6 @@ export const config = {
      * - robots.txt (robots file)
      * - sitemap.xml (sitemap file)
      */
-    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.webp$|.*\\.ico$|.*\\.webmanifest$|badges/|sponsors/).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|sw\\.js|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.webp$|.*\\.ico$|.*\\.webmanifest$|badges/|sponsors/).*)',
   ],
 };

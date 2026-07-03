@@ -49,11 +49,13 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
     setIsLoading(true);
 
     try {
-      const { error } = await resetPassword(email);
+      const normalizedEmail = email.trim().toLowerCase();
+      const { error } = await resetPassword(normalizedEmail);
 
       if (error) {
         setError(error.message);
       } else {
+        setEmail(normalizedEmail);
         setResetEmailSent(true);
       }
     } catch {
@@ -99,7 +101,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onSuccess }: LoginM
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Check Your Email</h3>
                   <p className="text-[var(--color-text-secondary)] mb-4">
-                    We&apos;ve sent a password reset link to {email}
+                    If an account exists for {email}, a password reset link has been sent.
                   </p>
                   <button
                     onClick={() => {

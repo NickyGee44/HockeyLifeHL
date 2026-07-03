@@ -1,5 +1,6 @@
 export type ViewportSize = 'desktop' | 'tablet' | 'mobile';
 export type ThemePreset = 'dark' | 'light' | 'custom';
+export type BackgroundPreset = 'none' | 'weekly-games';
 
 export type EditorPanel =
   | 'theme'
@@ -36,6 +37,7 @@ export interface LeagueEditorData {
 
 export interface WebsiteSettings {
   themePreset?: ThemePreset;
+  backgroundPreset?: BackgroundPreset;
   socialFacebook?: string;
   socialTwitter?: string;
   socialInstagram?: string;
@@ -50,6 +52,7 @@ export interface WebsiteSettings {
     pageSlug?: string;
   }>;
   showGameTicker?: boolean;
+  showCaptainPhone?: boolean;
   seoTitle?: string;
   seoDescription?: string;
 }
@@ -71,6 +74,9 @@ export interface EditorState {
   bannerUrl: string | null;
   faviconUrl: string | null;
 
+  // Background
+  backgroundPreset: BackgroundPreset;
+
   // Content
   tagline: string;
   description: string;
@@ -88,6 +94,7 @@ export interface EditorState {
     pageSlug?: string;
   }>;
   showGameTicker: boolean;
+  showCaptainPhone: boolean;
 
   // Social
   socialFacebook: string;
@@ -134,6 +141,9 @@ export interface PreviewThemePayload {
   bannerUrl: string | null;
   faviconUrl: string | null;
 
+  // Background
+  backgroundPreset: BackgroundPreset;
+
   // Content
   tagline: string;
   description: string;
@@ -151,6 +161,7 @@ export interface PreviewThemePayload {
     pageSlug?: string;
   }>;
   showGameTicker: boolean;
+  showCaptainPhone: boolean;
 
   // Social
   socialFacebook: string;

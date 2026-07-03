@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, LogOut, ChevronDown, CreditCard, FileText, LayoutDashboard, Shield, ClipboardCheck, Goal } from 'lucide-react';
+import { User, LogOut, ChevronDown, CreditCard, FileText, Shield, ClipboardCheck, Goal } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
@@ -165,9 +165,21 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
           {/* Menu Items */}
           <div className="p-2">
             <MenuItem
-              href={`/${leagueSlug}/me`}
-              icon={<LayoutDashboard className="w-4 h-4" />}
-              label="My Dashboard"
+              href={`/${leagueSlug}/players/${profile?.id}`}
+              icon={
+                profile?.avatar_url ? (
+                  <Image
+                    src={profile.avatar_url}
+                    alt="My Page"
+                    width={16}
+                    height={16}
+                    className="w-4 h-4 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="w-4 h-4" />
+                )
+              }
+              label="My Page"
               onClick={() => setIsOpen(false)}
             />
             <MenuItem

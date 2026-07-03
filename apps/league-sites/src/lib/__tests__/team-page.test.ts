@@ -1,8 +1,11 @@
 import type { Player, ScheduleGame } from '../types';
 import {
   buildRivalCardInsights,
+  buildTaleOfTheTapeRivals,
   buildTeamLeaders,
   buildTeamPointInsights,
+  deriveStrengthWeakness,
+  getTendyEmoji,
   getTeamStandingRank,
   normalizeTeamScheduleView,
   partitionTeamSchedule,
@@ -153,6 +156,159 @@ describe('team page helpers', () => {
     expect(trailingRival.insight).toContain('controlled more of the matchup');
     expect(levelRival.status).toBe('level');
     expect(levelRival.recordLabel).toBe('1-1-1');
+  });
+
+  it('derives strength and weakness from league-relative offense and defence ranks', () => {
+    const standings = [
+      {
+        team_id: 'team-1',
+        team_name: 'Falcons',
+        wins: 7,
+        losses: 1,
+        ties: 0,
+        goals_for: 40,
+        goals_against: 18,
+        goal_differential: 22,
+      },
+      {
+        team_id: 'team-2',
+        team_name: 'Blades',
+        wins: 6,
+        losses: 2,
+        ties: 0,
+        goals_for: 32,
+        goals_against: 12,
+        goal_differential: 20,
+      },
+      {
+        team_id: 'team-3',
+        team_name: 'Storm',
+        wins: 3,
+        losses: 5,
+        ties: 0,
+        goals_for: 20,
+        goals_against: 30,
+        goal_differential: -10,
+      },
+      {
+        team_id: 'team-4',
+        team_name: 'Wolves',
+        wins: 2,
+        losses: 6,
+        ties: 0,
+        goals_for: 18,
+        goals_against: 38,
+        goal_differential: -20,
+      },
+    ] as any;
+
+    expect(deriveStrengthWeakness(standings, 'team-1')).toEqual({
+      strength: 'offense',
+      weakness: 'goaltending',
+    });
+
+    expect(deriveStrengthWeakness(standings, 'team-2')).toEqual({
+      strength: 'goaltending',
+      weakness: 'offense',
+    });
+  });
+
+  it('builds tale-of-the-tape rivals using current-season standings, leaders, colors, and h2h records', () => {
+    const matchups = buildTaleOfTheTapeRivals({
+      teamId: 'team-1',
+      teamName: 'Falcons',
+      teamPrimaryColor: '#112233',
+      rivals: [
+        {
+          team: { id: 'team-3', name: 'Storm', slug: 'storm', logo: '/storm.png', primaryColor: '#445566' },
+          wins: 3,
+          losses: 1,
+          ties: 0,
+          games_played: 4,
+        },
+      ],
+      standings: [
+        {
+          team_id: 'team-1',
+          team_name: 'Falcons',
+          team_logo: '/falcons-standing.png',
+          wins: 7,
+          losses: 1,
+          ties: 0,
+          points: 14,
+          games_played: 8,
+          goals_for: 40,
+          goals_against: 18,
+          goal_differential: 22,
+        },
+        {
+          team_id: 'team-3',
+          team_name: 'Storm',
+          team_logo: '/storm-standing.png',
+          wins: 3,
+          losses: 5,
+          ties: 0,
+          points: 6,
+          games_played: 8,
+          goals_for: 20,
+          goals_against: 30,
+          goal_differential: -10,
+        },
+      ] as any,
+      skaterRows: [
+        { team_id: 'team-1', player_id: 'p1', player_name: 'Alice Sniper', goals: 9, assists: 4, points: 13 },
+        { team_id: 'team-1', player_id: 'p2', player_name: 'Mia Apple', goals: 5, assists: 10, points: 15 },
+        { team_id: 'team-3', player_id: 'p3', player_name: 'Riley Shot', goals: 7, assists: 2, points: 9 },
+        { team_id: 'team-3', player_id: 'p4', player_name: 'Parker Pass', goals: 3, assists: 8, points: 11 },
+      ] as any,
+      goalieRows: [
+        { team_id: 'team-1', player_id: 'g1', player_name: 'Terry Tender', games_played: 6, goals_against_average: 1.8 },
+        { team_id: 'team-3', player_id: 'g2', player_name: 'Sam Save', games_played: 7, goals_against_average: 2.6 },
+        { team_id: 'team-2', player_id: 'g3', player_name: 'League Mid', games_played: 5, goals_against_average: 2.2 },
+        { team_id: 'team-4', player_id: 'g4', player_name: 'League Low', games_played: 5, goals_against_average: 3.4 },
+      ] as any,
+    });
+
+    expect(matchups).toHaveLength(1);
+    expect(matchups[0]).toMatchObject({
+      gamesPlayed: 4,
+      h2hRecord: '3-1',
+      h2hRecordRival: '1-3',
+      team: {
+        id: 'team-1',
+        name: 'Falcons',
+        logo: '/falcons-standing.png',
+        primaryColor: '#112233',
+        overallRecord: '7-1-0',
+        sniper: { name: 'Alice Sniper', goals: 9 },
+        playmaker: { name: 'Mia Apple', assists: 10 },
+        tendy: { name: 'Terry Tender', gamesPlayed: 6, emoji: '🧱' },
+      },
+      rival: {
+        id: 'team-3',
+        name: 'Storm',
+        logo: '/storm.png',
+        primaryColor: '#445566',
+        overallRecord: '3-5-0',
+        sniper: { name: 'Riley Shot', goals: 7 },
+        playmaker: { name: 'Parker Pass', assists: 8 },
+        tendy: { name: 'Sam Save', gamesPlayed: 7, emoji: '😬' },
+      },
+    });
+  });
+
+  it('maps goalie gaa quartiles to tendy emoji tiers', () => {
+    const leagueGoalies = [
+      { team_id: 'team-1', player_id: 'g1', games_played: 8, goals_against_average: 1.8 },
+      { team_id: 'team-2', player_id: 'g2', games_played: 8, goals_against_average: 2.1 },
+      { team_id: 'team-3', player_id: 'g3', games_played: 8, goals_against_average: 2.5 },
+      { team_id: 'team-4', player_id: 'g4', games_played: 8, goals_against_average: 3.2 },
+    ] as any;
+
+    expect(getTendyEmoji(leagueGoalies[0], leagueGoalies)).toBe('🧱');
+    expect(getTendyEmoji(leagueGoalies[1], leagueGoalies)).toBe('🧤');
+    expect(getTendyEmoji(leagueGoalies[2], leagueGoalies)).toBe('😬');
+    expect(getTendyEmoji(leagueGoalies[3], leagueGoalies)).toBe('🧀');
   });
 
   it('splits roster by role and sorts each group by production', () => {

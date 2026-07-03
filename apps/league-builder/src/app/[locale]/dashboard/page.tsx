@@ -222,31 +222,25 @@ export default async function DashboardPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-neutral-950">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[30px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.14),transparent_28%),linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.48)] sm:p-8">
-          <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-rink-300/60 to-transparent" />
-          <div className="grid gap-8 lg:grid-cols-[1.25fr_0.9fr] lg:items-end">
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.10),transparent_40%)] p-6 sm:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.25fr_0.9fr] lg:items-end">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-rink-300/80">
-                Organization Portfolio
-              </p>
-              <h1 className="mt-4 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
+              <h1 className="max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">
                 {t('dashboard.welcome', {
                   name: profile?.full_name || user.email?.split('@')[0] || 'User',
                 })}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-neutral-300 sm:text-base">
-                Company-level setup, league setup, and season setup are now staged separately.
-                Use the shell to move between portfolio, league, and season scopes. This page is
-                only for portfolio status and the next action that needs your attention.
+              <p className="mt-2 max-w-xl text-sm text-neutral-400">
+                Portfolio status and next actions across your leagues.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Link
                   href={heroAction.href}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition-[transform,box-shadow,background-color]',
+                    'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors',
                     heroAction.tone === 'warning'
-                      ? 'bg-amber-400/15 text-amber-100 shadow-[0_0_24px_rgba(251,191,36,0.14)] hover:bg-amber-400/20'
-                      : 'bg-rink-500 text-black shadow-[0_0_30px_rgba(34,211,238,0.25)] hover:-translate-y-0.5 hover:bg-rink-400'
+                      ? 'bg-amber-400/15 text-amber-100 hover:bg-amber-400/20'
+                      : 'bg-rink-500 text-black hover:bg-rink-400'
                   )}
                 >
                   {heroAction.label}
@@ -254,9 +248,9 @@ export default async function DashboardPage({ params }: Props) {
                 </Link>
                 <Link
                   href="/dashboard/leagues"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-5 py-3 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-neutral-300 transition-colors hover:bg-white/[0.06]"
                 >
-                  Open league list
+                  All leagues
                 </Link>
               </div>
             </div>
@@ -286,33 +280,26 @@ export default async function DashboardPage({ params }: Props) {
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="surface-premium p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-              Portfolio Overview
-            </p>
-            <h2 className="mt-3 text-xl font-bold text-white">
-              {primaryOrg?.name || 'Organization'} is managing {portfolioItems.length || totals.total_leagues} league
-              {portfolioItems.length === 1 ? '' : 's'}.
+        <section className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="px-1">
+            <h2 className="text-lg font-bold text-white">
+              {primaryOrg?.name || 'Organization'} — {portfolioItems.length || totals.total_leagues} league
+              {portfolioItems.length === 1 ? '' : 's'}
             </h2>
-            <p className="mt-2 text-sm leading-7 text-neutral-400">
-              Organization settings and billing now live in the shell. Each league below shows its
-              current operating season and only one recommended next step so owners do not need to
-              hunt for the right workspace.
+            <p className="mt-1 text-sm text-neutral-500">
+              Each league below shows its current season and recommended next step.
             </p>
           </div>
 
-          <div className="surface-premium p-6">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                  Billing Status
-                </p>
-                <h2 className="mt-3 text-xl font-bold text-white capitalize">{subscriptionTier}</h2>
+                <p className="text-xs font-medium text-neutral-500">Billing</p>
+                <h2 className="mt-1 text-lg font-bold text-white capitalize">{subscriptionTier}</h2>
               </div>
-              <CreditCard className="h-5 w-5 text-rink-300" />
+              <CreditCard className="h-5 w-5 text-neutral-500" />
             </div>
-            <div className="mt-5 space-y-3 text-sm">
+            <div className="mt-4 space-y-2.5 text-sm">
               <div className="flex items-center justify-between text-neutral-400">
                 <span>Status</span>
                 <span
@@ -337,7 +324,7 @@ export default async function DashboardPage({ params }: Props) {
               </div>
               <Link
                 href="/dashboard/settings/billing"
-                className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-rink-400/20 bg-rink-500/10 px-4 py-2 text-sm font-semibold text-rink-200 transition-colors hover:bg-rink-500/20"
+                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-300 transition-colors hover:bg-white/[0.06]"
               >
                 Manage billing
               </Link>
@@ -351,16 +338,10 @@ export default async function DashboardPage({ params }: Props) {
           </div>
         ) : null}
 
-        <section className="mt-6">
+        <section className="mt-8">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-                Leagues
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Portfolio league status</h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                Inline actions stay with each league record. All other navigation lives in the shell.
-              </p>
+              <h2 className="text-xl font-bold text-white">Leagues</h2>
             </div>
             <Link
               href="/dashboard/leagues/new"
@@ -372,12 +353,11 @@ export default async function DashboardPage({ params }: Props) {
           </div>
 
           {portfolioItems.length === 0 ? (
-            <div className="surface-premium mt-5 p-8 text-center">
-              <Trophy className="mx-auto h-12 w-12 text-rink-400" />
-              <h3 className="mt-4 text-xl font-bold text-white">{t('dashboardCta.createLeague')}</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-neutral-400">
-                Create your first league shell, connect the essentials, and move directly into your
-                first season wizard.
+            <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center">
+              <Trophy className="mx-auto h-10 w-10 text-neutral-600" />
+              <h3 className="mt-4 text-lg font-bold text-white">{t('dashboardCta.createLeague')}</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+                Create your first league to get started.
               </p>
             </div>
           ) : (
@@ -403,19 +383,19 @@ function PortfolioMetricCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.10] bg-black/20 p-4 backdrop-blur-xl">
-      <div className="flex items-center gap-2 text-neutral-400">
-        <span className="rounded-xl bg-rink-500/10 p-2 text-rink-300">{icon}</span>
-        <span className="text-xs font-medium uppercase tracking-[0.14em]">{label}</span>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="flex items-center gap-2 text-neutral-500">
+        <span className="text-neutral-400">{icon}</span>
+        <span className="text-xs font-medium">{label}</span>
       </div>
-      <p className="mt-4 text-3xl font-black text-white">{value}</p>
+      <p className="mt-3 text-3xl font-black text-white">{value}</p>
     </div>
   );
 }
 
 function PortfolioLeagueCard({ league }: { league: LeaguePortfolioItem }) {
   return (
-    <article className="surface-premium overflow-hidden p-5">
+    <article className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-start gap-4">
           <LeagueLogo
@@ -428,69 +408,55 @@ function PortfolioLeagueCard({ league }: { league: LeaguePortfolioItem }) {
           />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+              <p className="text-xs text-neutral-500">
                 {league.orgName}
               </p>
               {league.memberRole && league.memberRole !== 'owner' ? (
-                <span className="rounded-full border border-white/[0.10] bg-white/[0.04] px-2 py-1 text-[11px] font-semibold capitalize text-neutral-300">
+                <span className="rounded-full border border-white/[0.08] px-2 py-0.5 text-[11px] font-medium capitalize text-neutral-400">
                   {league.memberRole}
                 </span>
               ) : null}
             </div>
-            <h3 className="mt-2 truncate text-2xl font-black tracking-tight text-white">{league.name}</h3>
-            <p className="mt-2 text-sm text-neutral-400">
+            <h3 className="mt-1 truncate text-xl font-bold tracking-tight text-white">{league.name}</h3>
+            <p className="mt-1 text-sm text-neutral-500">
               {league.currentSeason
-                ? `${league.currentSeason.name} is the current operating season.`
-                : 'This league still needs its first season workspace.'}
+                ? league.currentSeason.name
+                : 'No season yet'}
             </p>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[360px]">
-          <PortfolioStat label="Teams" value={league.teamCount} />
-          <PortfolioStat label="Players" value={league.playerCount} />
-          <PortfolioStat label="Seasons" value={league.seasonCount} />
+        <div className="flex gap-6 text-sm xl:min-w-[240px]">
+          <div><span className="text-neutral-500">Teams</span> <span className="ml-1 font-semibold text-white">{league.teamCount}</span></div>
+          <div><span className="text-neutral-500">Players</span> <span className="ml-1 font-semibold text-white">{league.playerCount}</span></div>
+          <div><span className="text-neutral-500">Seasons</span> <span className="ml-1 font-semibold text-white">{league.seasonCount}</span></div>
         </div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-4 border-t border-white/[0.08] pt-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
-            Next Step
-          </p>
-          <p className="mt-2 text-sm text-neutral-300">{league.nextAction.label}</p>
-        </div>
+      <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.05] pt-4 md:flex-row md:items-center md:justify-between">
+        <p className="text-sm text-neutral-400">{league.nextAction.label}</p>
         <div className="flex flex-wrap gap-3">
           <Link
             href={league.nextAction.href}
             className={cn(
-              'inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition-colors',
+              'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors',
               league.nextAction.tone === 'warning'
                 ? 'bg-amber-400/15 text-amber-100 hover:bg-amber-400/20'
-                : 'bg-rink-500/10 text-rink-200 hover:bg-rink-500/20'
+                : 'bg-rink-500 text-black hover:bg-rink-400'
             )}
           >
-            Open next step
+            {league.nextAction.label.length > 30 ? 'Continue' : league.nextAction.label}
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             href={buildLeagueHubHref('', league.id)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.10] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-100 transition-colors hover:border-white/[0.18] hover:bg-white/[0.06]"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm font-semibold text-neutral-300 transition-colors hover:bg-white/[0.06]"
           >
-            Open league hub
+            League hub
           </Link>
         </div>
       </div>
     </article>
-  );
-}
-
-function PortfolioStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-white">{value}</p>
-    </div>
   );
 }
 
