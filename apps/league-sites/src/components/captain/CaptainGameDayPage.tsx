@@ -22,6 +22,7 @@ import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { CaptainLineupModalEditor } from '@/components/captain/CaptainLineupModalEditor';
 import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import { TeamLineupView } from '@/components/team/TeamLineupView';
+import { buildLineupDisplay } from '@/lib/lineups/types';
 import {
   getCaptainGameDayData,
   lockCaptainGameAttendance,
@@ -101,34 +102,16 @@ export function CaptainGameDayPage({
     };
   }, [canManage, initialData, leagueSlug, requestedGameId, router, teamId, refreshToken]);
 
-  const lineupPlayers = useMemo(
-    () => (data?.attendance ?? []).filter((player) => player.status === 'confirmed'),
-    [data?.attendance],
+  // "Our Lineup" reflects the captain's placed/published lineup (the same source
+  // the lineup editor renders), NOT raw attendance — otherwise a just-set lineup
+  // would not show here. Availability is layered on top only to colour players.
+  const { skaters, goalies } = useMemo(
+    () =>
+      data?.lineup?.layout
+        ? buildLineupDisplay(data.lineup.layout)
+        : { skaters: [], goalies: [] },
+    [data?.lineup?.layout],
   );
-
-  const skaters = lineupPlayers
-    .filter((player) => !isGoalie(player.position))
-    .map((player) => ({
-      playerId: player.playerId,
-      name: player.fullName ?? 'Player',
-      jerseyNumber: player.jerseyNumber,
-      position: player.position,
-      isSub: player.isSub,
-      showAsLineupPlayer: player.isSub,
-      replacingName: player.replacedPlayerName,
-    }));
-
-  const goalies = lineupPlayers
-    .filter((player) => isGoalie(player.position))
-    .map((player) => ({
-      playerId: player.playerId,
-      name: player.fullName ?? 'Player',
-      jerseyNumber: player.jerseyNumber,
-      position: player.position,
-      isSub: player.isSub,
-      showAsLineupPlayer: player.isSub,
-      replacingName: player.replacedPlayerName,
-    }));
 
   const availabilityMap = Object.fromEntries(
     (data?.attendance ?? [])
@@ -136,7 +119,7 @@ export function CaptainGameDayPage({
       .map((player) => [player.playerId, player.status]),
   ) as Record<string, 'confirmed' | 'tentative' | 'out'>;
 
-  const eligibleForLineupCount = lineupPlayers.length;
+  const eligibleForLineupCount = skaters.length + goalies.length;
   const snapshotExtendedGrid = eligibleForLineupCount > 11;
   const snapshotForwardSlots = snapshotExtendedGrid ? 9 : 6;
   const snapshotDefenceSlots = snapshotExtendedGrid ? 6 : 4;
@@ -766,10 +749,4 @@ function AttendanceEditorModal({
       </div>
     </Overlay>
   );
-}
-
-function isGoalie(position: string | null) {
-  if (!position) return false;
-  const normalized = position.toLowerCase();
-  return normalized === 'g' || normalized === 'goalie';
 }

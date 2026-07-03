@@ -8,6 +8,7 @@ import {
   saveGameTeamLineupDraft,
 } from '@/lib/actions/game-lineups';
 import {
+  buildLineupDisplay,
   isGoaliePosition,
   type GameTeamLineupLayout,
   type GameTeamLineupStatus,
@@ -289,21 +290,8 @@ export function CaptainLineupModalEditor({
 
   // Force display position to match the captain's chosen slot, so a forward
   // intentionally placed into a defence slot lands in the defence bucket.
-  const skaterDisplay = placedEntries
-    .filter((item) => item.slot !== 'goalie')
-    .map((item) => ({
-      playerId: item.player.playerId,
-      name: item.player.fullName ?? 'Player',
-      jerseyNumber: item.player.jerseyNumber,
-      position: item.slot === 'defence' ? 'D' : 'C',
-    }));
-
-  const goalieDisplay = placedBySlot.goalie.map((item) => ({
-    playerId: item.player.playerId,
-    name: item.player.fullName ?? 'Player',
-    jerseyNumber: item.player.jerseyNumber,
-    position: 'G',
-  }));
+  // Shared with the game-day "Our Lineup" section so the two never diverge.
+  const { skaters: skaterDisplay, goalies: goalieDisplay } = buildLineupDisplay(layout);
 
   const availabilityMap: Record<string, 'confirmed' | 'tentative' | 'out'> = {};
   for (const item of placedEntries) {

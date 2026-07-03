@@ -89,6 +89,80 @@ export function isGoaliePosition(position: string | null | undefined) {
   return normalized === 'g' || normalized === 'goalie';
 }
 
+export type LineupSlotType = 'forward' | 'defence' | 'goalie';
+
+export interface LineupDisplayPlayer {
+  playerId: string;
+  name: string;
+  jerseyNumber: number | null;
+  position: 'C' | 'D' | 'G';
+}
+
+function isDefenceLineupPosition(position: string | null | undefined) {
+  if (!position) return false;
+  const p = position.toLowerCase();
+  return p === 'd' || p === 'defence' || p === 'defense' || p === 'ld' || p === 'rd';
+}
+
+// The slot the captain placed a player into is encoded by coordinate bands (not
+// player.position) so a forward can be intentionally placed into a defence slot.
+export function deriveLineupSlotFromCoord(
+  coord: { x: number; y: number } | undefined,
+): LineupSlotType | null {
+  if (!coord) return null;
+  if (coord.y >= 86) return 'goalie';
+  if (coord.y >= 50) return 'defence';
+  return 'forward';
+}
+
+export function classifyLineupPlayer(player: LineupRosterPlayer): LineupSlotType {
+  if (isGoaliePosition(player.position)) return 'goalie';
+  if (isDefenceLineupPosition(player.position)) return 'defence';
+  return 'forward';
+}
+
+// Maps a saved/published lineup layout into the skater/goalie lists that
+// TeamLineupView renders. Shared by the lineup editor's preview and the game-day
+// "Our Lineup" section so both always reflect the captain's placed lineup rather
+// than raw attendance (which caused the two to disagree).
+export function buildLineupDisplay(layout: GameTeamLineupLayout): {
+  skaters: LineupDisplayPlayer[];
+  goalies: LineupDisplayPlayer[];
+} {
+  const rosterById = new Map(layout.roster.map((player) => [player.playerId, player]));
+
+  const placed = layout.placedPlayers
+    .map((entry) => {
+      const player = rosterById.get(entry.playerId);
+      if (!player) return null;
+      const slot = deriveLineupSlotFromCoord(entry) ?? classifyLineupPlayer(player);
+      return { player, slot };
+    })
+    .filter(
+      (value): value is { player: LineupRosterPlayer; slot: LineupSlotType } => value !== null,
+    );
+
+  const skaters: LineupDisplayPlayer[] = placed
+    .filter((item) => item.slot !== 'goalie')
+    .map((item) => ({
+      playerId: item.player.playerId,
+      name: item.player.fullName ?? 'Player',
+      jerseyNumber: item.player.jerseyNumber,
+      position: item.slot === 'defence' ? 'D' : 'C',
+    }));
+
+  const goalies: LineupDisplayPlayer[] = placed
+    .filter((item) => item.slot === 'goalie')
+    .map((item) => ({
+      playerId: item.player.playerId,
+      name: item.player.fullName ?? 'Player',
+      jerseyNumber: item.player.jerseyNumber,
+      position: 'G',
+    }));
+
+  return { skaters, goalies };
+}
+
 function normalizeAvailabilityOrder(value: LineupAvailability) {
   switch (value) {
     case 'confirmed':
