@@ -1900,6 +1900,147 @@ export async function undoEvent(eventId: string): Promise<{
 }
 
 /**
+ * Edit an existing goal or penalty event in place.
+ *
+ * Lets a scorekeeper correct a mis-entered event (wrong scorer, missing assist,
+ * wrong period/time, wrong penalty) without the undo + re-add dance. Only
+ * provided fields are changed; omitted fields keep their current value. Pass
+ * `null` for an assist to clear it. Bumps event_version for offline-sync
+ * conflict detection and recalculates derived game state.
+ */
+export async function updateGameEvent(data: {
+  eventId: string;
+  teamId?: string;
+  teamType?: 'home' | 'away';
+  period?: number | null;
+  gameTimeSeconds?: number | null;
+  // Goal fields
+  scorerId?: string;
+  assist1Id?: string | null;
+  assist2Id?: string | null;
+  isPowerPlay?: boolean;
+  isShortHanded?: boolean;
+  isEmptyNet?: boolean;
+  // Penalty fields
+  playerId?: string;
+  penaltyType?: string;
+  penaltyMinutes?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createServiceRoleClient();
+
+    const { data: event } = await supabase
+      .from('game_events')
+      .select(
+        'id, game_id, event_type, event_version, deleted_at, team_id, team_type, player_id, ' +
+          'assist1_player_id, assist2_player_id, period, game_time_seconds, ' +
+          'is_power_play, is_short_handed, is_empty_net, penalty_type, penalty_minutes',
+      )
+      .eq('id', data.eventId)
+      .single();
+
+    if (!event) return { success: false, error: 'Event not found' };
+    if (event.deleted_at) return { success: false, error: 'Cannot edit a removed event' };
+    if (event.event_type !== 'goal' && event.event_type !== 'penalty') {
+      return { success: false, error: 'Only goals and penalties can be edited' };
+    }
+
+    const enteredByProfileId = await verifyActiveSession(event.game_id);
+
+    const { data: game } = await supabase
+      .from('games')
+      .select('status, leagues(settings, scorekeeper_tracks_time_periods)')
+      .eq('id', event.game_id)
+      .single();
+
+    if (!game) return { success: false, error: 'Game not found' };
+    if (game.status !== 'in_progress') {
+      return { success: false, error: 'Game is not in progress' };
+    }
+
+    const leagueRelation = Array.isArray((game as any).leagues)
+      ? (game as any).leagues[0]
+      : (game as any).leagues;
+    const tracksTimePeriods = leagueTracksScorekeeperTimePeriods(leagueRelation);
+
+    // Resolve effective period / clock (only enforce when the league tracks them)
+    const effectivePeriod =
+      data.period !== undefined ? normalizeEventPeriod(data.period) : event.period;
+    if (tracksTimePeriods && effectivePeriod == null) {
+      return { success: false, error: 'Period is required for this league' };
+    }
+    const effectiveClock = tracksTimePeriods
+      ? normalizeGameClockValue(
+          data.gameTimeSeconds !== undefined ? data.gameTimeSeconds : event.game_time_seconds,
+        )
+      : null;
+
+    const updatePayload: Record<string, unknown> = {
+      team_id: data.teamId ?? event.team_id,
+      team_type: data.teamType ?? event.team_type,
+      period: effectivePeriod,
+      game_time_seconds: effectiveClock,
+      event_version: (event.event_version ?? 1) + 1,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (event.event_type === 'goal') {
+      const scorerId = data.scorerId ?? event.player_id;
+      const assist1Id =
+        data.assist1Id !== undefined ? data.assist1Id : event.assist1_player_id;
+      const assist2Id =
+        data.assist2Id !== undefined ? data.assist2Id : event.assist2_player_id;
+
+      if (assist1Id && assist1Id === scorerId) {
+        return { success: false, error: 'A scorer cannot also be credited with an assist' };
+      }
+      if (assist2Id && assist2Id === scorerId) {
+        return { success: false, error: 'A scorer cannot also be credited with an assist' };
+      }
+      if (assist1Id && assist2Id && assist1Id === assist2Id) {
+        return { success: false, error: 'The two assists must be different players' };
+      }
+
+      updatePayload.player_id = scorerId;
+      updatePayload.assist1_player_id = assist1Id || null;
+      updatePayload.assist2_player_id = assist2Id || null;
+      updatePayload.is_power_play =
+        data.isPowerPlay !== undefined ? data.isPowerPlay : event.is_power_play ?? false;
+      updatePayload.is_short_handed =
+        data.isShortHanded !== undefined ? data.isShortHanded : event.is_short_handed ?? false;
+      updatePayload.is_empty_net =
+        data.isEmptyNet !== undefined ? data.isEmptyNet : event.is_empty_net ?? false;
+    } else {
+      // penalty
+      updatePayload.player_id = data.playerId ?? event.player_id;
+      updatePayload.penalty_type = data.penaltyType ?? event.penalty_type;
+      const minutes = data.penaltyMinutes ?? event.penalty_minutes;
+      if (minutes == null || minutes <= 0) {
+        return { success: false, error: 'Penalty minutes must be greater than zero' };
+      }
+      updatePayload.penalty_minutes = minutes;
+    }
+
+    const { error } = await supabase
+      .from('game_events')
+      .update(updatePayload)
+      .eq('id', data.eventId);
+
+    if (error) {
+      console.error('Update event error:', error);
+      return { success: false, error: 'Failed to update event' };
+    }
+
+    await recalculateGameDerivedState(supabase, event.game_id);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update event error:', error);
+    return { success: false, error: 'Failed to update event' };
+  }
+}
+
+/**
  * Sync timer state to server
  */
 export async function syncTimerState(
