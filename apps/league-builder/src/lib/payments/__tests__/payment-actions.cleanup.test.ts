@@ -47,7 +47,6 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import {
   canArchivePayment,
   canPermanentlyDeletePayment,
-  paymentCleanupTestables,
 } from '../payment-cleanup-helpers';
 import {
   archivePlayerPayment,
@@ -269,22 +268,14 @@ describe('payment cleanup actions', () => {
 
   it('blocks archiving when a payment has successful or refund history', () => {
     expect(
-<<<<<<< HEAD
       canArchivePayment(
-=======
-      paymentCleanupTestables.canArchivePayment(
->>>>>>> 062332a3 (Rebuild league financial workspace)
         buildPayment(),
         [{ id: 'txn-1', status: 'succeeded', transaction_type: 'payment' }]
       )
     ).toBe('Payments with successful charge or refund history cannot be archived.');
 
     expect(
-<<<<<<< HEAD
       canArchivePayment(
-=======
-      paymentCleanupTestables.canArchivePayment(
->>>>>>> 062332a3 (Rebuild league financial workspace)
         buildPayment(),
         [{ id: 'txn-2', status: 'pending', transaction_type: 'refund' }]
       )
@@ -293,11 +284,7 @@ describe('payment cleanup actions', () => {
 
   it('blocks permanent deletion when the payment still has dispute history', () => {
     expect(
-<<<<<<< HEAD
       canPermanentlyDeletePayment(
-=======
-      paymentCleanupTestables.canPermanentlyDeletePayment(
->>>>>>> 062332a3 (Rebuild league financial workspace)
         buildPayment({
           status: 'cancelled',
           archived_at: '2026-03-25T12:30:00.000Z',

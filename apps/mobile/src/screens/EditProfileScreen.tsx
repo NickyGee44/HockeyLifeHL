@@ -18,7 +18,14 @@ import Avatar from '../components/Avatar';
 import { supabase } from '../lib/supabase/client';
 import colors from '../theme/colors';
 
-const POSITIONS = ['F', 'D', 'G'];
+// value = the short code stored in profiles.position (constrained to C/LW/RW/D/G);
+// label = what the chip shows. 'F' is NOT a valid code, so the old ['F','D','G']
+// broke the profile save for forwards.
+const POSITIONS = [
+  { value: 'C', label: 'Forward' },
+  { value: 'D', label: 'Defense' },
+  { value: 'G', label: 'Goalie' },
+];
 const SKILL_LEVELS = [
   { value: 'beginner', label: 'Beginner' },
   { value: 'intermediate', label: 'Intermediate' },
@@ -183,11 +190,11 @@ export default function EditProfileScreen({ navigation }: { navigation: any }) {
           <View style={[styles.positionRow, isCompact && styles.positionRowCompact]}>
             {POSITIONS.map((pos) => (
               <Pressable
-                key={pos}
-                style={[styles.positionBtn, position === pos && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                onPress={() => setPosition(pos)}
+                key={pos.value}
+                style={[styles.positionBtn, position === pos.value && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                onPress={() => setPosition(pos.value)}
               >
-                <Text style={[styles.positionBtnText, position === pos && { color: '#fff' }]}>{pos}</Text>
+                <Text style={[styles.positionBtnText, position === pos.value && { color: '#fff' }]}>{pos.label}</Text>
               </Pressable>
             ))}
           </View>
