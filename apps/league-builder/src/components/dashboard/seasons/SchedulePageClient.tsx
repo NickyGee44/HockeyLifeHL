@@ -58,6 +58,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     label: 'Completed',
     className: 'bg-green-500/10 text-green-400 border-green-500/30',
   },
+  pending_verification: {
+    label: 'Awaiting verification',
+    className: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  },
   postponed: {
     label: 'Postponed',
     className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',

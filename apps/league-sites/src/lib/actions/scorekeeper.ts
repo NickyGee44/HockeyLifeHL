@@ -4,7 +4,7 @@ import { createServiceRoleClient, createAuthClient } from '@/lib/supabase/server
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
-import { randomBytes } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
 
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
@@ -825,6 +825,131 @@ export async function autoFinalizeExpiredCaptainVerifications(options?: {
   }
 
   return { finalized: finalizedIds.length, gameIds: finalizedIds, errors };
+}
+
+/**
+ * Constant-time check of an internal server-to-server secret against
+ * REVALIDATION_SECRET (the same shared secret league-builder already uses to call
+ * /api/revalidate). Fails closed when the secret isn't configured.
+ */
+function isValidInternalSecret(provided: string | null | undefined): boolean {
+  const expected = process.env.REVALIDATION_SECRET;
+  if (!expected) return false;
+  const a = Buffer.from(provided ?? '');
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Admin escape hatch: force-finalize a game now.
+ *
+ * Secret-gated (not a user-facing session action) — invoked only from the
+ * league-builder admin dashboard via the /api/admin/game-lifecycle route. Works
+ * from `in_progress` or `pending_verification`; treats any unverified side as
+ * verified (like the 24h auto-finalize) and runs the canonical finalize path
+ * (rollup + complete + recalc + recap). Idempotent for already-completed games.
+ */
+export async function adminFinalizeGame(
+  gameId: string,
+  secret: string,
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  if (!isValidInternalSecret(secret)) return { success: false, error: 'Unauthorized' };
+
+  const supabase = createServiceRoleClient();
+  const { data: game } = await supabase
+    .from('games')
+    .select('id, status, home_verified_at, away_verified_at')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (!game) return { success: false, error: 'Game not found' };
+  if (game.status === 'completed') return { success: true, status: 'completed' };
+  if (game.status !== 'in_progress' && game.status !== 'pending_verification') {
+    return { success: false, error: `Cannot finalize a ${game.status} game` };
+  }
+
+  if (game.status === 'pending_verification') {
+    const nowIso = new Date().toISOString();
+    const { error: verifyError } = await supabase
+      .from('games')
+      .update({
+        home_verified_at: game.home_verified_at ?? nowIso,
+        away_verified_at: game.away_verified_at ?? nowIso,
+        home_verification_token: null,
+        away_verification_token: null,
+        home_verification_token_expires_at: null,
+        away_verification_token_expires_at: null,
+      })
+      .eq('id', gameId)
+      .eq('status', 'pending_verification');
+    if (verifyError) {
+      return { success: false, error: verifyError.message };
+    }
+  }
+
+  try {
+    await finalizeCompletedGameStats(supabase, gameId);
+    return { success: true, status: 'completed' };
+  } catch (error) {
+    console.error('[scorekeeper] admin finalize failed', { gameId, error });
+    return { success: false, error: error instanceof Error ? error.message : 'Finalize failed' };
+  }
+}
+
+/**
+ * Admin escape hatch: reopen a game that's awaiting verification back to
+ * `in_progress` so the score can be corrected.
+ *
+ * Secret-gated. Only allowed from `pending_verification` — the stats rollup only
+ * happens at completion, so nothing needs to be reversed. Reopening a completed
+ * game is intentionally refused (that would require unwinding the rollup).
+ */
+export async function adminReopenGame(
+  gameId: string,
+  secret: string,
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  if (!isValidInternalSecret(secret)) return { success: false, error: 'Unauthorized' };
+
+  const supabase = createServiceRoleClient();
+  const { data: game } = await supabase
+    .from('games')
+    .select('id, status')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (!game) return { success: false, error: 'Game not found' };
+  if (game.status === 'in_progress') return { success: true, status: 'in_progress' };
+  if (game.status !== 'pending_verification') {
+    return {
+      success: false,
+      error: `Only games awaiting verification can be reopened (this game is ${game.status}).`,
+    };
+  }
+
+  const { error } = await supabase
+    .from('games')
+    .update({
+      status: 'in_progress',
+      stats_submitted_at: null,
+      home_verified_at: null,
+      away_verified_at: null,
+      home_verification_token: null,
+      away_verification_token: null,
+      home_verification_token_expires_at: null,
+      away_verification_token_expires_at: null,
+    })
+    .eq('id', gameId)
+    .eq('status', 'pending_verification');
+
+  if (error) return { success: false, error: error.message };
+
+  await recalculateGameDerivedState(supabase, gameId);
+  return { success: true, status: 'in_progress' };
 }
 
 async function resolveTeamCaptainContact(

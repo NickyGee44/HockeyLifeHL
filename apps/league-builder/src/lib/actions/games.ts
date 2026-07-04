@@ -21,7 +21,9 @@ function isValidUUID(value: string): boolean {
 }
 
 function isValidGameStatus(status: string): status is GameStatus {
-  return VALID_GAME_STATUSES.includes(status as GameStatus);
+  // VALID_GAME_STATUSES intentionally excludes 'pending_verification' — admins
+  // don't set that status directly (it's driven by the self-scoring flow).
+  return (VALID_GAME_STATUSES as readonly string[]).includes(status);
 }
 
 function isValidDate(dateStr: string): boolean {
@@ -128,7 +130,7 @@ async function revalidatePublicLeagueResultPaths(
 // TYPES
 // ==============================================================================
 
-export type GameStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed';
+export type GameStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed' | 'pending_verification';
 
 export interface Game {
   id: string;
@@ -943,6 +945,112 @@ export async function postponeGame(
       error: sanitizeError(error, 'postponeGame'),
     };
   }
+}
+
+// ==============================================================================
+// ADMIN ESCAPE HATCH — finalize / reopen a game stuck in verification
+// ==============================================================================
+
+/**
+ * Call the league-sites internal game-lifecycle endpoint. The finalize/reopen
+ * logic (rollup, recap, status transitions) lives in league-sites; this reaches
+ * it server-to-server with the shared REVALIDATION_SECRET (same pattern as
+ * public-surface revalidation).
+ */
+async function callLeagueSitesGameLifecycle(
+  gameId: string,
+  action: 'finalize' | 'reopen',
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  const leagueSitesUrl = process.env.LEAGUE_SITES_URL || 'http://localhost:3001';
+  const secret = process.env.REVALIDATION_SECRET;
+  if (!secret) {
+    return { success: false, error: 'Server is not configured for this action' };
+  }
+
+  try {
+    const response = await fetch(`${leagueSitesUrl}/api/admin/game-lifecycle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId, action, secret }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      success?: boolean;
+      status?: string;
+      error?: string;
+    };
+    if (!response.ok || !data.success) {
+      return { success: false, error: data.error || 'The scoring service rejected the request' };
+    }
+    return { success: true, status: data.status };
+  } catch (error) {
+    console.error('[games] game-lifecycle call failed:', error);
+    return { success: false, error: 'Could not reach the scoring service' };
+  }
+}
+
+async function adminGameLifecycle(
+  gameId: string,
+  action: 'finalize' | 'reopen',
+): Promise<ActionResult<{ status: string }>> {
+  if (!isValidUUID(gameId)) {
+    return { success: false, error: 'Invalid game ID format' };
+  }
+
+  const serviceClient = await createServiceRoleClient();
+  const { data: game } = await serviceClient
+    .from('games')
+    .select('id, league_id, season_id, home_team_id, away_team_id')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (!game) {
+    return { success: false, error: 'Game not found' };
+  }
+
+  const auth = await verifyLeagueAdmin(game.league_id);
+  if (!auth) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const result = await callLeagueSitesGameLifecycle(gameId, action);
+  if (!result.success) {
+    return { success: false, error: result.error || `Failed to ${action} game` };
+  }
+
+  await logGameAudit(
+    gameId,
+    game.league_id,
+    action === 'finalize' ? 'admin_finalize' : 'admin_reopen',
+    auth.userId,
+    null,
+    { status: result.status ?? null },
+    action === 'finalize' ? 'Admin force-finalized a stuck game' : 'Admin reopened a game for editing',
+  );
+
+  revalidateGamePaths({ league_id: game.league_id, season_id: game.season_id, id: game.id });
+  await revalidatePublicLeagueResultPaths(serviceClient, game as Game);
+
+  return { success: true, data: { status: result.status ?? 'completed' } };
+}
+
+/**
+ * Force-finalize a game that's stuck awaiting captain verification (or still
+ * in progress) — rolls up stats, completes it, and triggers the recap.
+ */
+export async function adminFinalizeStuckGame(
+  gameId: string,
+): Promise<ActionResult<{ status: string }>> {
+  return adminGameLifecycle(gameId, 'finalize');
+}
+
+/**
+ * Reopen a game that's awaiting verification back to in-progress so the score
+ * can be corrected. Only valid before completion (no stats rollup to reverse).
+ */
+export async function adminReopenStuckGame(
+  gameId: string,
+): Promise<ActionResult<{ status: string }>> {
+  return adminGameLifecycle(gameId, 'reopen');
 }
 
 // ==============================================================================
