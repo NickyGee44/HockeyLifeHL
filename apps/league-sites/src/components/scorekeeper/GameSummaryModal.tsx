@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   getGameSummary,
   submitGameForVerification,
+  saveScorekeeperNotes,
   type GameData,
   type CaptainVerificationMode,
   type ScorekeeperSession,
@@ -41,6 +42,7 @@ export function GameSummaryModal({
   const [homeVerifiedAt, setHomeVerifiedAt] = useState<string | null>(game.homeVerifiedAt);
   const [awayVerifiedAt, setAwayVerifiedAt] = useState<string | null>(game.awayVerifiedAt);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [notes, setNotes] = useState(game.scorekeeperNotes ?? '');
   const [summary, setSummary] = useState<{
     homeGoals: number;
     awayGoals: number;
@@ -102,6 +104,11 @@ export function GameSummaryModal({
   const handleSubmitForVerification = async () => {
     setIsSubmitting(true);
     setSubmitError(null);
+
+    // Persist notes first so they're on the game record when the recap generates.
+    if (notes.trim() !== (game.scorekeeperNotes ?? '').trim()) {
+      await saveScorekeeperNotes(gameId, notes.trim());
+    }
 
     const result = await submitGameForVerification(gameId);
 
@@ -539,6 +546,29 @@ export function GameSummaryModal({
             </div>
           </div>
         </div>
+
+        {/* Game notes — feed context to the auto-generated recap */}
+        {!submitted && !game.statsLockedAt && (
+          <div className="px-4 pb-2">
+            <label htmlFor="game-recap-notes" className="block text-sm font-semibold text-white">
+              Game notes <span className="font-normal text-neutral-500">(optional)</span>
+            </label>
+            <p className="mt-0.5 mb-2 text-xs text-neutral-400">
+              Anything worth remembering — standout plays, milestones, big saves, ref calls, injuries,
+              good banter. These feed the AI recap so it captures what actually happened.
+            </p>
+            <textarea
+              id="game-recap-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="e.g. Sanchez scored his first career hat trick; goalie stood on his head in the 3rd; chippy game but all handshakes after."
+              className="w-full rounded-xl bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white
+                placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+            />
+          </div>
+        )}
 
         {/* Footer */}
         <div className="p-4 border-t border-neutral-800 flex gap-3">

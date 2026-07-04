@@ -33,7 +33,7 @@ export function getGameRecapUserPrompt(data: any): string {
   const {
     homeTeam, awayTeam, homeScore, awayScore,
     scheduledAt, venue, goals, penalties,
-    homeGoalie, awayGoalie, standings,
+    homeGoalie, awayGoalie, standings, notes,
   } = data;
 
   let prompt = `Write a game recap for this beer league hockey game:\n\n`;
@@ -41,6 +41,15 @@ export function getGameRecapUserPrompt(data: any): string {
   prompt += `Date: ${new Date(scheduledAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}\n`;
   if (venue) prompt += `Venue: ${venue}\n`;
   prompt += `\n`;
+
+  // Scorekeeper/captain notes — human context to ground the recap in what
+  // actually happened (standout plays, milestones, ref calls, injuries, banter).
+  if (notes && String(notes).trim().length > 0) {
+    prompt += `## Notes from the scorekeeper\n`;
+    prompt += `${String(notes).trim()}\n`;
+    prompt += `Weave any relevant details from these notes naturally into the recap. `;
+    prompt += `Treat them as first-hand context, but don't quote them verbatim or invent specifics they don't mention.\n\n`;
+  }
 
   // Goals
   if (goals && goals.length > 0) {
