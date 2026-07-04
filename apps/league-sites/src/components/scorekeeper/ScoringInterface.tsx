@@ -23,6 +23,7 @@ import { ShotEntry } from './ShotEntry';
 import { ScoreSheetUpload } from './ScoreSheetUpload';
 import { GameSummaryModal } from './GameSummaryModal';
 import { SyncStatusBanner } from './SyncStatusBanner';
+import { EventEditModal } from './EventEditModal';
 
 function isGoaliePosition(position: string | null | undefined): boolean {
   if (!position) return false;
@@ -54,6 +55,7 @@ export function ScoringInterface({
   const [game, setGame] = useState(initialGame);
   const [events, setEvents] = useState(initialEvents);
   const [activeEntry, setActiveEntry] = useState<ActiveEntry>(null);
+  const [editingEvent, setEditingEvent] = useState<GameEventData | null>(null);
 
   // Refetch events and score from server (no session check — lightweight)
   const refreshData = useCallback(async () => {
@@ -494,6 +496,7 @@ export function ScoringInterface({
                     homeTeamColor={homeTeam.primaryColor}
                     awayTeamColor={awayTeam.primaryColor}
                     onUndo={() => handleUndo(event.id)}
+                    onEdit={() => setEditingEvent(event)}
                     showTimePeriods={tracksTimePeriods}
                   />
                 ))}
@@ -551,6 +554,23 @@ export function ScoringInterface({
           gameTimeSeconds={tracksTimePeriods ? timer.timeRemaining : null}
           onComplete={handleEntryComplete}
           onCancel={() => setActiveEntry(null)}
+        />
+      )}
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <EventEditModal
+          event={editingEvent}
+          homeRoster={homeTeam.roster}
+          awayRoster={awayTeam.roster}
+          periodCount={game.periodCount}
+          showTimePeriods={tracksTimePeriods}
+          penaltyRules={game.penaltyRules}
+          onSaved={() => {
+            setEditingEvent(null);
+            refreshData();
+          }}
+          onClose={() => setEditingEvent(null)}
         />
       )}
 
@@ -633,6 +653,7 @@ function EventRow({
   homeTeamColor,
   awayTeamColor,
   onUndo,
+  onEdit,
   showTimePeriods = true,
 }: {
   event: GameEventData;
@@ -641,8 +662,10 @@ function EventRow({
   homeTeamColor?: string | null;
   awayTeamColor?: string | null;
   onUndo: () => void;
+  onEdit?: () => void;
   showTimePeriods?: boolean;
 }) {
+  const canEdit = onEdit && (event.eventType === 'goal' || event.eventType === 'penalty');
   const teamName = event.teamType === 'home' ? homeTeamName : awayTeamName;
 
   const timeDisplay = event.gameTimeSeconds != null
@@ -753,6 +776,19 @@ function EventRow({
           )}
         </div>
       </div>
+
+      {/* Edit (goals & penalties only) */}
+      {canEdit && (
+        <button
+          onClick={onEdit}
+          className="flex-shrink-0 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--league-primary,#d4af37)]/10 text-[var(--color-text-secondary)] hover:text-[var(--league-primary,#d4af37)] transition-all"
+          aria-label="Edit event"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+          </svg>
+        </button>
+      )}
 
       {/* Undo */}
       <button
