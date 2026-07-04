@@ -84,3 +84,14 @@ apps/remotion/build/
 /apps/ios/*.xcodeproj
 /apps/ios/.derived-data/
 /apps/ios/.artifacts/
+
+# Local agent-workspace files and data-export artifacts (not app code — keep local, don't commit)
+/.openclaw/
+/artifacts/
+/tmp/
+/AGENTS.md
+/HEARTBEAT.md
+/IDENTITY.md
+/SOUL.md
+/TOOLS.md
+/USER.md
