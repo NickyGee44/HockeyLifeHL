@@ -3736,3 +3736,33 @@ export async function getOrCreateCaptainScorekeeperSession(
     };
   }
 }
+
+/**
+ * Start (or resume) captain self-scoring in a single step.
+ *
+ * Wraps getOrCreateCaptainScorekeeperSession and sets the scorekeeper session
+ * cookie server-side, so the captain can go straight from Game Day to the
+ * scoring surface — collapsing the old 4-hop path
+ * (/captain → lineups → /scorekeeper?token= → /scorekeeper/game/:id) into one.
+ */
+export async function startCaptainScoring(
+  gameId: string,
+  teamId: string,
+): Promise<{ success: boolean; gameId?: string; leagueSlug?: string; error?: string }> {
+  const result = await getOrCreateCaptainScorekeeperSession(gameId, teamId);
+  if (!result.success || !result.token) {
+    return { success: false, error: result.error || 'Failed to start scoring session.' };
+  }
+
+  const normalizedToken = result.token.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+  const cookieStore = await cookies();
+  cookieStore.set(SCOREKEEPER_SESSION_COOKIE, normalizedToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24,
+  });
+
+  return { success: true, gameId, leagueSlug: result.leagueSlug };
+}

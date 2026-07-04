@@ -1,5 +1,8 @@
 import { getScorekeeperSession, getScorekeeperGameData, getGameEvents, getScorekeeperCheckins } from '@/lib/actions/scorekeeper';
 import { ScoringInterface } from '@/components/scorekeeper/ScoringInterface';
+import { CaptainFlowStepper } from '@/components/scorekeeper/CaptainFlowStepper';
+import { CaptainFlowStatusPanel } from '@/components/scorekeeper/CaptainFlowStatusPanel';
+import { deriveGameFlowStep } from '@/lib/scorekeeper/game-flow';
 import { redirect } from 'next/navigation';
 
 interface GameScoringPageProps {
@@ -34,13 +37,35 @@ export default async function GameScoringPage({ params }: GameScoringPageProps) 
     ? await getScorekeeperCheckins(gameId)
     : null;
 
+  // Captain self-scoring is a single linear workflow — show the progress header
+  // so the captain always knows where they are (Attendance → Score → Verify → Complete).
+  const isCaptainSelfScore = sessionResult.session.sessionOrigin === 'captain_self_score';
+  const flowStep = isCaptainSelfScore ? deriveGameFlowStep(gameResult.game.status) : null;
+
+  // Once a captain has submitted (or the game is complete), returning to this URL
+  // should show a status panel — not the live-scoring controls.
+  const showStatusPanel =
+    isCaptainSelfScore &&
+    (gameResult.game.status === 'pending_verification' || gameResult.game.status === 'completed');
+
   return (
-    <ScoringInterface
-      game={gameResult.game}
-      events={eventsResult.events || []}
-      leagueSlug={leagueSlug}
-      session={sessionResult.session}
-      checkins={checkinsResult?.checkins}
-    />
+    <>
+      {flowStep && <CaptainFlowStepper current={flowStep} />}
+      {showStatusPanel ? (
+        <CaptainFlowStatusPanel
+          game={gameResult.game}
+          session={sessionResult.session}
+          leagueSlug={leagueSlug}
+        />
+      ) : (
+        <ScoringInterface
+          game={gameResult.game}
+          events={eventsResult.events || []}
+          leagueSlug={leagueSlug}
+          session={sessionResult.session}
+          checkins={checkinsResult?.checkins}
+        />
+      )}
+    </>
   );
 }
