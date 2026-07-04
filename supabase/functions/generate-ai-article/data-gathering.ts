@@ -26,7 +26,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     .from('games')
     .select(`
       id, league_id, season_id, scheduled_at, location, status,
-      home_score, away_score, home_team_id, away_team_id,
+      home_score, away_score, home_team_id, away_team_id, scorekeeper_notes,
       home_team:teams!games_home_team_id_fkey(id, name),
       away_team:teams!games_away_team_id_fkey(id, name)
     `)
@@ -193,6 +193,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     awayGoalie,
     standings,
     recapTone,
+    notes: game.scorekeeper_notes || null,
   };
 }
 
