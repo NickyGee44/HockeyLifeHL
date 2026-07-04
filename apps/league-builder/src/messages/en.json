@@ -585,6 +585,7 @@
       "scheduled": "Scheduled",
       "in_progress": "In Progress",
       "completed": "Completed",
+      "pending_verification": "Awaiting Verification",
       "cancelled": "Cancelled",
       "postponed": "Postponed",
       "rescheduled": "Rescheduled"
