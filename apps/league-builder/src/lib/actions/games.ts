@@ -98,6 +98,7 @@ async function revalidatePublicLeagueResultPaths(
       `/${league.slug}/playoffs`,
       `/${league.slug}/stats`,
       `/${league.slug}/teams`,
+      `/${league.slug}/news`,
       ...(teams ?? [])
         .map((team) => team.slug)
         .filter(Boolean)
