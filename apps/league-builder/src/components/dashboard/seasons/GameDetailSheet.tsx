@@ -37,6 +37,8 @@ import {
   rescheduleGame,
   cancelGame,
   postponeGame,
+  adminFinalizeStuckGame,
+  adminReopenStuckGame,
   type GameStatus,
 } from '@/lib/actions/games';
 import type { ScheduledGame, Team } from '@/lib/schedule/types';
@@ -69,6 +71,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   completed: {
     label: 'Completed',
     className: 'bg-green-500/10 text-green-400 border-green-500/30',
+  },
+  pending_verification: {
+    label: 'Awaiting verification',
+    className: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
   },
   postponed: {
     label: 'Postponed',
@@ -138,6 +144,8 @@ export function GameDetailSheet({
   const [isSavingScore, setIsSavingScore] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
 
   // UI state
   const [showReschedule, setShowReschedule] = useState(false);
@@ -304,6 +312,42 @@ export function GameDetailSheet({
     }
   };
 
+  const handleFinalize = async () => {
+    if (!game.id) return;
+    setIsFinalizing(true);
+    try {
+      const result = await adminFinalizeStuckGame(game.id);
+      if (result.success) {
+        toast.success('Game finalized');
+        onGameUpdated();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error('Failed to finalize game');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!game.id) return;
+    setIsReopening(true);
+    try {
+      const result = await adminReopenStuckGame(game.id);
+      if (result.success) {
+        toast.success('Game reopened for editing');
+        onGameUpdated();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error('Failed to reopen game');
+    } finally {
+      setIsReopening(false);
+    }
+  };
+
   // ------------------------------------------------------------------
   // RENDER
   // ------------------------------------------------------------------
@@ -395,6 +439,38 @@ export function GameDetailSheet({
                 </span>
               </div>
             </div>
+
+            {/* ============================================================ */}
+            {/* AWAITING VERIFICATION — admin escape hatch */}
+            {/* ============================================================ */}
+            {status === 'pending_verification' && (
+              <div className="space-y-3 rounded-xl border border-purple-500/30 bg-purple-500/5 p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-purple-300">
+                  Awaiting verification
+                </h3>
+                <p className="text-sm text-neutral-400">
+                  A captain submitted the score and it&apos;s waiting on the other captain to
+                  confirm. It finalizes automatically after 24 hours — or you can act now.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={handleFinalize}
+                    disabled={isFinalizing || isReopening}
+                    className="w-full"
+                  >
+                    {isFinalizing ? 'Finalizing…' : 'Finalize now'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleReopen}
+                    disabled={isFinalizing || isReopening}
+                    className="w-full"
+                  >
+                    {isReopening ? 'Reopening…' : 'Reopen for editing'}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* ============================================================ */}
             {/* SCORE ENTRY */}

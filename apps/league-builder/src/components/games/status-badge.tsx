@@ -10,6 +10,7 @@ import {
   XCircle,
   PauseCircle,
   RefreshCw,
+  Hourglass,
 } from 'lucide-react';
 
 interface StatusBadgeProps {
@@ -27,6 +28,7 @@ const statusStyles: Record<
   scheduled: { bgColor: 'bg-blue-500/10', textColor: 'text-blue-500', borderColor: 'border-blue-500/30', icon: Clock },
   in_progress: { bgColor: 'bg-green-500/10', textColor: 'text-green-500', borderColor: 'border-green-500/30', icon: Play },
   completed: { bgColor: 'bg-rink-500/10', textColor: 'text-rink-500', borderColor: 'border-rink-500/30', icon: CheckCircle },
+  pending_verification: { bgColor: 'bg-purple-500/10', textColor: 'text-purple-500', borderColor: 'border-purple-500/30', icon: Hourglass },
   cancelled: { bgColor: 'bg-red-500/10', textColor: 'text-red-500', borderColor: 'border-red-500/30', icon: XCircle },
   postponed: { bgColor: 'bg-yellow-500/10', textColor: 'text-yellow-500', borderColor: 'border-yellow-500/30', icon: PauseCircle },
 };

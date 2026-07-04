@@ -21,7 +21,9 @@ function isValidUUID(value: string): boolean {
 }
 
 function isValidGameStatus(status: string): status is GameStatus {
-  return VALID_GAME_STATUSES.includes(status as GameStatus);
+  // VALID_GAME_STATUSES intentionally excludes 'pending_verification' — admins
+  // don't set that status directly (it's driven by the self-scoring flow).
+  return (VALID_GAME_STATUSES as readonly string[]).includes(status);
 }
 
 function isValidDate(dateStr: string): boolean {
@@ -98,6 +100,7 @@ async function revalidatePublicLeagueResultPaths(
       `/${league.slug}/playoffs`,
       `/${league.slug}/stats`,
       `/${league.slug}/teams`,
+      `/${league.slug}/news`,
       ...(teams ?? [])
         .map((team) => team.slug)
         .filter(Boolean)
@@ -127,7 +130,7 @@ async function revalidatePublicLeagueResultPaths(
 // TYPES
 // ==============================================================================
 
-export type GameStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed';
+export type GameStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'postponed' | 'pending_verification';
 
 export interface Game {
   id: string;
@@ -409,6 +412,167 @@ export async function getGame(gameId: string): Promise<ActionResult<Game>> {
       success: false,
       error: sanitizeError(error, 'getGame'),
     };
+  }
+}
+
+// ==============================================================================
+// CREATE GAME (single manual add)
+// ==============================================================================
+
+export interface CreateGameInput {
+  seasonId: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  /** ISO 8601 timestamp. */
+  scheduledAt: string;
+  location?: string | null;
+  gameType?: string | null;
+}
+
+/**
+ * Add a single game to a season's schedule.
+ *
+ * Unlike the schedule generator, this leaves `generation_log_id` NULL, which
+ * marks the game as manually added — it will survive a full schedule
+ * regeneration (see save_schedule_games).
+ *
+ * Conflicts (same team or same venue within ±3h) are returned as non-blocking
+ * `warnings` so an admin can knowingly override; the game is still created.
+ */
+export async function createGame(
+  leagueId: string,
+  input: CreateGameInput,
+): Promise<ActionResult<{ game: Game; warnings: string[] }>> {
+  try {
+    // Input validation
+    if (!isValidUUID(leagueId)) {
+      return { success: false, error: 'Invalid league ID format' };
+    }
+    if (!isValidUUID(input.seasonId)) {
+      return { success: false, error: 'Invalid season ID format' };
+    }
+    if (!isValidUUID(input.homeTeamId) || !isValidUUID(input.awayTeamId)) {
+      return { success: false, error: 'Invalid team ID format' };
+    }
+    if (input.homeTeamId === input.awayTeamId) {
+      return { success: false, error: 'Home and away team cannot be the same' };
+    }
+    if (!isValidDate(input.scheduledAt)) {
+      return { success: false, error: 'Invalid date/time' };
+    }
+
+    // Verify admin access
+    const auth = await verifyLeagueAdmin(leagueId);
+    if (!auth) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const serviceClient = await createServiceRoleClient();
+
+    // Verify season belongs to league
+    const { data: season } = await serviceClient
+      .from('seasons')
+      .select('id')
+      .eq('id', input.seasonId)
+      .eq('league_id', leagueId)
+      .maybeSingle();
+    if (!season) {
+      return { success: false, error: 'Season not found for this league' };
+    }
+
+    // Verify both teams belong to the league
+    const { data: teams } = await serviceClient
+      .from('teams')
+      .select('id, name')
+      .eq('league_id', leagueId)
+      .in('id', [input.homeTeamId, input.awayTeamId]);
+    const teamsById = new Map((teams ?? []).map((t) => [t.id, t.name]));
+    if (!teamsById.has(input.homeTeamId) || !teamsById.has(input.awayTeamId)) {
+      return { success: false, error: 'One or both teams do not belong to this league' };
+    }
+
+    const scheduledIso = new Date(input.scheduledAt).toISOString();
+    const location = input.location?.trim() || null;
+
+    // Soft conflict detection (±3h window) — non-blocking warnings
+    const warnings: string[] = [];
+    const windowMs = 3 * 60 * 60 * 1000;
+    const windowStart = new Date(new Date(scheduledIso).getTime() - windowMs).toISOString();
+    const windowEnd = new Date(new Date(scheduledIso).getTime() + windowMs).toISOString();
+    const { data: nearby } = await serviceClient
+      .from('games')
+      .select('id, scheduled_at, location, home_team_id, away_team_id')
+      .eq('season_id', input.seasonId)
+      .neq('status', 'cancelled')
+      .gte('scheduled_at', windowStart)
+      .lte('scheduled_at', windowEnd);
+
+    for (const g of nearby ?? []) {
+      const sharesTeam =
+        g.home_team_id === input.homeTeamId ||
+        g.away_team_id === input.homeTeamId ||
+        g.home_team_id === input.awayTeamId ||
+        g.away_team_id === input.awayTeamId;
+      if (sharesTeam) {
+        const teamName =
+          g.home_team_id === input.homeTeamId || g.away_team_id === input.homeTeamId
+            ? teamsById.get(input.homeTeamId)
+            : teamsById.get(input.awayTeamId);
+        warnings.push(
+          `${teamName ?? 'A team'} already has a game within 3 hours of this time.`,
+        );
+      }
+      if (location && g.location && g.location.trim().toLowerCase() === location.toLowerCase()) {
+        warnings.push(`${location} is already booked within 3 hours of this time.`);
+      }
+    }
+
+    const { data, error } = await serviceClient
+      .from('games')
+      .insert({
+        league_id: leagueId,
+        season_id: input.seasonId,
+        home_team_id: input.homeTeamId,
+        away_team_id: input.awayTeamId,
+        scheduled_at: scheduledIso,
+        location,
+        game_type: input.gameType?.trim() || null,
+        status: 'scheduled',
+        // generation_log_id intentionally left NULL → survives regeneration
+      })
+      .select(`
+        *,
+        home_team:teams!games_home_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        away_team:teams!games_away_team_id_fkey(id, name, short_name, primary_color, logo_url),
+        season:seasons(id, name)
+      `)
+      .single();
+
+    if (error || !data) {
+      return { success: false, error: sanitizeError(error, 'createGame') };
+    }
+
+    await logGameAudit(
+      data.id,
+      leagueId,
+      'create',
+      auth.userId,
+      null,
+      {
+        home_team_id: input.homeTeamId,
+        away_team_id: input.awayTeamId,
+        scheduled_at: scheduledIso,
+        location,
+      },
+      'Manually added game',
+    );
+
+    revalidateGamePaths({ league_id: leagueId, season_id: input.seasonId, id: data.id });
+    await revalidatePublicLeagueResultPaths(serviceClient, data as Game);
+
+    return { success: true, data: { game: data as Game, warnings: Array.from(new Set(warnings)) } };
+  } catch (error) {
+    return { success: false, error: sanitizeError(error, 'createGame') };
   }
 }
 
@@ -781,6 +945,112 @@ export async function postponeGame(
       error: sanitizeError(error, 'postponeGame'),
     };
   }
+}
+
+// ==============================================================================
+// ADMIN ESCAPE HATCH — finalize / reopen a game stuck in verification
+// ==============================================================================
+
+/**
+ * Call the league-sites internal game-lifecycle endpoint. The finalize/reopen
+ * logic (rollup, recap, status transitions) lives in league-sites; this reaches
+ * it server-to-server with the shared REVALIDATION_SECRET (same pattern as
+ * public-surface revalidation).
+ */
+async function callLeagueSitesGameLifecycle(
+  gameId: string,
+  action: 'finalize' | 'reopen',
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  const leagueSitesUrl = process.env.LEAGUE_SITES_URL || 'http://localhost:3001';
+  const secret = process.env.REVALIDATION_SECRET;
+  if (!secret) {
+    return { success: false, error: 'Server is not configured for this action' };
+  }
+
+  try {
+    const response = await fetch(`${leagueSitesUrl}/api/admin/game-lifecycle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId, action, secret }),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      success?: boolean;
+      status?: string;
+      error?: string;
+    };
+    if (!response.ok || !data.success) {
+      return { success: false, error: data.error || 'The scoring service rejected the request' };
+    }
+    return { success: true, status: data.status };
+  } catch (error) {
+    console.error('[games] game-lifecycle call failed:', error);
+    return { success: false, error: 'Could not reach the scoring service' };
+  }
+}
+
+async function adminGameLifecycle(
+  gameId: string,
+  action: 'finalize' | 'reopen',
+): Promise<ActionResult<{ status: string }>> {
+  if (!isValidUUID(gameId)) {
+    return { success: false, error: 'Invalid game ID format' };
+  }
+
+  const serviceClient = await createServiceRoleClient();
+  const { data: game } = await serviceClient
+    .from('games')
+    .select('id, league_id, season_id, home_team_id, away_team_id')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (!game) {
+    return { success: false, error: 'Game not found' };
+  }
+
+  const auth = await verifyLeagueAdmin(game.league_id);
+  if (!auth) {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  const result = await callLeagueSitesGameLifecycle(gameId, action);
+  if (!result.success) {
+    return { success: false, error: result.error || `Failed to ${action} game` };
+  }
+
+  await logGameAudit(
+    gameId,
+    game.league_id,
+    action === 'finalize' ? 'admin_finalize' : 'admin_reopen',
+    auth.userId,
+    null,
+    { status: result.status ?? null },
+    action === 'finalize' ? 'Admin force-finalized a stuck game' : 'Admin reopened a game for editing',
+  );
+
+  revalidateGamePaths({ league_id: game.league_id, season_id: game.season_id, id: game.id });
+  await revalidatePublicLeagueResultPaths(serviceClient, game as Game);
+
+  return { success: true, data: { status: result.status ?? 'completed' } };
+}
+
+/**
+ * Force-finalize a game that's stuck awaiting captain verification (or still
+ * in progress) — rolls up stats, completes it, and triggers the recap.
+ */
+export async function adminFinalizeStuckGame(
+  gameId: string,
+): Promise<ActionResult<{ status: string }>> {
+  return adminGameLifecycle(gameId, 'finalize');
+}
+
+/**
+ * Reopen a game that's awaiting verification back to in-progress so the score
+ * can be corrected. Only valid before completion (no stats rollup to reverse).
+ */
+export async function adminReopenStuckGame(
+  gameId: string,
+): Promise<ActionResult<{ status: string }>> {
+  return adminGameLifecycle(gameId, 'reopen');
 }
 
 // ==============================================================================
