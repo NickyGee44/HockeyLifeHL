@@ -1,8 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { resolveSupabaseConfig } from '@hockey-life/database/config';
 
 export function createClient() {
-  const { url, anonKey } = resolveSupabaseConfig();
-
-  return createBrowserClient(url, anonKey);
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }

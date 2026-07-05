@@ -1,5 +1,4 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { resolveSupabaseConfig } from '@hockey-life/database/config';
 
 /**
  * Create a Supabase client for client-side usage in Platform 2 (League Sites)
@@ -12,7 +11,8 @@ import { resolveSupabaseConfig } from '@hockey-life/database/config';
  * RLS policies ensure only published/public data is accessible
  */
 export function createClient() {
-  const { url, anonKey } = resolveSupabaseConfig();
-
-  return createBrowserClient(url, anonKey);
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }

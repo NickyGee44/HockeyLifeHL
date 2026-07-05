@@ -1,20 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import {
-  resolveSupabaseAdminKey,
-  resolveSupabaseConfig,
-  resolveSupabaseUrl,
-} from '@hockey-life/database/config';
 import type { Database } from '@hockey-life/database/types';
 
 export async function createClient() {
   const cookieStore = await cookies();
-  const { url, anonKey } = resolveSupabaseConfig();
 
   return createServerClient<Database>(
-    url,
-    anonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -35,16 +29,9 @@ export async function createClient() {
 }
 
 export function createServiceRoleClient() {
-  const url = resolveSupabaseUrl();
-  const adminKey = resolveSupabaseAdminKey();
-
-  if (!url || !adminKey) {
-    throw new Error('Missing Supabase admin configuration');
-  }
-
   return createSupabaseClient<Database>(
-    url,
-    adminKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: {
         autoRefreshToken: false,

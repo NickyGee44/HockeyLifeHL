@@ -1,13 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { createClient as createBrowserClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import {
-  normalizeSupabaseEnvValue,
-  resolveSupabaseAdminKey,
-  resolveSupabaseConfig,
-  resolveSupabasePublishableKey,
-  resolveSupabaseUrl,
-} from '@hockey-life/database/config';
 
 /**
  * Next.js-safe fetch that always bypasses the data cache.
@@ -71,11 +64,9 @@ function createEmptyServiceClient() {
  * RLS policies ensure only published/public data is accessible.
  */
 export async function createClient() {
-  const { url, anonKey } = resolveSupabaseConfig();
-
   return createBrowserClient(
-    url,
-    anonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       global: { fetch: noStoreFetch },
       auth: {
@@ -92,11 +83,10 @@ export async function createClient() {
  */
 export async function createAuthClient() {
   const cookieStore = await cookies();
-  const { url, anonKey } = resolveSupabaseConfig();
 
   return createServerClient(
-    url,
-    anonKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
@@ -127,11 +117,14 @@ export async function createAuthClient() {
  * WARNING: This client bypasses RLS - use with caution
  */
 export function createServiceRoleClient() {
-  const adminKey = resolveSupabaseAdminKey();
-  const supabaseUrl = resolveSupabaseUrl();
-  const anonKey = normalizeSupabaseEnvValue(resolveSupabasePublishableKey());
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.SUPABASE_SECRET_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!adminKey || !supabaseUrl) {
+  if (!serviceRoleKey || !supabaseUrl) {
     if (supabaseUrl && anonKey) {
       return createBrowserClient(supabaseUrl, anonKey, {
         global: { fetch: noStoreFetch },
@@ -146,8 +139,8 @@ export function createServiceRoleClient() {
   }
 
   return createServerClient(
-    supabaseUrl,
-    adminKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
     {
       cookies: {
         getAll() {
