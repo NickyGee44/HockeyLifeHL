@@ -134,7 +134,7 @@ export function TeamLeadersSection({
           <button
             type="button"
             onClick={() => setShowChart((prev) => !prev)}
-            className={`ml-auto flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+            className={`ml-auto flex h-10 w-10 items-center justify-center rounded-full border transition-colors lg:hidden ${
               showChart
                 ? 'border-[var(--league-primary)]/40 bg-[var(--league-primary)]/15 text-[var(--league-primary)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
@@ -146,95 +146,205 @@ export function TeamLeadersSection({
         </div>
       </div>
 
-      {!showChart ? (
-        <>
-          {leaders.length > 0 ? (
-            <div className="mt-5 px-1 md:px-2">
-              <div className="grid grid-cols-3 items-stretch gap-3 md:gap-4">
-                {podiumLeaders.map((leader) => {
-                  const place = leaders.findIndex((entry) => entry.playerId === leader.playerId) + 1;
-                  return (
-                    <TeamLeaderPodiumCard
-                      key={`${leader.playerId}-${leader.metric}`}
-                      leader={leader}
-                      place={place}
-                      leagueSlug={leagueSlug}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-[24px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/55 px-6 py-10 text-center">
-              <p className="text-lg font-semibold text-[var(--color-text-primary)]">No team leaders yet</p>
-              <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">
-                Leader cards will populate once current-season player stats are recorded.
-              </p>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="space-y-2">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
-            {METRIC_LABELS[metric]} — All Players
-          </p>
-          {sortedBarChartPlayers.length > 0 ? (
-            sortedBarChartPlayers.map((player) => {
-              const value = player.values[metric] ?? 0;
-              const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
-              const firstName = player.name.split(' ').slice(0, -1).join(' ') || player.name;
-              const lastName = player.name.includes(' ') ? player.name.split(' ').slice(-1)[0] : '';
+      <div className="lg:hidden">
+        {!showChart ? (
+          <TeamPodiumView
+            leaders={leaders}
+            podiumLeaders={podiumLeaders}
+            leagueSlug={leagueSlug}
+          />
+        ) : (
+          <TeamBarsView
+            metric={metric}
+            players={sortedBarChartPlayers}
+            maxValue={maxValue}
+            leagueSlug={leagueSlug}
+          />
+        )}
+      </div>
 
-              return (
-                <Link
-                  key={player.playerId}
-                  href={`/${leagueSlug}/players/${player.playerId}`}
-                  className="group flex items-center gap-3 rounded-2xl px-2 py-1.5 transition-colors hover:bg-[var(--color-surface-hover)]/50"
-                >
-                  <div className="relative flex-shrink-0">
-                    <Image
-                      src={player.avatarUrl || '/blank_player.png'}
-                      alt={player.name}
-                      width={36}
-                      height={36}
-                      className="h-9 w-9 rounded-full object-cover"
-                    />
-                    {player.jerseyNumber != null && (
-                      <span className="absolute -bottom-1 -left-1 rounded bg-black/80 px-1 py-0.5 text-[9px] font-bold leading-none text-[var(--league-primary)] ring-1 ring-white/10">
-                        {player.jerseyNumber}
-                      </span>
-                    )}
-                  </div>
-                  <div className="w-[72px] flex-shrink-0 min-w-0">
-                    <span className="block truncate text-xs font-medium leading-tight text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)]">
-                      {firstName}
-                    </span>
-                    {lastName && (
-                      <span className="block truncate text-[10px] font-semibold uppercase tracking-wide leading-tight text-[var(--color-text-secondary)]">
-                        {lastName}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-1 items-center gap-2">
-                    <div className="relative h-6 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-full bg-[var(--league-primary)]/70 transition-all duration-500"
-                        style={{ width: `${Math.max(pct, 3)}%` }}
-                      />
-                    </div>
-                    <span className="w-8 text-right text-sm font-black text-[var(--color-text-primary)]">
-                      {value}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })
-          ) : (
-            <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">No stats recorded yet.</p>
-          )}
+      <div className="hidden gap-6 lg:grid lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,0.78fr)] lg:items-start">
+        <TeamPodiumView
+          leaders={leaders}
+          podiumLeaders={podiumLeaders}
+          leagueSlug={leagueSlug}
+        />
+        <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]/54 p-4">
+          <TeamBarsView
+            metric={metric}
+            players={sortedBarChartPlayers}
+            maxValue={maxValue}
+            leagueSlug={leagueSlug}
+          />
         </div>
-      )}
+      </div>
+
+      <div className="mt-6 hidden grid-cols-3 gap-4 lg:grid">
+        {(['points', 'goals', 'assists'] as TeamLeaderMetric[]).map((metricId) => (
+          <TeamMetricMiniBoard
+            key={metricId}
+            metric={metricId}
+            leaders={leadersByMetric[metricId] ?? []}
+            leagueSlug={leagueSlug}
+          />
+        ))}
+      </div>
     </section>
+  );
+}
+
+function TeamMetricMiniBoard({
+  metric,
+  leaders,
+  leagueSlug,
+}: {
+  metric: TeamLeaderMetric;
+  leaders: TeamLeaderCard[];
+  leagueSlug: string;
+}) {
+  return (
+    <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]/54 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+        {METRIC_LABELS[metric]}
+      </p>
+      <div className="mt-3 space-y-2">
+        {leaders.slice(0, 5).map((leader, index) => (
+          <Link
+            key={`${metric}-${leader.playerId}`}
+            href={`/${leagueSlug}/players/${leader.playerId}`}
+            className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-[var(--color-surface-hover)]/50"
+          >
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--league-primary)]/12 text-xs font-black text-[var(--league-primary)]">
+              {index + 1}
+            </span>
+            <span className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+              {leader.name}
+            </span>
+            <span className="text-base font-black text-[var(--league-primary)]">
+              {leader.value}
+            </span>
+          </Link>
+        ))}
+        {leaders.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-[var(--color-border)] px-3 py-5 text-center text-sm text-[var(--color-text-secondary)]">
+            No leaders yet
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function TeamPodiumView({
+  leaders,
+  podiumLeaders,
+  leagueSlug,
+}: {
+  leaders: TeamLeaderCard[];
+  podiumLeaders: TeamLeaderCard[];
+  leagueSlug: string;
+}) {
+  if (leaders.length === 0) {
+    return (
+      <div className="rounded-[24px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/55 px-6 py-10 text-center">
+        <p className="text-lg font-semibold text-[var(--color-text-primary)]">No team leaders yet</p>
+        <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">
+          Leader cards will populate once current-season player stats are recorded.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 px-1 md:px-2 lg:mt-0">
+      <div className="grid grid-cols-3 items-stretch gap-3 md:gap-4">
+        {podiumLeaders.map((leader) => {
+          const place = leaders.findIndex((entry) => entry.playerId === leader.playerId) + 1;
+          return (
+            <TeamLeaderPodiumCard
+              key={`${leader.playerId}-${leader.metric}`}
+              leader={leader}
+              place={place}
+              leagueSlug={leagueSlug}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function TeamBarsView({
+  metric,
+  players,
+  maxValue,
+  leagueSlug,
+}: {
+  metric: TeamLeaderMetric;
+  players: BarChartPlayer[];
+  maxValue: number;
+  leagueSlug: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+        {METRIC_LABELS[metric]} - All Players
+      </p>
+      {players.length > 0 ? (
+        players.map((player) => {
+          const value = player.values[metric] ?? 0;
+          const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
+          const firstName = player.name.split(' ').slice(0, -1).join(' ') || player.name;
+          const lastName = player.name.includes(' ') ? player.name.split(' ').slice(-1)[0] : '';
+
+          return (
+            <Link
+              key={player.playerId}
+              href={`/${leagueSlug}/players/${player.playerId}`}
+              className="group flex items-center gap-3 rounded-2xl px-2 py-1.5 transition-colors hover:bg-[var(--color-surface-hover)]/50"
+            >
+              <div className="relative flex-shrink-0">
+                <Image
+                  src={player.avatarUrl || '/blank_player.png'}
+                  alt={player.name}
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-full object-cover"
+                />
+                {player.jerseyNumber != null && (
+                  <span className="absolute -bottom-1 -left-1 rounded bg-black/80 px-1 py-0.5 text-[9px] font-bold leading-none text-[var(--league-primary)] ring-1 ring-white/10">
+                    {player.jerseyNumber}
+                  </span>
+                )}
+              </div>
+              <div className="w-[72px] flex-shrink-0 min-w-0">
+                <span className="block truncate text-xs font-medium leading-tight text-[var(--color-text-primary)] group-hover:text-[var(--league-primary)]">
+                  {firstName}
+                </span>
+                {lastName && (
+                  <span className="block truncate text-[10px] font-semibold uppercase tracking-wide leading-tight text-[var(--color-text-secondary)]">
+                    {lastName}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-1 items-center gap-2">
+                <div className="relative h-6 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-[var(--league-primary)]/70 transition-all duration-500"
+                    style={{ width: `${Math.max(pct, 3)}%` }}
+                  />
+                </div>
+                <span className="w-8 text-right text-sm font-black text-[var(--color-text-primary)]">
+                  {value}
+                </span>
+              </div>
+            </Link>
+          );
+        })
+      ) : (
+        <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">No stats recorded yet.</p>
+      )}
+    </div>
   );
 }
 
@@ -299,4 +409,3 @@ function TeamLeaderPodiumCard({
     </div>
   );
 }
-

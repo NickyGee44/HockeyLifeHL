@@ -134,12 +134,29 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
 
       {/* AI Game Recap */}
       {gameRecap && isCompleted && (
-        <GameRecapSection recap={gameRecap} leagueSlug={leagueSlug} />
+        <>
+          <GameRecapSection recap={gameRecap} leagueSlug={leagueSlug} />
+          <div className="container mx-auto hidden px-4 pt-4 lg:grid lg:grid-cols-3 lg:gap-4">
+            <BroadcastFact label="Final" value={`${game.away_score ?? 0} - ${game.home_score ?? 0}`} />
+            <BroadcastFact label="Venue" value={game.venue || 'Rink TBD'} />
+            <BroadcastFact label="Puck drop" value={`${formatLeagueShortWeekdayDate(game.scheduled_at, league.timezone)} ${formatLeagueTime(game.scheduled_at, league.timezone)}`} />
+          </div>
+        </>
       )}
 
       {/* Box Score for completed games */}
       {isCompleted && gameSheet && (
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 lg:py-10">
+          <div className="mb-5 hidden items-end justify-between lg:flex">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                Official game package
+              </p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+                Box score and scoring summary
+              </h2>
+            </div>
+          </div>
           <GameBoxScore
             goals={gameSheet.goals}
             penalties={gameSheet.penalties}
@@ -286,5 +303,18 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
       </div>
     </div>
     </SubscriptionWall>
+  );
+}
+
+function BroadcastFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 px-5 py-4 shadow-[0_26px_70px_-56px_rgba(0,0,0,0.95)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+        {label}
+      </p>
+      <p className="mt-2 text-xl font-black text-[var(--color-text-primary)]">
+        {value}
+      </p>
+    </div>
   );
 }

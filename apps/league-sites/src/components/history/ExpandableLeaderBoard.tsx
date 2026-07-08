@@ -29,7 +29,7 @@ export function ExpandableLeaderBoard({
 
   if (leaders.length === 0) return null;
 
-  const displayedLeaders = expanded ? leaders : leaders.slice(0, INITIAL_COUNT);
+  const displayedLeaders = leaders;
   const hasMore = leaders.length > INITIAL_COUNT;
 
   return (
@@ -40,7 +40,10 @@ export function ExpandableLeaderBoard({
       </div>
       <div className="divide-y divide-[var(--color-border)]">
         {displayedLeaders.map((leader, index) => (
-          <div key={`${leader.name}-${index}`} className="flex items-center gap-3 px-4 py-2.5">
+          <div
+            key={`${leader.name}-${index}`}
+            className={`items-center gap-3 px-4 py-2.5 ${!expanded && index >= INITIAL_COUNT ? 'hidden lg:flex' : 'flex'}`}
+          >
             <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 ${index < 3 ? 'bg-amber-500/20 text-amber-400' : 'text-[var(--color-text-muted)]'}`}>
               {index + 1}
             </span>
@@ -73,7 +76,7 @@ export function ExpandableLeaderBoard({
       {hasMore && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)] transition-colors border-t border-[var(--color-border)]"
+          className="flex w-full items-center justify-center gap-1.5 border-t border-[var(--color-border)] px-4 py-2.5 text-xs font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--color-surface-hover)] lg:hidden"
         >
           {expanded ? (
             <>Show Less <ChevronUp className="w-3.5 h-3.5" /></>
@@ -108,7 +111,7 @@ export function ExpandableGoalieLeaderBoard({
 
   if (leaders.length === 0) return null;
 
-  const displayedLeaders = expanded ? leaders : leaders.slice(0, INITIAL_COUNT);
+  const displayedLeaders = leaders;
   const hasMore = leaders.length > INITIAL_COUNT;
 
   return (
@@ -128,7 +131,7 @@ export function ExpandableGoalieLeaderBoard({
             {displayedLeaders.map((goalie, index) => (
               <tr
                 key={goalie.player_id}
-                className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-surface-hover)] transition-colors"
+                className={`border-b border-[var(--color-border)] transition-colors last:border-0 hover:bg-[var(--color-surface-hover)] ${!expanded && index >= INITIAL_COUNT ? 'hidden lg:table-row' : ''}`}
               >
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${index < 3 ? 'bg-blue-500/20 text-blue-400' : 'text-[var(--color-text-muted)]'}`}>
@@ -182,7 +185,7 @@ export function ExpandableGoalieLeaderBoard({
       {hasMore && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)] transition-colors border-t border-[var(--color-border)]"
+          className="flex w-full items-center justify-center gap-1.5 border-t border-[var(--color-border)] px-4 py-2.5 text-xs font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--color-surface-hover)] lg:hidden"
         >
           {expanded ? (
             <>Show Less <ChevronUp className="w-3.5 h-3.5" /></>

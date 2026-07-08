@@ -87,7 +87,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   return (
     <SubscriptionWall>
     <div className="container mx-auto px-4 py-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl">
         {/* Back Link */}
         <Link
           href={`/${leagueSlug}/news`}
@@ -156,7 +156,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </div>
           </div>
 
-          <div className="border-t border-[var(--color-border)] p-6 md:p-8">
+          <div className="border-t border-[var(--color-border)] p-6 md:p-8 lg:grid lg:grid-cols-[minmax(0,720px)_320px] lg:justify-center lg:gap-10">
+            <aside className="lg:order-2 lg:sticky lg:top-24 lg:self-start">
             {/* Tagged players */}
             {taggedPlayers.length > 0 && (
               <div className="mb-6">
@@ -320,8 +321,31 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </div>
             )}
 
+            <div className="mb-6 hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/72 p-5 lg:block">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                Story links
+              </p>
+              <div className="mt-4 space-y-2">
+                <Link
+                  href={`/${leagueSlug}/news`}
+                  className="block rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]"
+                >
+                  More league news
+                </Link>
+                {relatedGame ? (
+                  <Link
+                    href={`/${leagueSlug}/games/${relatedGame.id}`}
+                    className="block rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]"
+                  >
+                    Open related game
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+            </aside>
+
             {/* Article body */}
-            <div>
+            <div className="lg:order-1 lg:max-w-[720px]">
               <RichArticleContent content={article.content} mentions={articleMentions} />
             </div>
           </div>

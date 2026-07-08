@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { Trophy, Crown } from 'lucide-react';
 import type { Metadata } from 'next';
 import { getLeagueBySlug, getSeasons, getCurrentSeason, getStandings } from '@/lib/data';
@@ -380,10 +381,10 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
 
   return (
     <main className="min-h-screen bg-[var(--color-background)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
 
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 lg:rounded-[32px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/58 lg:p-8 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
           <div className="flex items-center gap-3 mb-2">
             <Trophy className="w-6 h-6 text-[var(--league-primary)]" />
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
@@ -504,14 +505,22 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             ))}
           </div>
         ) : (
-          <div className="py-20 text-center">
-            <Trophy className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-secondary)] opacity-30" />
+          <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 py-20 text-center">
+            <Trophy className="w-12 h-12 mx-auto mb-4 text-[var(--league-primary)]/70" />
             <p className="text-lg font-semibold text-[var(--color-text-secondary)]">
               Playoff bracket not yet generated
             </p>
             <p className="text-sm text-[var(--color-text-secondary)] opacity-60 mt-1">
               Check back when the official bracket is generated.
             </p>
+            <div className="mt-6 hidden justify-center gap-3 lg:flex">
+              <Link href={`/${leagueSlug}/standings`} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
+                Current standings
+              </Link>
+              <Link href={`/${leagueSlug}/schedule`} className="rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
+                Schedule
+              </Link>
+            </div>
           </div>
         )}
       </div>

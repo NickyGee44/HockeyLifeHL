@@ -45,14 +45,24 @@ export default async function SuspensionsPage({ params, searchParams }: Suspensi
 
   return (
     <SubscriptionWall>
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl shadow-lg max-w-5xl mx-auto p-6 md:p-8">
+    <div className="container mx-auto px-4 py-8 lg:py-12">
+      <div className="mx-auto max-w-6xl rounded-[32px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-6 shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)] md:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-extrabold text-[var(--color-text-primary)]">
-            Suspensions
-          </h1>
-          <ShieldAlert className="w-7 h-7 text-[var(--league-primary)]" />
+        <div className="mb-6 flex items-center justify-between gap-6 lg:border-b lg:border-[var(--color-border)] lg:pb-6">
+          <div>
+            <p className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)] lg:block">
+              Discipline desk
+            </p>
+            <h1 className="text-3xl font-extrabold text-[var(--color-text-primary)] lg:mt-1 lg:text-4xl lg:font-black">
+              Suspensions
+            </h1>
+            <p className="mt-2 hidden max-w-2xl text-sm text-[var(--color-text-secondary)] lg:block">
+              Active and historical discipline records are listed with season and status controls.
+            </p>
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--league-primary)]/20 bg-[var(--league-primary)]/10">
+            <ShieldAlert className="w-7 h-7 text-[var(--league-primary)]" />
+          </div>
         </div>
 
         <SuspensionsClient

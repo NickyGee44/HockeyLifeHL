@@ -46,8 +46,8 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
     <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="container mx-auto px-4 py-8">
+      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_12%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))]">
+        <div className="container mx-auto px-4 py-8 lg:py-12">
           <Link
             href={`/${leagueSlug}/gallery`}
             className="inline-flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--league-primary)] transition-colors mb-4"
@@ -56,7 +56,7 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
             Back to Gallery
           </Link>
 
-          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)] lg:text-4xl lg:font-black">
             {album.title}
           </h1>
           {album.description && (
@@ -68,10 +68,10 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 lg:max-w-7xl">
         {photos.length === 0 ? (
-          <div className="text-center py-16">
-            <ImageIcon className="w-16 h-16 mx-auto text-[var(--color-text-muted)] mb-4" />
+          <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 py-16 text-center lg:py-24">
+            <ImageIcon className="w-16 h-16 mx-auto text-[var(--league-primary)]/70 mb-4" />
             <p className="text-[var(--color-text-secondary)]">
               No photos in this album yet.
             </p>

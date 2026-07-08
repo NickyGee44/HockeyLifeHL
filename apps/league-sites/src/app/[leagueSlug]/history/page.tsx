@@ -201,22 +201,30 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
     <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Hero Header */}
-      <div className="relative border-b border-[var(--color-border)] overflow-hidden">
+      <div className="relative overflow-hidden border-b border-[var(--color-border)] lg:min-h-[360px]">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--league-primary)]/10 via-transparent to-amber-500/5" />
-        <div className="relative container mx-auto px-4 py-12 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--league-primary)]/15 mb-4">
+        <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_18%_20%,color-mix(in_srgb,var(--league-primary)_22%,transparent),transparent_34%),radial-gradient(circle_at_82%_30%,rgba(245,158,11,0.14),transparent_32%)] lg:block" />
+        <div className="relative container mx-auto px-4 py-12 text-center lg:flex lg:min-h-[360px] lg:items-end lg:justify-between lg:gap-10 lg:py-14 lg:text-left">
+          <div>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--league-primary)]/15 mb-4 lg:h-20 lg:w-20 lg:border lg:border-[var(--league-primary)]/24">
             <Crown className="w-8 h-8 text-[var(--league-primary)]" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-[var(--color-text-primary)] mb-2">
+          <h1 className="text-3xl md:text-4xl font-black text-[var(--color-text-primary)] mb-2 lg:text-6xl">
             Hall of Fame & League History
           </h1>
           <p className="text-[var(--color-text-secondary)] text-lg">
             {league.name} &middot; Est. {foundingYear}
           </p>
+          </div>
+          <div className="mt-8 hidden grid-cols-3 gap-3 lg:grid lg:min-w-[520px]">
+            <StatCard icon={<Calendar className="w-6 h-6 text-blue-400" />} value={seasons.length} label="Seasons" />
+            <StatCard icon={<Trophy className="w-6 h-6 text-amber-400" />} value={uniqueChampions} label="Champions" />
+            <StatCard icon={<Users className="w-6 h-6 text-[var(--league-primary)]" />} value={leagueStats.totalTeams} label="Teams" />
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-12">
+      <div className="container mx-auto px-4 py-8 space-y-12 lg:max-w-7xl lg:py-12">
         {/* Champions Timeline */}
         <section>
           <SectionHeader icon={<Trophy className="w-5 h-5 text-amber-400" />} title="Champions Wall" />
