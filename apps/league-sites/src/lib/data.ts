@@ -4625,6 +4625,71 @@ export function summarizePlayerCareerTotals(
   } as PlayerStats;
 }
 
+export function summarizePlayerCareerTotalsFromTimeline(
+  playerId: string,
+  rows: PlayerCareerSeasonRow[],
+  isGoalie = false,
+): PlayerStats | null {
+  if (!rows || rows.length === 0) {
+    return null;
+  }
+
+  const totals = rows.reduce(
+    (acc, row) => ({
+      games_played: acc.games_played + (row.games_played || 0),
+      goals: acc.goals + (row.goals || 0),
+      assists: acc.assists + (row.assists || 0),
+      points: acc.points + (row.points || 0),
+      wins: acc.wins + (row.wins || 0),
+      losses: acc.losses + (row.losses || 0),
+      ties: acc.ties + (row.ties || 0),
+      saves: acc.saves + (row.saves || 0),
+      goals_against: acc.goals_against + (row.goals_against || 0),
+      shutouts: acc.shutouts + (row.shutouts || 0),
+    }),
+    {
+      games_played: 0,
+      goals: 0,
+      assists: 0,
+      points: 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      saves: 0,
+      goals_against: 0,
+      shutouts: 0,
+    },
+  );
+  const latest = rows[rows.length - 1];
+  const shotsAgainst = totals.saves + totals.goals_against;
+
+  return {
+    player_id: playerId,
+    player_name: '',
+    team_name: latest?.team_name || 'Career',
+    team_id: latest?.team_id || '',
+    position: latest?.position || null,
+    games_played: totals.games_played,
+    goals: totals.goals,
+    assists: totals.assists,
+    points: totals.points,
+    penalty_minutes: 0,
+    plus_minus: 0,
+    ...(isGoalie
+      ? {
+          wins: totals.wins,
+          losses: totals.losses,
+          ties: totals.ties,
+          saves: totals.saves,
+          goals_against: totals.goals_against,
+          shutouts: totals.shutouts,
+          save_percentage: shotsAgainst > 0 ? roundStatValue(totals.saves / shotsAgainst, 3) : 0,
+          goals_against_average: totals.games_played > 0 ? roundStatValue(totals.goals_against / totals.games_played) : 0,
+        }
+      : {}),
+  } as PlayerStats;
+}
+
 function emojiForHotFact(text: string) {
   const normalized = text.toLowerCase();
   if (normalized.includes('milestone') || normalized.includes('pace') || normalized.includes('tracking')) return '🔥';
@@ -5351,10 +5416,25 @@ export async function getPlayerCareerStatsTimeline(
 
 export async function getPlayerCareerStats(
   playerId: string,
-  seasonId?: string
+  seasonId?: string | null,
+  options: { leagueId?: string; isGoalie?: boolean } = {},
 ): Promise<PlayerStats | null> {
   const supabase = await createClient();
   const serviceSupabase = createServiceRoleClient();
+  const { leagueId, isGoalie = false } = options;
+
+  if (seasonId === null) {
+    if (!leagueId) {
+      return null;
+    }
+
+    const careerRows = filterVisiblePlayerCareerTimelineRows(
+      await getPlayerCareerStatsTimeline(leagueId, playerId, isGoalie, { includeHistoricalBaseline: true }),
+      { includeHistoricalBaseline: true },
+    );
+
+    return summarizePlayerCareerTotalsFromTimeline(playerId, careerRows, isGoalie);
+  }
 
   let seasonSummary: {
     games_played?: number | null;

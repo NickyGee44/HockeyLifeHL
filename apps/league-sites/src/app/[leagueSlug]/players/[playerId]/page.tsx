@@ -70,7 +70,8 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   // Treat ?season=all as the explicit career/all-time view.
   const currentSeason = await getCurrentSeason(league.id);
   const isCareerView = seasonFilter === 'all';
-  const seasonId = isCareerView ? undefined : (seasonFilter || currentSeason?.id);
+  const seasonId = isCareerView ? null : (seasonFilter || currentSeason?.id || null);
+  const selectedSeasonId = seasonId ?? undefined;
 
   // Use profile ID (player_id) for stats queries, not the URL param
   const profileId = player.player_id;
@@ -80,14 +81,16 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
   // Fetch data in parallel
   const [seasons, stats, gameLog, badges, importedCareerAchievements, playerArticles, matchupData, careerTimeline, careerTimelineWithBaseline] = await Promise.all([
     getSeasons(league.id),
-    getPlayerCareerStats(profileId, seasonId),
-    getPlayerGameLog(profileId, seasonId, 20),
+    getPlayerCareerStats(profileId, seasonId, { leagueId: league.id, isGoalie }),
+    isCareerView ? Promise.resolve([]) : getPlayerGameLog(profileId, selectedSeasonId, 20),
     getPlayerBadges(profileId),
     getImportedPlayerCareerAchievements(profileId),
     getPlayerArticles(profileId, 5),
-    isGoalie
-      ? getGoaliePlayerMatchups(profileId, seasonId)
-      : getPlayerGoalieMatchups(profileId, seasonId),
+    isCareerView
+      ? Promise.resolve([])
+      : isGoalie
+        ? getGoaliePlayerMatchups(profileId, selectedSeasonId)
+        : getPlayerGoalieMatchups(profileId, selectedSeasonId),
     getPlayerCareerStatsTimeline(league.id, profileId, isGoalie),
     getPlayerCareerStatsTimeline(league.id, profileId, isGoalie, { includeHistoricalBaseline: true }),
   ]);
@@ -108,8 +111,9 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
     shots: m.shots,
     shootingPct: m.shootingPct,
   }));
-  const currentSeasonName = seasons.find(s => s.id === seasonId)?.name;
-  const showPerGameHistory = !isAggregateOnlySeasonView(seasonId, currentSeasonName);
+  const currentSeasonName = selectedSeasonId ? seasons.find(s => s.id === selectedSeasonId)?.name : null;
+  const seasonHeading = isCareerView ? 'Career Stats' : currentSeasonName ? `${currentSeasonName} Stats` : 'Season Stats';
+  const showPerGameHistory = !isCareerView && !isAggregateOnlySeasonView(selectedSeasonId, currentSeasonName);
   const visibleCareerTimeline = filterVisiblePlayerCareerTimelineRows(careerTimeline);
   const careerTotalsTimeline = filterVisiblePlayerCareerTimelineRows(careerTimelineWithBaseline, {
     includeHistoricalBaseline: true,
@@ -147,19 +151,19 @@ export default async function PlayerPage({ params, searchParams }: PlayerPagePro
         <PlayerQuickActions playerId={playerId} leagueSlug={leagueSlug} />
 
         {/* Achievements Section */}
-        <PlayerBadgesSection badges={badges} seasonId={seasonId} />
+        <PlayerBadgesSection badges={badges} seasonId={selectedSeasonId} />
 
         {/* Season Filter Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />
             <h2 className="text-xl font-bold text-[var(--color-text-primary)]">
-              {currentSeasonName ? `${currentSeasonName} Stats` : 'Season Stats'}
+              {seasonHeading}
             </h2>
           </div>
           <SeasonSelector
             seasons={seasons}
-            currentSeasonId={seasonId}
+            currentSeasonId={selectedSeasonId}
             leagueSlug={leagueSlug}
             playerId={playerId}
           />
