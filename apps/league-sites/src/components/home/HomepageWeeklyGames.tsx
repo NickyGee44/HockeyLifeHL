@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -651,16 +651,15 @@ export function HomepageWeeklyGames({
   const [activeIndex, setActiveIndex] = useState(0);
   const isCompactView = view === 'compact';
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [games.length]);
+  const resolvedActiveIndex =
+    games.length > 0 ? Math.min(activeIndex, games.length - 1) : 0;
 
   const handleNavigate = (direction: number) => {
     if (games.length === 0 || direction === 0) {
       return;
     }
 
-    const currentIndex = activeIndex;
+    const currentIndex = resolvedActiveIndex;
     const nextIndex = (currentIndex + direction) % games.length;
     setActiveIndex(nextIndex >= 0 ? nextIndex : games.length + nextIndex);
   };
@@ -692,7 +691,7 @@ export function HomepageWeeklyGames({
             aria-label={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
             aria-pressed={isCompactView}
             onClick={() => setView((current) => (current === 'cool' ? 'compact' : 'cool'))}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)]"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/82 text-[var(--league-primary)] shadow-[0_16px_40px_-28px_rgba(0,0,0,0.7)] transition-colors duration-200 hover:border-[var(--league-primary)] hover:text-[var(--color-text-primary)] lg:hidden"
             title={isCompactView ? 'Switch to cool view' : 'Switch to compact view'}
           >
             {isCompactView ? <ImageIcon className="h-5 w-5" /> : <List className="h-5 w-5" />}
@@ -702,21 +701,52 @@ export function HomepageWeeklyGames({
       ) : null}
 
       {games.length > 0 ? (
-        view === 'cool' ? (
-          <CoolView
-            games={games}
-            activeIndex={activeIndex}
-            onNavigate={handleNavigate}
-            leagueSlug={leagueSlug}
-            timezone={timezone}
-            minimal={isTeamVariant}
-            blendToPage={shouldBlendHeroToPage}
-            teamActions={teamActions}
-            backgroundPreset={backgroundPreset}
-          />
-        ) : (
-          <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
-        )
+        <>
+          <div className={showViewToggle ? 'lg:hidden' : ''}>
+            {view === 'cool' ? (
+              <CoolView
+                games={games}
+                activeIndex={resolvedActiveIndex}
+                onNavigate={handleNavigate}
+                leagueSlug={leagueSlug}
+                timezone={timezone}
+                minimal={isTeamVariant}
+                blendToPage={shouldBlendHeroToPage}
+                teamActions={teamActions}
+                backgroundPreset={backgroundPreset}
+              />
+            ) : (
+              <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
+            )}
+          </div>
+
+          {showViewToggle ? (
+            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1.28fr)_minmax(360px,0.72fr)] lg:items-start lg:gap-5 xl:gap-6">
+              <CoolView
+                games={games}
+                activeIndex={resolvedActiveIndex}
+                onNavigate={handleNavigate}
+                leagueSlug={leagueSlug}
+                timezone={timezone}
+                minimal={isTeamVariant}
+                blendToPage={shouldBlendHeroToPage}
+                teamActions={teamActions}
+                backgroundPreset={backgroundPreset}
+              />
+              <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-4 shadow-[0_34px_80px_-56px_rgba(0,0,0,0.9)] backdrop-blur">
+                <div className="mb-2 flex items-center justify-between gap-3 px-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                    Full slate
+                  </p>
+                  <p className="text-[11px] font-semibold text-[var(--league-primary)]">
+                    {games.length} {games.length === 1 ? 'game' : 'games'}
+                  </p>
+                </div>
+                <CompactView games={games} leagueSlug={leagueSlug} timezone={timezone} />
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : (
         <Card variant="glass" padding="lg" hover={false} className="mt-6">
           <div className="flex flex-col items-center gap-3 text-center">

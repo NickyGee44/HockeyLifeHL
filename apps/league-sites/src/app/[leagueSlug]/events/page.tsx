@@ -69,9 +69,9 @@ export default async function EventsPage({ params }: EventsPageProps) {
 
   return (
     <main className="min-h-screen bg-[var(--color-background)]">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 lg:rounded-[32px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/58 lg:p-8 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
           <div className="flex items-center gap-3 mb-2">
             <Calendar className="w-6 h-6 text-[var(--league-primary)]" />
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
@@ -82,14 +82,22 @@ export default async function EventsPage({ params }: EventsPageProps) {
         </div>
 
         {events.length === 0 ? (
-          <div className="py-20 text-center">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-secondary)] opacity-30" />
+          <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 py-20 text-center">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-[var(--league-primary)]/70" />
             <p className="text-lg font-semibold text-[var(--color-text-secondary)]">
               No upcoming events
             </p>
             <p className="text-sm text-[var(--color-text-secondary)] opacity-60 mt-1">
               Check back soon for announcements.
             </p>
+            <div className="mt-6 hidden justify-center gap-3 lg:flex">
+              <a href={`/${leagueSlug}/schedule`} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
+                View schedule
+              </a>
+              <a href={`/${leagueSlug}/news`} className="rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
+                League news
+              </a>
+            </div>
           </div>
         ) : (
           <div className="space-y-10">

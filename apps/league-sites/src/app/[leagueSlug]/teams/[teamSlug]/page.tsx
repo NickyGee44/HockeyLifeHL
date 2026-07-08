@@ -342,7 +342,53 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   </div>
                 </div>
 
-                <div className="hidden xl:block" />
+                <div className="hidden xl:grid xl:grid-cols-2 xl:gap-5">
+                  <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-6 shadow-[0_30px_80px_-58px_rgba(0,0,0,0.95)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                      Next game
+                    </p>
+                    <div className="mt-6 flex items-center justify-between gap-4">
+                      <Image
+                        src={logoSrc}
+                        alt={team.name}
+                        width={96}
+                        height={96}
+                        className="h-20 w-20 object-contain"
+                      />
+                      <div className="text-center">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                          vs
+                        </p>
+                        <p className="mt-1 text-2xl font-black text-[var(--color-text-primary)]">
+                          {nextOpponentName}
+                        </p>
+                      </div>
+                      <Image
+                        src={nextOpponentBrand?.logo_url || nextOpponentBrand?.logo || '/blank_team.png'}
+                        alt={nextOpponentName}
+                        width={96}
+                        height={96}
+                        className="h-20 w-20 object-contain"
+                      />
+                    </div>
+                    <p className="mt-6 text-sm leading-6 text-[var(--color-text-secondary)]">
+                      {nextTeamGame
+                        ? `${new Date(nextTeamGame.scheduled_at).toLocaleDateString()} at ${nextTeamGame.venue || 'venue TBD'}`
+                        : 'No upcoming game is on the public slate yet.'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-6 shadow-[0_30px_80px_-58px_rgba(0,0,0,0.95)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                      Team pulse
+                    </p>
+                    <div className="mt-6 space-y-5">
+                      <TeamPulseBar label="Win rate" value={teamStats && gamesPlayed > 0 ? (teamStats.wins / gamesPlayed) * 100 : 0} display={winPctDisplay} />
+                      <TeamPulseBar label="Goal share" value={teamStats ? Math.max(0, Math.min(100, ((teamStats.goals_for ?? 0) / Math.max((teamStats.goals_for ?? 0) + (teamStats.goals_against ?? 0), 1)) * 100)) : 0} display={`${teamStats?.goals_for ?? 0} GF`} />
+                      <TeamPulseBar label="Differential" value={teamStats ? Math.max(0, Math.min(100, 50 + (teamStats.goal_differential ?? 0) * 4)) : 0} display={teamStats ? formatGoalDifferential(teamStats.goal_differential) : '-'} />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -606,6 +652,27 @@ function HeroPill({ label, value, accent }: { label: string; value: string | num
       <span className={`text-sm font-black ${accent ? 'text-[var(--league-primary)]' : 'text-[var(--color-text-primary)]'}`}>
         {value}
       </span>
+    </div>
+  );
+}
+
+function TeamPulseBar({ label, value, display }: { label: string; value: number; display: string }) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+          {label}
+        </span>
+        <span className="text-sm font-black text-[var(--color-text-primary)]">
+          {display}
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
+        <div
+          className="h-full rounded-full bg-[var(--league-primary)]"
+          style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
+        />
+      </div>
     </div>
   );
 }

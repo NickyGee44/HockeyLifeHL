@@ -296,7 +296,7 @@ class BugReportCollector {
 
     this.originalFetch = window.fetch.bind(window);
 
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const patchedFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
       const method = (init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
       const url = input instanceof Request ? input.url : String(input);
 
@@ -331,7 +331,10 @@ class BugReportCollector {
         });
         throw error;
       }
-    };
+    }) as typeof window.fetch;
+
+    Object.assign(patchedFetch, window.fetch);
+    window.fetch = patchedFetch;
   }
 
   private bindNavigationTracking() {

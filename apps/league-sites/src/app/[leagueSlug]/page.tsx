@@ -571,10 +571,10 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         spotlight={null}
       />
 
-      <div className="mx-auto max-w-[1400px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-          <div className="space-y-6">
-            <section>
+      <div className="mx-auto max-w-[1480px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-12 xl:gap-8">
+          <div className="space-y-6 lg:col-span-8 xl:col-span-9">
+            <section className="lg:rounded-[34px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/35 lg:p-5 lg:shadow-[0_40px_100px_-72px_rgba(0,0,0,0.95)]">
               <HomepageWeeklyGames
                 games={weeklyGames}
                 leagueSlug={leagueSlug}
@@ -583,7 +583,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
               />
             </section>
 
-            <section>
+            <section className="lg:rounded-[34px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/35 lg:p-5 lg:shadow-[0_40px_100px_-72px_rgba(0,0,0,0.95)]">
               <SectionHeading
                 title="League Leaders"
                 icon={<BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />}
@@ -600,12 +600,12 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </section>
           </div>
 
-          <section>
+          <section className="lg:col-span-4 xl:col-span-3">
             <SectionHeading
               title="Standings"
               icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
             />
-            <div className={`${panelClass} mt-4 p-6 md:p-7`}>
+            <div className={`${panelClass} mt-4 p-6 md:p-7 lg:sticky lg:top-24`}>
               {divisions.length > 1 ? (
                 <DivisionStandingsWidget standings={standings} divisions={divisions} />
               ) : (
@@ -616,7 +616,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         </div>
 
         {reelPhotos.length > 0 ? (
-          <section>
+          <section className="lg:rounded-[34px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/35 lg:p-5 lg:shadow-[0_40px_100px_-72px_rgba(0,0,0,0.95)]">
             <div className="flex items-center justify-between">
               <SectionHeading
                 title="League Photos"
