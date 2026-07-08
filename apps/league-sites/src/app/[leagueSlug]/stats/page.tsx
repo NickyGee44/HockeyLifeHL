@@ -49,10 +49,10 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
   ]);
 
   const mode: StatsMode = modeParam === 'goalies' ? 'goalies' : 'skaters';
-  const isAllTime = view === 'all-time';
-  const requestedSeason = seasonParam ? seasons.find((season) => season.id === seasonParam) : null;
+  const isAllTime = view === 'all-time' || seasonParam === 'all';
+  const requestedSeason = seasonParam && seasonParam !== 'all' ? seasons.find((season) => season.id === seasonParam) : null;
   const selectedSeasonId = isAllTime ? null : (requestedSeason?.id || currentSeason?.id || seasons[0]?.id || null);
-  const selectedSeason = seasons.find((season) => season.id === selectedSeasonId) || currentSeason || null;
+  const selectedSeason = selectedSeasonId ? seasons.find((season) => season.id === selectedSeasonId) || currentSeason || null : null;
   const effectiveDivisionFilter = isAllTime ? undefined : divisionFilter;
 
   const [teams, skaterRows, goalieRows] = await Promise.all([
