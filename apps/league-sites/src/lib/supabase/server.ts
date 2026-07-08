@@ -8,8 +8,10 @@ import { cookies } from 'next/headers';
  * for PostgREST calls in Next.js 16, so we use @supabase/supabase-js
  * directly with a custom fetch for public data reads.
  */
-const noStoreFetch: typeof globalThis.fetch = (input, init) =>
-  fetch(input, { ...init, cache: 'no-store' });
+const noStoreFetch = Object.assign(
+  ((input, init) => fetch(input, { ...init, cache: 'no-store' })) as typeof globalThis.fetch,
+  globalThis.fetch
+);
 
 function createEmptyQueryBuilder(single = false): any {
   const listResult = Promise.resolve({ data: [], error: null, count: 0 });

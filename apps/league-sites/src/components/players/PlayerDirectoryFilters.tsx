@@ -98,7 +98,7 @@ export function PlayerDirectoryFilters({
   const hasFilters = selectedTeam || selectedPosition || searchQuery || selectedDivision;
 
   return (
-    <div className="mb-8 space-y-4">
+    <div className="mb-8 space-y-4 lg:sticky lg:top-24 lg:rounded-[28px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/70 lg:p-5 lg:shadow-[0_30px_90px_-64px_rgba(0,0,0,0.95)] lg:backdrop-blur">
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="relative" aria-label="Search players">
         <label htmlFor="player-directory-search" className="sr-only">
@@ -122,7 +122,7 @@ export function PlayerDirectoryFilters({
       </form>
 
       {/* Filter Row */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-3 items-center lg:flex-col lg:items-stretch">
         <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
           <Filter aria-hidden="true" className="w-4 h-4" />
           <span className="text-sm font-medium">Filter by:</span>

@@ -56,7 +56,7 @@ export function TeamRosterToggle({
 
   useEffect(() => {
     if (!availabilityGameId || !availabilityTeamId) {
-      setAvailabilityMap({});
+      queueMicrotask(() => setAvailabilityMap({}));
       return;
     }
 
@@ -116,7 +116,7 @@ export function TeamRosterToggle({
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
           {title}
         </h2>
-        <div className="inline-flex items-center self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="inline-flex items-center self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] lg:hidden">
           <button
             type="button"
             onClick={() => setView('lineup')}
@@ -146,17 +146,47 @@ export function TeamRosterToggle({
         </div>
       </div>
 
-      {view === 'lineup' ? (
-        <TeamLineupView
-          skaters={skaters}
-          goalies={goalies}
-          primaryColor={primaryColor}
-          secondaryColor={secondaryColor}
-          availabilityMap={availabilityMap}
-        />
-      ) : (
-        statsView
-      )}
+      <div className="lg:hidden">
+        {view === 'lineup' ? (
+          <TeamLineupView
+            skaters={skaters}
+            goalies={goalies}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            availabilityMap={availabilityMap}
+          />
+        ) : (
+          statsView
+        )}
+      </div>
+
+      <div className="hidden gap-6 lg:grid lg:grid-cols-[minmax(380px,0.95fr)_minmax(0,1.05fr)] lg:items-start">
+        <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/55 p-4 shadow-[0_30px_80px_-56px_rgba(0,0,0,0.9)]">
+          <div className="mb-3 flex items-center gap-2 px-1">
+            <JerseyIcon className="h-4 w-4 text-[var(--league-primary)]" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+              Lineup board
+            </p>
+          </div>
+          <TeamLineupView
+            skaters={skaters}
+            goalies={goalies}
+            primaryColor={primaryColor}
+            secondaryColor={secondaryColor}
+            availabilityMap={availabilityMap}
+          />
+        </div>
+
+        <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/55 p-4 shadow-[0_30px_80px_-56px_rgba(0,0,0,0.9)]">
+          <div className="mb-3 flex items-center gap-2 px-1">
+            <List className="h-4 w-4 text-[var(--league-primary)]" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+              Roster stats
+            </p>
+          </div>
+          {statsView}
+        </div>
+      </div>
     </div>
   );
 }

@@ -63,12 +63,18 @@ export function PhotoLightbox({ photos, initialIndex = 0 }: PhotoLightboxProps) 
   return (
     <>
       {/* Photo Grid (clickable thumbnails) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:auto-rows-[150px] lg:grid-cols-6 xl:auto-rows-[170px]">
         {photos.map((photo, index) => (
           <button
             key={photo.id}
             onClick={() => open(index)}
-            className="group relative aspect-square overflow-hidden rounded-lg bg-[var(--color-background)] border border-[var(--color-border)] hover:border-[var(--league-primary)]/50 transition-all"
+            className={`group relative aspect-square overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] transition-all hover:border-[var(--league-primary)]/50 lg:aspect-auto lg:rounded-2xl ${
+              index % 9 === 0
+                ? 'lg:col-span-2 lg:row-span-2'
+                : index % 7 === 0
+                  ? 'lg:col-span-2'
+                  : ''
+            }`}
           >
             <Image
               src={photo.thumbnail_url || photo.url}

@@ -1048,7 +1048,7 @@ export function StatsWorkspace({
       </div>
 
       <section className="space-y-5">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 lg:hidden">
           <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
             <button
               type="button"
@@ -1118,6 +1118,186 @@ export function StatsWorkspace({
               </span>
             ) : null}
           </button>
+        </div>
+
+        <div className="hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-4 shadow-[0_34px_90px_-66px_rgba(0,0,0,0.95)] backdrop-blur lg:block">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
+                Stats command
+              </p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
+                {mode === "skaters" ? "Skater" : "Goalie"} workspace
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr]">
+            <div className="flex rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+              <button
+                type="button"
+                onClick={() => handleModeChange("skaters")}
+                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                  mode === "skaters"
+                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                }`}
+              >
+                Players
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange("goalies")}
+                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                  mode === "goalies"
+                    ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                }`}
+              >
+                Goalies
+              </button>
+            </div>
+
+            <select
+              value={isAllTime ? "all-time" : selectedSeasonId}
+              onChange={(event) => {
+                if (event.target.value === "all-time") {
+                  handleViewChange(true);
+                  return;
+                }
+                updateUrl((params) => {
+                  params.delete("view");
+                  params.set("season", event.target.value);
+                });
+              }}
+              className={MODAL_SELECT_CLASS}
+            >
+              <option value="all-time">All time</option>
+              {seasons.map((season) => (
+                <option key={season.id} value={season.id}>
+                  {season.name}{season.id === currentSeasonId ? " (Current)" : ""}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={requestedPreset}
+              onChange={(event) => {
+                updateUrl((params) => {
+                  if (event.target.value === "balanced") {
+                    params.delete("statsType");
+                  } else {
+                    params.set("statsType", event.target.value);
+                  }
+                });
+              }}
+              className={MODAL_SELECT_CLASS}
+            >
+              {presetOptions.map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedDivisionId || ""}
+              onChange={(event) => {
+                const nextDivisionId = event.target.value || null;
+                prevDivisionRef.current = nextDivisionId;
+                setDivision(nextDivisionId);
+                updateUrl((params) => {
+                  if (nextDivisionId) {
+                    params.set("division", nextDivisionId);
+                    params.delete("team");
+                  } else {
+                    params.delete("division");
+                  }
+                });
+              }}
+              className={MODAL_SELECT_CLASS}
+            >
+              <option value="">All divisions</option>
+              {divisions.map((division) => (
+                <option key={division.id} value={division.id}>
+                  {division.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={currentTeamFilter}
+              onChange={(event) => {
+                updateUrl((params) => {
+                  if (event.target.value) {
+                    params.set("team", event.target.value);
+                  } else {
+                    params.delete("team");
+                  }
+                });
+              }}
+              className={MODAL_SELECT_CLASS}
+            >
+              <option value="">All teams</option>
+              {(selectedDivisionId
+                ? sortedTeamOptions.filter((team) => team.division_id === selectedDivisionId)
+                : sortedTeamOptions
+              ).map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={currentPositionFilter}
+              disabled={mode === "goalies"}
+              onChange={(event) => {
+                updateUrl((params) => {
+                  if (event.target.value) {
+                    params.set("position", event.target.value);
+                  } else {
+                    params.delete("position");
+                  }
+                });
+              }}
+              className={`${MODAL_SELECT_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              <option value="">All positions</option>
+              {positionOptions.map((position) => (
+                <option key={position} value={position}>
+                  {position}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3">
+            <Search className="h-4 w-4 shrink-0 text-[var(--league-primary)]" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+            />
+            {searchTerm ? (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="rounded-full text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {activeFilterTags.length > 0 ? (
@@ -1386,6 +1566,42 @@ export function StatsWorkspace({
             </p>
           </div>
         )}
+
+        <div className="hidden grid-cols-3 gap-3 lg:grid">
+          <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+              Visible result
+            </p>
+            <p className="mt-2 text-2xl font-black text-[var(--color-text-primary)]">
+              {filteredRows.length}
+            </p>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              of {scopeRows.length} scoped rows
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+              Active sort
+            </p>
+            <p className="mt-2 text-2xl font-black uppercase text-[var(--color-text-primary)]">
+              {columns.find((column) => column.key === currentSort)?.label || currentSort}
+            </p>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              {currentDirection === "desc" ? "High to low" : "Low to high"}
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+              Filters
+            </p>
+            <p className="mt-2 text-2xl font-black text-[var(--color-text-primary)]">
+              {activeFilterCount}
+            </p>
+            <p className="mt-1 truncate text-sm text-[var(--color-text-secondary)]">
+              {activeFilterTags.length > 0 ? activeFilterTags.join(" | ") : "League-wide view"}
+            </p>
+          </div>
+        </div>
 
         <div>
           <div className="flex justify-end">

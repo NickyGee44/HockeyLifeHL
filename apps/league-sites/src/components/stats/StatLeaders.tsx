@@ -175,6 +175,34 @@ export function StatLeaders({
 
   const podiumLeaders =
     leaders.length <= 1 ? leaders : leaders.length === 2 ? [leaders[1], leaders[0]] : [leaders[1], leaders[0], leaders[2]];
+  const getMetricLeaders = (metricId: LeaderMetric) =>
+    [...rows]
+      .map((row) => ({
+        player_id: row.player_id,
+        player_name: row.player_name,
+        avatar_url: row.avatar_url,
+        team_name: row.team_name,
+        display_team_name: row.display_team_name || row.team_name,
+        display_team_logo_url: row.display_team_logo_url || null,
+        value: getMetricValue(row, metricId),
+      }))
+      .filter((row) => shouldIncludeMetricValue(metricId, row.value))
+      .sort((left, right) => {
+        const primary =
+          metricId === 'goals_against_average'
+            ? left.value - right.value
+            : right.value - left.value;
+        if (primary !== 0) {
+          return primary;
+        }
+
+        return left.player_name.localeCompare(right.player_name);
+      })
+      .slice(0, 5);
+  const desktopMetrics =
+    mode === 'skaters'
+      ? metrics.filter((metric) => metric.id === 'goals' || metric.id === 'assists' || metric.id === 'points')
+      : metrics.slice(0, 3);
 
   return (
     <div className="league-shell-panel rounded-[30px] border border-[var(--color-border)] p-4 md:p-6">
@@ -186,7 +214,7 @@ export function StatLeaders({
         </div>
       )}
 
-      <div className={hideTitle ? '' : 'mt-5 border-t border-[var(--color-border)] pt-5'}>
+      <div className={`${hideTitle ? '' : 'mt-5 border-t border-[var(--color-border)] pt-5'} lg:hidden`}>
         <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {metrics.map((metric) => {
             const Icon = metric.icon;
@@ -312,6 +340,92 @@ export function StatLeaders({
             <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{activeMetric.emptyLabel}</p>
           </div>
         )}
+      </div>
+
+      <div className={`${hideTitle ? '' : 'mt-5 border-t border-[var(--color-border)] pt-5'} hidden lg:grid lg:grid-cols-3 lg:gap-4`}>
+        {desktopMetrics.map((metric) => {
+          const Icon = metric.icon;
+          const metricLeaders = getMetricLeaders(metric.id);
+
+          return (
+            <section
+              key={metric.id}
+              className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]/62 p-4 shadow-[0_22px_58px_-46px_rgba(0,0,0,0.85)]"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-[var(--league-primary)]/22 bg-[var(--league-primary)]/12 text-[var(--league-primary)]">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+                      Leaders
+                    </p>
+                    <h3 className="text-base font-black text-[var(--color-text-primary)]">
+                      {metric.label}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+
+              {metricLeaders.length > 0 ? (
+                <div className="space-y-2">
+                  {metricLeaders.map((leader, index) => {
+                    const teamLogo = leader.display_team_logo_url || '/blank_team.png';
+                    const teamName = leader.display_team_name || leader.team_name || 'Team';
+                    const playerBadges = badges?.[leader.player_id] || [];
+
+                    return (
+                      <Link
+                        key={`${metric.id}-${leader.player_id}`}
+                        href={`/${leagueSlug}/players/${leader.player_id}`}
+                        className="group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border border-transparent px-2.5 py-2 transition-colors hover:border-[var(--league-primary)]/24 hover:bg-[var(--color-surface)]/72"
+                      >
+                        <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
+                          index < 3
+                            ? 'bg-[var(--league-primary)]/18 text-[var(--league-primary)]'
+                            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <img
+                              src={teamLogo}
+                              alt={teamName}
+                              className="h-7 w-7 shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] object-contain p-0.5"
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">
+                                {leader.player_name}
+                              </p>
+                              <p className="truncate text-[11px] text-[var(--color-text-muted)]">
+                                {teamName}
+                              </p>
+                            </div>
+                          </div>
+                          {playerBadges.length > 0 ? (
+                            <div className="mt-1 pl-9">
+                              <PlayerBadgeGroup badges={playerBadges} maxVisible={2} size="sm" />
+                            </div>
+                          ) : null}
+                        </div>
+                        <span className="text-lg font-black tabular-nums text-[var(--league-primary)]">
+                          {formatMetricValue(metric.id, leader.value)}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[18px] border border-dashed border-[var(--glass-card-border)] bg-[var(--color-surface)]/40 px-4 py-8 text-center">
+                  <p className="text-sm font-semibold text-[var(--color-text-primary)]">No leaders yet</p>
+                  <p className="mt-1 text-xs text-[var(--color-text-secondary)]">{metric.emptyLabel}</p>
+                </div>
+              )}
+            </section>
+          );
+        })}
       </div>
     </div>
   );

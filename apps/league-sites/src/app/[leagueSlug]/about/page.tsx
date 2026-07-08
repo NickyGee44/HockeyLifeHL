@@ -37,12 +37,20 @@ export default async function AboutPage({ params }: AboutPageProps) {
   ]);
 
   const rulesContent = (league.settings as Record<string, unknown>)?.rules as string | undefined;
+  const uniqueStaff = Array.from(
+    new Map(
+      staff.map((member: any) => [
+        member.id || member.profile_id || member.email || member.name,
+        member,
+      ]),
+    ).values(),
+  ) as typeof staff;
 
   return (
-    <div className="container mx-auto px-4 py-12 animate-fade-in">
+    <div className="container mx-auto px-4 py-12 animate-fade-in lg:max-w-7xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4">
+      <div className="mb-8 lg:rounded-[32px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/58 lg:p-8 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4 lg:text-5xl lg:font-black">
           <Info className="w-8 h-8 text-[var(--league-primary)]" />
           About {league.name}
         </h1>
@@ -126,13 +134,13 @@ export default async function AboutPage({ params }: AboutPageProps) {
           </section>
 
           {/* Staff Directory */}
-          {staff.length > 0 && (
+          {uniqueStaff.length > 0 && (
             <section>
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Users className="w-6 h-6 text-[var(--league-primary)]" />
                 Staff Directory
               </h2>
-              <StaffGrid staff={staff} />
+              <StaffGrid staff={uniqueStaff} />
             </section>
           )}
 
@@ -146,7 +154,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
         </div>
 
         {/* Sidebar - Contact Info */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           {/* Contact Card */}
           <section className="card p-6">
             <h3 className="text-lg font-bold mb-4">Contact Information</h3>

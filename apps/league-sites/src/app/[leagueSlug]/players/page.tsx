@@ -164,13 +164,13 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
     <SubscriptionWall>
     <div className="min-h-screen bg-[var(--color-background)]">
       {/* Header */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="container mx-auto px-4 py-8">
+      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_14%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))]">
+        <div className="container mx-auto px-4 py-8 lg:py-12">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/10 flex items-center justify-center lg:h-14 lg:w-14 lg:rounded-2xl lg:border lg:border-[var(--league-primary)]/20">
               <Users className="w-5 h-5 text-[var(--league-primary)]" />
             </div>
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+            <h1 className="text-2xl font-bold text-[var(--color-text-primary)] lg:text-4xl lg:font-black">
               Player Directory
             </h1>
           </div>
@@ -181,34 +181,50 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Filters */}
-        <PlayerDirectoryFilters
-          teams={filteredTeams}
-          divisions={divisions}
-          positions={positions}
-          selectedTeam={team}
-          selectedPosition={position}
-          selectedDivision={divisionFilter}
-          searchQuery={search}
-          leagueSlug={leagueSlug}
-        />
+        <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[340px_minmax(0,1fr)]">
+          <PlayerDirectoryFilters
+            teams={filteredTeams}
+            divisions={divisions}
+            positions={positions}
+            selectedTeam={team}
+            selectedPosition={position}
+            selectedDivision={divisionFilter}
+            searchQuery={search}
+            leagueSlug={leagueSlug}
+          />
 
-        {/* Players Grid */}
-        {players.length === 0 ? (
-          <div className="text-center py-16">
-            <User className="w-16 h-16 mx-auto text-[var(--color-text-muted)] mb-4" />
-            <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
-              No players found
-            </h3>
-            <p className="text-[var(--color-text-secondary)]">
-              {search
-                ? `No players match "${search}"`
-                : 'Try adjusting your filters'}
-            </p>
+          <div>
+            <div className="mb-4 hidden items-center justify-between gap-4 lg:flex">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                  Roster browser
+                </p>
+                <h2 className="mt-1 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
+                  {players.length} active listing{players.length === 1 ? '' : 's'}
+                </h2>
+              </div>
+              <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/72 px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)]">
+                Dense list view
+              </div>
+            </div>
+
+            {players.length === 0 ? (
+              <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 py-16 text-center">
+                <User className="w-16 h-16 mx-auto text-[var(--color-text-muted)] mb-4" />
+                <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+                  No players found
+                </h3>
+                <p className="text-[var(--color-text-secondary)]">
+                  {search
+                    ? `No players match "${search}"`
+                    : 'Try adjusting your filters'}
+                </p>
+              </div>
+            ) : (
+              <PlayerGrid players={players} leagueSlug={leagueSlug} badges={badges} />
+            )}
           </div>
-        ) : (
-          <PlayerGrid players={players} leagueSlug={leagueSlug} badges={badges} />
-        )}
+        </div>
       </div>
     </div>
     </SubscriptionWall>

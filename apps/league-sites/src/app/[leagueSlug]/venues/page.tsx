@@ -137,8 +137,8 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
   return (
     <SubscriptionWall>
       <div className="min-h-screen bg-[var(--color-background)]">
-        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-          <div className="container mx-auto px-4 py-8">
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_12%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))]">
+          <div className="container mx-auto px-4 py-8 lg:py-12">
             <div className="mb-2 flex items-center gap-3">
               {league.logo_url ? (
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)]">
@@ -155,7 +155,7 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
                   <MapPin className="h-5 w-5 text-[var(--league-primary)]" />
                 </div>
               )}
-              <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
+              <h1 className="text-2xl font-bold text-[var(--color-text-primary)] lg:text-4xl lg:font-black">
                 Venues & Arenas
               </h1>
             </div>
@@ -165,13 +165,21 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 lg:max-w-7xl">
           {venues.length === 0 ? (
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center">
-              <Building2 className="mx-auto mb-4 h-12 w-12 text-[var(--color-text-muted)]" />
+            <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-8 text-center lg:py-20">
+              <Building2 className="mx-auto mb-4 h-12 w-12 text-[var(--league-primary)]/70" />
               <p className="text-[var(--color-text-secondary)]">
                 No venues have been configured for this league yet.
               </p>
+              <div className="mt-6 hidden justify-center gap-3 lg:flex">
+                <Link href={`/${leagueSlug}/schedule`} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
+                  View schedule
+                </Link>
+                <Link href={`/${leagueSlug}/contact`} className="rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
+                  Contact league
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
