@@ -2,6 +2,7 @@ import {
   filterVisiblePlayerCareerTimelineRows,
   generatePlayerCareerHotFacts,
   summarizePlayerCareerTotals,
+  summarizePlayerCareerTotalsFromTimeline,
   type PlayerCareerSeasonRow,
 } from '../data';
 import { getMobileVisibleColumns } from '../../components/stats/StatsWorkspace';
@@ -150,6 +151,33 @@ describe('player career timeline visibility and hot facts', () => {
     });
 
     expect(facts[0]).toContain('76 career points');
+  });
+
+  it('sums baseline plus every visible league season for all-time player cards', () => {
+    const summerRow: PlayerCareerSeasonRow = {
+      ...springRow,
+      season_id: 'summer-2026',
+      season_name: 'Summer 2026',
+      sort_date: '2026-07-01',
+      team_name: 'London Eco Metal',
+      games_played: 1,
+      goals: 3,
+      assists: 1,
+      points: 4,
+    };
+
+    const rows = filterVisiblePlayerCareerTimelineRows(
+      [baselineRow, winterRow, springRow, summerRow, { ...winterRow, season_id: 'unknown', season_name: 'Unknown Season' }],
+      { includeHistoricalBaseline: true },
+    );
+
+    expect(summarizePlayerCareerTotalsFromTimeline('player-1', rows)).toMatchObject({
+      games_played: 35,
+      goals: 36,
+      assists: 44,
+      points: 80,
+      team_name: 'London Eco Metal',
+    });
   });
 });
 
