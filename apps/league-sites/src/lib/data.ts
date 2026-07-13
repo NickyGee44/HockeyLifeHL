@@ -3467,44 +3467,66 @@ async function getNativeUnifiedSkaterStatsRows(
 
   // All-time public stats are rendered server-side and must include every completed
   // Hockey Life game, including the active/current season. Use the service client for
-  // all-time native aggregation so public/RLS/client-view quirks cannot leave the
-  // lower stats table behind the player profile totals.
+  // all-time native aggregation so the lower stats table stays aligned with player
+  // profile career totals.
   const supabase = seasonId == null ? createServiceRoleClient() : await createClient();
-  let query = supabase
-    .from('player_stats')
-    .select(`
-      player_id,
-      team_id,
-      season_id,
-      game_id,
-      goals,
-      assists,
-      shots,
-      penalty_minutes,
-      plus_minus,
-      power_play_goals,
-      power_play_assists,
-      short_handed_goals,
-      short_handed_assists,
-      empty_net_goals,
-      game_winning_goals,
-      game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified),
-      player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
-      team:teams!player_stats_team_id_fkey(name, divisions(name))
-    `)
-    .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed');
+  const buildStatsQuery = () => {
+    let query = supabase
+      .from('player_stats')
+      .select(`
+        player_id,
+        team_id,
+        season_id,
+        game_id,
+        goals,
+        assists,
+        shots,
+        penalty_minutes,
+        plus_minus,
+        power_play_goals,
+        power_play_assists,
+        short_handed_goals,
+        short_handed_assists,
+        empty_net_goals,
+        game_winning_goals,
+        game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified),
+        player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
+        team:teams!player_stats_team_id_fkey(name, divisions(name))
+      `)
+      .eq('game.league_id', leagueId)
+      .eq('game.status', 'completed');
 
-  if (seasonId) {
-    query = query.eq('game.season_id', seasonId);
+    if (seasonId) {
+      query = query.eq('game.season_id', seasonId);
+    }
+
+    if (filteredTeamIds) {
+      query = query.in('team_id', filteredTeamIds);
+    }
+
+    return query;
+  };
+
+  const pageSize = 1000;
+  const allStatsRows: unknown[] = [];
+  let error: unknown = null;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: pageData, error: pageError } = await buildStatsQuery().range(offset, offset + pageSize - 1);
+    if (pageError) {
+      error = pageError;
+      break;
+    }
+    if (!pageData || pageData.length === 0) {
+      break;
+    }
+    allStatsRows.push(...pageData);
+    if (pageData.length < pageSize) {
+      break;
+    }
   }
 
-  if (filteredTeamIds) {
-    query = query.in('team_id', filteredTeamIds);
-  }
-
-  const { data, error } = await query;
-  const hasStatData = !error && data && data.length > 0;
+  const data = allStatsRows as RawSkaterStatsRow[];
+  const hasStatData = !error && data.length > 0;
 
   let visibleRows: RawSkaterStatsRow[] = [];
   if (hasStatData) {
@@ -3820,39 +3842,61 @@ async function getNativeUnifiedGoalieStatsRows(
   }
 
   const supabase = seasonId == null ? createServiceRoleClient() : await createClient();
-  let query = supabase
-    .from('goalie_stats')
-    .select(`
-      player_id,
-      team_id,
-      season_id,
-      game_id,
-      saves,
-      shots_against,
-      goals_against,
-      shutout,
-      game_result,
-      game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
-      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
-      team:teams!goalie_stats_team_id_fkey(name, divisions(name))
-    `)
-    .eq('game.league_id', leagueId)
-    .eq('game.status', 'completed');
+  const buildStatsQuery = () => {
+    let query = supabase
+      .from('goalie_stats')
+      .select(`
+        player_id,
+        team_id,
+        season_id,
+        game_id,
+        saves,
+        shots_against,
+        goals_against,
+        shutout,
+        game_result,
+        game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
+        player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
+        team:teams!goalie_stats_team_id_fkey(name, divisions(name))
+      `)
+      .eq('game.league_id', leagueId)
+      .eq('game.status', 'completed');
 
-  if (seasonId) {
-    query = query.eq('game.season_id', seasonId);
+    if (seasonId) {
+      query = query.eq('game.season_id', seasonId);
+    }
+
+    if (filteredTeamIds) {
+      query = query.in('team_id', filteredTeamIds);
+    }
+
+    return query;
+  };
+
+  const pageSize = 1000;
+  const allStatsRows: unknown[] = [];
+  let error: unknown = null;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: pageData, error: pageError } = await buildStatsQuery().range(offset, offset + pageSize - 1);
+    if (pageError) {
+      error = pageError;
+      break;
+    }
+    if (!pageData || pageData.length === 0) {
+      break;
+    }
+    allStatsRows.push(...pageData);
+    if (pageData.length < pageSize) {
+      break;
+    }
   }
 
-  if (filteredTeamIds) {
-    query = query.in('team_id', filteredTeamIds);
-  }
-
-  const { data, error } = await query;
   if (error) {
     return [];
   }
 
-  if (!data || data.length === 0) {
+  const data = allStatsRows as RawGoalieStatsRow[];
+  if (data.length === 0) {
     return seasonId
       ? buildFallbackCurrentSeasonGoalieRows(leagueId, seasonId, filteredTeamIds)
       : [];
