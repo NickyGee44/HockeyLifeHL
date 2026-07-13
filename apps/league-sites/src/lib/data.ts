@@ -3465,7 +3465,11 @@ async function getNativeUnifiedSkaterStatsRows(
     return [];
   }
 
-  const supabase = await createClient();
+  // All-time public stats are rendered server-side and must include every completed
+  // Hockey Life game, including the active/current season. Use the service client for
+  // all-time native aggregation so public/RLS/client-view quirks cannot leave the
+  // lower stats table behind the player profile totals.
+  const supabase = seasonId == null ? createServiceRoleClient() : await createClient();
   let query = supabase
     .from('player_stats')
     .select(`
@@ -3815,7 +3819,7 @@ async function getNativeUnifiedGoalieStatsRows(
     return [];
   }
 
-  const supabase = await createClient();
+  const supabase = seasonId == null ? createServiceRoleClient() : await createClient();
   let query = supabase
     .from('goalie_stats')
     .select(`
