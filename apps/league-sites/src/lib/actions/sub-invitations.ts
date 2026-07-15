@@ -1,6 +1,15 @@
 'use server';
 
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  buildRecentSubCandidates,
+  selectRecentSubSeasonIds,
+  type RecentSubCandidate,
+  type RecentSubSeasonLike,
+  type RecentSubStatRow,
+} from '@/lib/captain/recent-sub-candidates';
+
+export type RecentSubPlayer = RecentSubCandidate;
 
 export interface SubInvitation {
   id: string;
@@ -47,6 +56,27 @@ interface ManualSubResult extends ActionResult {
 
 function normalizeProfileName(value: string | null | undefined) {
   return (value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+async function fetchAllRows<T>(buildQuery: () => any): Promise<{ data: T[]; error: any }> {
+  const pageSize = 1000;
+  const rows: T[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await buildQuery().range(offset, offset + pageSize - 1);
+    if (error) {
+      return { data: [], error };
+    }
+    if (!data || data.length === 0) {
+      break;
+    }
+    rows.push(...(data as T[]));
+    if (data.length < pageSize) {
+      break;
+    }
+  }
+
+  return { data: rows, error: null };
 }
 
 async function verifyCaptainRole(
@@ -421,6 +451,209 @@ export async function addManualSub({
   }
 
   return { success: true, playerId, fullName: normalizedName };
+}
+
+export async function getRecentSubPlayers(
+  gameId: string,
+  teamId: string,
+): Promise<{ success: boolean; data?: RecentSubPlayer[]; error?: string }> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+  const result = await loadRecentSubPlayersForGame({ gameId, teamId, serviceSupabase });
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  return { success: true, data: result.data };
+}
+
+export async function inviteRecentPlayerAsSub(
+  gameId: string,
+  teamId: string,
+  playerId: string,
+  message?: string,
+  replacedPlayerId?: string | null,
+  captainConfirmed = false,
+): Promise<ActionResult> {
+  const auth = await verifyCaptainRole(teamId);
+  if (!auth.authorized) {
+    return { success: false, error: auth.error };
+  }
+
+  const serviceSupabase = createServiceRoleClient();
+  const candidatesResult = await loadRecentSubPlayersForGame({ gameId, teamId, serviceSupabase });
+  if (!candidatesResult.success) {
+    return { success: false, error: candidatesResult.error };
+  }
+
+  const candidate = candidatesResult.data.find((player) => player.id === playerId);
+  if (!candidate) {
+    return {
+      success: false,
+      error: 'That player is not eligible as a recent one-game spare for this game.',
+    };
+  }
+
+  const confirmedByCaptain = Boolean(captainConfirmed);
+  const now = new Date().toISOString();
+  const { error } = await serviceSupabase.from('sub_invitations').insert({
+    game_id: gameId,
+    team_id: teamId,
+    invited_by: auth.userId!,
+    invited_player_id: playerId,
+    replaced_player_id: replacedPlayerId || null,
+    // DB currently supports only team/league. This is a one-game league-sourced
+    // invite; it intentionally does not change team_rosters or league_spare_pool.
+    source_type: 'league',
+    status: confirmedByCaptain ? 'accepted' : 'pending',
+    message: message || null,
+    responded_at: confirmedByCaptain ? now : null,
+    updated_at: now,
+  });
+
+  if (error) {
+    if (error.code === '23505') {
+      if (confirmedByCaptain) {
+        return confirmExistingSubInvitation({
+          gameId,
+          teamId,
+          playerId,
+          replacedPlayerId,
+          now,
+          serviceSupabase,
+        });
+      }
+
+      return { success: false, error: 'This player has already been invited to this game' };
+    }
+
+    console.error('Failed to invite recent player as sub:', error);
+    return { success: false, error: error.message };
+  }
+
+  if (confirmedByCaptain) {
+    return upsertCaptainConfirmedCheckin({
+      gameId,
+      teamId,
+      playerId,
+      now,
+      serviceSupabase,
+    });
+  }
+
+  return { success: true };
+}
+
+async function loadRecentSubPlayersForGame({
+  gameId,
+  teamId,
+  serviceSupabase,
+}: {
+  gameId: string;
+  teamId: string;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<{ success: true; data: RecentSubPlayer[] } | { success: false; error: string }> {
+  const { data: game, error: gameError } = await (serviceSupabase.from('games') as any)
+    .select('id, league_id, season_id, home_team_id, away_team_id')
+    .eq('id', gameId)
+    .maybeSingle();
+
+  if (gameError) {
+    console.error('Failed to load recent spare game:', gameError);
+    return { success: false, error: gameError.message };
+  }
+
+  if (!game || (game.home_team_id !== teamId && game.away_team_id !== teamId)) {
+    return { success: false, error: 'Game not found for this team.' };
+  }
+
+  const { data: seasons, error: seasonsError } = await (serviceSupabase.from('seasons') as any)
+    .select('id, name, start_date, created_at')
+    .eq('league_id', game.league_id)
+    .order('start_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (seasonsError) {
+    console.error('Failed to load recent spare seasons:', seasonsError);
+    return { success: false, error: seasonsError.message };
+  }
+
+  const recentSeasonIds = selectRecentSubSeasonIds(
+    (seasons || []) as RecentSubSeasonLike[],
+    game.season_id,
+  );
+
+  if (recentSeasonIds.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  const { data: currentRosterRows, error: currentRosterError } = await (serviceSupabase.from('team_rosters') as any)
+    .select('player_id')
+    .eq('league_id', game.league_id)
+    .eq('season_id', game.season_id)
+    .eq('status', 'active')
+    .is('end_date', null);
+
+  if (currentRosterError) {
+    console.error('Failed to load current season roster exclusions:', currentRosterError);
+    return { success: false, error: currentRosterError.message };
+  }
+
+  const currentRosterPlayerIds = Array.from(
+    new Set<string>(
+      (currentRosterRows || [])
+        .map((row: { player_id: string | null }) => row.player_id)
+        .filter((id: string | null): id is string => Boolean(id)),
+    ),
+  );
+
+  const [skaterResult, goalieResult] = await Promise.all([
+    fetchAllRows<RecentSubStatRow>(() =>
+      (serviceSupabase.from('player_stats') as any)
+        .select(`
+          player_id,
+          game:games!inner(league_id, season_id, status, scheduled_at),
+          player:profiles!player_stats_player_id_fkey(id, full_name, email)
+        `)
+        .eq('game.league_id', game.league_id)
+        .eq('game.status', 'completed')
+        .in('game.season_id', recentSeasonIds),
+    ),
+    fetchAllRows<RecentSubStatRow>(() =>
+      (serviceSupabase.from('goalie_stats') as any)
+        .select(`
+          player_id,
+          game:games!inner(league_id, season_id, status, scheduled_at),
+          player:profiles!goalie_stats_player_id_fkey(id, full_name, email)
+        `)
+        .eq('game.league_id', game.league_id)
+        .eq('game.status', 'completed')
+        .in('game.season_id', recentSeasonIds),
+    ),
+  ]);
+
+  if (skaterResult.error) {
+    console.error('Failed to load recent skater candidates:', skaterResult.error);
+    return { success: false, error: skaterResult.error.message };
+  }
+
+  if (goalieResult.error) {
+    console.error('Failed to load recent goalie candidates:', goalieResult.error);
+    return { success: false, error: goalieResult.error.message };
+  }
+
+  return {
+    success: true,
+    data: buildRecentSubCandidates({
+      currentSeasonRosterPlayerIds: currentRosterPlayerIds,
+      skaterRows: skaterResult.data,
+      goalieRows: goalieResult.data,
+    }),
+  };
 }
 
 async function confirmExistingSubInvitation({

@@ -12,9 +12,12 @@ import {
 } from 'lucide-react';
 import {
   inviteSub,
+  inviteRecentPlayerAsSub,
   addManualSub,
   getLeagueSubPlayers,
+  getRecentSubPlayers,
   getTeamSubInvitations,
+  type RecentSubPlayer,
 } from '@/lib/actions/sub-invitations';
 import type { RosterPlayer } from '@/lib/actions/captain-roster';
 
@@ -41,6 +44,8 @@ interface SubPlayer {
   position: string | null;
 }
 
+type SubInviteViewMode = 'spares' | 'manual' | 'recent';
+
 export function SubInviteModal({
   isOpen,
   onClose,
@@ -52,6 +57,10 @@ export function SubInviteModal({
   missingPlayers = [],
 }: SubInviteModalProps) {
   const [availableSubs, setAvailableSubs] = useState<SubPlayer[]>([]);
+  const [recentPlayers, setRecentPlayers] = useState<RecentSubPlayer[]>([]);
+  const [isRecentLoading, setIsRecentLoading] = useState(false);
+  const [recentLoaded, setRecentLoaded] = useState(false);
+  const [viewMode, setViewMode] = useState<SubInviteViewMode>('spares');
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,6 +128,10 @@ export function SubInviteModal({
     // Reset state when opening
     // eslint-disable-next-line react-hooks/set-state-in-effect -- modal form state intentionally resets when opened.
     setSearchQuery('');
+    setViewMode('spares');
+    setRecentPlayers([]);
+    setIsRecentLoading(false);
+    setRecentLoaded(false);
     setMessage('');
     setReplacedPlayerId(missingPlayers[0]?.playerId ?? '');
     setManualName('');
@@ -140,6 +153,40 @@ export function SubInviteModal({
       (sub.email?.toLowerCase().includes(q))
     );
   });
+
+  const filteredRecentPlayers = recentPlayers.filter((player) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      player.full_name?.toLowerCase().includes(q) ||
+      player.email?.toLowerCase().includes(q) ||
+      player.position?.toLowerCase().includes(q)
+    );
+  });
+
+  const formatLastPlayed = (value: string | null) => {
+    if (!value) return 'Recent game';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Recent game';
+    return `Last played ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  };
+
+  const loadRecentPlayers = async () => {
+    if (recentLoaded || isRecentLoading) {
+      return;
+    }
+
+    setIsRecentLoading(true);
+    setError(null);
+    const result = await getRecentSubPlayers(gameId, teamId);
+    if (result.success && result.data) {
+      setRecentPlayers(result.data);
+      setRecentLoaded(true);
+    } else {
+      setError(result.error || 'Failed to load recent players');
+    }
+    setIsRecentLoading(false);
+  };
 
   const saveInvite = (playerId: string, markConfirmed: boolean) => {
     setError(null);
@@ -163,12 +210,58 @@ export function SubInviteModal({
     });
   };
 
+  const saveRecentInvite = (playerId: string, markConfirmed: boolean) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await inviteRecentPlayerAsSub(
+        gameId,
+        teamId,
+        playerId,
+        message || undefined,
+        replacedPlayerId || null,
+        markConfirmed,
+      );
+      if (result.success) {
+        setSentInvites((prev) => new Set([...prev, playerId]));
+        if (markConfirmed) {
+          setConfirmedInvites((prev) => new Set([...prev, playerId]));
+        }
+      } else {
+        setError(result.error || 'Failed to send one-game invite');
+      }
+    });
+  };
+
   const handleInvite = (playerId: string) => {
     saveInvite(playerId, Boolean(captainConfirmed));
   };
 
   const handleMarkIn = (playerId: string) => {
     saveInvite(playerId, true);
+  };
+
+  const handleRecentInvite = (playerId: string) => {
+    saveRecentInvite(playerId, Boolean(captainConfirmed));
+  };
+
+  const handleRecentMarkIn = (playerId: string) => {
+    saveRecentInvite(playerId, true);
+  };
+
+  const showRecentPlayers = () => {
+    setViewMode('recent');
+    setSearchQuery('');
+    void loadRecentPlayers();
+  };
+
+  const showManualSubForm = () => {
+    setViewMode('manual');
+    setSearchQuery('');
+  };
+
+  const showAvailableSpares = () => {
+    setViewMode('spares');
+    setSearchQuery('');
   };
 
   const handleAddManualSub = () => {
@@ -299,85 +392,127 @@ export function SubInviteModal({
             className="w-full px-3 py-2 text-sm bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)] resize-none"
             rows={2}
           />
-          <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Manual spare
-              </p>
-              <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-green-300">
-                No invite
-              </span>
-            </div>
-            <div className="grid gap-2">
-              <input
-                type="text"
-                value={manualName}
-                onChange={(event) => setManualName(event.target.value)}
-                placeholder="Player name"
-                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
-              />
-              <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-2">
-                <select
-                  value={manualPosition}
-                  onChange={(event) => setManualPosition(event.target.value)}
-                  className="min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
-                >
-                  <option value="">Position</option>
-                  <option value="Forward">Forward</option>
-                  <option value="Defense">Defense</option>
-                  <option value="Goalie">Goalie</option>
-                </select>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={showManualSubForm}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                viewMode === 'manual'
+                  ? 'border-green-400/40 bg-green-500/15 text-green-300'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:border-green-400/30 hover:text-green-300'
+              }`}
+            >
+              <UserPlus className="h-4 w-4" />
+              Add New Sub
+            </button>
+            <button
+              type="button"
+              onClick={showRecentPlayers}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                viewMode === 'recent'
+                  ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-300'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:border-cyan-400/30 hover:text-cyan-300'
+              }`}
+            >
+              <Search className="h-4 w-4" />
+              Select Recent Player
+            </button>
+          </div>
+
+          {viewMode !== 'spares' && (
+            <button
+              type="button"
+              onClick={showAvailableSpares}
+              className="mt-2 text-xs font-semibold text-[var(--league-primary)] hover:underline"
+            >
+              Back to available spares
+            </button>
+          )}
+
+          {viewMode === 'manual' && (
+            <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Add new sub
+                </p>
+                <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-green-300">
+                  One game
+                </span>
+              </div>
+              <div className="grid gap-2">
                 <input
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={999}
-                  value={manualJerseyNumber}
-                  onChange={(event) => setManualJerseyNumber(event.target.value)}
-                  placeholder="#"
+                  type="text"
+                  value={manualName}
+                  onChange={(event) => setManualName(event.target.value)}
+                  placeholder="Player name"
                   className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
                 />
+                <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-2">
+                  <select
+                    value={manualPosition}
+                    onChange={(event) => setManualPosition(event.target.value)}
+                    className="min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                  >
+                    <option value="">Position</option>
+                    <option value="Forward">Forward</option>
+                    <option value="Defense">Defense</option>
+                    <option value="Goalie">Goalie</option>
+                  </select>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={999}
+                    value={manualJerseyNumber}
+                    onChange={(event) => setManualJerseyNumber(event.target.value)}
+                    placeholder="#"
+                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                  />
+                </div>
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--color-text-secondary)]">
+                  <input
+                    type="checkbox"
+                    checked={saveManualToTeamSpares}
+                    onChange={(event) => setSaveManualToTeamSpares(event.target.checked)}
+                    className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--league-primary)]"
+                  />
+                  Save to team spares
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddManualSub}
+                  disabled={isPending || !manualName.trim()}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm font-semibold text-green-300 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  Add + Mark In
+                </button>
               </div>
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--color-text-secondary)]">
-                <input
-                  type="checkbox"
-                  checked={saveManualToTeamSpares}
-                  onChange={(event) => setSaveManualToTeamSpares(event.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] accent-[var(--league-primary)]"
-                />
-                Save to team spares
-              </label>
-              <button
-                type="button"
-                onClick={handleAddManualSub}
-                disabled={isPending || !manualName.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm font-semibold text-green-300 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                Add + Mark In
-              </button>
+              {manualAddedMessage && (
+                <p className="mt-2 text-xs font-medium text-green-300">
+                  {manualAddedMessage}
+                </p>
+              )}
             </div>
-            {manualAddedMessage && (
-              <p className="mt-2 text-xs font-medium text-green-300">
-                {manualAddedMessage}
-              </p>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Search */}
-        <div className="px-4 pt-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name or email..."
-              className="w-full pl-10 pr-4 py-2 text-sm bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
-            />
+        {viewMode !== 'manual' && (
+          <div className="px-4 pt-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={viewMode === 'recent' ? 'Search recent players...' : 'Search by name or email...'}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {error && (
           <div className="mx-4 mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-sm text-red-400">
@@ -388,7 +523,92 @@ export function SubInviteModal({
 
         {/* Player list */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {isLoading ? (
+          {viewMode === 'manual' ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-4 text-center text-sm text-[var(--color-text-secondary)]">
+              Enter the new sub above. They will be added as a one-game spare and marked In for this game.
+            </div>
+          ) : viewMode === 'recent' ? (
+            isRecentLoading ? (
+              <div className="flex items-center justify-center py-8 text-[var(--color-text-secondary)]">
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                Loading recent players...
+              </div>
+            ) : filteredRecentPlayers.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  {searchQuery
+                    ? 'No matching recent players found'
+                    : 'No recent non-rostered players found'}
+                </p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                  Recent means played in this league in the current or previous season, while not rostered this season.
+                </p>
+              </div>
+            ) : (
+              filteredRecentPlayers.map((player) => {
+                const alreadyInvited = sentInvites.has(player.id);
+                const confirmedIn = confirmedInvites.has(player.id);
+
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-hover)]/80"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-medium text-[var(--color-text-primary)]">
+                          {player.full_name || 'Unknown Player'}
+                        </p>
+                        <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-cyan-300">
+                          Recent
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-[var(--color-text-muted)]">
+                        {[player.position, player.email, formatLastPlayed(player.last_played_at)]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
+
+                    {alreadyInvited ? (
+                      confirmedIn ? (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium">
+                          <Check className="w-3 h-3" />
+                          Confirmed In
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleRecentMarkIn(player.id)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                        >
+                          {isPending ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Check className="w-3 h-3" />
+                          )}
+                          Mark In
+                        </button>
+                      )
+                    ) : (
+                      <button
+                        onClick={() => handleRecentInvite(player.id)}
+                        disabled={isPending}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--league-primary)]/10 text-[var(--league-primary)] rounded-lg text-xs font-medium hover:bg-[var(--league-primary)]/20 transition-colors disabled:opacity-50"
+                      >
+                        {isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <UserPlus className="w-3 h-3" />
+                        )}
+                        {captainConfirmed ? 'Invite + Mark In' : 'Invite'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-8 text-[var(--color-text-secondary)]">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
               Loading available subs...
