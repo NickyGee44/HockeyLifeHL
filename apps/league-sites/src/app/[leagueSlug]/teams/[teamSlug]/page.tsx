@@ -44,10 +44,9 @@ import {
   summarizeTeamChampionships,
   type TeamLeaderMetric,
 } from '@/lib/team-page';
-import type {
-  LineupPlacedPlayer,
-  LineupRosterPlayer,
-  PublishedGameTeamLineup,
+import {
+  buildLineupDisplay,
+  type PublishedGameTeamLineup,
 } from '@/lib/lineups/types';
 
 interface TeamPageProps {
@@ -781,16 +780,20 @@ type TeamPageLineupPlayer = {
   name: string;
   jerseyNumber: number | null;
   position?: string | null;
+  slotIndex?: number;
   isSub?: boolean;
   showAsLineupPlayer?: boolean;
 };
 
-type TeamPageLineupSlot = 'forward' | 'defence' | 'goalie';
-
-function deriveLineupSlotFromCoord(coord: LineupPlacedPlayer): TeamPageLineupSlot {
-  if (coord.y >= 86) return 'goalie';
-  if (coord.y >= 50) return 'defence';
-  return 'forward';
+function getLineupSlotCapacity(
+  players: TeamPageLineupPlayer[],
+  predicate: (player: TeamPageLineupPlayer) => boolean,
+  minimum: number,
+) {
+  const maxSlotIndex = players
+    .filter(predicate)
+    .reduce((max, player) => Math.max(max, player.slotIndex ?? -1), -1);
+  return Math.max(minimum, maxSlotIndex + 1);
 }
 
 function buildTeamPageLineupDisplay(lineup: PublishedGameTeamLineup | null): {
@@ -801,66 +804,13 @@ function buildTeamPageLineupDisplay(lineup: PublishedGameTeamLineup | null): {
 } | null {
   if (!lineup) return null;
 
-  const rosterById = new Map<string, LineupRosterPlayer>();
-  for (const player of lineup.layout.roster) {
-    rosterById.set(player.playerId, player);
-  }
-
-  const slotOrder: Record<TeamPageLineupSlot, number> = {
-    forward: 0,
-    defence: 1,
-    goalie: 2,
-  };
-
-  const placed = lineup.layout.placedPlayers
-    .map((entry) => {
-      const player = rosterById.get(entry.playerId);
-      if (!player) return null;
-      return {
-        entry,
-        player,
-        slot: deriveLineupSlotFromCoord(entry),
-      };
-    })
-    .filter(
-      (value): value is {
-        entry: LineupPlacedPlayer;
-        player: LineupRosterPlayer;
-        slot: TeamPageLineupSlot;
-      } => value !== null,
-    )
-    .sort((left, right) => {
-      const slotSort = slotOrder[left.slot] - slotOrder[right.slot];
-      if (slotSort !== 0) return slotSort;
-      const rowSort = left.entry.y - right.entry.y;
-      if (rowSort !== 0) return rowSort;
-      return left.entry.x - right.entry.x;
-    });
-
-  const toDisplayPlayer = (
-    player: LineupRosterPlayer,
-    position: string
-  ): TeamPageLineupPlayer => ({
-    playerId: player.playerId,
-    name: player.fullName || 'Unknown',
-    jerseyNumber: player.jerseyNumber,
-    position,
-    isSub: player.isSub,
-    showAsLineupPlayer: player.isSub ? true : undefined,
-  });
-
-  const forwardCount = placed.filter((item) => item.slot === 'forward').length;
-  const defenceCount = placed.filter((item) => item.slot === 'defence').length;
+  const display = buildLineupDisplay(lineup.layout);
 
   return {
-    skaters: placed
-      .filter((item) => item.slot !== 'goalie')
-      .map((item) => toDisplayPlayer(item.player, item.slot === 'defence' ? 'D' : 'C')),
-    goalies: placed
-      .filter((item) => item.slot === 'goalie')
-      .map((item) => toDisplayPlayer(item.player, 'G')),
-    forwardSlots: Math.max(6, forwardCount),
-    defenceSlots: Math.max(4, defenceCount),
+    skaters: display.skaters,
+    goalies: display.goalies,
+    forwardSlots: getLineupSlotCapacity(display.skaters, (player) => player.position !== 'D', 6),
+    defenceSlots: getLineupSlotCapacity(display.skaters, (player) => player.position === 'D', 4),
   };
 }
 

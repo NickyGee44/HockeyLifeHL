@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   buildDefaultLineupLayout,
+  buildLineupDisplay,
   normalizeLineupLayout,
   type LineupRosterPlayer,
 } from '../types';
@@ -33,9 +34,9 @@ describe('lineup layout helpers', () => {
 
     expect(layout.roster).toHaveLength(7);
     expect(placedIds).toEqual(expect.arrayContaining(['g1', 'c1', 'lw1', 'rw1', 'ld1', 'rd1']));
-    expect(placedIds).not.toContain('out1');
+    expect(placedIds).toContain('out1');
     expect(layout.placedPlayers.find((entry) => entry.playerId === 'g1')).toEqual(
-      expect.objectContaining({ x: 50, y: 86 })
+      expect.objectContaining({ x: 50, y: 90 })
     );
   });
 
@@ -60,5 +61,40 @@ describe('lineup layout helpers', () => {
       { playerId: 'c1', x: 8, y: 92 },
     ]);
     expect(layout.roster.map((entry) => entry.playerId)).toEqual(['w1', 'c1']);
+  });
+
+  it('builds display rows in saved rink-coordinate order instead of edit insertion order', () => {
+    const roster = [
+      player({ playerId: 'right-wing', fullName: 'Right Wing', jerseyNumber: 91, position: 'RW' }),
+      player({ playerId: 'left-wing', fullName: 'Left Wing', jerseyNumber: 12, position: 'LW' }),
+      player({ playerId: 'center', fullName: 'Center', jerseyNumber: 19, position: 'C' }),
+      player({ playerId: 'right-d', fullName: 'Right D', jerseyNumber: 5, position: 'RD' }),
+      player({ playerId: 'left-d', fullName: 'Left D', jerseyNumber: 4, position: 'LD' }),
+      player({ playerId: 'goalie', fullName: 'Goalie', jerseyNumber: 1, position: 'G' }),
+    ];
+
+    const display = buildLineupDisplay({
+      version: 1,
+      roster,
+      // Deliberately scrambled insertion order: the UI must render by saved slot,
+      // otherwise Game Day and team page can show the same lineup differently.
+      placedPlayers: [
+        { playerId: 'right-wing', x: 72, y: 22 },
+        { playerId: 'left-d', x: 35, y: 58 },
+        { playerId: 'center', x: 50, y: 22 },
+        { playerId: 'goalie', x: 50, y: 90 },
+        { playerId: 'left-wing', x: 28, y: 22 },
+        { playerId: 'right-d', x: 65, y: 58 },
+      ],
+    });
+
+    expect(display.skaters.map((entry) => entry.playerId)).toEqual([
+      'left-wing',
+      'center',
+      'right-wing',
+      'left-d',
+      'right-d',
+    ]);
+    expect(display.goalies.map((entry) => entry.playerId)).toEqual(['goalie']);
   });
 });

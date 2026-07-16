@@ -10,6 +10,7 @@ interface LineupPlayer {
   name: string;
   jerseyNumber: number | null;
   position?: string | null;
+  slotIndex?: number;
   /** When true, this player is a spare and must not occupy a jersey slot. */
   isSub?: boolean;
   /** Game-specific replacement subs can opt into a visible slot. */

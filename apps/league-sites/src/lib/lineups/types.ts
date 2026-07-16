@@ -1,3 +1,5 @@
+import { getLineupSlotIndexFromCoordinate } from './slot-coordinates';
+
 export type LineupAvailability = 'confirmed' | 'tentative' | 'out' | 'no_response';
 export type GameTeamLineupStatus = 'draft' | 'published';
 
@@ -69,14 +71,14 @@ export interface PublishedGameTeamLineup {
 export const DEFAULT_LINEUP_VERSION = 1 as const;
 
 const DEFAULT_PLACEMENT_COORDS = {
-  goalie: { x: 50, y: 86 },
-  leftDefense: { x: 35, y: 70 },
-  rightDefense: { x: 65, y: 70 },
-  center: { x: 50, y: 56 },
-  leftWing: { x: 26, y: 44 },
-  rightWing: { x: 74, y: 44 },
-  utilityOne: { x: 38, y: 28 },
-  utilityTwo: { x: 62, y: 28 },
+  goalie: { x: 50, y: 90 },
+  leftDefense: { x: 35, y: 58 },
+  rightDefense: { x: 65, y: 58 },
+  center: { x: 50, y: 22 },
+  leftWing: { x: 28, y: 22 },
+  rightWing: { x: 72, y: 22 },
+  utilityOne: { x: 28, y: 38 },
+  utilityTwo: { x: 50, y: 38 },
 } as const;
 
 function clamp(value: number, min: number, max: number) {
@@ -96,6 +98,9 @@ export interface LineupDisplayPlayer {
   name: string;
   jerseyNumber: number | null;
   position: 'C' | 'D' | 'G';
+  slotIndex?: number;
+  isSub?: boolean;
+  showAsLineupPlayer?: boolean;
 }
 
 function isDefenceLineupPosition(position: string | null | undefined) {
@@ -130,17 +135,54 @@ export function buildLineupDisplay(layout: GameTeamLineupLayout): {
   goalies: LineupDisplayPlayer[];
 } {
   const rosterById = new Map(layout.roster.map((player) => [player.playerId, player]));
+  const slotOrder: Record<LineupSlotType, number> = {
+    forward: 0,
+    defence: 1,
+    goalie: 2,
+  };
+  const usedSlotIndexes: Record<LineupSlotType, Set<number>> = {
+    forward: new Set<number>(),
+    defence: new Set<number>(),
+    goalie: new Set<number>(),
+  };
+
+  const reserveSlotIndex = (slot: LineupSlotType, coord: { x: number; y: number }) => {
+    const exactIndex = getLineupSlotIndexFromCoordinate(slot, coord);
+    if (exactIndex !== null && !usedSlotIndexes[slot].has(exactIndex)) {
+      usedSlotIndexes[slot].add(exactIndex);
+      return exactIndex;
+    }
+
+    let fallbackIndex = 0;
+    while (usedSlotIndexes[slot].has(fallbackIndex)) {
+      fallbackIndex += 1;
+    }
+    usedSlotIndexes[slot].add(fallbackIndex);
+    return fallbackIndex;
+  };
 
   const placed = layout.placedPlayers
     .map((entry) => {
       const player = rosterById.get(entry.playerId);
       if (!player) return null;
       const slot = deriveLineupSlotFromCoord(entry) ?? classifyLineupPlayer(player);
-      return { player, slot };
+      return { player, slot, entry };
     })
     .filter(
-      (value): value is { player: LineupRosterPlayer; slot: LineupSlotType } => value !== null,
-    );
+      (value): value is { player: LineupRosterPlayer; slot: LineupSlotType; entry: LineupPlacedPlayer } =>
+        value !== null,
+    )
+    .sort((left, right) => {
+      const slotSort = slotOrder[left.slot] - slotOrder[right.slot];
+      if (slotSort !== 0) return slotSort;
+      const rowSort = left.entry.y - right.entry.y;
+      if (rowSort !== 0) return rowSort;
+      return left.entry.x - right.entry.x;
+    })
+    .map((item) => ({
+      ...item,
+      slotIndex: reserveSlotIndex(item.slot, item.entry),
+    }));
 
   const skaters: LineupDisplayPlayer[] = placed
     .filter((item) => item.slot !== 'goalie')
@@ -149,6 +191,9 @@ export function buildLineupDisplay(layout: GameTeamLineupLayout): {
       name: item.player.fullName ?? 'Player',
       jerseyNumber: item.player.jerseyNumber,
       position: item.slot === 'defence' ? 'D' : 'C',
+      slotIndex: item.slotIndex,
+      isSub: item.player.isSub,
+      showAsLineupPlayer: item.player.isSub ? true : undefined,
     }));
 
   const goalies: LineupDisplayPlayer[] = placed
@@ -158,6 +203,9 @@ export function buildLineupDisplay(layout: GameTeamLineupLayout): {
       name: item.player.fullName ?? 'Player',
       jerseyNumber: item.player.jerseyNumber,
       position: 'G',
+      slotIndex: item.slotIndex,
+      isSub: item.player.isSub,
+      showAsLineupPlayer: item.player.isSub ? true : undefined,
     }));
 
   return { skaters, goalies };
