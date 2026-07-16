@@ -7,6 +7,7 @@ interface LineupPlayer {
   name: string;
   jerseyNumber: number | null;
   position?: string | null;
+  slotIndex?: number;
   /** When true, this player is a spare and must not occupy a jersey slot. */
   isSub?: boolean;
   /** Game-specific replacement subs can opt into a visible slot. */
@@ -23,7 +24,7 @@ interface TeamLineupViewProps {
   secondaryColor: string;
   availabilityMap?: Record<string, 'confirmed' | 'tentative' | 'out'>;
   onPlayerClick?: (playerId: string) => void;
-  onEmptySlotClick?: (slotType: LineupSlotType) => void;
+  onEmptySlotClick?: (slotType: LineupSlotType, slotIndex: number) => void;
   highlightEmptySlots?: boolean;
   removeAffordance?: boolean;
   forwardSlots?: number;
@@ -57,6 +58,37 @@ function isLightColor(hex: string): boolean {
   }
 }
 
+function buildSlotLineup(players: LineupPlayer[], capacity: number) {
+  const lineup = Array.from<LineupPlayer | null>({ length: capacity }).fill(null);
+  const overflow: LineupPlayer[] = [];
+
+  for (const player of players) {
+    const slotIndex = player.slotIndex;
+    if (
+      typeof slotIndex === 'number' &&
+      Number.isInteger(slotIndex) &&
+      slotIndex >= 0 &&
+      slotIndex < lineup.length &&
+      lineup[slotIndex] === null
+    ) {
+      lineup[slotIndex] = player;
+      continue;
+    }
+    overflow.push(player);
+  }
+
+  for (const player of overflow) {
+    const firstOpenIndex = lineup.findIndex((entry) => entry === null);
+    if (firstOpenIndex === -1) {
+      lineup.push(player);
+    } else {
+      lineup[firstOpenIndex] = player;
+    }
+  }
+
+  return lineup;
+}
+
 export function TeamLineupView({
   skaters,
   goalies,
@@ -83,9 +115,10 @@ export function TeamLineupView({
   const forwardCapacity = Math.max(forwardSlots, DEFAULT_FORWARD_SLOTS);
   const defenceCapacity = Math.max(defenceSlots, DEFAULT_DEFENCE_SLOTS);
 
-  const forwardLineup = Array.from({ length: forwardCapacity }, (_, i) => forwards[i] || null);
-  const defenceLineup = Array.from({ length: defenceCapacity }, (_, i) => defenders[i] || null);
-  const goalie = rosterGoalies[0] || null;
+  const forwardLineup = buildSlotLineup(forwards, forwardCapacity);
+  const defenceLineup = buildSlotLineup(defenders, defenceCapacity);
+  const goalieLineup = buildSlotLineup(rosterGoalies, 1);
+  const goalie = goalieLineup[0] || null;
 
   return (
     <div className="mt-2 space-y-8">
@@ -102,7 +135,7 @@ export function TeamLineupView({
               secondaryColor={secondaryColor}
               availability={player ? availabilityMap[player.playerId] : undefined}
               onPlayerClick={onPlayerClick}
-              onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('forward') : undefined}
+              onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('forward', i) : undefined}
               highlightEmpty={highlightEmptySlots}
               removeAffordance={removeAffordance}
             />
@@ -124,7 +157,7 @@ export function TeamLineupView({
                 secondaryColor={secondaryColor}
                 availability={player ? availabilityMap[player.playerId] : undefined}
                 onPlayerClick={onPlayerClick}
-                onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('defence') : undefined}
+                onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('defence', i) : undefined}
                 highlightEmpty={highlightEmptySlots}
                 removeAffordance={removeAffordance}
               />
@@ -143,7 +176,7 @@ export function TeamLineupView({
               secondaryColor={secondaryColor}
               availability={goalie ? availabilityMap[goalie.playerId] : undefined}
               onPlayerClick={onPlayerClick}
-              onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('goalie') : undefined}
+              onEmptyClick={onEmptySlotClick ? () => onEmptySlotClick('goalie', 0) : undefined}
               highlightEmpty={highlightEmptySlots}
               removeAffordance={removeAffordance}
             />

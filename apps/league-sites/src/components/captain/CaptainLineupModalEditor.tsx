@@ -14,37 +14,22 @@ import {
   type GameTeamLineupStatus,
   type LineupPlacedPlayer,
   type LineupRosterPlayer,
+  type LineupSlotType,
 } from '@/lib/lineups/types';
-
-const BASE_FORWARD_SLOTS = 6;
-const BASE_DEFENCE_SLOTS = 4;
-const EXTENDED_FORWARD_SLOTS = 9;
-const EXTENDED_DEFENCE_SLOTS = 6;
-const GOALIE_SLOTS = 1;
-const EXTENDED_ATTENDANCE_THRESHOLD = 11;
+import {
+  BASE_DEFENCE_SLOTS,
+  BASE_FORWARD_SLOTS,
+  EXTENDED_DEFENCE_SLOTS,
+  EXTENDED_FORWARD_SLOTS,
+  EXTENDED_LINEUP_THRESHOLD,
+  getLineupSlotCoordinate,
+  getLineupSlotCount,
+} from '@/lib/lineups/slot-coordinates';
 
 // Forwards render 3-across (y < 50), defence 2-across (50 <= y < 86),
 // goalie at y >= 86. deriveSlotFromCoord relies on those bands so anything
 // we place must stay within them.
-const FORWARD_COORDS_BASE = [
-  { x: 28, y: 22 }, { x: 50, y: 22 }, { x: 72, y: 22 },
-  { x: 28, y: 38 }, { x: 50, y: 38 }, { x: 72, y: 38 },
-];
-const FORWARD_COORDS_EXTENDED = [
-  ...FORWARD_COORDS_BASE,
-  { x: 28, y: 48 }, { x: 50, y: 48 }, { x: 72, y: 48 },
-];
-const DEFENCE_COORDS_BASE = [
-  { x: 35, y: 58 }, { x: 65, y: 58 },
-  { x: 35, y: 72 }, { x: 65, y: 72 },
-];
-const DEFENCE_COORDS_EXTENDED = [
-  ...DEFENCE_COORDS_BASE,
-  { x: 35, y: 82 }, { x: 65, y: 82 },
-];
-const GOALIE_COORDS = { x: 50, y: 90 };
-
-type SlotType = 'forward' | 'defence' | 'goalie';
+type SlotType = LineupSlotType;
 
 function isDefencePosition(position: string | null | undefined) {
   if (!position) return false;
@@ -112,11 +97,9 @@ export function CaptainLineupModalEditor({
 
   const eligible = useMemo(() => layout.roster, [layout.roster]);
 
-  const extendedGrid = eligible.length > EXTENDED_ATTENDANCE_THRESHOLD;
+  const extendedGrid = eligible.length > EXTENDED_LINEUP_THRESHOLD;
   const forwardSlotCount = extendedGrid ? EXTENDED_FORWARD_SLOTS : BASE_FORWARD_SLOTS;
   const defenceSlotCount = extendedGrid ? EXTENDED_DEFENCE_SLOTS : BASE_DEFENCE_SLOTS;
-  const forwardCoords = extendedGrid ? FORWARD_COORDS_EXTENDED : FORWARD_COORDS_BASE;
-  const defenceCoords = extendedGrid ? DEFENCE_COORDS_EXTENDED : DEFENCE_COORDS_BASE;
 
   const eligibleById = useMemo(() => {
     const map = new Map<string, LineupRosterPlayer>();
@@ -171,7 +154,7 @@ export function CaptainLineupModalEditor({
     setSelectedPlayerId((current) => (current === playerId ? null : playerId));
   };
 
-  const placeSelectedInSection = (slotType: SlotType) => {
+  const placeSelectedInSection = (slotType: SlotType, slotIndex: number) => {
     if (!selectedPlayerId) {
       setError('Select a player from Unassigned Roster first, then tap an empty slot.');
       return;
@@ -183,21 +166,26 @@ export function CaptainLineupModalEditor({
       return;
     }
 
-    const maxSlots = slotType === 'forward' ? forwardSlotCount : slotType === 'defence' ? defenceSlotCount : GOALIE_SLOTS;
-    // Count existing players in this section, ignoring the selected player if they're already placed.
-    const occupants = placedBySlot[slotType].filter((item) => item.player.playerId !== selectedPlayerId);
+    const maxSlots = getLineupSlotCount(slotType, extendedGrid);
+    const normalizedSlotIndex = Math.max(0, Math.floor(slotIndex));
 
-    if (occupants.length >= maxSlots) {
-      setError(`${slotLabel(slotType)} slots are full. Remove someone first.`);
+    if (normalizedSlotIndex >= maxSlots) {
+      setError(`${slotLabel(slotType)} slot is unavailable. Pick another empty slot.`);
       return;
     }
 
-    const coord =
-      slotType === 'goalie'
-        ? GOALIE_COORDS
-        : slotType === 'defence'
-          ? defenceCoords[occupants.length]
-          : forwardCoords[occupants.length];
+    const coord = getLineupSlotCoordinate(slotType, normalizedSlotIndex, extendedGrid);
+    const occupiedTarget = placedBySlot[slotType].some(
+      (item) =>
+        item.player.playerId !== selectedPlayerId &&
+        item.entry.x === coord.x &&
+        item.entry.y === coord.y,
+    );
+
+    if (occupiedTarget) {
+      setError(`${slotLabel(slotType)} slot is already filled. Pick another empty slot.`);
+      return;
+    }
 
     setError(null);
     setSavedAt(null);

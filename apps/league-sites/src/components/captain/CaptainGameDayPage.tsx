@@ -24,6 +24,13 @@ import { SubInviteModal } from '@/components/captain/SubInviteModal';
 import { TeamLineupView } from '@/components/team/TeamLineupView';
 import { buildLineupDisplay } from '@/lib/lineups/types';
 import {
+  BASE_DEFENCE_SLOTS,
+  BASE_FORWARD_SLOTS,
+  EXTENDED_DEFENCE_SLOTS,
+  EXTENDED_FORWARD_SLOTS,
+  EXTENDED_LINEUP_THRESHOLD,
+} from '@/lib/lineups/slot-coordinates';
+import {
   getCaptainGameDayData,
   lockCaptainGameAttendance,
   updateCaptainGameAttendanceStatus,
@@ -102,15 +109,17 @@ export function CaptainGameDayPage({
     };
   }, [canManage, initialData, leagueSlug, requestedGameId, router, teamId, refreshToken]);
 
+  const lineupLayout = data?.lineup?.layout ?? null;
+
   // "Our Lineup" reflects the captain's placed/published lineup (the same source
   // the lineup editor renders), NOT raw attendance — otherwise a just-set lineup
   // would not show here. Availability is layered on top only to colour players.
   const { skaters, goalies } = useMemo(
     () =>
-      data?.lineup?.layout
-        ? buildLineupDisplay(data.lineup.layout)
+      lineupLayout
+        ? buildLineupDisplay(lineupLayout)
         : { skaters: [], goalies: [] },
-    [data?.lineup?.layout],
+    [lineupLayout],
   );
 
   const availabilityMap = Object.fromEntries(
@@ -119,10 +128,10 @@ export function CaptainGameDayPage({
       .map((player) => [player.playerId, player.status]),
   ) as Record<string, 'confirmed' | 'tentative' | 'out'>;
 
-  const eligibleForLineupCount = skaters.length + goalies.length;
-  const snapshotExtendedGrid = eligibleForLineupCount > 11;
-  const snapshotForwardSlots = snapshotExtendedGrid ? 9 : 6;
-  const snapshotDefenceSlots = snapshotExtendedGrid ? 6 : 4;
+  const eligibleForLineupCount = lineupLayout?.roster.length ?? 0;
+  const snapshotExtendedGrid = eligibleForLineupCount > EXTENDED_LINEUP_THRESHOLD;
+  const snapshotForwardSlots = snapshotExtendedGrid ? EXTENDED_FORWARD_SLOTS : BASE_FORWARD_SLOTS;
+  const snapshotDefenceSlots = snapshotExtendedGrid ? EXTENDED_DEFENCE_SLOTS : BASE_DEFENCE_SLOTS;
   const missingRegularPlayers = (data?.attendance ?? [])
     .filter((player) => !player.isSub && player.status === 'out')
     .map((player) => ({
