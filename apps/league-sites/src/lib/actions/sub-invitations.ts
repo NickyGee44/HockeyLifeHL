@@ -3,11 +3,18 @@
 import { createAuthClient as createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import {
   buildRecentSubCandidates,
+  selectRecentSubGoalieSeasonIds,
   selectRecentSubSeasonIds,
   type RecentSubCandidate,
   type RecentSubSeasonLike,
   type RecentSubStatRow,
 } from '@/lib/captain/recent-sub-candidates';
+import {
+  filterSubCandidatesByReplacementRole,
+  getSubPositionRole,
+  matchesSubCandidateSearch,
+  type SubPositionRole,
+} from '@/lib/captain/sub-role-filter';
 
 export type RecentSubPlayer = RecentSubCandidate;
 
@@ -269,6 +276,13 @@ export async function addManualSub({
     return { success: false, error: 'Game not found for this team.' };
   }
 
+  const replacementPosition = await loadReplacementPlayerPosition({
+    teamId,
+    replacedPlayerId,
+    serviceSupabase,
+  });
+  const targetRole = getSubPositionRole(safePosition) ?? getSubPositionRole(replacementPosition);
+
   let playerId: string | null = null;
   const normalizedNameKey = normalizeProfileName(normalizedName);
 
@@ -298,28 +312,60 @@ export async function addManualSub({
   }
 
   if (!playerId) {
-    const { data: existingProfiles, error: profilesError } = await (serviceSupabase.from('profiles') as any)
-      .select('id, full_name')
-      .ilike('full_name', normalizedName)
-      .limit(20);
+    const searchTokens = normalizedNameKey
+      .split(' ')
+      .map((token) => token.replace(/[^a-z0-9]/g, ''))
+      .filter((token) => token.length >= 3)
+      .slice(0, 4);
+
+    let profilesQuery = (serviceSupabase.from('profiles') as any)
+      .select('id, full_name, email, position')
+      .limit(50);
+
+    if (searchTokens.length > 0) {
+      profilesQuery = profilesQuery.or(
+        searchTokens.map((token) => `full_name.ilike.%${token}%`).join(','),
+      );
+    } else {
+      profilesQuery = profilesQuery.ilike('full_name', normalizedName);
+    }
+
+    const { data: existingProfiles, error: profilesError } = await profilesQuery;
 
     if (profilesError) {
       console.error('Failed to check duplicate manual spare profile:', profilesError);
       return { success: false, error: profilesError.message };
     }
 
-    const exactMatches = (existingProfiles || []).filter((profile: { id: string; full_name: string | null }) =>
-      normalizeProfileName(profile.full_name) === normalizedNameKey
+    const nameMatches = (existingProfiles || []).filter((profile: { id: string; full_name: string | null; email?: string | null; position?: string | null }) =>
+      normalizeProfileName(profile.full_name) === normalizedNameKey ||
+      matchesSubCandidateSearch(profile, normalizedName)
     );
 
-    if (exactMatches.length === 1) {
-      playerId = exactMatches[0].id;
-    } else if (exactMatches.length > 1) {
-      const candidateIds = exactMatches.map((profile: { id: string }) => profile.id);
+    const candidateIds = nameMatches.map((profile: { id: string }) => profile.id);
+    let roleMatchedIds = new Set<string>();
+
+    if (targetRole && candidateIds.length > 0) {
+      roleMatchedIds = await loadCandidateIdsMatchingRole({
+        leagueId: game.league_id,
+        candidateIds,
+        role: targetRole,
+        serviceSupabase,
+      });
+    }
+
+    const roleMatches = targetRole && roleMatchedIds.size > 0
+      ? nameMatches.filter((profile: { id: string }) => roleMatchedIds.has(profile.id))
+      : nameMatches;
+
+    if (roleMatches.length === 1) {
+      playerId = roleMatches[0].id;
+    } else if (roleMatches.length > 1) {
+      const narrowedCandidateIds = roleMatches.map((profile: { id: string }) => profile.id);
       const { data: leagueRosterMatches, error: rosterMatchError } = await (serviceSupabase.from('team_rosters') as any)
         .select('player_id')
         .eq('league_id', game.league_id)
-        .in('player_id', candidateIds)
+        .in('player_id', narrowedCandidateIds)
         .limit(20);
 
       if (rosterMatchError) {
@@ -340,7 +386,7 @@ export async function addManualSub({
       } else {
         return {
           success: false,
-          error: `Found multiple existing players named ${normalizedName}. Use the existing spare search or ask an admin to merge the duplicate first.`,
+          error: `Found multiple existing players matching ${normalizedName}. Use the existing spare search or ask an admin to merge the duplicate first.`,
         };
       }
     }
@@ -456,6 +502,7 @@ export async function addManualSub({
 export async function getRecentSubPlayers(
   gameId: string,
   teamId: string,
+  replacementRole?: SubPositionRole | null,
 ): Promise<{ success: boolean; data?: RecentSubPlayer[]; error?: string }> {
   const auth = await verifyCaptainRole(teamId);
   if (!auth.authorized) {
@@ -463,9 +510,9 @@ export async function getRecentSubPlayers(
   }
 
   const serviceSupabase = createServiceRoleClient();
-  const result = await loadRecentSubPlayersForGame({ gameId, teamId, serviceSupabase });
+  const result = await loadRecentSubPlayersForGame({ gameId, teamId, replacementRole, serviceSupabase });
   if (!result.success) {
-    return { success: false, error: result.error };
+    return { success: false, error: 'error' in result ? result.error : 'Failed to load recent players' };
   }
 
   return { success: true, data: result.data };
@@ -485,9 +532,20 @@ export async function inviteRecentPlayerAsSub(
   }
 
   const serviceSupabase = createServiceRoleClient();
-  const candidatesResult = await loadRecentSubPlayersForGame({ gameId, teamId, serviceSupabase });
+  const replacementPosition = await loadReplacementPlayerPosition({
+    teamId,
+    replacedPlayerId,
+    serviceSupabase,
+  });
+  const replacementRole = getSubPositionRole(replacementPosition);
+  const candidatesResult = await loadRecentSubPlayersForGame({
+    gameId,
+    teamId,
+    replacementRole,
+    serviceSupabase,
+  });
   if (!candidatesResult.success) {
-    return { success: false, error: candidatesResult.error };
+    return { success: false, error: 'error' in candidatesResult ? candidatesResult.error : 'Failed to load recent players' };
   }
 
   const candidate = candidatesResult.data.find((player) => player.id === playerId);
@@ -548,13 +606,93 @@ export async function inviteRecentPlayerAsSub(
   return { success: true };
 }
 
+async function loadCandidateIdsMatchingRole({
+  leagueId,
+  candidateIds,
+  role,
+  serviceSupabase,
+}: {
+  leagueId: string;
+  candidateIds: string[];
+  role: SubPositionRole;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<Set<string>> {
+  const matchingIds = new Set<string>();
+  if (candidateIds.length === 0) return matchingIds;
+
+  const [rosterResult, statResult] = await Promise.all([
+    (serviceSupabase.from('team_rosters') as any)
+      .select('player_id, position')
+      .eq('league_id', leagueId)
+      .in('player_id', candidateIds)
+      .limit(1000),
+    (serviceSupabase.from(role === 'goalie' ? 'goalie_stats' : 'player_stats') as any)
+      .select('player_id')
+      .eq('league_id', leagueId)
+      .in('player_id', candidateIds)
+      .limit(1000),
+  ]);
+
+  if (rosterResult.error) {
+    console.error('Failed to resolve manual spare profile role from rosters:', rosterResult.error);
+  } else {
+    for (const row of rosterResult.data || []) {
+      if (row.player_id && getSubPositionRole(row.position) === role) {
+        matchingIds.add(row.player_id);
+      }
+    }
+  }
+
+  if (statResult.error) {
+    console.error('Failed to resolve manual spare profile role from stats:', statResult.error);
+  } else {
+    for (const row of statResult.data || []) {
+      if (row.player_id) {
+        matchingIds.add(row.player_id);
+      }
+    }
+  }
+
+  return matchingIds;
+}
+
+async function loadReplacementPlayerPosition({
+  teamId,
+  replacedPlayerId,
+  serviceSupabase,
+}: {
+  teamId: string;
+  replacedPlayerId?: string | null;
+  serviceSupabase: ReturnType<typeof createServiceRoleClient>;
+}): Promise<string | null> {
+  if (!replacedPlayerId) return null;
+
+  const { data, error } = await (serviceSupabase.from('team_rosters') as any)
+    .select('position')
+    .eq('team_id', teamId)
+    .eq('player_id', replacedPlayerId)
+    .eq('status', 'active')
+    .is('end_date', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to load replacement player position:', error);
+    return null;
+  }
+
+  return data?.position ?? null;
+}
+
 async function loadRecentSubPlayersForGame({
   gameId,
   teamId,
+  replacementRole,
   serviceSupabase,
 }: {
   gameId: string;
   teamId: string;
+  replacementRole?: SubPositionRole | null;
   serviceSupabase: ReturnType<typeof createServiceRoleClient>;
 }): Promise<{ success: true; data: RecentSubPlayer[] } | { success: false; error: string }> {
   const { data: game, error: gameError } = await (serviceSupabase.from('games') as any)
@@ -582,10 +720,14 @@ async function loadRecentSubPlayersForGame({
     return { success: false, error: seasonsError.message };
   }
 
+  const seasonRows = (seasons || []) as RecentSubSeasonLike[];
   const recentSeasonIds = selectRecentSubSeasonIds(
-    (seasons || []) as RecentSubSeasonLike[],
+    seasonRows,
     game.season_id,
   );
+  const goalieSeasonIds = replacementRole === 'goalie'
+    ? selectRecentSubGoalieSeasonIds(seasonRows, game.season_id)
+    : recentSeasonIds;
 
   if (recentSeasonIds.length === 0) {
     return { success: true, data: [] };
@@ -632,7 +774,7 @@ async function loadRecentSubPlayersForGame({
         `)
         .eq('game.league_id', game.league_id)
         .eq('game.status', 'completed')
-        .in('game.season_id', recentSeasonIds),
+        .in('game.season_id', goalieSeasonIds),
     ),
   ]);
 
@@ -646,13 +788,17 @@ async function loadRecentSubPlayersForGame({
     return { success: false, error: goalieResult.error.message };
   }
 
+  const candidates = buildRecentSubCandidates({
+    currentSeasonRosterPlayerIds: currentRosterPlayerIds,
+    skaterRows: skaterResult.data,
+    goalieRows: goalieResult.data,
+  });
+
   return {
     success: true,
-    data: buildRecentSubCandidates({
-      currentSeasonRosterPlayerIds: currentRosterPlayerIds,
-      skaterRows: skaterResult.data,
-      goalieRows: goalieResult.data,
-    }),
+    data: replacementRole
+      ? filterSubCandidatesByReplacementRole(candidates, replacementRole)
+      : candidates,
   };
 }
 

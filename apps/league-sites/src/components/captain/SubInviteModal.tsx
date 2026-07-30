@@ -20,6 +20,12 @@ import {
   type RecentSubPlayer,
 } from '@/lib/actions/sub-invitations';
 import type { RosterPlayer } from '@/lib/actions/captain-roster';
+import {
+  filterSubCandidatesByReplacementRole,
+  getSubPositionRole,
+  matchesSubCandidateSearch,
+  type SubPositionRole,
+} from '@/lib/captain/sub-role-filter';
 
 interface SubInviteModalProps {
   isOpen: boolean;
@@ -33,6 +39,7 @@ interface SubInviteModalProps {
     playerId: string;
     fullName: string;
     jerseyNumber: number | null;
+    position: string | null;
   }>;
 }
 
@@ -45,6 +52,16 @@ interface SubPlayer {
 }
 
 type SubInviteViewMode = 'spares' | 'manual' | 'recent';
+
+function getManualPositionOptions(replacementRole: SubPositionRole | null) {
+  if (replacementRole === 'goalie') return ['Goalie'];
+  if (replacementRole === 'skater') return ['Forward', 'Defense'];
+  return ['Forward', 'Defense', 'Goalie'];
+}
+
+function defaultManualPositionForRole(replacementRole: SubPositionRole | null) {
+  return replacementRole === 'goalie' ? 'Goalie' : '';
+}
 
 export function SubInviteModal({
   isOpen,
@@ -76,6 +93,13 @@ export function SubInviteModal({
   const [captainConfirmed, setCaptainConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+
+  const selectedReplacementPlayer = missingPlayers.find(
+    (player) => player.playerId === replacedPlayerId,
+  );
+  const selectedReplacementPosition = selectedReplacementPlayer?.position ?? null;
+  const selectedReplacementRole = getSubPositionRole(selectedReplacementPosition);
+  const manualPositionOptions = getManualPositionOptions(selectedReplacementRole);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mounted gates client-only portal rendering.
@@ -133,9 +157,11 @@ export function SubInviteModal({
     setIsRecentLoading(false);
     setRecentLoaded(false);
     setMessage('');
-    setReplacedPlayerId(missingPlayers[0]?.playerId ?? '');
+    const defaultReplacementPlayer = missingPlayers[0] ?? null;
+    const defaultReplacementRole = getSubPositionRole(defaultReplacementPlayer?.position);
+    setReplacedPlayerId(defaultReplacementPlayer?.playerId ?? '');
     setManualName('');
-    setManualPosition('');
+    setManualPosition(defaultManualPositionForRole(defaultReplacementRole));
     setManualJerseyNumber('');
     setSaveManualToTeamSpares(false);
     setManualAddedMessage(null);
@@ -145,24 +171,15 @@ export function SubInviteModal({
     setError(null);
   }, [isOpen, leagueId, teamId, gameId, roster, missingPlayers]);
 
-  const filteredSubs = availableSubs.filter((sub) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (sub.full_name?.toLowerCase().includes(q)) ||
-      (sub.email?.toLowerCase().includes(q))
-    );
-  });
+  const filteredSubs = filterSubCandidatesByReplacementRole(
+    availableSubs,
+    selectedReplacementPosition,
+  ).filter((sub) => matchesSubCandidateSearch(sub, searchQuery));
 
-  const filteredRecentPlayers = recentPlayers.filter((player) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      player.full_name?.toLowerCase().includes(q) ||
-      player.email?.toLowerCase().includes(q) ||
-      player.position?.toLowerCase().includes(q)
-    );
-  });
+  const filteredRecentPlayers = filterSubCandidatesByReplacementRole(
+    recentPlayers,
+    selectedReplacementPosition,
+  ).filter((player) => matchesSubCandidateSearch(player, searchQuery));
 
   const formatLastPlayed = (value: string | null) => {
     if (!value) return 'Recent game';
@@ -171,14 +188,37 @@ export function SubInviteModal({
     return `Last played ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
   };
 
-  const loadRecentPlayers = async () => {
-    if (recentLoaded || isRecentLoading) {
+  const handleReplacementChange = (nextPlayerId: string) => {
+    const nextPlayer = missingPlayers.find((player) => player.playerId === nextPlayerId);
+    const nextRole = getSubPositionRole(nextPlayer?.position);
+
+    setReplacedPlayerId(nextPlayerId);
+    setRecentPlayers([]);
+    setRecentLoaded(false);
+    setSearchQuery('');
+    setManualPosition((current) => {
+      if (nextRole === 'goalie') return 'Goalie';
+      if (nextRole === 'skater' && getSubPositionRole(current) === 'goalie') return '';
+      return current || defaultManualPositionForRole(nextRole);
+    });
+
+    if (!nextPlayerId) {
+      setCaptainConfirmed(false);
+    }
+
+    if (viewMode === 'recent') {
+      void loadRecentPlayersForRole(nextRole);
+    }
+  };
+
+  const loadRecentPlayersForRole = async (replacementRole: SubPositionRole | null) => {
+    if (isRecentLoading) {
       return;
     }
 
     setIsRecentLoading(true);
     setError(null);
-    const result = await getRecentSubPlayers(gameId, teamId);
+    const result = await getRecentSubPlayers(gameId, teamId, replacementRole);
     if (result.success && result.data) {
       setRecentPlayers(result.data);
       setRecentLoaded(true);
@@ -186,6 +226,14 @@ export function SubInviteModal({
       setError(result.error || 'Failed to load recent players');
     }
     setIsRecentLoading(false);
+  };
+
+  const loadRecentPlayers = async () => {
+    if (recentLoaded || isRecentLoading) {
+      return;
+    }
+
+    await loadRecentPlayersForRole(selectedReplacementRole);
   };
 
   const saveInvite = (playerId: string, markConfirmed: boolean) => {
@@ -348,18 +396,13 @@ export function SubInviteModal({
               Replacing
               <select
                 value={replacedPlayerId}
-                onChange={(event) => {
-                  setReplacedPlayerId(event.target.value);
-                  if (!event.target.value) {
-                    setCaptainConfirmed(false);
-                  }
-                }}
+                onChange={(event) => handleReplacementChange(event.target.value)}
                 className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm normal-case tracking-normal text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
               >
                 <option value="">No specific player</option>
                 {missingPlayers.map((player) => (
                   <option key={player.playerId} value={player.playerId}>
-                    {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}{player.fullName}
+                    {player.jerseyNumber ? `#${player.jerseyNumber} ` : ''}{player.fullName}{player.position ? ` (${player.position})` : ''}
                   </option>
                 ))}
               </select>
@@ -455,9 +498,9 @@ export function SubInviteModal({
                     className="min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
                   >
                     <option value="">Position</option>
-                    <option value="Forward">Forward</option>
-                    <option value="Defense">Defense</option>
-                    <option value="Goalie">Goalie</option>
+                    {manualPositionOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
                   </select>
                   <input
                     type="number"
