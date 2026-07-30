@@ -63,6 +63,23 @@ export function selectRecentSubSeasonIds(
     .map((season) => season.id);
 }
 
+export function selectRecentSubGoalieSeasonIds(
+  seasons: RecentSubSeasonLike[],
+  currentSeasonId: string,
+): string[] {
+  const recentSeasonIds = selectRecentSubSeasonIds(seasons, currentSeasonId);
+  if (recentSeasonIds.length === 0) {
+    return [];
+  }
+
+  const historicalGoalieSeasonIds = seasons
+    .filter(isHistoricalBaselineSeason)
+    .sort((left, right) => seasonSortTimestamp(right) - seasonSortTimestamp(left))
+    .map((season) => season.id);
+
+  return Array.from(new Set([...recentSeasonIds, ...historicalGoalieSeasonIds]));
+}
+
 export function buildRecentSubCandidates({
   currentSeasonRosterPlayerIds,
   skaterRows,
@@ -112,7 +129,7 @@ export function buildRecentSubCandidates({
   };
 
   for (const row of skaterRows) {
-    ingestRow(row, null);
+    ingestRow(row, 'Skater');
   }
   for (const row of goalieRows) {
     ingestRow(row, 'Goalie');

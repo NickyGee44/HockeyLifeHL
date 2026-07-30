@@ -138,6 +138,7 @@ export function CaptainGameDayPage({
       playerId: player.playerId,
       fullName: player.fullName,
       jerseyNumber: player.jerseyNumber,
+      position: player.position,
     }));
 
   const refreshData = () => setRefreshToken((current) => current + 1);

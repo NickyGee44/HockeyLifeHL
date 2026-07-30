@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 
 import {
   buildRecentSubCandidates,
+  selectRecentSubGoalieSeasonIds,
   selectRecentSubSeasonIds,
 } from '../recent-sub-candidates';
 
@@ -30,6 +31,19 @@ describe('recent sub candidates', () => {
     );
 
     expect(seasonIds).toEqual(['summer-2026', 'spring-2026']);
+  });
+
+  it('includes historical baseline seasons for goalie replacement searches', () => {
+    const seasonIds = selectRecentSubGoalieSeasonIds(
+      [
+        { id: 'summer-2026', name: 'Summer 2026', start_date: '2026-06-01', created_at: '2026-05-01' },
+        { id: 'baseline', name: 'Historical Career Baseline (Pre-BLH)', start_date: '2026-04-01', created_at: '2026-04-01' },
+        { id: 'spring-2026', name: 'Spring 2026', start_date: '2026-03-01', created_at: '2026-02-01' },
+      ],
+      'summer-2026',
+    );
+
+    expect(seasonIds).toEqual(['summer-2026', 'spring-2026', 'baseline']);
   });
 
   it('deduplicates skater and goalie stat rows while excluding active current-season rostered players', () => {
@@ -73,7 +87,7 @@ describe('recent sub candidates', () => {
         id: 'recent-skater',
         full_name: 'Recent Skater',
         email: 'skater@example.com',
-        position: null,
+        position: 'Skater',
         last_played_at: '2026-07-11T01:00:00Z',
       },
     ]);
