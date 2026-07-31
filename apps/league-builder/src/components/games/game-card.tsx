@@ -6,9 +6,10 @@ import { format } from 'date-fns';
 import { usePathname } from 'next/navigation';
 import type { Game } from '@/lib/actions/games';
 import { StatusBadge, StatusDot } from './status-badge';
-import { Calendar, MapPin, Trophy, Edit, X, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Trophy, Edit, X, UserPlus, CheckCircle2, Newspaper, Loader2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { buildSeasonWorkspaceHref } from '@/lib/dashboard/workspace-routes';
+import { getGameAdminActionAvailability } from './game-admin-actions';
 
 function getGameHref(game: Game, pathname: string, leagueId?: string) {
   const resolvedLeagueId = leagueId ?? pathname.match(/\/dashboard\/leagues\/([0-9a-f-]{36})/i)?.[1] ?? game.league_id;
@@ -25,6 +26,10 @@ interface GameCardProps {
   onEdit?: () => void;
   onCancel?: () => void;
   onAssignScorekeeper?: () => void;
+  onComplete?: () => void;
+  onGenerateRecap?: () => void;
+  isCompleting?: boolean;
+  isGeneratingRecap?: boolean;
   onClick?: () => void;
   leagueId?: string;
 }
@@ -210,6 +215,10 @@ export function GameCardCompact({
   onEdit,
   onCancel,
   onAssignScorekeeper,
+  onComplete,
+  onGenerateRecap,
+  isCompleting = false,
+  isGeneratingRecap = false,
   onClick,
   leagueId,
 }: GameCardProps) {
@@ -218,6 +227,8 @@ export function GameCardCompact({
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
   const gameHref = getGameHref(game, pathname, leagueId);
+  const actionAvailability = getGameAdminActionAvailability(game.status);
+  const actionDisabled = isCompleting || isGeneratingRecap;
 
   return (
     <div
@@ -281,9 +292,35 @@ export function GameCardCompact({
               onAssignScorekeeper();
             }}
             className="p-2 rounded-lg text-neutral-400 hover:text-rink-500 hover:bg-rink-500/10 transition-colors"
-            title="Assign scorekeeper"
+            title={t('assignScorekeeper')}
           >
             <UserPlus className="w-4 h-4" />
+          </button>
+        )}
+        {onComplete && actionAvailability.canCompleteGame && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onComplete();
+            }}
+            disabled={actionDisabled}
+            className="p-2 rounded-lg text-neutral-400 hover:text-green-500 hover:bg-green-500/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            title={t('completeGame')}
+          >
+            {isCompleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          </button>
+        )}
+        {onGenerateRecap && actionAvailability.canGenerateGameRecap && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onGenerateRecap();
+            }}
+            disabled={actionDisabled}
+            className="p-2 rounded-lg text-neutral-400 hover:text-purple-400 hover:bg-purple-500/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            title={t('generateGameRecap')}
+          >
+            {isGeneratingRecap ? <Loader2 className="w-4 h-4 animate-spin" /> : <Newspaper className="w-4 h-4" />}
           </button>
         )}
         {onEdit && game.status !== 'cancelled' && (
