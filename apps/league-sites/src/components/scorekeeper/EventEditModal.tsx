@@ -52,7 +52,7 @@ export function EventEditModal({
   );
 
   // Goal state
-  const [scorerId, setScorerId] = useState(event.playerId);
+  const [scorerId, setScorerId] = useState(event.playerId ?? '');
   const [assist1Id, setAssist1Id] = useState(event.assist1PlayerId ?? '');
   const [assist2Id, setAssist2Id] = useState(event.assist2PlayerId ?? '');
   const [isPowerPlay, setIsPowerPlay] = useState(event.isPowerPlay);
@@ -60,7 +60,7 @@ export function EventEditModal({
   const [isEmptyNet, setIsEmptyNet] = useState(event.isEmptyNet);
 
   // Penalty state
-  const [playerId, setPlayerId] = useState(event.playerId);
+  const [playerId, setPlayerId] = useState(event.playerId ?? '');
   const [penaltyType, setPenaltyType] = useState(event.penaltyType ?? rules[0]?.type ?? '');
   const [penaltyMinutes, setPenaltyMinutes] = useState(event.penaltyMinutes ?? 2);
 

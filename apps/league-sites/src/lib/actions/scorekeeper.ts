@@ -370,9 +370,9 @@ export interface GameEventData {
   gameTimeSeconds: number | null;
   teamId: string;
   teamType: 'home' | 'away';
-  playerId: string;
+  playerId: string | null;
   playerName: string;
-  playerNumber: number;
+  playerNumber: number | null;
   assist1PlayerId: string | null;
   assist1Name: string | null;
   assist1Number: number | null;
@@ -1769,8 +1769,8 @@ export async function refreshGameEvents(gameId: string): Promise<{
       teamId: e.team_id,
       teamType: e.team_type as 'home' | 'away',
       playerId: e.player_id,
-      playerName: (e.player as { full_name: string })?.full_name || 'Unknown',
-      playerNumber: jerseyMap.get(e.player_id) || 0,
+      playerName: e.player_id ? (e.player as { full_name: string })?.full_name || 'Unknown' : 'Spare',
+      playerNumber: e.player_id ? jerseyMap.get(e.player_id) || null : null,
       assist1PlayerId: e.assist1_player_id,
       assist1Name: (e.assist1 as { full_name: string } | null)?.full_name || null,
       assist1Number: e.assist1_player_id ? jerseyMap.get(e.assist1_player_id) || null : null,
@@ -1866,8 +1866,8 @@ export async function getGameEvents(gameId: string): Promise<{
       teamId: e.team_id,
       teamType: e.team_type as 'home' | 'away',
       playerId: e.player_id,
-      playerName: (e.player as { full_name: string })?.full_name || 'Unknown',
-      playerNumber: jerseyMap.get(e.player_id) || 0,
+      playerName: e.player_id ? (e.player as { full_name: string })?.full_name || 'Unknown' : 'Spare',
+      playerNumber: e.player_id ? jerseyMap.get(e.player_id) || null : null,
       assist1PlayerId: e.assist1_player_id,
       assist1Name: (e.assist1 as { full_name: string } | null)?.full_name || null,
       assist1Number: e.assist1_player_id ? jerseyMap.get(e.assist1_player_id) || null : null,

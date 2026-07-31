@@ -740,7 +740,7 @@ function EventRow({
               color: teamColor || 'var(--color-text-primary)',
             }}
           >
-            {event.playerNumber}
+            {event.playerNumber ?? '—'}
           </span>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
