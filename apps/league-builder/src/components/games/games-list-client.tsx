@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useCallback, useTransition, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import type { Game, GameFilters as GameFiltersType } from '@/lib/actions/games';
-import { getGames } from '@/lib/actions/games';
+import { adminFinalizeStuckGame, getGames, updateGame } from '@/lib/actions/games';
+import { regenerateGameRecap } from '@/lib/actions/ai-articles';
 import { GameCardCompact } from './game-card';
 import { GameFilters } from './game-filters';
 import { BulkActionsBar } from './bulk-actions-bar';
@@ -11,6 +13,7 @@ import { GameEditModal } from './game-edit-modal';
 import { CancelGameModal } from './cancel-game-modal';
 import { AssignScorekeeperModal } from './assign-scorekeeper-modal';
 import { Loader2, RefreshCw, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 interface GamesListClientProps {
@@ -27,6 +30,7 @@ export function GamesListClient({
   initialSeasons,
 }: GamesListClientProps) {
   const router = useRouter();
+  const t = useTranslations('games');
   const [isPending, startTransition] = useTransition();
 
   const [games, setGames] = useState<Game[]>(initialGames);
@@ -37,6 +41,7 @@ export function GamesListClient({
   const [editGame, setEditGame] = useState<Game | null>(null);
   const [cancelGame, setCancelGame] = useState<Game | null>(null);
   const [assignScorekeeperGame, setAssignScorekeeperGame] = useState<Game | null>(null);
+  const [activeGameAction, setActiveGameAction] = useState<string | null>(null);
 
   // Refresh games from server
   const refreshGames = useCallback(() => {
@@ -109,6 +114,53 @@ export function GamesListClient({
     setAssignScorekeeperGame(null);
     refreshGames();
   }, [refreshGames]);
+
+  const handleCompleteGame = useCallback((game: Game) => {
+    if (!window.confirm(t('completeGameConfirm'))) {
+      return;
+    }
+
+    const actionKey = `${game.id}:complete`;
+    setActiveGameAction(actionKey);
+    startTransition(async () => {
+      try {
+        const result = game.status === 'scheduled'
+          ? await updateGame(game.id, { status: 'completed' })
+          : await adminFinalizeStuckGame(game.id);
+        if (!result.success) {
+          toast.error(result.error || t('completeGameFailed'));
+          return;
+        }
+        toast.success(t('completeGameSuccess'));
+        refreshGames();
+        router.refresh();
+      } finally {
+        setActiveGameAction(null);
+      }
+    });
+  }, [refreshGames, router, t]);
+
+  const handleGenerateGameRecap = useCallback((game: Game) => {
+    if (!window.confirm(t('generateGameRecapConfirm'))) {
+      return;
+    }
+
+    const actionKey = `${game.id}:recap`;
+    setActiveGameAction(actionKey);
+    startTransition(async () => {
+      try {
+        const result = await regenerateGameRecap(game.id, leagueId);
+        if (!result.success) {
+          toast.error(result.error || t('generateGameRecapFailed'));
+          return;
+        }
+        toast.success(t('generateGameRecapSuccess'));
+        router.refresh();
+      } finally {
+        setActiveGameAction(null);
+      }
+    });
+  }, [leagueId, router, t]);
 
   // Group games by date
   const gamesByDate = useMemo(() => {
@@ -216,6 +268,10 @@ export function GamesListClient({
                     onEdit={() => setEditGame(game)}
                     onCancel={() => setCancelGame(game)}
                     onAssignScorekeeper={() => setAssignScorekeeperGame(game)}
+                    onComplete={() => handleCompleteGame(game)}
+                    onGenerateRecap={() => handleGenerateGameRecap(game)}
+                    isCompleting={activeGameAction === `${game.id}:complete`}
+                    isGeneratingRecap={activeGameAction === `${game.id}:recap`}
                     onClick={() => router.push(`/dashboard/leagues/${leagueId}/games/${game.id}`)}
                   />
                 ))}
