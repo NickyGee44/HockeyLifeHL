@@ -2,6 +2,14 @@
 
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import {
+  SPARE_PLAYER_OPTION_ID,
+  buildStatEntryPlayerOptions,
+  normalizeGoalParticipantIds,
+  type StatEntryCheckinRow,
+  type StatEntryRosterRow,
+  type StatEntrySubInvitationRow,
+} from '@/lib/games/stat-entry-players';
 
 // ==============================================================================
 // TYPES
@@ -14,7 +22,7 @@ export interface GameEventForCorrection {
   game_time_seconds: number | null;
   team_id: string;
   team_type: 'home' | 'away';
-  player_id: string;
+  player_id: string | null;
   player_name: string;
   player_number: number | null;
   assist1_player_id: string | null;
@@ -167,7 +175,9 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
       return { success: false, error: 'Failed to load events' };
     }
 
-    // Get rosters for both teams
+    const teamIds = [game.home_team_id, game.away_team_id];
+
+    // Get active roster metadata, then scope stat-entry options to game attendance.
     let rosterQuery = serviceClient
       .from('team_rosters')
       .select(`
@@ -177,9 +187,10 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
         season_id,
         end_date,
         position,
+        player_type,
         profiles!team_rosters_player_id_fkey(full_name)
       `)
-      .in('team_id', [game.home_team_id, game.away_team_id])
+      .in('team_id', teamIds)
       .eq('status', 'active')
       .is('end_date', null);
 
@@ -187,11 +198,35 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
       rosterQuery = rosterQuery.eq('season_id', game.season_id);
     }
 
-    const { data: rosters } = await rosterQuery;
+    const [rostersResult, checkinsResult, subInvitationsResult] = await Promise.all([
+      rosterQuery,
+      serviceClient
+        .from('game_checkins')
+        .select('player_id, team_id, status')
+        .eq('game_id', gameId)
+        .in('team_id', teamIds),
+      serviceClient
+        .from('sub_invitations')
+        .select(`
+          invited_player_id,
+          team_id,
+          status,
+          invited_player:profiles!sub_invitations_invited_player_id_fkey(full_name)
+        `)
+        .eq('game_id', gameId)
+        .in('team_id', teamIds),
+    ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (rostersResult.error || checkinsResult.error || subInvitationsResult.error) {
+      return { success: false, error: 'Failed to load game attendance' };
+    }
+
+    const rosters = (rostersResult.data || []) as StatEntryRosterRow[];
+    const checkins = (checkinsResult.data || []) as StatEntryCheckinRow[];
+    const subInvitations = (subInvitationsResult.data || []) as StatEntrySubInvitationRow[];
+
     const jerseyMap = new Map(
-      rosters?.map((r: any) => [r.player_id, r.jersey_number ?? 0] as [string, number]) || []
+      rosters.map((r) => [r.player_id, r.jersey_number ?? 0] as [string | null, number]) || []
     );
 
     const formattedEvents: GameEventForCorrection[] = (events || []).map((e) => ({
@@ -202,8 +237,8 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
       team_id: e.team_id,
       team_type: e.team_type as 'home' | 'away',
       player_id: e.player_id,
-      player_name: (e.player as { full_name: string } | null)?.full_name || 'Unknown',
-      player_number: jerseyMap.get(e.player_id) ?? null,
+      player_name: e.player_id ? (e.player as { full_name: string } | null)?.full_name || 'Unknown' : 'Spare',
+      player_number: e.player_id ? jerseyMap.get(e.player_id) ?? null : null,
       assist1_player_id: e.assist1_player_id,
       assist1_name: (e.assist1 as { full_name: string } | null)?.full_name || null,
       assist2_player_id: e.assist2_player_id,
@@ -217,14 +252,11 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
       created_at: e.created_at ?? new Date().toISOString(),
     }));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const formattedRosters: RosterPlayer[] = (rosters || []).map((r: any) => ({
-      id: r.player_id,
-      full_name: (Array.isArray(r.profiles) ? r.profiles[0]?.full_name : r.profiles?.full_name) || 'Unknown',
-      jersey_number: r.jersey_number ?? 0,
-      team_id: r.team_id,
-      position: r.position || 'Forward',
-    }));
+    const formattedRosters: RosterPlayer[] = buildStatEntryPlayerOptions({
+      rosterRows: rosters,
+      checkinRows: checkins,
+      subInvitationRows: subInvitations,
+    });
 
     return {
       success: true,
@@ -331,7 +363,7 @@ export async function addGameEvent(data: {
   gameTimeSeconds?: number;
   teamId: string;
   teamType: 'home' | 'away';
-  playerId: string;
+  playerId: string | null;
   assist1PlayerId?: string;
   assist2PlayerId?: string;
   penaltyType?: string;
@@ -342,8 +374,31 @@ export async function addGameEvent(data: {
   reason?: string;
 }): Promise<ActionResult<{ eventId: string }>> {
   try {
-    if (!isValidUUID(data.gameId) || !isValidUUID(data.playerId) || !isValidUUID(data.teamId)) {
+    const normalizedParticipants = data.eventType === 'goal'
+      ? normalizeGoalParticipantIds({
+          scorerId: data.playerId ?? SPARE_PLAYER_OPTION_ID,
+          assist1Id: data.assist1PlayerId,
+          assist2Id: data.assist2PlayerId,
+        })
+      : {
+          playerId: data.playerId,
+          assist1PlayerId: undefined,
+          assist2PlayerId: undefined,
+        };
+
+    const hasValidPlayerId = normalizedParticipants.playerId === null
+      || isValidUUID(normalizedParticipants.playerId);
+    const hasValidAssistIds = [
+      normalizedParticipants.assist1PlayerId,
+      normalizedParticipants.assist2PlayerId,
+    ].every((playerId) => !playerId || isValidUUID(playerId));
+
+    if (!isValidUUID(data.gameId) || !isValidUUID(data.teamId) || !hasValidPlayerId || !hasValidAssistIds) {
       return { success: false, error: 'Invalid ID format' };
+    }
+
+    if (data.eventType !== 'goal' && !normalizedParticipants.playerId) {
+      return { success: false, error: 'A real player is required for this event type' };
     }
 
     const serviceClient = createServiceRoleClient();
@@ -366,8 +421,9 @@ export async function addGameEvent(data: {
 
     const clientEventId = `admin-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 10)}`;
 
-    const { data: newEvent, error: insertError } = await serviceClient
-      .from('game_events')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gameEventsTable = serviceClient.from('game_events') as any;
+    const { data: newEvent, error: insertError } = await gameEventsTable
       .insert({
         client_event_id: clientEventId,
         event_version: 1,
@@ -377,12 +433,12 @@ export async function addGameEvent(data: {
         league_id: game.league_id,
         team_id: data.teamId,
         team_type: data.teamType,
-        player_id: data.playerId,
+        player_id: normalizedParticipants.playerId,
         event_type: data.eventType,
         period: data.period,
         game_time_seconds: data.gameTimeSeconds ?? null,
-        assist1_player_id: data.assist1PlayerId || null,
-        assist2_player_id: data.assist2PlayerId || null,
+        assist1_player_id: normalizedParticipants.assist1PlayerId || null,
+        assist2_player_id: normalizedParticipants.assist2PlayerId || null,
         penalty_type: data.penaltyType || null,
         penalty_minutes: data.penaltyMinutes ?? null,
         is_power_play: data.isPowerPlay || false,
@@ -406,11 +462,12 @@ export async function addGameEvent(data: {
       action: 'stat_correction_add',
       changed_by: auth.userId,
       previous_data: null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new_data: {
         event_id: newEvent.id,
         event_type: data.eventType,
-        player_id: data.playerId,
+        player_id: normalizedParticipants.playerId,
+        assist1_player_id: normalizedParticipants.assist1PlayerId ?? null,
+        assist2_player_id: normalizedParticipants.assist2PlayerId ?? null,
         period: data.period,
         team_type: data.teamType,
       } as any,
@@ -528,7 +585,6 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
       action: 'stat_correction_recalculate',
       changed_by: auth.userId,
       previous_data: null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new_data: {
         home_score: updatedGame?.home_score,
         away_score: updatedGame?.away_score,

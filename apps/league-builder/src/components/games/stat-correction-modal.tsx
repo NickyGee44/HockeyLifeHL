@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import type { Game } from '@/lib/actions/games';
 import type { GameEventForCorrection, RosterPlayer } from '@/lib/actions/stat-corrections';
+import { SPARE_PLAYER_OPTION_ID, normalizeGoalParticipantIds } from '@/lib/games/stat-entry-players';
 import {
   getGameEventsForCorrection,
   deleteGameEvent,
@@ -96,7 +97,7 @@ export function StatCorrectionModal({
   useEffect(() => {
     if (open) {
       loadEvents(); // eslint-disable-line -- data-fetching when modal opens
-      setHasChanges(false); // eslint-disable-line -- reset changes state when modal opens
+      setHasChanges(false);
     }
   }, [open, loadEvents]);
 
@@ -107,6 +108,11 @@ export function StatCorrectionModal({
 
   const teamIdForType = newTeamType === 'home' ? homeTeamId : awayTeamId;
   const teamRoster = rosters.filter((r) => r.team_id === teamIdForType);
+  const sortedTeamRoster = [...teamRoster].sort((a, b) => a.jersey_number - b.jersey_number);
+
+  const formatPlayerOptionLabel = (player: Pick<RosterPlayer, 'jersey_number' | 'full_name'>) => (
+    player.jersey_number > 0 ? `#${player.jersey_number} ${player.full_name}` : player.full_name
+  );
 
   const handleDeleteEvent = async (eventId: string) => {
     setActionLoading(eventId);
@@ -127,6 +133,19 @@ export function StatCorrectionModal({
       return;
     }
 
+    const normalizedParticipants = newEventType === 'goal'
+      ? normalizeGoalParticipantIds({
+          scorerId: newPlayerId,
+          assist1Id: newAssist1,
+          assist2Id: newAssist2,
+        })
+      : { playerId: newPlayerId, assist1PlayerId: undefined, assist2PlayerId: undefined };
+
+    if (newEventType !== 'goal' && newPlayerId === SPARE_PLAYER_OPTION_ID) {
+      toast.error(t('selectPlayer'));
+      return;
+    }
+
     setActionLoading('add');
     const result = await addGameEvent({
       gameId: game.id,
@@ -134,9 +153,9 @@ export function StatCorrectionModal({
       period: parseInt(newPeriod),
       teamId: teamIdForType,
       teamType: newTeamType,
-      playerId: newPlayerId,
-      assist1PlayerId: newEventType === 'goal' && newAssist1 && newAssist1 !== 'none' ? newAssist1 : undefined,
-      assist2PlayerId: newEventType === 'goal' && newAssist2 && newAssist2 !== 'none' ? newAssist2 : undefined,
+      playerId: normalizedParticipants.playerId,
+      assist1PlayerId: normalizedParticipants.assist1PlayerId,
+      assist2PlayerId: normalizedParticipants.assist2PlayerId,
       penaltyType: newEventType === 'penalty' ? newPenaltyType : undefined,
       penaltyMinutes: newEventType === 'penalty' ? parseInt(newPenaltyMinutes) : undefined,
       isPowerPlay: newEventType === 'goal' ? newIsPowerPlay : undefined,
@@ -186,11 +205,15 @@ export function StatCorrectionModal({
     setNewIsEmptyNet(false);
   };
 
+  const formatEventPlayerLabel = (playerName: string, playerNumber: number | null) => (
+    playerNumber != null && playerNumber > 0 ? `#${playerNumber} ${playerName}` : playerName
+  );
+
   const formatEventLabel = (event: GameEventForCorrection) => {
     const parts: string[] = [];
     if (event.event_type === 'goal') {
       parts.push(`P${event.period}`);
-      parts.push(`#${event.player_number ?? '?'} ${event.player_name}`);
+      parts.push(formatEventPlayerLabel(event.player_name, event.player_number));
       if (event.assist1_name) parts.push(`(A: ${event.assist1_name}`);
       if (event.assist2_name) parts.push(`, ${event.assist2_name})`);
       else if (event.assist1_name) parts.push(')');
@@ -199,11 +222,11 @@ export function StatCorrectionModal({
       if (event.is_empty_net) parts.push('[EN]');
     } else if (event.event_type === 'penalty') {
       parts.push(`P${event.period}`);
-      parts.push(`#${event.player_number ?? '?'} ${event.player_name}`);
+      parts.push(formatEventPlayerLabel(event.player_name, event.player_number));
       parts.push(`- ${event.penalty_minutes}min ${event.penalty_type || ''}`);
     } else if (event.event_type === 'save') {
       parts.push(`P${event.period}`);
-      parts.push(`#${event.player_number ?? '?'} ${event.player_name}`);
+      parts.push(formatEventPlayerLabel(event.player_name, event.player_number));
     }
     return parts.join(' ');
   };
@@ -316,7 +339,17 @@ export function StatCorrectionModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs text-neutral-400">{t('eventType')}</Label>
-                    <Select value={newEventType} onValueChange={(v) => setNewEventType(v as 'goal' | 'penalty' | 'save')}>
+                    <Select value={newEventType} onValueChange={(v) => {
+                      const nextEventType = v as 'goal' | 'penalty' | 'save';
+                      setNewEventType(nextEventType);
+                      if (nextEventType !== 'goal') {
+                        if (newPlayerId === SPARE_PLAYER_OPTION_ID) {
+                          setNewPlayerId('');
+                        }
+                        setNewAssist1('');
+                        setNewAssist2('');
+                      }
+                    }}>
                       <SelectTrigger className="bg-neutral-800 border-white/10 text-white text-sm">
                         <SelectValue />
                       </SelectTrigger>
@@ -355,13 +388,16 @@ export function StatCorrectionModal({
                         <SelectValue placeholder={t('selectPlayer')} />
                       </SelectTrigger>
                       <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
-                        {teamRoster
-                          .sort((a, b) => a.jersey_number - b.jersey_number)
-                          .map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              #{p.jersey_number} {p.full_name}
-                            </SelectItem>
-                          ))}
+                        {sortedTeamRoster.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {formatPlayerOptionLabel(p)}
+                          </SelectItem>
+                        ))}
+                        {newEventType === 'goal' && (
+                          <SelectItem value={SPARE_PLAYER_OPTION_ID}>
+                            {t('spare')}
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -394,14 +430,16 @@ export function StatCorrectionModal({
                           </SelectTrigger>
                           <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
                             <SelectItem value="none">{t('none')}</SelectItem>
-                            {teamRoster
+                            {sortedTeamRoster
                               .filter((p) => p.id !== newPlayerId)
-                              .sort((a, b) => a.jersey_number - b.jersey_number)
                               .map((p) => (
                                 <SelectItem key={p.id} value={p.id}>
-                                  #{p.jersey_number} {p.full_name}
+                                  {formatPlayerOptionLabel(p)}
                                 </SelectItem>
                               ))}
+                            <SelectItem value={SPARE_PLAYER_OPTION_ID}>
+                              {t('spare')}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -413,14 +451,16 @@ export function StatCorrectionModal({
                           </SelectTrigger>
                           <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
                             <SelectItem value="none">{t('none')}</SelectItem>
-                            {teamRoster
+                            {sortedTeamRoster
                               .filter((p) => p.id !== newPlayerId && (newAssist1 === 'none' || p.id !== newAssist1))
-                              .sort((a, b) => a.jersey_number - b.jersey_number)
                               .map((p) => (
                                 <SelectItem key={p.id} value={p.id}>
-                                  #{p.jersey_number} {p.full_name}
+                                  {formatPlayerOptionLabel(p)}
                                 </SelectItem>
                               ))}
+                            <SelectItem value={SPARE_PLAYER_OPTION_ID}>
+                              {t('spare')}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
