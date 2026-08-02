@@ -15,6 +15,7 @@ import { TeamLeadersSection } from '@/components/team/TeamLeadersSection';
 import { TeamRosterToggle } from '@/components/team/TeamRosterToggle';
 import { TeamPageCheckinCard } from '@/components/team/TeamPageCheckinCard';
 import { TeamScheduleList } from '@/components/schedule/TeamScheduleList';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import { HomepageWeeklyGames } from '@/components/home/HomepageWeeklyGames';
 import { notFound } from 'next/navigation';
 import { SubscriptionWall, SectionHeading } from '@/components/shared';
@@ -176,7 +177,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
     return {
       playerId: player.player_id,
       name: player.profile?.full_name || 'Unknown',
-      avatarUrl: player.profile?.avatar_url || '/blank_player.png',
+      avatarUrl: resolvePlayerPhotoUrl(player.profile) || '/blank_player.png',
       jerseyNumber: player.jersey_number,
       values: {
         points: stats?.points ?? 0,
@@ -491,7 +492,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                                 leagueSlug={leagueSlug}
                                 playerId={player.player_id}
                                 name={player.profile?.full_name || 'Unknown Player'}
-                                avatarUrl={player.profile?.avatar_url || '/blank_player.png'}
+                                avatarUrl={resolvePlayerPhotoUrl(player.profile) || '/blank_player.png'}
                                 leadershipRole={player.leadership_role}
                                 jerseyNumber={player.jersey_number}
                               />

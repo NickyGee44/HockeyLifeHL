@@ -81,6 +81,7 @@ import { getLeagueDateKey, getLeagueWeekDateRange, resolveLeagueTimezone } from 
 import { pickOperationalSeason } from './seasons/operational';
 import { resolveSeasonParticipationTeamIds } from './season-team-participation';
 import { filterPublicStandings, filterPublicTeams, isPublicFacingTeam } from './publicSiteVisibility';
+import { resolvePlayerPhotoUrl } from './player-photo';
 
 // Default brand colors – platinum/silver fallback instead of gold
 const DEFAULT_PRIMARY = '#C0C0C0';
@@ -278,11 +279,11 @@ async function hydrateBaselineAvatarUrls(rows: ImportedCareerBaselineRow[]): Pro
   const supabase = createServiceRoleClient();
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, avatar_url')
+    .select('id, avatar_url, photo_url')
     .in('id', profileIds);
 
   const avatarMap = new Map<string, string | null>(
-    (profiles || []).map((profile: { id: string; avatar_url: string | null }) => [profile.id, profile.avatar_url]),
+    (profiles || []).map((profile: { id: string; avatar_url: string | null; photo_url?: string | null }) => [profile.id, resolvePlayerPhotoUrl(profile)]),
   );
 
   return rows.map((row) => ({
@@ -736,7 +737,9 @@ type TeamRosterProfileRow = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  photo_url?: string | null;
   position?: string | null;
+  phone?: string | null;
 };
 
 function normalizeRosterPosition(
@@ -763,7 +766,7 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
     .from('team_rosters')
     .select(`
       *,
-      profile:profiles(id, full_name, avatar_url, position, phone)
+      profile:profiles(id, full_name, avatar_url, photo_url, position, phone)
     `)
     .eq('team_id', teamId);
 
@@ -809,8 +812,9 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
         ? {
             id: profileRow.id,
             full_name: profileRow.full_name,
-            avatar_url: profileRow.avatar_url,
-            phone: (profileRow as any).phone ?? null,
+            avatar_url: resolvePlayerPhotoUrl(profileRow),
+            photo_url: profileRow.photo_url ?? null,
+            phone: profileRow.phone ?? null,
           }
         : undefined,
     });
@@ -825,7 +829,7 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
   if (missingPlayerIds.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, position')
+      .select('id, full_name, avatar_url, photo_url, position')
       .in('id', missingPlayerIds);
 
     const profileById = new Map((profiles || []).map((profile) => [profile.id, profile]));
@@ -847,7 +851,8 @@ export async function getTeamRoster(teamId: string, seasonId?: string): Promise<
           ? {
               id: profile.id,
               full_name: profile.full_name,
-              avatar_url: profile.avatar_url,
+              avatar_url: resolvePlayerPhotoUrl(profile),
+              photo_url: profile.photo_url ?? null,
             }
           : undefined,
       });
@@ -1329,7 +1334,7 @@ export async function getTeamWithCaptain(
     .select(`
       *,
       division:divisions(*),
-      captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url)
+      captain:profiles!teams_captain_id_fkey(id, full_name, avatar_url, photo_url)
     `)
     .eq('league_id', leagueId)
     .eq('slug', teamSlug)
@@ -2549,11 +2554,11 @@ export async function getStatsLeadersWithAvatars(
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, avatar_url')
+    .select('id, avatar_url, photo_url')
     .in('id', playerIds);
 
   const avatarMap = new Map(
-    (profiles || []).map((p) => [p.id, p.avatar_url])
+    (profiles || []).map((p) => [p.id, resolvePlayerPhotoUrl(p)])
   );
 
   return leaders.map((leader) => ({
@@ -2649,7 +2654,7 @@ type RawSkaterStatsRow = {
   short_handed_assists?: number | null;
   empty_net_goals?: number | null;
   game_winning_goals?: number | null;
-  player?: { full_name?: string | null; avatar_url?: string | null } | { full_name?: string | null; avatar_url?: string | null }[] | null;
+  player?: { full_name?: string | null; avatar_url?: string | null; photo_url?: string | null } | { full_name?: string | null; avatar_url?: string | null; photo_url?: string | null }[] | null;
   team?: {
     name?: string | null;
     divisions?: { name?: string | null } | { name?: string | null }[] | null;
@@ -2669,7 +2674,7 @@ type RawGoalieStatsRow = {
   goals_against?: number | null;
   shutout?: boolean | null;
   game_result?: string | null;
-  player?: { full_name?: string | null; avatar_url?: string | null } | { full_name?: string | null; avatar_url?: string | null }[] | null;
+  player?: { full_name?: string | null; avatar_url?: string | null; photo_url?: string | null } | { full_name?: string | null; avatar_url?: string | null; photo_url?: string | null }[] | null;
   team?: {
     name?: string | null;
     divisions?: { name?: string | null } | { name?: string | null }[] | null;
@@ -2782,7 +2787,7 @@ export function aggregateNativeGoalieStatsRows(
     const entry = existing ?? {
       player_id: row.player_id,
       player_name: playerData?.full_name || 'Unknown Goalie',
-      avatar_url: playerData?.avatar_url || null,
+      avatar_url: resolvePlayerPhotoUrl(playerData),
       jersey_number: roster?.jersey_number != null ? String(roster.jersey_number) : null,
       team_id: row.team_id,
       team_name: teamData?.name || 'Unknown Team',
@@ -2894,7 +2899,7 @@ async function buildFallbackCurrentSeasonGoalieRows(
       jersey_number,
       is_goalie,
       position,
-      profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url),
+      profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url, photo_url),
       teams:teams!team_rosters_team_id_fkey(name, divisions(name))
     `)
     .eq('season_id', seasonId)
@@ -2954,7 +2959,7 @@ async function buildFallbackCurrentSeasonGoalieRows(
     const entry: UnifiedGoalieStatsRow = {
       player_id: goalie.player_id,
       player_name: goalie.profiles?.full_name || 'Unknown Goalie',
-      avatar_url: goalie.profiles?.avatar_url || null,
+      avatar_url: resolvePlayerPhotoUrl(goalie.profiles),
       jersey_number: goalie.jersey_number != null ? String(goalie.jersey_number) : null,
       team_id: goalie.team_id,
       team_name: goalie.teams?.name || 'Unknown Team',
@@ -3149,7 +3154,7 @@ async function getImportedAggregateProfileMap(seasonId: string, playerNames: str
     .select(`
       player_id,
       position,
-      profile:profiles(id, full_name, avatar_url, position)
+      profile:profiles(id, full_name, avatar_url, photo_url, position)
     `)
     .eq('season_id', seasonId);
 
@@ -3158,6 +3163,7 @@ async function getImportedAggregateProfileMap(seasonId: string, playerNames: str
       id?: string | null;
       full_name?: string | null;
       avatar_url?: string | null;
+      photo_url?: string | null;
       position?: string | null;
     } | null;
     const key = normalizeImportedAggregateKey(profile?.full_name);
@@ -3167,7 +3173,7 @@ async function getImportedAggregateProfileMap(seasonId: string, playerNames: str
 
     profileMap.set(key, {
       playerId: row.player_id,
-      avatarUrl: profile?.avatar_url || null,
+      avatarUrl: resolvePlayerPhotoUrl(profile),
       position: row.position || profile?.position || null,
     });
   }
@@ -3179,7 +3185,7 @@ async function getImportedAggregateProfileMap(seasonId: string, playerNames: str
   if (missingNames.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, position')
+      .select('id, full_name, avatar_url, photo_url, position')
       .in('full_name', missingNames);
 
     for (const profile of profiles || []) {
@@ -3190,7 +3196,7 @@ async function getImportedAggregateProfileMap(seasonId: string, playerNames: str
 
       profileMap.set(key, {
         playerId: profile.id,
-        avatarUrl: profile.avatar_url || null,
+        avatarUrl: resolvePlayerPhotoUrl(profile),
         position: profile.position || null,
       });
     }
@@ -3490,7 +3496,7 @@ async function getNativeUnifiedSkaterStatsRows(
         empty_net_goals,
         game_winning_goals,
         game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified),
-        player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
+        player:profiles!player_stats_player_id_fkey(full_name, avatar_url, photo_url),
         team:teams!player_stats_team_id_fkey(name, divisions(name))
       `)
       .eq('game.league_id', leagueId)
@@ -3591,7 +3597,7 @@ async function getNativeUnifiedSkaterStatsRows(
     const entry = existing ?? {
       player_id: row.player_id,
       player_name: playerData?.full_name || 'Unknown Player',
-      avatar_url: playerData?.avatar_url || null,
+      avatar_url: resolvePlayerPhotoUrl(playerData),
       jersey_number: roster?.jersey_number != null ? String(roster.jersey_number) : null,
       team_id: row.team_id,
       team_name: teamData?.name || 'Unknown Team',
@@ -3662,7 +3668,7 @@ async function getNativeUnifiedSkaterStatsRows(
         jersey_number,
         is_goalie,
         position,
-        profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url),
+        profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url, photo_url),
         teams:teams!team_rosters_team_id_fkey(name, divisions(name))
       `)
       .eq('season_id', seasonId)
@@ -3685,7 +3691,7 @@ async function getNativeUnifiedSkaterStatsRows(
         playerMap.set(rawRow.player_id, {
           player_id: rawRow.player_id,
           player_name: profileData?.full_name || 'Unknown Player',
-          avatar_url: profileData?.avatar_url || null,
+          avatar_url: resolvePlayerPhotoUrl(profileData),
           jersey_number: rawRow.jersey_number != null ? String(rawRow.jersey_number) : null,
           team_id: rawRow.team_id,
           team_name: teamData?.name || 'Unknown Team',
@@ -3856,7 +3862,7 @@ async function getNativeUnifiedGoalieStatsRows(
         shutout,
         game_result,
         game:games!inner(league_id, season_id, status, home_captain_verified, away_captain_verified, home_team_id, away_team_id, home_score, away_score),
-        player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url),
+        player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url, photo_url),
         team:teams!goalie_stats_team_id_fkey(name, divisions(name))
       `)
       .eq('game.league_id', leagueId)
@@ -3952,7 +3958,7 @@ async function getNativeUnifiedGoalieStatsRows(
         jersey_number,
         is_goalie,
         position,
-        profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url),
+        profiles:profiles!team_rosters_player_id_fkey(full_name, avatar_url, photo_url),
         teams:teams!team_rosters_team_id_fkey(name, divisions(name))
       `)
       .eq('season_id', seasonId)
@@ -3975,7 +3981,7 @@ async function getNativeUnifiedGoalieStatsRows(
         aggregated.push({
           player_id: rawRow.player_id,
           player_name: profileData?.full_name || 'Unknown Goalie',
-          avatar_url: profileData?.avatar_url || null,
+          avatar_url: resolvePlayerPhotoUrl(profileData),
           jersey_number: rawRow.jersey_number != null ? String(rawRow.jersey_number) : null,
           team_id: rawRow.team_id,
           team_name: teamData?.name || 'Unknown Team',
@@ -4356,7 +4362,7 @@ export async function getTeamGoalies(
       saves,
       shutout,
       game_result,
-      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url, jersey_number)
+      player:profiles!goalie_stats_player_id_fkey(full_name, avatar_url, photo_url, jersey_number)
     `)
     .eq('team_id', teamId)
     .eq('season_id', seasonId);
@@ -4555,7 +4561,7 @@ export async function getPlayerProfile(playerId: string): Promise<Player | null>
 
   const selectQuery = `
       *,
-      profile:profiles(id, full_name, avatar_url),
+      profile:profiles(id, full_name, avatar_url, photo_url),
       team:teams(id, name, slug, logo_url, primary_color, secondary_color, league_id)
     `;
 
@@ -5942,7 +5948,7 @@ export async function getGoalieLeaders(
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url')
+      .select('id, full_name, avatar_url, photo_url')
       .in('id', playerIds);
 
     const profileMap = new Map(
@@ -5950,7 +5956,7 @@ export async function getGoalieLeaders(
         profile.id,
         {
           full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
+          avatar_url: resolvePlayerPhotoUrl(profile),
         },
       ]),
     );
@@ -6083,7 +6089,7 @@ export async function getNewsArticles(leagueId: string, limit = 20): Promise<New
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('articles')
-    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)')
     .eq('league_id', leagueId)
     .eq('type', 'news')
     .eq('published', true)
@@ -6097,7 +6103,7 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('articles')
-    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)')
     .eq('league_id', leagueId)
     .eq('slug', slug)
     .eq('published', true)
@@ -6113,7 +6119,7 @@ export async function getNewsArticleBySlug(leagueId: string, slug: string): Prom
 
   const { data: fallbackData, error: fallbackError } = await supabase
     .from('articles')
-    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)')
     .eq('league_id', leagueId)
     .eq('id', slug)
     .eq('published', true)
@@ -6423,7 +6429,7 @@ export async function getAllArticles(leagueId: string, limit = 20): Promise<News
 
   const { data, error } = await supabase
     .from('articles')
-    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)')
     .eq('league_id', leagueId)
     .eq('published', true)
     .in('type', ['news', 'game_recap', 'weekly_wrap'])
@@ -6439,7 +6445,7 @@ export async function getAllArticles(leagueId: string, limit = 20): Promise<News
  */
 export async function getGameRecap(gameId: string): Promise<NewsArticle | null> {
   const supabase = await createClient();
-  const articleSelect = '*, author:profiles!articles_author_id_fkey(full_name, avatar_url)';
+  const articleSelect = '*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)';
 
   const { data, error } = await supabase
     .from('articles')
@@ -6506,7 +6512,7 @@ export async function getPlayerArticles(playerId: string, limit = 10): Promise<N
   // Get the articles
   const { data: articles, error } = await supabase
     .from('articles')
-    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url)')
+    .select('*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)')
     .in('id', articleIds)
     .eq('published', true)
     .order('published_at', { ascending: false });
@@ -6540,7 +6546,7 @@ export async function getTeamArticles(leagueId: string, teamId: string, limit = 
     return [];
   }
 
-  const articleSelect = '*, author:profiles!articles_author_id_fkey(full_name, avatar_url)';
+  const articleSelect = '*, author:profiles!articles_author_id_fkey(full_name, avatar_url, photo_url)';
   const allowedTypes = ['news', 'game_recap', 'weekly_wrap'];
 
   const [taggedArticlesResult, gameArticlesResult] = await Promise.all([
@@ -6686,14 +6692,22 @@ export async function getLeagueAwards(leagueId: string, seasonId?: string): Prom
   const supabase = await createClient();
   let query = supabase
     .from('league_awards')
-    .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url, division:divisions(name)), season:seasons(name)')
+    .select('*, player:profiles(full_name, avatar_url, photo_url), team:teams(name, logo_url, division:divisions(name)), season:seasons(name)')
     .eq('league_id', leagueId)
     .order('created_at', { ascending: false });
   if (seasonId) query = query.eq('season_id', seasonId);
   const { data, error } = await query;
   if (error || !data) return [];
 
-  const awards = data as unknown as LeagueAward[];
+  const awards = (data as unknown as LeagueAward[]).map((award) => ({
+    ...award,
+    player: award.player
+      ? {
+          ...award.player,
+          avatar_url: resolvePlayerPhotoUrl(award.player),
+        }
+      : award.player,
+  }));
   const playerIds = [...new Set(awards.map((award) => award.player_id).filter(Boolean))] as string[];
   const seasonIds = [...new Set(awards.map((award) => award.season_id).filter(Boolean))] as string[];
 
@@ -6811,14 +6825,22 @@ export async function getSuspensions(leagueId: string, seasonId?: string): Promi
   const supabase = await createClient();
   let query = supabase
     .from('suspensions')
-    .select('*, player:profiles(full_name, avatar_url), team:teams(name, logo_url)')
+    .select('*, player:profiles(full_name, avatar_url, photo_url), team:teams(name, logo_url)')
     .eq('league_id', leagueId)
     .in('status', ['active', 'appealed', 'served'])
     .order('created_at', { ascending: false });
   if (seasonId) query = query.eq('season_id', seasonId);
   const { data, error } = await query;
   if (error || !data) return [];
-  return data as unknown as Suspension[];
+  return (data as unknown as Suspension[]).map((suspension) => ({
+    ...suspension,
+    player: suspension.player
+      ? {
+          ...suspension.player,
+          avatar_url: resolvePlayerPhotoUrl(suspension.player),
+        }
+      : suspension.player,
+  }));
 }
 
 // ========== GAME SHEET ==========
@@ -7063,7 +7085,7 @@ export async function getGamePlayerStats(gameId: string): Promise<GamePlayerStat
       short_handed_assists,
       empty_net_goals,
       game_winning_goals,
-      player:profiles!player_stats_player_id_fkey(full_name, avatar_url),
+      player:profiles!player_stats_player_id_fkey(full_name, avatar_url, photo_url),
       team:teams!player_stats_team_id_fkey(name)
     `)
     .eq('game_id', gameId);
@@ -7104,7 +7126,7 @@ export async function getGamePlayerStats(gameId: string): Promise<GamePlayerStat
     return {
       player_id: row.player_id,
       player_name: playerData?.full_name || 'Unknown',
-      avatar_url: playerData?.avatar_url || null,
+      avatar_url: resolvePlayerPhotoUrl(playerData),
       team_id: row.team_id,
       team_name: teamData?.name || 'Unknown',
       jersey_number: roster?.jersey_number || null,

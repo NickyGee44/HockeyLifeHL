@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import { createClient } from '@/lib/supabase/client';
 import {
   ArrowLeft,
@@ -160,7 +161,7 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
           player_id,
           position,
           jersey_number,
-          profile:profiles(full_name, avatar_url)
+          profile:profiles(full_name, avatar_url, photo_url)
         `)
         .eq('team_id', teamId)
         .eq('status', 'active');
@@ -171,7 +172,7 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
           return {
             player_id: p.player_id,
             full_name: profile?.full_name || null,
-            avatar_url: profile?.avatar_url || null,
+            avatar_url: resolvePlayerPhotoUrl(profile),
             position: p.position,
             jersey_number: p.jersey_number,
           };

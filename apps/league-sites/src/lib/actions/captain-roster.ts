@@ -1,6 +1,7 @@
 'use server';
 
 import { getTeamRosterStats } from '@/lib/data';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import { createAuthClient as createClient } from '@/lib/supabase/server';
 
 export interface RosterPlayer {
@@ -16,6 +17,7 @@ export interface RosterPlayer {
     email: string | null;
     phone: string | null;
     avatar_url: string | null;
+    photo_url?: string | null;
   } | null;
 }
 
@@ -91,7 +93,7 @@ export async function getTeamRoster(
       position,
       leadership_role,
       player_type,
-      profile:profiles(id, full_name, email, phone, avatar_url)
+      profile:profiles(id, full_name, email, phone, avatar_url, photo_url)
     `
     )
     .eq('team_id', teamId)
@@ -110,10 +112,18 @@ export async function getTeamRoster(
     return { success: false, error: 'Failed to fetch roster' };
   }
 
-  const roster: RosterPlayer[] = (data || []).map((p: any) => ({
-    ...p,
-    profile: Array.isArray(p.profile) ? p.profile[0] : p.profile,
-  }));
+  const roster: RosterPlayer[] = (data || []).map((p: any) => {
+    const profile = Array.isArray(p.profile) ? p.profile[0] : p.profile;
+    return {
+      ...p,
+      profile: profile
+        ? {
+            ...profile,
+            avatar_url: resolvePlayerPhotoUrl(profile),
+          }
+        : null,
+    };
+  });
 
   return { success: true, data: roster };
 }
@@ -139,7 +149,7 @@ export async function getTeamSubsWhoPlayed(
       position,
       leadership_role,
       player_type,
-      profile:profiles(id, full_name, email, phone, avatar_url)
+      profile:profiles(id, full_name, email, phone, avatar_url, photo_url)
     `
     )
     .eq('team_id', teamId)
@@ -161,11 +171,19 @@ export async function getTeamSubsWhoPlayed(
   const statsByPlayer = await getTeamRosterStats(teamId, seasonId ?? undefined);
 
   const subs = (data || [])
-    .map((player: any) => ({
-      ...player,
-      profile: Array.isArray(player.profile) ? player.profile[0] : player.profile,
-      games_played: statsByPlayer[player.player_id]?.games_played ?? 0,
-    }))
+    .map((player: any) => {
+      const profile = Array.isArray(player.profile) ? player.profile[0] : player.profile;
+      return {
+        ...player,
+        profile: profile
+          ? {
+              ...profile,
+              avatar_url: resolvePlayerPhotoUrl(profile),
+            }
+          : null,
+        games_played: statsByPlayer[player.player_id]?.games_played ?? 0,
+      };
+    })
     .filter((player) => player.games_played > 0)
     .sort((a, b) => b.games_played - a.games_played || (a.profile?.full_name || '').localeCompare(b.profile?.full_name || ''));
 

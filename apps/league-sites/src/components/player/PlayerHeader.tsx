@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Shield } from 'lucide-react';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import type { BadgeType, Player, PlayerBadge } from '@/lib/types';
 import type { PlayerCareerAchievements } from '@/lib/career-achievements';
 import { PlayerBadgeGroup } from '@/components/shared/PlayerBadgeGroup';
@@ -53,7 +54,7 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
         {/* Player Avatar */}
         <div className="relative shrink-0">
           <Image
-            src={player.profile?.avatar_url || '/blank_player.png'}
+            src={resolvePlayerPhotoUrl(player.profile) || '/blank_player.png'}
             alt={playerName}
             width={240}
             height={240}

@@ -2,6 +2,7 @@
 
 import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getSeasonPaymentSettings } from '@/lib/registration/fee-collection-model';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import { verifyTeamCaptainAccess, type TeamCaptainAccessResult } from './team-captain-access';
 
 // ============================================================================
@@ -427,7 +428,7 @@ export async function getCaptainTeamPayments(
       player_id,
       jersey_number,
       position,
-      profile:profiles!team_rosters_player_id_fkey(id, full_name, email, avatar_url)
+      profile:profiles!team_rosters_player_id_fkey(id, full_name, email, avatar_url, photo_url)
     `
     )
     .eq('team_id', teamId)
@@ -521,7 +522,7 @@ export async function getCaptainTeamPayments(
       id: profile?.id || r.player_id,
       playerName: profile?.full_name || 'Unknown',
       email: profile?.email || null,
-      avatarUrl: profile?.avatar_url || null,
+      avatarUrl: resolvePlayerPhotoUrl(profile),
       amountOwedCents,
       amountPaidCents,
       status: normalizeCaptainPaymentStatus(

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { pickOperationalSeason } from '@/lib/seasons/operational';
 import { createAuthClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { getCaptainGameLineupEditorData } from '@/lib/actions/game-lineups';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import type { LineupAvailability } from '@/lib/lineups/types';
 import type { CheckinStatus } from '@/lib/actions/checkins';
 import type { GameLineupEditorData } from '@/lib/lineups/types';
@@ -143,7 +144,7 @@ async function loadAttendancePlayers(
       position,
       player_type,
       season_id,
-      profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
+      profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url, photo_url)
     `)
     .eq('team_id', teamId)
     .eq('status', 'active')
@@ -167,7 +168,7 @@ async function loadAttendancePlayers(
         invited_player_id,
         replaced_player_id,
         status,
-        invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url)
+        invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url, photo_url)
       `)
       .eq('game_id', gameId)
       .eq('team_id', teamId)
@@ -198,7 +199,7 @@ async function loadAttendancePlayers(
     players.push({
       playerId: row.player_id,
       fullName: profile?.full_name ?? 'Player',
-      avatarUrl: profile?.avatar_url ?? null,
+      avatarUrl: resolvePlayerPhotoUrl(profile),
       jerseyNumber: row.jersey_number ?? null,
       position: row.position ?? null,
       status: checkins.get(row.player_id) ?? 'no_response',
@@ -223,7 +224,7 @@ async function loadAttendancePlayers(
     players.push({
       playerId: row.invited_player_id,
       fullName: profile?.full_name ?? 'Player',
-      avatarUrl: profile?.avatar_url ?? null,
+      avatarUrl: resolvePlayerPhotoUrl(profile),
       jerseyNumber: null,
       position: null,
       status: checkins.get(row.invited_player_id) ?? fallbackStatus,

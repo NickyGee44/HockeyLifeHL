@@ -5,6 +5,7 @@ import { useState, useEffect, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import { usePlayerProfile } from '@/hooks/usePlayerProfile';
 import { useLeague } from '@/hooks/useLeague';
 import {
@@ -39,6 +40,7 @@ interface RosterEntry {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
+    photo_url?: string | null;
   } | null;
 }
 
@@ -163,7 +165,7 @@ export default function CheckinPage() {
       // --- 2. Roster ---
       const { data: rosterData } = await supabase
         .from('team_rosters')
-        .select('player_id, position, jersey_number, profile:profiles(id, full_name, avatar_url)')
+        .select('player_id, position, jersey_number, profile:profiles(id, full_name, avatar_url, photo_url)')
         .eq('team_id', teamId)
         .eq('status', 'active')
         .is('end_date', null)
@@ -539,9 +541,9 @@ export default function CheckinPage() {
                         className="flex items-center gap-3 py-1.5 px-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
                       >
                         {/* Avatar */}
-                        {player.profile?.avatar_url ? (
+                        {resolvePlayerPhotoUrl(player.profile) ? (
                           <Image
-                            src={player.profile.avatar_url}
+                            src={resolvePlayerPhotoUrl(player.profile)!}
                             alt={name}
                             width={28}
                             height={28}

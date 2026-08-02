@@ -6,6 +6,7 @@ import type {
   UnifiedGoalieStatsRow,
   UnifiedSkaterStatsRow,
 } from './types';
+import { resolvePlayerPhotoUrl } from './player-photo';
 
 export type TeamPageRosterStatsByPlayer = Record<string, {
   games_played: number;
@@ -218,7 +219,7 @@ export function buildTeamLeaders(
       return {
         playerId: player.player_id,
         name: player.profile?.full_name || 'Unknown Player',
-        avatarUrl: player.profile?.avatar_url || null,
+        avatarUrl: resolvePlayerPhotoUrl(player.profile),
         jerseyNumber: player.jersey_number ?? null,
         metric,
         value: stats?.[metric] ?? 0,

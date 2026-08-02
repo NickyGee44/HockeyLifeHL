@@ -19,6 +19,7 @@ import {
   type PreviousTeamOption,
   type TeamReturnStatus,
 } from '@/lib/registration/intents';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 
 // ============================================================================
 // Stripe Client (Lazy Initialization)
@@ -1083,11 +1084,12 @@ export async function submitPlayerRegistration(
 
     const { data: existingProfile } = await serviceSupabase
       .from('profiles')
-      .select('avatar_url')
+      .select('avatar_url, photo_url')
       .eq('id', user.id)
       .maybeSingle();
 
-    const registrationPhotoUrl = data.photo_url || existingProfile?.avatar_url || null;
+    const submittedPhotoUrl = data.photo_url?.trim() || null;
+    const registrationPhotoUrl = submittedPhotoUrl || resolvePlayerPhotoUrl(existingProfile);
 
     // Update profile
     await serviceSupabase
@@ -1099,6 +1101,7 @@ export async function submitPlayerRegistration(
         emergency_contact_phone: data.emergency_contact_phone,
         emergency_contact_relationship: data.emergency_contact_relationship,
         medical_notes: data.medical_notes || null,
+        avatar_url: registrationPhotoUrl,
         photo_url: registrationPhotoUrl,
       })
       .eq('id', user.id);
