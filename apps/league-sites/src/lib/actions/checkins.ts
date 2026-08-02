@@ -1,6 +1,7 @@
 'use server';
 
 import { createAuthClient as createClient } from '@/lib/supabase/server';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 
 export type CheckinStatus = 'confirmed' | 'tentative' | 'out';
 
@@ -87,7 +88,7 @@ export async function getGameCheckins(gameId: string, teamId: string) {
       player_id,
       status,
       note,
-      profile:profiles(id, full_name, avatar_url)
+      profile:profiles(id, full_name, avatar_url, photo_url)
     `)
     .eq('game_id', gameId)
     .eq('team_id', teamId);
@@ -97,7 +98,18 @@ export async function getGameCheckins(gameId: string, teamId: string) {
     return [];
   }
 
-  return data || [];
+  return (data || []).map((row: any) => {
+    const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+    return {
+      ...row,
+      profile: profile
+        ? {
+            ...profile,
+            avatar_url: resolvePlayerPhotoUrl(profile),
+          }
+        : null,
+    };
+  });
 }
 
 export interface TeamCheckinSummary {

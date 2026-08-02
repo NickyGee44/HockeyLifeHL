@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 
 interface PlayerWithTeam {
   id: string;
@@ -12,6 +13,7 @@ interface PlayerWithTeam {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
+    photo_url?: string | null;
   } | null;
   team: {
     id: string;
@@ -68,6 +70,7 @@ function PlayerListRow({
   leagueSlug: string;
 }) {
   const name = player.profile?.full_name || 'Unknown Player';
+  const photoUrl = resolvePlayerPhotoUrl(player.profile) || '/blank_player.png';
 
   return (
     <Link
@@ -76,7 +79,7 @@ function PlayerListRow({
     >
       <div className="flex min-w-0 items-center gap-3">
         <Image
-          src={player.profile?.avatar_url || '/blank_player.png'}
+          src={photoUrl}
           alt={name}
           width={44}
           height={44}
@@ -130,6 +133,7 @@ function PlayerCard({
   leagueSlug: string;
 }) {
   const name = player.profile?.full_name || 'Unknown Player';
+  const photoUrl = resolvePlayerPhotoUrl(player.profile) || '/blank_player.png';
 
   return (
     <Link
@@ -139,7 +143,7 @@ function PlayerCard({
       {/* Avatar */}
       <div className="aspect-square relative bg-[var(--color-surface-hover)]">
         <Image
-          src={player.profile?.avatar_url || '/blank_player.png'}
+          src={photoUrl}
           alt={name}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-300"

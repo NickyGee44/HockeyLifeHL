@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { randomBytes, timingSafeEqual } from 'crypto';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 
 // Session cookie name for scorekeeper tokens
 const SCOREKEEPER_SESSION_COOKIE = 'sk_session';
@@ -1556,7 +1557,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           .from('team_rosters')
           .select(`
             player_id, jersey_number, position, leadership_role,
-            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, photo_url)
           `)
           .eq('team_id', (game.home_team as { id: string }).id)
           .eq('status', 'active')
@@ -1573,7 +1574,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
           .from('team_rosters')
           .select(`
             player_id, jersey_number, position, leadership_role,
-            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, photo_url)
           `)
           .eq('team_id', (game.away_team as { id: string }).id)
           .eq('status', 'active')
@@ -1594,7 +1595,7 @@ export async function getScorekeeperGameData(gameId: string): Promise<{
         .map(r => ({
           id: r.player_id,
           fullName: r.profiles.full_name,
-          avatarUrl: r.profiles.avatar_url || null,
+          avatarUrl: resolvePlayerPhotoUrl(r.profiles),
           jerseyNumber: r.jersey_number,
           position: r.position as 'Forward' | 'Defense' | 'Goalie',
           isCaptain: r.leadership_role === 'captain',
@@ -2653,7 +2654,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           .from('team_rosters')
           .select(`
             player_id, jersey_number, position,
-            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, photo_url)
           `)
           .eq('team_id', game.home_team_id)
           .eq('status', 'active')
@@ -2671,7 +2672,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           .from('team_rosters')
           .select(`
             player_id, jersey_number, position,
-            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+            profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, photo_url)
           `)
           .eq('team_id', game.away_team_id)
           .eq('status', 'active')
@@ -2688,7 +2689,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
         .from('sub_invitations')
         .select(`
           invited_player_id,
-          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url)
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url, photo_url)
         `)
         .eq('game_id', gameId)
         .eq('team_id', game.home_team_id)
@@ -2697,7 +2698,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
         .from('sub_invitations')
         .select(`
           invited_player_id,
-          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url)
+          invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(id, full_name, avatar_url, photo_url)
         `)
         .eq('game_id', gameId)
         .eq('team_id', game.away_team_id)
@@ -2720,7 +2721,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
         .map((r: any) => ({
           id: r.player_id,
           fullName: r.profiles.full_name,
-          avatarUrl: r.profiles.avatar_url ?? null,
+          avatarUrl: resolvePlayerPhotoUrl(r.profiles),
           jerseyNumber: r.jersey_number,
           position: r.position as string,
           checkinStatus: (checkinMap.get(r.player_id) as CheckinPlayer['checkinStatus']) || null,
@@ -2738,7 +2739,7 @@ export async function getScorekeeperCheckins(gameId: string): Promise<{
           return {
             id: row.invited_player_id,
             fullName: profile?.full_name ?? 'Spare Player',
-            avatarUrl: profile?.avatar_url ?? null,
+            avatarUrl: resolvePlayerPhotoUrl(profile),
             jerseyNumber: null,
             position: 'Spare',
             checkinStatus: (checkinMap.get(row.invited_player_id) as CheckinPlayer['checkinStatus']) || 'confirmed',
@@ -3456,7 +3457,7 @@ export async function getGameDataForVerification(
         .from('team_rosters')
         .select(`
           player_id, jersey_number, position, leadership_role,
-          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, photo_url)
         `)
         .eq('team_id', (game.home_team as { id: string }).id)
         .eq('status', 'active'),
@@ -3464,7 +3465,7 @@ export async function getGameDataForVerification(
         .from('team_rosters')
         .select(`
           player_id, jersey_number, position, leadership_role,
-          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url)
+          profiles!team_rosters_player_id_fkey(id, full_name, avatar_url, photo_url)
         `)
         .eq('team_id', (game.away_team as { id: string }).id)
         .eq('status', 'active'),
@@ -3477,7 +3478,7 @@ export async function getGameDataForVerification(
         .map(r => ({
           id: r.player_id,
           fullName: r.profiles.full_name,
-          avatarUrl: r.profiles.avatar_url || null,
+          avatarUrl: resolvePlayerPhotoUrl(r.profiles),
           jerseyNumber: r.jersey_number,
           position: r.position as 'Forward' | 'Defense' | 'Goalie',
           isCaptain: r.leadership_role === 'captain',

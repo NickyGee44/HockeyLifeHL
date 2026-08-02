@@ -2,6 +2,7 @@
 
 import { createAuthClient as createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 
 export type ProfileActionResult<T = void> =
   | { success: true; data: T }
@@ -55,14 +56,16 @@ export async function uploadProfilePhoto(
     // Get current profile to check for existing avatar
     const { data: profile } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('avatar_url, photo_url')
       .eq('id', user.id)
       .single();
 
+    const currentPhotoUrl = resolvePlayerPhotoUrl(profile);
+
     // Delete old avatar if it exists and is stored in Supabase
-    if (profile?.avatar_url && profile.avatar_url.includes('player-avatars')) {
+    if (currentPhotoUrl && currentPhotoUrl.includes('player-avatars')) {
       try {
-        const urlObj = new URL(profile.avatar_url);
+        const urlObj = new URL(currentPhotoUrl);
         const pathMatch = urlObj.pathname.match(
           /\/storage\/v1\/object\/public\/player-avatars\/(.+)$/
         );
@@ -109,6 +112,7 @@ export async function uploadProfilePhoto(
       .from('profiles')
       .update({
         avatar_url: avatarUrl,
+        photo_url: avatarUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
@@ -157,14 +161,16 @@ export async function deleteProfilePhoto(): Promise<ProfileActionResult> {
     // Get current avatar URL
     const { data: profile } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('avatar_url, photo_url')
       .eq('id', user.id)
       .single();
 
+    const currentPhotoUrl = resolvePlayerPhotoUrl(profile);
+
     // Delete from storage if it exists and is stored in Supabase
-    if (profile?.avatar_url && profile.avatar_url.includes('player-avatars')) {
+    if (currentPhotoUrl && currentPhotoUrl.includes('player-avatars')) {
       try {
-        const urlObj = new URL(profile.avatar_url);
+        const urlObj = new URL(currentPhotoUrl);
         const pathMatch = urlObj.pathname.match(
           /\/storage\/v1\/object\/public\/player-avatars\/(.+)$/
         );
@@ -183,6 +189,7 @@ export async function deleteProfilePhoto(): Promise<ProfileActionResult> {
       .from('profiles')
       .update({
         avatar_url: null,
+        photo_url: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);

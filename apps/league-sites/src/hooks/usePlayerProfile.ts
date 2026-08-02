@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import { useUser } from './useUser';
 
 interface PlayerProfile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  photo_url?: string | null;
   email: string | null;
 }
 
@@ -72,7 +74,7 @@ export function usePlayerProfile(
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, email')
+        .select('id, full_name, avatar_url, photo_url, email')
         .eq('id', user.id)
         .single();
 
@@ -80,7 +82,10 @@ export function usePlayerProfile(
         throw new Error(profileError.message);
       }
 
-      setProfile(profileData);
+      setProfile(profileData ? {
+        ...profileData,
+        avatar_url: resolvePlayerPhotoUrl(profileData),
+      } : null);
 
       // Fetch active team memberships, scoped to the active league season when provided.
       let teamsQuery = supabase

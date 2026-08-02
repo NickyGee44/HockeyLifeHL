@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAuthClient, createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import {
   buildDefaultLineupLayout,
   normalizeLineupLayout,
@@ -60,7 +61,7 @@ function buildRosterSnapshot(rosterRows: any[] | null, checkins: Map<string, Lin
     return {
       playerId: row.player_id,
       fullName: profile?.full_name ?? null,
-      avatarUrl: profile?.avatar_url ?? null,
+      avatarUrl: resolvePlayerPhotoUrl(profile),
       jerseyNumber: row.jersey_number ?? null,
       position: row.position ?? null,
       availability: checkins.get(row.player_id) ?? 'no_response',
@@ -81,7 +82,7 @@ async function loadAcceptedSubSnapshotForGameTeam(
   const { data: acceptedSubs } = await (serviceSupabase.from('sub_invitations') as any)
     .select(`
       invited_player_id,
-      invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url)
+      invited_player_profile:profiles!sub_invitations_invited_player_id_fkey(full_name, avatar_url, photo_url)
     `)
     .eq('game_id', gameId)
     .eq('team_id', teamId)
@@ -101,7 +102,7 @@ async function loadAcceptedSubSnapshotForGameTeam(
     subs.push({
       playerId: row.invited_player_id,
       fullName: profile?.full_name ?? null,
-      avatarUrl: profile?.avatar_url ?? null,
+      avatarUrl: resolvePlayerPhotoUrl(profile),
       jerseyNumber: null,
       position: null,
       availability: checkins.get(row.invited_player_id) ?? 'confirmed',
@@ -125,7 +126,7 @@ async function loadRosterSnapshotForGameTeam(
       jersey_number,
       player_type,
       season_id,
-      profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url)
+      profile:profiles!team_rosters_player_id_fkey(full_name, avatar_url, photo_url)
     `)
     .eq('team_id', teamId)
     .eq('status', 'active')

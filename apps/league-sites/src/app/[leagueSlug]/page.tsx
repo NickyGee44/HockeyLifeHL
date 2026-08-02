@@ -7,6 +7,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import {
   getLeagueBySlug,
   getLeagueStats,
@@ -349,7 +350,7 @@ function buildRecognitionCards({
       role,
       playerId: award.player_id,
       playerName: award.player.full_name,
-      avatarUrl: award.player.avatar_url || award.image_url,
+      avatarUrl: resolvePlayerPhotoUrl(award.player) || award.image_url,
       teamName: award.team?.name || teamMeta?.name || null,
       teamLogoUrl: award.team?.logo_url || teamMeta?.logoUrl || null,
       divisionName: award.division_name || award.team?.division?.name || teamMeta?.divisionName || null,

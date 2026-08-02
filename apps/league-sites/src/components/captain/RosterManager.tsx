@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Image from 'next/image';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import {
   Users,
   Mail,
@@ -433,7 +434,7 @@ function EditableRosterRow({
             <div className="flex items-center gap-3">
               <div className="relative h-10 w-10 shrink-0">
                 <Image
-                  src={player.profile?.avatar_url || '/blank_player.png'}
+                  src={resolvePlayerPhotoUrl(player.profile) || '/blank_player.png'}
                   alt={name}
                   width={40}
                   height={40}

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { User, Users } from 'lucide-react';
 import { PlayerDirectoryFilters } from '@/components/players/PlayerDirectoryFilters';
 import { PlayerGrid } from '@/components/players/PlayerGrid';
+import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
 import type { Metadata } from 'next';
 
 interface PlayersPageProps {
@@ -39,6 +40,7 @@ interface PlayerWithTeam {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
+    photo_url?: string | null;
   } | null;
   team: {
     id: string;
@@ -80,7 +82,7 @@ async function getPlayers(
       jersey_number,
       position,
       leadership_role,
-      profile:profiles(id, full_name, avatar_url),
+      profile:profiles(id, full_name, avatar_url, photo_url),
       team:teams(id, name, slug, logo_url, division_id)
     `)
     .in('team_id', teamIds);
@@ -107,7 +109,10 @@ async function getPlayers(
     return {
       ...p,
       id: profile?.id || p.id,
-      profile,
+      profile: profile ? {
+        ...profile,
+        avatar_url: resolvePlayerPhotoUrl(profile),
+      } : null,
       team: rawTeam ? { ...rawTeam, logo: rawTeam.logo_url } : null,
     };
   });
