@@ -6,6 +6,7 @@ import {
   SPARE_PLAYER_OPTION_ID,
   buildStatEntryPlayerOptions,
   normalizeGoalParticipantIds,
+  type StatEntryAttendanceStatus,
   type StatEntryCheckinRow,
   type StatEntryRosterRow,
   type StatEntrySubInvitationRow,
@@ -44,6 +45,7 @@ export interface RosterPlayer {
   jersey_number: number;
   team_id: string;
   position: string;
+  attendance_status: StatEntryAttendanceStatus;
 }
 
 type ActionResult<T = unknown> =
@@ -177,7 +179,7 @@ export async function getGameEventsForCorrection(gameId: string): Promise<Action
 
     const teamIds = [game.home_team_id, game.away_team_id];
 
-    // Get active roster metadata, then scope stat-entry options to game attendance.
+    // Get active season roster metadata and attendance signals for stat-entry labels.
     let rosterQuery = serviceClient
       .from('team_rosters')
       .select(`

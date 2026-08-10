@@ -22,12 +22,20 @@ export interface StatEntrySubInvitationRow {
   invited_player?: { full_name?: string | null } | Array<{ full_name?: string | null }> | null;
 }
 
+export type StatEntryAttendanceStatus =
+  | 'checked_in'
+  | 'tentative'
+  | 'no_response'
+  | 'spare'
+  | 'out';
+
 export interface StatEntryPlayerOption {
   id: string;
   full_name: string;
   jersey_number: number;
   team_id: string;
   position: string;
+  attendance_status: StatEntryAttendanceStatus;
 }
 
 export interface NormalizedGoalParticipantIds {
@@ -50,6 +58,10 @@ function isInStatus(status: string | null | undefined): boolean {
   return status === 'confirmed' || status === 'in';
 }
 
+function isTentativeStatus(status: string | null | undefined): boolean {
+  return status === 'tentative';
+}
+
 function isOutStatus(status: string | null | undefined): boolean {
   return status === 'out';
 }
@@ -58,13 +70,45 @@ function isAcceptedInvitation(status: string | null | undefined): boolean {
   return status === 'accepted';
 }
 
-function isSubRosterRow(row: StatEntryRosterRow): boolean {
-  return row.player_type === 'sub';
+type StatEntryRosterCategory = 'regular' | 'spare';
+
+function getRosterCategory(row: StatEntryRosterRow): StatEntryRosterCategory | null {
+  if (row.player_type === 'regular') return 'regular';
+  if (row.player_type === 'sub' || row.player_type === 'part_time') return 'spare';
+  return null;
 }
 
 function buildTeamPlayerKey(teamId: string | null, playerId: string | null): string | null {
   if (!teamId || !playerId) return null;
   return `${teamId}:${playerId}`;
+}
+
+const ATTENDANCE_ORDER: Record<StatEntryAttendanceStatus, number> = {
+  checked_in: 0,
+  tentative: 1,
+  no_response: 2,
+  spare: 3,
+  out: 4,
+};
+
+function comparePlayerOptions(
+  left: StatEntryPlayerOption,
+  right: StatEntryPlayerOption,
+): number {
+  const attendanceDifference = (
+    ATTENDANCE_ORDER[left.attendance_status] - ATTENDANCE_ORDER[right.attendance_status]
+  );
+  if (attendanceDifference !== 0) return attendanceDifference;
+
+  const leftHasNumber = left.jersey_number > 0;
+  const rightHasNumber = right.jersey_number > 0;
+  if (leftHasNumber !== rightHasNumber) return leftHasNumber ? -1 : 1;
+
+  if (leftHasNumber && left.jersey_number !== right.jersey_number) {
+    return left.jersey_number - right.jersey_number;
+  }
+
+  return left.full_name.localeCompare(right.full_name) || left.id.localeCompare(right.id);
 }
 
 export function buildStatEntryPlayerOptions({
@@ -79,6 +123,13 @@ export function buildStatEntryPlayerOptions({
   const inCheckins = new Set(
     checkinRows
       .filter((row) => isInStatus(row.status))
+      .map((row) => buildTeamPlayerKey(row.team_id, row.player_id))
+      .filter((key): key is string => Boolean(key)),
+  );
+
+  const tentativeCheckins = new Set(
+    checkinRows
+      .filter((row) => isTentativeStatus(row.status))
       .map((row) => buildTeamPlayerKey(row.team_id, row.player_id))
       .filter((key): key is string => Boolean(key)),
   );
@@ -102,12 +153,14 @@ export function buildStatEntryPlayerOptions({
 
   for (const row of rosterRows) {
     const key = buildTeamPlayerKey(row.team_id, row.player_id);
-    if (!key || seen.has(key) || outCheckins.has(key)) continue;
+    if (!key || seen.has(key)) continue;
+
+    const rosterCategory = getRosterCategory(row);
+    if (!rosterCategory) continue;
 
     const hasInCheckin = inCheckins.has(key);
     const hasAcceptedInvitation = acceptedInvitations.has(key);
-    const eligible = isSubRosterRow(row) ? hasInCheckin && hasAcceptedInvitation : hasInCheckin;
-    if (!eligible) continue;
+    if (rosterCategory === 'spare' && !hasAcceptedInvitation) continue;
 
     seen.add(key);
     options.push({
@@ -116,13 +169,22 @@ export function buildStatEntryPlayerOptions({
       jersey_number: row.jersey_number ?? 0,
       team_id: row.team_id!,
       position: row.position || 'Forward',
+      attendance_status: outCheckins.has(key)
+        ? 'out'
+        : rosterCategory === 'spare'
+          ? 'spare'
+          : hasInCheckin
+            ? 'checked_in'
+            : tentativeCheckins.has(key)
+              ? 'tentative'
+              : 'no_response',
     });
   }
 
   for (const row of subInvitationRows) {
     const key = buildTeamPlayerKey(row.team_id, row.invited_player_id);
-    if (!key || seen.has(key) || outCheckins.has(key)) continue;
-    if (!acceptedInvitations.has(key) || !inCheckins.has(key)) continue;
+    if (!key || seen.has(key)) continue;
+    if (!acceptedInvitations.has(key)) continue;
 
     seen.add(key);
     options.push({
@@ -131,10 +193,11 @@ export function buildStatEntryPlayerOptions({
       jersey_number: 0,
       team_id: row.team_id!,
       position: 'Forward',
+      attendance_status: outCheckins.has(key) ? 'out' : 'spare',
     });
   }
 
-  return options;
+  return options.sort(comparePlayerOptions);
 }
 
 function isRealPlayerSelection(value: string | null | undefined): value is string {
