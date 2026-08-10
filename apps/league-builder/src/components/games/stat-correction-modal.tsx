@@ -15,7 +15,9 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -108,11 +110,67 @@ export function StatCorrectionModal({
 
   const teamIdForType = newTeamType === 'home' ? homeTeamId : awayTeamId;
   const teamRoster = rosters.filter((r) => r.team_id === teamIdForType);
-  const sortedTeamRoster = [...teamRoster].sort((a, b) => a.jersey_number - b.jersey_number);
 
   const formatPlayerOptionLabel = (player: Pick<RosterPlayer, 'jersey_number' | 'full_name'>) => (
     player.jersey_number > 0 ? `#${player.jersey_number} ${player.full_name}` : player.full_name
   );
+
+  const attendanceGroupLabels: Record<RosterPlayer['attendance_status'], string> = {
+    checked_in: t('attendanceCheckedIn'),
+    tentative: t('attendanceTentative'),
+    no_response: t('attendanceNoResponse'),
+    spare: t('attendanceAcceptedSpares'),
+    out: t('attendanceOut'),
+  };
+
+  const renderPlayerGroup = (
+    attendanceStatus: RosterPlayer['attendance_status'],
+    excludedPlayerIds: Set<string>,
+  ) => {
+    const players = teamRoster.filter((player) => (
+      player.attendance_status === attendanceStatus && !excludedPlayerIds.has(player.id)
+    ));
+
+    if (players.length === 0) return null;
+
+    return (
+      <SelectGroup>
+        <SelectLabel className="text-xs text-neutral-500">
+          {attendanceGroupLabels[attendanceStatus]}
+        </SelectLabel>
+        {players.map((player) => (
+          <SelectItem key={player.id} value={player.id}>
+            {formatPlayerOptionLabel(player)}
+          </SelectItem>
+        ))}
+      </SelectGroup>
+    );
+  };
+
+  const renderPlayerOptions = ({
+    excludedPlayerIds = [],
+    includeGenericSpare = false,
+  }: {
+    excludedPlayerIds?: string[];
+    includeGenericSpare?: boolean;
+  } = {}) => {
+    const excluded = new Set(excludedPlayerIds);
+
+    return (
+      <>
+        {renderPlayerGroup('checked_in', excluded)}
+        {renderPlayerGroup('tentative', excluded)}
+        {renderPlayerGroup('no_response', excluded)}
+        {renderPlayerGroup('spare', excluded)}
+        {includeGenericSpare && (
+          <SelectItem value={SPARE_PLAYER_OPTION_ID}>
+            {t('spare')}
+          </SelectItem>
+        )}
+        {renderPlayerGroup('out', excluded)}
+      </>
+    );
+  };
 
   const handleDeleteEvent = async (eventId: string) => {
     setActionLoading(eventId);
@@ -388,16 +446,7 @@ export function StatCorrectionModal({
                         <SelectValue placeholder={t('selectPlayer')} />
                       </SelectTrigger>
                       <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
-                        {sortedTeamRoster.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {formatPlayerOptionLabel(p)}
-                          </SelectItem>
-                        ))}
-                        {newEventType === 'goal' && (
-                          <SelectItem value={SPARE_PLAYER_OPTION_ID}>
-                            {t('spare')}
-                          </SelectItem>
-                        )}
+                        {renderPlayerOptions({ includeGenericSpare: newEventType === 'goal' })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -430,16 +479,10 @@ export function StatCorrectionModal({
                           </SelectTrigger>
                           <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
                             <SelectItem value="none">{t('none')}</SelectItem>
-                            {sortedTeamRoster
-                              .filter((p) => p.id !== newPlayerId)
-                              .map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {formatPlayerOptionLabel(p)}
-                                </SelectItem>
-                              ))}
-                            <SelectItem value={SPARE_PLAYER_OPTION_ID}>
-                              {t('spare')}
-                            </SelectItem>
+                            {renderPlayerOptions({
+                              excludedPlayerIds: [newPlayerId],
+                              includeGenericSpare: true,
+                            })}
                           </SelectContent>
                         </Select>
                       </div>
@@ -451,16 +494,10 @@ export function StatCorrectionModal({
                           </SelectTrigger>
                           <SelectContent className="bg-neutral-800 border-white/10 max-h-48">
                             <SelectItem value="none">{t('none')}</SelectItem>
-                            {sortedTeamRoster
-                              .filter((p) => p.id !== newPlayerId && (newAssist1 === 'none' || p.id !== newAssist1))
-                              .map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {formatPlayerOptionLabel(p)}
-                                </SelectItem>
-                              ))}
-                            <SelectItem value={SPARE_PLAYER_OPTION_ID}>
-                              {t('spare')}
-                            </SelectItem>
+                            {renderPlayerOptions({
+                              excludedPlayerIds: [newPlayerId, newAssist1],
+                              includeGenericSpare: true,
+                            })}
                           </SelectContent>
                         </Select>
                       </div>
