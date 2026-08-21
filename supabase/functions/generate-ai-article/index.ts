@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getGameRecapSystemPrompt, getGameRecapUserPrompt, getWeeklyWrapSystemPrompt, getWeeklyWrapUserPrompt } from './prompts.ts';
 import { gatherGameRecapData, gatherWeeklyWrapData, checkAddonActive } from './data-gathering.ts';
+import { handleGameRecap } from './game-recap.ts';
 
 const ALLOWED_ORIGINS = ['https://beerleaguehockey.ca', 'https://www.beerleaguehockey.ca', 'http://localhost:3000'];
 const corsHeaders = {
@@ -112,116 +113,6 @@ async function insertArticleEntityTags(
       updated_at: new Date().toISOString(),
     })
     .eq('id', args.articleId);
-}
-
-async function handleGameRecap(supabase: any, gameId: string) {
-  // Check dedup
-  const { data: existing } = await supabase
-    .from('ai_generation_log')
-    .select('id, status')
-    .eq('game_id', gameId)
-    .eq('article_type', 'game_recap')
-    .maybeSingle();
-
-  if (existing?.status === 'completed') {
-    return { success: true, message: 'Game recap already exists', skipped: true };
-  }
-
-  // Gather game data
-  const gameData = await gatherGameRecapData(supabase, gameId);
-  if (!gameData) {
-    return { success: false, error: 'Game not found or not completed' };
-  }
-
-  // Check addon
-  const hasAddon = await checkAddonActive(supabase, gameData.league_id);
-  if (!hasAddon) {
-    return { success: false, error: 'AI News addon not active for this league' };
-  }
-
-  // Create or update log entry
-  const logId = existing?.id;
-  if (logId) {
-    await supabase.from('ai_generation_log').update({ status: 'generating' }).eq('id', logId);
-  } else {
-    await supabase.from('ai_generation_log').insert({
-      league_id: gameData.league_id,
-      season_id: gameData.season_id,
-      game_id: gameId,
-      article_type: 'game_recap',
-      status: 'generating',
-    });
-  }
-
-  const startTime = Date.now();
-
-  try {
-    // Call OpenAI
-    const systemPrompt = getGameRecapSystemPrompt(gameData.recapTone);
-    const userPrompt = getGameRecapUserPrompt(gameData);
-    const { parsed, usage, model } = await callOpenAI(systemPrompt, userPrompt);
-
-    const { title, excerpt, content, tagged_player_ids = [], star_player_ids = [] } = parsed;
-
-    // Insert article
-    const { data: article, error: articleError } = await supabase
-      .from('articles')
-      .insert({
-        league_id: gameData.league_id,
-        season_id: gameData.season_id,
-        game_id: gameId,
-        title,
-        excerpt,
-        content,
-        slug: generateSlug(title),
-        type: 'game_recap',
-        published: true,
-        published_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
-
-    if (articleError) throw articleError;
-
-    await insertArticleEntityTags(supabase, {
-      articleId: article.id,
-      linkedPlayerIds: tagged_player_ids,
-      starPlayerIds: star_player_ids,
-      linkedTeamIds: uniqueIds([gameData.homeTeam?.id, gameData.awayTeam?.id]),
-      linkedGameIds: [gameId],
-      primaryGameId: gameId,
-    });
-
-    // Update log
-    const generationTime = Date.now() - startTime;
-    await supabase
-      .from('ai_generation_log')
-      .update({
-        status: 'completed',
-        article_id: article.id,
-        tokens_used: usage?.total_tokens || null,
-        model_used: model || 'gpt-4o-mini',
-        generation_time_ms: generationTime,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('game_id', gameId)
-      .eq('article_type', 'game_recap');
-
-    return { success: true, article_id: article.id, title };
-  } catch (error) {
-    // Update log with failure
-    await supabase
-      .from('ai_generation_log')
-      .update({
-        status: 'failed',
-        error_message: error instanceof Error ? error.message : 'Unknown error',
-        generation_time_ms: Date.now() - startTime,
-      })
-      .eq('game_id', gameId)
-      .eq('article_type', 'game_recap');
-
-    throw error;
-  }
 }
 
 async function handleWeeklyWrapAll(supabase: any) {
@@ -429,7 +320,7 @@ Deno.serve(async (req) => {
       }
     );
 
-    const { action, game_id } = await req.json();
+    const { action, game_id, force = false } = await req.json();
 
     let result;
 
@@ -441,7 +332,14 @@ Deno.serve(async (req) => {
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        result = await handleGameRecap(supabase, game_id);
+        result = await handleGameRecap(supabase, game_id, force === true, {
+          gatherGameRecapData,
+          checkAddonActive,
+          generateArticle: async (gameData) => callOpenAI(
+            getGameRecapSystemPrompt(gameData.recapTone),
+            getGameRecapUserPrompt(gameData),
+          ),
+        });
         break;
 
       case 'weekly_wrap_all':

@@ -222,7 +222,7 @@ export function GameCardCompact({
   onClick,
   leagueId,
 }: GameCardProps) {
-  const t = useTranslations('games');
+  const t = useTranslations('schedule');
   const pathname = usePathname();
   const homeTeam = game.home_team;
   const awayTeam = game.away_team;
@@ -317,10 +317,11 @@ export function GameCardCompact({
               onGenerateRecap();
             }}
             disabled={actionDisabled}
-            className="p-2 rounded-lg text-neutral-400 hover:text-purple-400 hover:bg-purple-500/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-neutral-300 hover:text-purple-300 hover:bg-purple-500/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
             title={t('generateGameRecap')}
           >
             {isGeneratingRecap ? <Loader2 className="w-4 h-4 animate-spin" /> : <Newspaper className="w-4 h-4" />}
+            <span>{t('generateGameRecap')}</span>
           </button>
         )}
         {onEdit && game.status !== 'cancelled' && (

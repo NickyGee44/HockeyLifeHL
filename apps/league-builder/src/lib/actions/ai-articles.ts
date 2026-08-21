@@ -1,8 +1,8 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyLeagueOwnerAccess } from './permissions';
-import { hasAiNewsAddon } from '@/lib/utils/addon-helpers';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -26,6 +26,38 @@ interface AiGenerationLogEntry {
   completed_at: string | null;
 }
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  return fallback;
+}
+
+async function getFunctionInvokeErrorMessage(error: unknown): Promise<string> {
+  if (typeof error === 'object' && error && 'context' in error) {
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
+      try {
+        const responseText = await context.clone().text();
+        if (responseText) {
+          try {
+            const payload = JSON.parse(responseText) as { error?: unknown; message?: unknown };
+            if (typeof payload.error === 'string' && payload.error.trim()) return payload.error;
+            if (typeof payload.message === 'string' && payload.message.trim()) return payload.message;
+          } catch {
+            return responseText.slice(0, 500);
+          }
+        }
+      } catch {
+        // Fall back to the SDK error below if the response body cannot be read.
+      }
+    }
+  }
+
+  return getErrorMessage(error, 'Failed to regenerate recap');
+}
+
 /**
  * Regenerate a game recap article
  */
@@ -38,43 +70,59 @@ export async function regenerateGameRecap(
     return { success: false, error: access.error || 'Not authorized' };
   }
 
-  // Verify AI News addon is active
-  const hasAddon = await hasAiNewsAddon(leagueId);
-  if (!hasAddon) {
-    return { success: false, error: 'AI News Writer addon required. Upgrade at Settings > Billing.' };
-  }
-
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient();
 
   try {
-    // Delete existing recap article and tags
-    const { data: existingArticle } = await supabase
-      .from('articles')
-      .select('id')
-      .eq('game_id', gameId)
-      .eq('type', 'game_recap')
-      .maybeSingle();
+    const { data: game, error: gameError } = await supabase
+      .from('games')
+      .select('league_id, status, leagues(slug)')
+      .eq('id', gameId)
+      .eq('league_id', leagueId)
+      .single();
 
-    if (existingArticle) {
-      await supabase.from('article_player_tags').delete().eq('article_id', existingArticle.id);
-      await supabase.from('articles').delete().eq('id', existingArticle.id);
+    if (gameError) {
+      if (gameError.code === 'PGRST116') {
+        return { success: false, error: 'Game not found' };
+      }
+      return {
+        success: false,
+        error: `Failed to load game: ${getErrorMessage(gameError, 'database query failed')}`,
+      };
     }
 
-    // Delete existing log entry
-    await supabase
-      .from('ai_generation_log')
-      .delete()
-      .eq('game_id', gameId)
-      .eq('article_type', 'game_recap');
+    if (!game || game.league_id !== leagueId) {
+      return { success: false, error: 'Game not found' };
+    }
 
-    // Invoke edge function
-    const { error } = await supabase.functions.invoke('generate-ai-article', {
-      body: { action: 'game_recap', game_id: gameId },
+    if (game.status !== 'completed') {
+      return { success: false, error: 'Game must be completed before generating a recap' };
+    }
+
+    const { data, error } = await supabase.functions.invoke('generate-ai-article', {
+      body: { action: 'game_recap', game_id: gameId, force: true },
     });
 
     if (error) {
       if (isDevelopment) console.error('Regenerate recap error:', error);
-      return { success: false, error: 'Failed to regenerate recap' };
+      return { success: false, error: await getFunctionInvokeErrorMessage(error) };
+    }
+
+    if (!data || data.success === false) {
+      return {
+        success: false,
+        error: typeof data?.error === 'string' ? data.error : 'Failed to regenerate recap',
+      };
+    }
+
+    const leagueRelation = Array.isArray(game.leagues) ? game.leagues[0] : game.leagues;
+    const leagueSlug = leagueRelation?.slug;
+
+    revalidatePath(`/dashboard/leagues/${leagueId}/games`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/games/${gameId}`);
+    revalidatePath(`/dashboard/leagues/${leagueId}/news`);
+    if (leagueSlug) {
+      revalidatePath(`/${leagueSlug}/games/${gameId}`);
+      revalidatePath(`/${leagueSlug}/news`);
     }
 
     return { success: true, data: undefined };

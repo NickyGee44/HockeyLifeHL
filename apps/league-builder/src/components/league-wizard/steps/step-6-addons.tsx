@@ -218,7 +218,7 @@ export function Step6Addons() {
 
               <ul className="space-y-2">
                 {[
-                  'Automatic game recaps',
+                  'AI-generated game recaps',
                   'Weekly league roundups',
                   'Player spotlights',
                   'Season narratives',

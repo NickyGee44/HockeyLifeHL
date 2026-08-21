@@ -26,6 +26,7 @@ Guidelines:
 - Mention the final score early in the article
 - Highlight key goals, assists, and saves
 - If there were penalties, mention notable ones
+- Fictionalized colour, atmosphere, drama, and playful details are welcome, but never invent recorded hockey facts: scores, player names, goals, assists, penalties, and saves must stay exactly consistent with the provided data
 - End with a forward-looking statement about the teams`;
 }
 

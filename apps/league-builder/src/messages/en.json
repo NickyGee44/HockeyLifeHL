@@ -98,7 +98,7 @@
       "addon1Description": "Deep analytics, player comparisons, and league-wide stat tracking",
       "addon2Name": "AI News Writer",
       "addon2Price": "$14.99/mo",
-      "addon2Description": "Auto-generated game recaps, weekly roundups, and player spotlights",
+      "addon2Description": "AI-generated game recaps, weekly roundups, and player spotlights",
       "addon3Name": "Platform Pro",
       "addon3Price": "$0/mo",
       "addon3Description": "Priority support, custom branding, and advanced admin tools"
@@ -626,12 +626,12 @@
     "awayScore": "Away Score",
     "startGame": "Start Game",
     "completeGame": "Complete Game",
-    "completeGameConfirm": "Complete this game now? Scheduled games will be marked completed; in-progress or verification games will finalize stats and may run the recap generator if AI News is enabled.",
+    "completeGameConfirm": "Complete this game now? Scheduled games will be marked completed; in-progress or verification games will finalize stats.",
     "completeGameSuccess": "Game completed successfully",
     "completeGameFailed": "Failed to complete game",
     "generateGameRecap": "Generate Game Recap",
     "generateGameRecapConfirm": "Generate or regenerate this game recap? Any existing recap for this game will be replaced.",
-    "generateGameRecapSuccess": "Game recap generation started",
+    "generateGameRecapSuccess": "Game recap generated successfully",
     "generateGameRecapFailed": "Failed to generate game recap",
     "assignScorekeeper": "Assign scorekeeper",
     "postponeGame": "Postpone",
@@ -963,7 +963,7 @@
     "generalSettings": "General Settings",
     "updateInfo": "Update basic information for {name}",
     "recapTone": "AI Recap Tone",
-    "recapToneDescription": "Choose the writing style for auto-generated game recaps. Requires the AI News add-on.",
+    "recapToneDescription": "Choose the writing style for game recaps generated from the Games page. Requires the AI News add-on.",
     "recapToneSaved": "Recap tone updated",
     "waiver": {
       "title": "Waiver Settings",
@@ -1068,7 +1068,7 @@
       },
       "ai_news": {
         "name": "AI News Writer",
-        "description": "Auto-generated game recaps, weekly roundups, and player spotlights"
+        "description": "AI-generated game recaps, weekly roundups, and player spotlights"
       },
       "statusActive": "Active",
       "renewsOn": "Renews {date}",
@@ -3255,7 +3255,7 @@
         "ai_news": {
           "name": "AI News Writer",
           "price": "$14.99/mo",
-          "description": "Auto-generated game recaps, weekly roundups, and player spotlights"
+          "description": "AI-generated game recaps, weekly roundups, and player spotlights"
         }
       }
     },

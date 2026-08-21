@@ -30,7 +30,7 @@ export function GamesListClient({
   initialSeasons,
 }: GamesListClientProps) {
   const router = useRouter();
-  const t = useTranslations('games');
+  const t = useTranslations('schedule');
   const [isPending, startTransition] = useTransition();
 
   const [games, setGames] = useState<Game[]>(initialGames);

@@ -1,28 +1,35 @@
+function throwIfQueryFailed(error: any, context: string): void {
+  if (!error) return;
+  throw new Error(error.message ? `${context}: ${error.message}` : context);
+}
+
 export async function checkAddonActive(supabase: any, leagueId: string): Promise<boolean> {
   // Get league's organization
-  const { data: league } = await supabase
+  const { data: league, error: leagueError } = await supabase
     .from('leagues')
     .select('organization_id')
     .eq('id', leagueId)
     .single();
+  throwIfQueryFailed(leagueError, 'Failed to load league addon scope');
 
   if (!league?.organization_id) return false;
 
   // Check for active ai_news addon
-  const { data: addon } = await supabase
+  const { data: addon, error: addonError } = await supabase
     .from('organization_addons')
     .select('id')
     .eq('organization_id', league.organization_id)
     .eq('addon_type', 'ai_news')
     .in('status', ['active', 'trialing'])
     .maybeSingle();
+  throwIfQueryFailed(addonError, 'Failed to check AI News addon');
 
   return !!addon;
 }
 
 export async function gatherGameRecapData(supabase: any, gameId: string) {
   // Get game details
-  const { data: game } = await supabase
+  const { data: game, error: gameError } = await supabase
     .from('games')
     .select(`
       id, league_id, season_id, scheduled_at, location, status,
@@ -32,6 +39,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     `)
     .eq('id', gameId)
     .single();
+  throwIfQueryFailed(gameError, 'Failed to load game for recap');
 
   if (!game || game.status !== 'completed') return null;
 
@@ -39,7 +47,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
   const awayTeam = Array.isArray(game.away_team) ? game.away_team[0] : game.away_team;
 
   // Get game events (goals and penalties)
-  const { data: events } = await supabase
+  const { data: events, error: eventsError } = await supabase
     .from('game_events')
     .select(`
       event_type, period, game_time_seconds, team_id,
@@ -52,11 +60,12 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     .in('event_type', ['goal', 'penalty'])
     .order('period', { ascending: true })
     .order('game_time_seconds', { ascending: true });
+  throwIfQueryFailed(eventsError, 'Failed to load game events for recap');
 
   // Collect all player IDs for name lookup
   const playerIds = new Set<string>();
   for (const event of events || []) {
-    playerIds.add(event.player_id);
+    if (event.player_id) playerIds.add(event.player_id);
     if (event.assist1_player_id) playerIds.add(event.assist1_player_id);
     if (event.assist2_player_id) playerIds.add(event.assist2_player_id);
   }
@@ -64,10 +73,11 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
   // Fetch player names
   const playerNameMap: Record<string, string> = {};
   if (playerIds.size > 0) {
-    const { data: profiles } = await supabase
+    const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, full_name')
       .in('id', Array.from(playerIds));
+    throwIfQueryFailed(profilesError, 'Failed to load player names for recap');
 
     for (const p of profiles || []) {
       playerNameMap[p.id] = p.full_name || 'Unknown Player';
@@ -94,7 +104,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
       period: e.period,
       time: formatTime(e.game_time_seconds),
       scorer_id: e.player_id,
-      scorer_name: playerNameMap[e.player_id] || 'Unknown',
+      scorer_name: e.player_id ? playerNameMap[e.player_id] || 'Unknown' : 'Team Goal',
       assist1_id: e.assist1_player_id,
       assist1_name: e.assist1_player_id ? playerNameMap[e.assist1_player_id] || null : null,
       assist2_id: e.assist2_player_id,
@@ -119,10 +129,11 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     }));
 
   // Get goalie stats
-  const { data: goalieRows } = await supabase
+  const { data: goalieRows, error: goalieError } = await supabase
     .from('goalie_stats')
     .select('player_id, team_id, saves, goals_against')
     .eq('game_id', gameId);
+  throwIfQueryFailed(goalieError, 'Failed to load goalie stats for recap');
 
   let homeGoalie = null;
   let awayGoalie = null;

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { requireCronSecret } from '@/lib/api/guards';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { sendPushNotification, type WebPushPayload } from '@/lib/push/server';
+import { buildPublicGameUrl, resolveSharedGameOrigin } from '@/lib/push/game-url';
 
 export const runtime = 'nodejs';
 
@@ -31,6 +32,9 @@ interface PushLeague {
   id: string;
   name: string;
   slug: string;
+  subdomain: string | null;
+  custom_domain: string | null;
+  custom_domain_verified: boolean | null;
   timezone: string | null;
   status: string | null;
 }
@@ -54,6 +58,9 @@ interface DueNotification {
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+const SHARED_GAME_ORIGIN = resolveSharedGameOrigin(
+  process.env.NEXT_PUBLIC_PRODUCTION_URL || process.env.NEXT_PUBLIC_SITE_URL,
+);
 
 export async function GET(request: NextRequest) {
   return handleCron(request);
@@ -130,7 +137,7 @@ async function findDueNotifications(supabase: any, now: Date): Promise<DueNotifi
       game,
       title: 'Sunday check-in is open',
       body: `${teams.away.name} vs ${teams.home.name} is coming up Sunday. Let your captain know if you can play.`,
-      url: gameUrl(game, false),
+      url: buildPublicGameUrl(league!, game.id, { sharedOrigin: SHARED_GAME_ORIGIN }),
       tag: `blh-sunday-checkin-${game.id}`,
     });
   }
@@ -142,7 +149,7 @@ async function findDueNotifications(supabase: any, now: Date): Promise<DueNotifi
       game,
       title: 'Game in 4 hours',
       body: `${teams.away.name} vs ${teams.home.name}${game.location ? ` at ${game.location}` : ''}.`,
-      url: gameUrl(game, false),
+      url: buildPublicGameUrl(unwrap(game.league)!, game.id, { sharedOrigin: SHARED_GAME_ORIGIN }),
       tag: `blh-game-reminder-${game.id}`,
     });
   }
@@ -157,7 +164,10 @@ async function findDueNotifications(supabase: any, now: Date): Promise<DueNotifi
       game,
       title: 'Game recap is live',
       body: `${teams.away.name} vs ${teams.home.name} recap is ready.`,
-      url: gameUrl(game, true),
+      url: buildPublicGameUrl(unwrap(game.league)!, game.id, {
+        recap: true,
+        sharedOrigin: SHARED_GAME_ORIGIN,
+      }),
       tag: `blh-game-recap-${game.id}`,
     });
   }
@@ -178,7 +188,9 @@ async function fetchGamesInWindow(supabase: any, start: Date, end: Date): Promis
       away_team_id,
       home_team:teams!games_home_team_id_fkey(id, name, slug, push_enabled),
       away_team:teams!games_away_team_id_fkey(id, name, slug, push_enabled),
-      league:leagues!games_league_id_fkey(id, name, slug, timezone, status)
+      league:leagues!games_league_id_fkey(
+        id, name, slug, subdomain, custom_domain, custom_domain_verified, timezone, status
+      )
     `)
     .eq('status', 'scheduled')
     .gte('scheduled_at', start.toISOString())
@@ -205,7 +217,9 @@ async function fetchRecentRecaps(supabase: any, start: Date, end: Date): Promise
         away_team_id,
         home_team:teams!games_home_team_id_fkey(id, name, slug, push_enabled),
         away_team:teams!games_away_team_id_fkey(id, name, slug, push_enabled),
-        league:leagues!games_league_id_fkey(id, name, slug, timezone, status)
+        league:leagues!games_league_id_fkey(
+          id, name, slug, subdomain, custom_domain, custom_domain_verified, timezone, status
+        )
       )
     `)
     .eq('type', 'game_recap')
@@ -364,19 +378,6 @@ function getTeams(game: PushGame) {
   }
 
   return { home, away };
-}
-
-function gameUrl(game: PushGame, recap: boolean) {
-  const league = unwrap(game.league);
-  const slug = league?.slug;
-  const baseUrl =
-    process.env.NEXT_PUBLIC_PRODUCTION_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'https://www.beerleaguehockey.ca';
-  const origin = baseUrl.replace(/\/$/, '');
-  const path = slug ? `/${slug}/games/${game.id}` : `/games/${game.id}`;
-
-  return `${origin}${path}${recap ? '#recap' : ''}`;
 }
 
 function isSunday(date: string, timezone: string) {

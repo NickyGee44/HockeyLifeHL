@@ -620,9 +620,7 @@ describe('captain self-scoring', () => {
     const result = await submitGameForVerification('game-1');
 
     expect(result.success).toBe(true);
-    expect(functions.invoke).toHaveBeenCalledWith('generate-ai-article', {
-      body: { action: 'game_recap', game_id: 'game-1' },
-    });
+    expect(functions.invoke).not.toHaveBeenCalled();
     expect(steps).toHaveLength(0);
   });
 
@@ -791,9 +789,7 @@ describe('captain self-scoring', () => {
       gameId: 'game-1',
       teamType: 'away',
     });
-    expect(functions.invoke).toHaveBeenCalledWith('generate-ai-article', {
-      body: { action: 'game_recap', game_id: 'game-1' },
-    });
+    expect(functions.invoke).not.toHaveBeenCalled();
     expect(steps).toHaveLength(0);
   });
 });
