@@ -174,19 +174,21 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     // Standings are optional context, don't fail on this
   }
 
-  // Fetch league recap tone
-  let recapTone = 'competitive';
+  // Fetch league recap tone and timezone. The timezone is authoritative for
+  // the displayed game date and must not silently fall back after a query error.
+  const { data: leagueSettings, error: leagueSettingsError } = await supabase
+    .from('leagues')
+    .select('recap_tone, timezone')
+    .eq('id', game.league_id)
+    .single();
+  throwIfQueryFailed(leagueSettingsError, 'Failed to load league recap settings');
+  const recapTone = leagueSettings?.recap_tone || 'competitive';
+  const timezone = leagueSettings?.timezone;
+  if (!timezone) throw new Error('League timezone is required for game recap generation');
   try {
-    const { data: leagueSettings } = await supabase
-      .from('leagues')
-      .select('recap_tone')
-      .eq('id', game.league_id)
-      .single();
-    if (leagueSettings?.recap_tone) {
-      recapTone = leagueSettings.recap_tone;
-    }
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
   } catch {
-    // Default to competitive
+    throw new Error(`League timezone is invalid: ${timezone}`);
   }
 
   return {
@@ -204,6 +206,7 @@ export async function gatherGameRecapData(supabase: any, gameId: string) {
     awayGoalie,
     standings,
     recapTone,
+    timezone,
     notes: game.scorekeeper_notes || null,
   };
 }

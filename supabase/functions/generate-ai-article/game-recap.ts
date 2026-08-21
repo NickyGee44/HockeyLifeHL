@@ -137,6 +137,10 @@ export async function handleGameRecap(
       tagged_player_ids: requestedTaggedPlayerIds = [],
       star_player_ids: requestedStarPlayerIds = [],
     } = parsed;
+    const requiredText = [title, excerpt, content];
+    if (requiredText.some((value) => typeof value !== 'string' || value.trim().length === 0)) {
+      throw new Error('Generated recap is missing required title, excerpt, or content');
+    }
     const authoritativePlayerIds = getAuthoritativeGamePlayerIds(gameData);
     const taggedPlayerIds = uniqueIds(requestedTaggedPlayerIds)
       .filter((playerId) => authoritativePlayerIds.has(playerId));

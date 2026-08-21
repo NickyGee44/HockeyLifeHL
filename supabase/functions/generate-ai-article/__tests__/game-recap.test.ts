@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleGameRecap } from '../game-recap.ts';
 import { checkAddonActive, gatherGameRecapData } from '../data-gathering.ts';
-import { getGameRecapSystemPrompt } from '../prompts.ts';
+import { getGameRecapSystemPrompt, getGameRecapUserPrompt } from '../prompts.ts';
+import {
+  buildGroundedUntimedGameRecap,
+  generateGroundedOrAiGameRecap,
+  hasCompleteGoalTiming,
+} from '../grounded-recap.ts';
 
 function createSupabase(resolveOperation) {
   const operations = [];
@@ -311,7 +316,12 @@ test('null goal scorers are omitted from profile lookups and labeled as team goa
     }
     if (operation.table === 'goalie_stats') return { data: [], error: null };
     if (operation.table === 'get_team_standings') return { data: [], error: null };
-    if (operation.table === 'leagues') return { data: { recap_tone: 'competitive' }, error: null };
+    if (operation.table === 'leagues') {
+      return {
+        data: { recap_tone: 'competitive', timezone: 'America/Toronto' },
+        error: null,
+      };
+    }
     if (operation.table === 'profiles') throw new Error('null scorer must not trigger a profile lookup');
     throw new Error(`Unexpected operation: ${operation.table}`);
   });
@@ -381,4 +391,203 @@ test('game recap prompt allows colour without inventing recorded hockey facts', 
   assert.match(prompt, /fictionalized colour/i);
   assert.match(prompt, /never invent/i);
   assert.match(prompt, /scores, player names, goals, assists, penalties, and saves/i);
+});
+
+test('game recap prompt uses the league timezone and marks missing timing as unordered', () => {
+  const prompt = getGameRecapUserPrompt({
+    homeTeam: { name: 'Home' },
+    awayTeam: { name: 'Away' },
+    homeScore: 1,
+    awayScore: 1,
+    scheduledAt: '2026-08-21T00:30:00.000Z',
+    timezone: 'America/Toronto',
+    goals: [
+      {
+        period: 1,
+        time: null,
+        scorer_name: 'Home Scorer',
+        scorer_id: 'home-scorer',
+        team_name: 'Home',
+      },
+      {
+        period: 1,
+        time: null,
+        scorer_name: 'Away Scorer',
+        scorer_id: 'away-scorer',
+        team_name: 'Away',
+      },
+    ],
+    penalties: [],
+  });
+
+  assert.match(prompt, /Thursday, August 20, 2026/);
+  assert.match(prompt, /not chronological/i);
+  assert.doesNotMatch(prompt, /- P1/);
+});
+
+test('untimed games use a deterministic recap built only from recorded facts', () => {
+  const gameData = {
+    homeTeam: { id: 'home-team', name: 'Home' },
+    awayTeam: { id: 'away-team', name: 'Away' },
+    homeScore: 2,
+    awayScore: 1,
+    scheduledAt: '2026-08-21T00:30:00.000Z',
+    timezone: 'America/Toronto',
+    venue: 'The Barn',
+    goals: [
+      {
+        team_id: 'away-team',
+        scorer_id: 'away-scorer',
+        scorer_name: 'Away Scorer',
+        assist1_id: null,
+        assist1_name: null,
+        assist2_id: null,
+        assist2_name: null,
+        period: 1,
+        time: null,
+      },
+      {
+        team_id: 'home-team',
+        scorer_id: 'home-scorer',
+        scorer_name: 'Home Scorer',
+        assist1_id: 'helper',
+        assist1_name: 'Helpful Player',
+        assist2_id: 'helper',
+        assist2_name: 'Helpful Player',
+        period: 1,
+        time: null,
+      },
+      {
+        team_id: 'home-team',
+        scorer_id: 'home-scorer',
+        scorer_name: 'Home Scorer',
+        assist1_id: null,
+        assist1_name: null,
+        assist2_id: null,
+        assist2_name: null,
+        period: 1,
+        time: null,
+      },
+    ],
+  };
+
+  assert.equal(hasCompleteGoalTiming(gameData), false);
+  const result = buildGroundedUntimedGameRecap(gameData);
+  assert.equal(result.model, 'grounded-template-v1');
+  assert.match(result.parsed.content, /Thursday, August 20, 2026/);
+  assert.match(result.parsed.content, /\*\*Home Scorer\*\* — 2 goals/);
+  assert.match(result.parsed.content, /\*\*Away Scorer\*\* — 1 goal/);
+  assert.match(result.parsed.content, /\*\*Helpful Player\*\* — 1 assist/);
+  assert.doesNotMatch(
+    `${result.parsed.title}\n${result.parsed.excerpt}\n${result.parsed.content}`,
+    /Friday|first period|intermission|minute mark|took the lead|comeback/i,
+  );
+  assert.deepEqual(result.parsed.star_player_ids, ['home-scorer']);
+  assert.deepEqual(
+    [...result.parsed.tagged_player_ids].sort(),
+    ['away-scorer', 'helper', 'home-scorer'],
+  );
+});
+
+test('grounded recap fails closed when goal events do not reconcile to the final score', () => {
+  assert.throws(
+    () => buildGroundedUntimedGameRecap({
+      homeTeam: { id: 'home-team', name: 'Home' },
+      awayTeam: { id: 'away-team', name: 'Away' },
+      homeScore: 1,
+      awayScore: 0,
+      scheduledAt: '2026-08-21T00:30:00.000Z',
+      timezone: 'America/Toronto',
+      goals: [],
+    }),
+    /do not match the final score/i,
+  );
+});
+
+test('complete goal timing keeps the AI generation path eligible', async () => {
+  const gameData = {
+    homeTeam: { id: 'home-team', name: 'Home' },
+    awayTeam: { id: 'away-team', name: 'Away' },
+    homeScore: 1,
+    awayScore: 0,
+    goals: [{
+      team_id: 'home-team',
+      scorer_id: 'home-scorer',
+      scorer_name: 'Home Scorer',
+      period: 1,
+      time: '12:34',
+    }],
+  };
+  let aiCalled = false;
+
+  assert.equal(hasCompleteGoalTiming(gameData), true);
+  const result = await generateGroundedOrAiGameRecap(gameData, async () => {
+    aiCalled = true;
+    return { parsed: { title: 'AI result' } };
+  });
+
+  assert.equal(aiCalled, true);
+  assert.equal(result.parsed.title, 'AI result');
+});
+
+test('score reconciliation runs before the complete-timing AI path', async () => {
+  let aiCalled = false;
+  await assert.rejects(
+    generateGroundedOrAiGameRecap({
+      homeTeam: { id: 'home-team', name: 'Home' },
+      awayTeam: { id: 'away-team', name: 'Away' },
+      homeScore: 2,
+      awayScore: 0,
+      goals: [{
+        team_id: 'home-team',
+        scorer_id: 'home-scorer',
+        scorer_name: 'Home Scorer',
+        period: 1,
+        time: '12:34',
+      }],
+    }, async () => {
+      aiCalled = true;
+      return { parsed: { title: 'must not run' } };
+    }),
+    /do not match the final score/i,
+  );
+  assert.equal(aiCalled, false);
+});
+
+test('foreign-team goal events fail closed before aggregation', () => {
+  assert.throws(
+    () => buildGroundedUntimedGameRecap({
+      homeTeam: { id: 'home-team', name: 'Home' },
+      awayTeam: { id: 'away-team', name: 'Away' },
+      homeScore: 1,
+      awayScore: 0,
+      scheduledAt: '2026-08-21T00:30:00.000Z',
+      timezone: 'America/Toronto',
+      goals: [
+        { team_id: 'home-team', scorer_id: 'home-scorer', scorer_name: 'Home Scorer' },
+        { team_id: 'foreign-team', scorer_id: 'foreign-scorer', scorer_name: 'Foreign Scorer' },
+      ],
+    }),
+    /not assigned to either game team/i,
+  );
+});
+
+test('scoreless games use the grounded path without invoking AI', async () => {
+  let aiCalled = false;
+  const result = await generateGroundedOrAiGameRecap({
+    homeTeam: { id: 'home-team', name: 'Home' },
+    awayTeam: { id: 'away-team', name: 'Away' },
+    homeScore: 0,
+    awayScore: 0,
+    scheduledAt: '2026-08-21T00:30:00.000Z',
+    timezone: 'America/Toronto',
+    goals: [],
+  }, async () => {
+    aiCalled = true;
+    return { parsed: { title: 'must not run' } };
+  });
+
+  assert.equal(aiCalled, false);
+  assert.equal(result.model, 'grounded-template-v1');
+  assert.match(result.parsed.title, /0-0 Draw/);
 });
