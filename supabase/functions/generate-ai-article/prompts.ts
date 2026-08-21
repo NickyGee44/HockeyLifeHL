@@ -27,6 +27,7 @@ Guidelines:
 - Highlight key goals, assists, and saves
 - If there were penalties, mention notable ones
 - Fictionalized colour, atmosphere, drama, and playful details are welcome, but never invent recorded hockey facts: scores, player names, goals, assists, penalties, and saves must stay exactly consistent with the provided data
+- Never infer chronology from the order of scoring-summary rows. If timing is marked unrecorded, do not claim who scored first or next, period/intermission scores, leads, comebacks, responses, game-winning goals, minute marks, or early/late events
 - End with a forward-looking statement about the teams`;
 }
 
@@ -34,12 +35,18 @@ export function getGameRecapUserPrompt(data: any): string {
   const {
     homeTeam, awayTeam, homeScore, awayScore,
     scheduledAt, venue, goals, penalties,
-    homeGoalie, awayGoalie, standings, notes,
+    homeGoalie, awayGoalie, standings, notes, timezone,
   } = data;
 
   let prompt = `Write a game recap for this beer league hockey game:\n\n`;
   prompt += `**${awayTeam.name}** ${awayScore} @ **${homeTeam.name}** ${homeScore}\n`;
-  prompt += `Date: ${new Date(scheduledAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}\n`;
+  prompt += `Date: ${new Date(scheduledAt).toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: timezone,
+  })}\n`;
   if (venue) prompt += `Venue: ${venue}\n`;
   prompt += `\n`;
 
@@ -54,7 +61,14 @@ export function getGameRecapUserPrompt(data: any): string {
 
   // Goals
   if (goals && goals.length > 0) {
-    prompt += `## Scoring Summary\n`;
+    const hasCompleteTiming = goals.every((goal: any) => goal.time && goal.period != null);
+    prompt += hasCompleteTiming
+      ? `## Scoring Summary\n`
+      : `## Recorded Scorers and Assists (not chronological)\n`;
+    if (!hasCompleteTiming) {
+      prompt += `IMPORTANT DATA LIMITATION: Goal timing and sequence were not recorded. `;
+      prompt += `Do not describe periods, intermission scores, who scored first or next, leads, comebacks, responses, game-winning goals, minute marks, or early/late events.\n`;
+    }
     for (const goal of goals) {
       const assists = [goal.assist1_name, goal.assist2_name].filter(Boolean);
       const assistStr = assists.length > 0 ? ` (${assists.join(', ')})` : ' (unassisted)';
@@ -63,7 +77,8 @@ export function getGameRecapUserPrompt(data: any): string {
       if (goal.is_short_handed) modifiers.push('SH');
       if (goal.is_empty_net) modifiers.push('EN');
       const modStr = modifiers.length > 0 ? ` [${modifiers.join(', ')}]` : '';
-      prompt += `- P${goal.period} ${goal.time || ''}: ${goal.scorer_name} (${goal.team_name})${assistStr}${modStr}\n`;
+      const timingPrefix = hasCompleteTiming ? `P${goal.period} ${goal.time}: ` : '';
+      prompt += `- ${timingPrefix}${goal.scorer_name} (${goal.team_name})${assistStr}${modStr}\n`;
       prompt += `  Player IDs: scorer=${goal.scorer_id}`;
       if (goal.assist1_id) prompt += `, assist1=${goal.assist1_id}`;
       if (goal.assist2_id) prompt += `, assist2=${goal.assist2_id}`;

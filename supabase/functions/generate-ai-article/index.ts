@@ -3,6 +3,7 @@ import { getGameRecapSystemPrompt, getGameRecapUserPrompt, getWeeklyWrapSystemPr
 import { gatherGameRecapData, gatherWeeklyWrapData, checkAddonActive } from './data-gathering.ts';
 import { handleGameRecap } from './game-recap.ts';
 import { isGatewayVerifiedServiceRole } from './service-role-auth.ts';
+import { generateGroundedOrAiGameRecap } from './grounded-recap.ts';
 
 const ALLOWED_ORIGINS = ['https://beerleaguehockey.ca', 'https://www.beerleaguehockey.ca', 'http://localhost:3000'];
 const corsHeaders = {
@@ -345,9 +346,12 @@ Deno.serve(async (req) => {
         result = await handleGameRecap(supabase, game_id, force === true, {
           gatherGameRecapData,
           checkAddonActive,
-          generateArticle: async (gameData) => callOpenAI(
-            getGameRecapSystemPrompt(gameData.recapTone),
-            getGameRecapUserPrompt(gameData),
+          generateArticle: async (gameData) => generateGroundedOrAiGameRecap(
+            gameData,
+            () => callOpenAI(
+              getGameRecapSystemPrompt(gameData.recapTone),
+              getGameRecapUserPrompt(gameData),
+            ),
           ),
         });
         break;
