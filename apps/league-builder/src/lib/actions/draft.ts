@@ -24,6 +24,22 @@ interface DraftPickData {
   playerName: string;
 }
 
+export interface FinalizeDraftRostersData {
+  insertedCount: number;
+  existingCount: number;
+  totalPicks: number;
+  insertedIds: string[];
+}
+
+interface FinalizeDraftRostersRpcResult {
+  success?: boolean;
+  error?: string;
+  inserted_count?: number;
+  existing_count?: number;
+  total_picks?: number;
+  inserted_ids?: string[];
+}
+
 /**
  * Setup a new draft with configuration
  */
@@ -80,6 +96,62 @@ export async function setupDraft(
   } catch (err) {
     console.error('Error setting up draft:', err);
     return { success: false, error: err instanceof Error ? err.message : 'Failed to setup draft' };
+  }
+}
+
+/**
+ * Materialize completed draft picks into the draft season's team rosters.
+ * The RPC enforces league-admin authorization and is idempotent.
+ */
+export async function finalizeDraftRosters(
+  draftId: string
+): Promise<ActionResult<FinalizeDraftRostersData>> {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const { data, error } = await supabase.rpc('finalize_draft_rosters', {
+      p_draft_id: draftId,
+    });
+
+    if (error) throw error;
+
+    const result = (data ?? {}) as FinalizeDraftRostersRpcResult;
+    if (!result.success) {
+      return { success: false, error: result.error || 'Failed to finalize draft rosters' };
+    }
+
+    const insertedCount = result.inserted_count ?? 0;
+    const existingCount = result.existing_count ?? 0;
+    const totalPicks = result.total_picks ?? 0;
+    const insertedIds = result.inserted_ids ?? [];
+
+    if (
+      !Number.isInteger(insertedCount) ||
+      !Number.isInteger(existingCount) ||
+      !Number.isInteger(totalPicks) ||
+      !Array.isArray(insertedIds) ||
+      insertedIds.some((id) => typeof id !== 'string')
+    ) {
+      return { success: false, error: 'Draft roster finalization returned an invalid response' };
+    }
+
+    revalidatePath('/dashboard/leagues');
+
+    return {
+      success: true,
+      data: { insertedCount, existingCount, totalPicks, insertedIds },
+    };
+  } catch (err) {
+    console.error('Error finalizing draft rosters:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Failed to finalize draft rosters',
+    };
   }
 }
 

@@ -440,7 +440,6 @@ export function DraftRoom({
       const { data, error: pickError } = await supabase.rpc('make_draft_pick', {
         p_draft_id: draftId,
         p_player_id: selectedPlayer.player_id,
-        p_idempotency_key: crypto.randomUUID(),
       });
 
       if (pickError) throw pickError;
@@ -479,7 +478,6 @@ export function DraftRoom({
       const { data, error: pickError } = await supabase.rpc('make_draft_pick', {
         p_draft_id: draftId,
         p_player_id: bestPlayer.player_id,
-        p_idempotency_key: crypto.randomUUID(),
       });
 
       if (pickError) throw pickError;

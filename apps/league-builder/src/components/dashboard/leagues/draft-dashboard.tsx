@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import {
   Shuffle,
@@ -35,7 +36,11 @@ import {
   populateDraftPoolFromSeason,
   populateDraftPoolFromHistory,
 } from '@/lib/actions/draft-pool';
-import { startDraft } from '@/lib/actions/draft';
+import { finalizeDraftRosters, startDraft } from '@/lib/actions/draft';
+import {
+  getDraftDashboardState,
+  type DraftDashboardState,
+} from '@/lib/draft/status';
 
 interface DraftDashboardProps {
   leagueId: string;
@@ -49,10 +54,10 @@ interface DraftDashboardProps {
   userId: string;
   userTeamId: string | null;
   isAdmin: boolean;
+  canFinalizeRosters: boolean;
   isCaptain: boolean;
 }
 
-type DraftLifecycleState = 'no_draft' | 'pending' | 'active' | 'paused' | 'complete';
 type PoolSource = 'registrations' | 'past_season' | 'history';
 
 export function DraftDashboard({
@@ -66,16 +71,20 @@ export function DraftDashboard({
   userId,
   userTeamId,
   isAdmin,
+  canFinalizeRosters,
   isCaptain,
 }: DraftDashboardProps) {
+  const t = useTranslations('draft');
   const [draftId, setDraftId] = useState<string | null>(existingDraft?.id || null);
-  const [draftStatus, setDraftStatus] = useState<DraftLifecycleState>(
-    existingDraft ? (existingDraft.status as DraftLifecycleState) : 'no_draft'
+  const [draftStatus, setDraftStatus] = useState<DraftDashboardState>(
+    existingDraft ? getDraftDashboardState(existingDraft.status) : 'no_draft'
   );
   const [isPopulating, setIsPopulating] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showStartConfirm, setShowStartConfirm] = useState(false);
+  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
 
   // Pool source picker state
   const [poolSourceOpen, setPoolSourceOpen] = useState(false);
@@ -153,6 +162,34 @@ export function DraftDashboard({
       toast.error('An error occurred while starting the draft');
     } finally {
       setIsStarting(false);
+    }
+  };
+
+  const handleFinalizeRosters = async () => {
+    if (!draftId || !canFinalizeRosters || isFinalizing) return;
+    setIsFinalizing(true);
+
+    try {
+      const result = await finalizeDraftRosters(draftId);
+      if (!result.success || !result.data) {
+        toast.error(result.error || t('finalizeRostersError'));
+        return;
+      }
+
+      const { insertedCount, existingCount, totalPicks } = result.data;
+      if (insertedCount === 0) {
+        toast.success(t('finalizeRostersAlreadyFinalized', { totalPicks }));
+      } else {
+        toast.success(t('finalizeRostersSuccess', {
+          insertedCount,
+          existingCount,
+          totalPicks,
+        }));
+      }
+    } catch {
+      toast.error(t('finalizeRostersError'));
+    } finally {
+      setIsFinalizing(false);
     }
   };
 
@@ -482,18 +519,70 @@ export function DraftDashboard({
             or view the full draft board by entering the draft room.
           </p>
 
-          <button
-            onClick={() => setDraftStatus('active')}
-            className={cn(
-              'mt-6 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm',
-              'bg-rink-500/10 text-rink-500 border border-rink-500/30',
-              'hover:bg-rink-500/20 transition-colors'
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {canFinalizeRosters && (
+              <button
+                onClick={() => setShowFinalizeConfirm(true)}
+                disabled={isFinalizing}
+                className={cn(
+                  'inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm',
+                  'bg-gradient-to-r from-rink-500 to-arena-500 text-black',
+                  'hover:shadow-lg hover:shadow-rink-500/20 transition-all',
+                  'disabled:cursor-not-allowed disabled:opacity-50'
+                )}
+              >
+                {isFinalizing ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {t('finalizingRosters')}</>
+                ) : (
+                  <><Users className="w-4 h-4" /> {t('finalizeRosters')}</>
+                )}
+              </button>
             )}
-          >
-            <Shuffle className="w-4 h-4" />
-            View Draft Room
-          </button>
+
+            <button
+              onClick={() => setDraftStatus('active')}
+              className={cn(
+                'inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm',
+                'bg-rink-500/10 text-rink-500 border border-rink-500/30',
+                'hover:bg-rink-500/20 transition-colors'
+              )}
+            >
+              <Shuffle className="w-4 h-4" />
+              View Draft Room
+            </button>
+          </div>
         </div>
+
+        <AlertDialog open={showFinalizeConfirm} onOpenChange={setShowFinalizeConfirm}>
+          <AlertDialogContent className="bg-neutral-900 border-white/10 text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('finalizeRostersTitle')}</AlertDialogTitle>
+              <AlertDialogDescription className="text-neutral-400">
+                {t('finalizeRostersDescription')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                className="border-white/10 text-neutral-300 hover:bg-neutral-800"
+                disabled={isFinalizing}
+              >
+                {t('cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setShowFinalizeConfirm(false);
+                  void handleFinalizeRosters();
+                }}
+                disabled={isFinalizing}
+                className="bg-gradient-to-r from-rink-500 to-arena-500 text-black font-semibold hover:shadow-lg hover:shadow-rink-500/20"
+              >
+                {isFinalizing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('finalizingRosters')}</>
+                ) : t('finalizeRostersConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }

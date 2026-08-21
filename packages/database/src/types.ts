@@ -13644,6 +13644,10 @@ export type Database = {
         Args: { check_league_id: string; user_uuid: string }
         Returns: string
       }
+      finalize_draft_rosters: {
+        Args: { p_draft_id: string }
+        Returns: Json
+      }
       has_user_consent: {
         Args: { p_consent_type: string; p_user_id: string }
         Returns: boolean
@@ -13758,24 +13762,19 @@ export type Database = {
         }
         Returns: string
       }
-      make_draft_pick:
-        | {
-            Args: {
-              p_draft_id: string
-              p_player_id: string
-              p_user_id?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_draft_id: string
-              p_idempotency_key?: string
-              p_player_id: string
-              p_user_id?: string
-            }
-            Returns: Json
-          }
+      make_draft_pick: {
+        Args: { p_draft_id: string; p_player_id: string }
+        Returns: Json
+      }
+      make_draft_pick_internal: {
+        Args: {
+          p_draft_id: string
+          p_idempotency_key?: string
+          p_player_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       mark_notification_failed: {
         Args: {
           p_error_message: string

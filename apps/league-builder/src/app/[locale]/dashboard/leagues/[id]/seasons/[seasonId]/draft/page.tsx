@@ -14,7 +14,7 @@ export default async function SeasonDraftPage({ params }: Props) {
   const { locale, id: leagueId, seasonId } = await params;
   setRequestLocale(locale);
 
-  const { supabase, access, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
+  const { supabase, userData } = await requireLeagueDashboardAccess({ leagueId, locale });
   const userId = userData.user.id;
 
   const { data: season, error: seasonError } = await supabase
@@ -94,30 +94,40 @@ export default async function SeasonDraftPage({ params }: Props) {
         .select('id, name')
         .eq('league_id', leagueId)
         .eq('status', 'active')
-        .in('id', seasonTeamIds);
+        .in('id', seasonTeamIds)
+        .order('name', { ascending: true });
       teams = seasonTeams ?? [];
+    } else {
+      const { data: activeLeagueTeams } = await supabase
+        .from('teams')
+        .select('id, name')
+        .eq('league_id', leagueId)
+        .eq('status', 'active')
+        .order('name', { ascending: true });
+      teams = activeLeagueTeams ?? [];
     }
   }
 
   const { data: membership } = await supabase
     .from('league_memberships')
-    .select('role')
+    .select('role, status')
     .eq('league_id', leagueId)
     .eq('user_id', userId)
     .maybeSingle();
 
   const isAdmin =
-    access.accessType === 'platform_admin' ||
-    membership?.role === 'owner' ||
-    membership?.role === 'admin';
+    membership?.status === 'active' &&
+    (membership.role === 'owner' || membership.role === 'admin');
+  const canFinalizeRosters = isAdmin;
 
-  const { data: captainTeam } = await (supabase as any)
-    .from('team_members')
-    .select('team_id, role')
-    .eq('user_id', userId)
-    .eq('role', 'captain')
+  const { data: captainTeam } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('league_id', leagueId)
+    .eq('captain_id', userId)
+    .eq('status', 'active')
     .limit(1)
-    .maybeSingle() as { data: { team_id: string; role: string } | null };
+    .maybeSingle();
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -139,8 +149,9 @@ export default async function SeasonDraftPage({ params }: Props) {
           teams={teams}
           pastSeasons={pastSeasons}
           userId={userId}
-          userTeamId={captainTeam?.team_id || null}
+          userTeamId={captainTeam?.id || null}
           isAdmin={isAdmin}
+          canFinalizeRosters={canFinalizeRosters}
           isCaptain={!!captainTeam}
         />
       </div>
