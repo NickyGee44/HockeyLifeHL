@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getGameRecapSystemPrompt, getGameRecapUserPrompt, getWeeklyWrapSystemPrompt, getWeeklyWrapUserPrompt } from './prompts.ts';
 import { gatherGameRecapData, gatherWeeklyWrapData, checkAddonActive } from './data-gathering.ts';
 import { handleGameRecap } from './game-recap.ts';
+import { isGatewayVerifiedServiceRole } from './service-role-auth.ts';
 
 const ALLOWED_ORIGINS = ['https://beerleaguehockey.ca', 'https://www.beerleaguehockey.ca', 'http://localhost:3000'];
 const corsHeaders = {
@@ -298,10 +299,19 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: { ...corsHeaders, 'Access-Control-Allow-Origin': allowOrigin } });
   }
 
-  // Verify caller is authenticated with service role key
+  // The Edge gateway verifies the JWT before execution. Require the signed
+  // service-role claims for this project rather than comparing against the
+  // runtime key, which can differ after Supabase API-key migration.
   const authHeader = req.headers.get('Authorization');
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  const expectedProjectRef = (() => {
+    try {
+      return new URL(supabaseUrl).hostname.split('.')[0];
+    } catch {
+      return '';
+    }
+  })();
+  if (!expectedProjectRef || !isGatewayVerifiedServiceRole(authHeader, expectedProjectRef)) {
     return new Response(
       JSON.stringify({ success: false, error: 'Unauthorized' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
