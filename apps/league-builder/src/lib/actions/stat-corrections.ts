@@ -516,6 +516,7 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
 
     // Preferred RPC recalculation path
     let usedFallback = false;
+    let fallbackAggregateRefreshFailed = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: rpcError } = await (serviceClient as any).rpc('recalculate_game_stats_from_events', {
       p_game_id: gameId,
@@ -560,15 +561,21 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
         return { success: false, error: 'Failed to recalculate stats (fallback update failed)' };
       }
 
-      // Best-effort season-wide stat refresh for environments where this RPC exists.
+      // Refresh season-wide aggregates after the fallback score update.
       if (game.season_id) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (serviceClient as any).rpc('recalculate_all_season_stats', {
+          const { error: seasonRecalcError } = await (serviceClient as any).rpc('recalculate_all_season_stats', {
             p_season_id: game.season_id,
           });
+
+          if (seasonRecalcError) {
+            console.error('Season stats recalc RPC failed:', seasonRecalcError);
+            fallbackAggregateRefreshFailed = true;
+          }
         } catch (seasonRecalcError) {
-          console.warn('Season stats recalc RPC unavailable or failed:', seasonRecalcError);
+          console.error('Season stats recalc RPC unavailable or failed:', seasonRecalcError);
+          fallbackAggregateRefreshFailed = true;
         }
       }
     }
@@ -596,6 +603,10 @@ export async function recalculateGameStats(gameId: string): Promise<ActionResult
     });
 
     revalidatePath('/');
+
+    if (fallbackAggregateRefreshFailed) {
+      return { success: false, error: 'Game score updated, but failed to refresh season stats' };
+    }
 
     return {
       success: true,
