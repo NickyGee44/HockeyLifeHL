@@ -2,7 +2,6 @@
 
 import { createServiceRoleClient, createAuthClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { after } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { resolvePlayerPhotoUrl } from '@/lib/player-photo';
@@ -690,34 +689,6 @@ async function finalizeCompletedGameStats(
       revalidateLeagueSiteGameResultPaths(leagueSlug, [homeTeamRelation?.slug, awayTeamRelation?.slug]);
     }
 
-    // Generate the AI recap after the response is sent so it never delays or
-    // blocks game completion. Previously this was a fire-and-forget promise with
-    // a swallowed error (`.catch(() => {})`), which (a) could be frozen with the
-    // lambda before completing and (b) made failures invisible. The edge function
-    // gates on the ai_news addon and dedups via ai_generation_log, so calling it
-    // unconditionally here is safe.
-    after(async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('generate-ai-article', {
-          body: { action: 'game_recap', game_id: gameId },
-        });
-        if (error) {
-          console.error('[scorekeeper] game recap generation failed', { gameId, error: error.message ?? error });
-          return;
-        }
-        console.log('[scorekeeper] game recap generation result', { gameId, data });
-        // The edge function inserts the article before responding — surface it.
-        if (leagueSlug) {
-          try {
-            revalidatePath(`/${leagueSlug}/news`);
-          } catch {
-            // revalidation is best-effort here; the page revalidates on the next write anyway
-          }
-        }
-      } catch (recapError) {
-        console.error('[scorekeeper] game recap generation threw', { gameId, error: recapError });
-      }
-    });
   }
 }
 
@@ -750,10 +721,10 @@ async function finalizeIfBothCaptainsVerified(
  *
  * A self-scored submission auto-verifies the initiating side and issues a 24h
  * token to the opponent. If they never respond, the game would otherwise sit in
- * pending_verification forever — never completed, so never recap'd. This treats
+ * pending_verification forever — never completed. This treats
  * the non-responding side as auto-verified after the window and finalizes the
  * game through the same path a normal verification would (rollup + complete +
- * stats recalc + recap).
+ * stats recalculation). Recaps are generated manually from the admin Games page.
  *
  * Intended to be called from a cron route (see /api/cron/auto-finalize-games).
  * Failure on one game never blocks the others.
@@ -853,7 +824,7 @@ function isValidInternalSecret(provided: string | null | undefined): boolean {
  * league-builder admin dashboard via the /api/admin/game-lifecycle route. Works
  * from `in_progress` or `pending_verification`; treats any unverified side as
  * verified (like the 24h auto-finalize) and runs the canonical finalize path
- * (rollup + complete + recalc + recap). Idempotent for already-completed games.
+ * (rollup + complete + recalc). Idempotent for already-completed games.
  */
 export async function adminFinalizeGame(
   gameId: string,

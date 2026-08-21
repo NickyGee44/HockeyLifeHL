@@ -28,7 +28,7 @@ const ADDON_CONFIG: Record<AddonType, {
     name: 'AI News Writer',
     price: '$14.99/mo',
     features: [
-      'Automatic game recaps',
+      'AI-generated game recaps',
       'Weekly roundup articles',
       'Player spotlight stories',
       'AI-powered content generation',

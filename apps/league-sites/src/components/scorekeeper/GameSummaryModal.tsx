@@ -547,7 +547,7 @@ export function GameSummaryModal({
           </div>
         </div>
 
-        {/* Game notes — feed context to the auto-generated recap */}
+        {/* Game notes — provide context for a later admin-generated recap */}
         {!submitted && !game.statsLockedAt && (
           <div className="px-4 pb-2">
             <label htmlFor="game-recap-notes" className="block text-sm font-semibold text-white">

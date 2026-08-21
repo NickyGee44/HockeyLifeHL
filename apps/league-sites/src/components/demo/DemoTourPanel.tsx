@@ -68,7 +68,7 @@ function getFeatures(slug: string): Feature[] {
       id: 'news',
       icon: Newspaper,
       title: 'News & Recaps',
-      description: 'League announcements and AI-generated game recaps published automatically after final scores.',
+      description: 'League announcements and AI-generated game recaps published by league administrators after final scores.',
       href: `/${slug}/news`,
     },
     {
