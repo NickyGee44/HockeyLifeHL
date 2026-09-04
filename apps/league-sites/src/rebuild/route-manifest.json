@@ -1,0 +1,2361 @@
+{
+  "version": "1.0.0",
+  "productionBaseline": "940f79d6ea4b5d5c55fdafe61d477547ea1680ff",
+  "expectedPageCount": 56,
+  "expectedHandlerCount": 11,
+  "statuses": {
+    "not-started": "Inventory captured; visual and interaction rebuild has not started.",
+    "in-progress": "Actively being rebuilt on this branch.",
+    "review": "Implementation complete and awaiting visual, functional, and responsive acceptance.",
+    "complete": "Acceptance criteria verified and evidence recorded.",
+    "blocked": "Cannot proceed until the documented dependency or decision is resolved."
+  },
+  "categories": [
+    {
+      "id": "public-league",
+      "label": "Public league content",
+      "expectedCount": 24
+    },
+    {
+      "id": "player-account",
+      "label": "Player account",
+      "expectedCount": 6
+    },
+    {
+      "id": "captain",
+      "label": "Captain tools",
+      "expectedCount": 7
+    },
+    {
+      "id": "goalie",
+      "label": "Goalie flows",
+      "expectedCount": 3
+    },
+    {
+      "id": "scorekeeper",
+      "label": "Scorekeeper and game verification",
+      "expectedCount": 5
+    },
+    {
+      "id": "referee",
+      "label": "Referee portal",
+      "expectedCount": 2
+    },
+    {
+      "id": "registration",
+      "label": "Registration",
+      "expectedCount": 2
+    },
+    {
+      "id": "legal-platform",
+      "label": "Platform and legal",
+      "expectedCount": 7
+    }
+  ],
+  "globalContracts": [
+    {
+      "id": "ROUTE-COMPATIBILITY",
+      "title": "Route compatibility",
+      "status": "not-started",
+      "requirement": "Keep all 56 page paths, dynamic parameter names, deep links, redirects, and custom-domain/subdomain behavior compatible."
+    },
+    {
+      "id": "TENANT-SCOPE",
+      "title": "Tenant data isolation",
+      "status": "not-started",
+      "requirement": "Every league-derived read/write remains scoped to the resolved league and existing RLS/server authorization."
+    },
+    {
+      "id": "SUPABASE-AUTH",
+      "title": "Authentication recovery and sessions",
+      "status": "not-started",
+      "requirement": "Preserve login, signup, recovery, callback, session refresh, and safe redirect behavior."
+    },
+    {
+      "id": "ROLE-AUTHORIZATION",
+      "title": "Role authorization",
+      "status": "not-started",
+      "requirement": "Player, captain, scorekeeper, and referee views enforce server-authoritative role and assignment boundaries."
+    },
+    {
+      "id": "TOKEN-SESSION",
+      "title": "Token portals",
+      "status": "not-started",
+      "requirement": "Token validation, expiry, rate limiting, cookie/session scope, replay protection, and noindex metadata remain intact."
+    },
+    {
+      "id": "LEAGUE-THEME",
+      "title": "League theming",
+      "status": "not-started",
+      "requirement": "Brand colours, logos, banners, template variants, light/dark behavior, and safe fallbacks remain configurable per league."
+    },
+    {
+      "id": "WEBSITE-EDITOR-VISIBILITY",
+      "title": "Website editor compatibility",
+      "status": "not-started",
+      "requirement": "Visible pages, custom navigation, preview postMessage updates, registration CTAs, ticker, sponsors, and custom content honor editor settings."
+    },
+    {
+      "id": "PAYMENT-AND-WAIVER-INTEGRITY",
+      "title": "Payments and waivers",
+      "status": "not-started",
+      "requirement": "Server-calculated prices, Stripe states, signed waiver versions, idempotency, and ownership checks remain authoritative."
+    }
+  ],
+  "sharedRequirements": [
+    {
+      "id": "GLOBAL-SHELL",
+      "title": "League shell",
+      "status": "not-started",
+      "requirement": "Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently."
+    },
+    {
+      "id": "RESPONSIVE",
+      "title": "Responsive behavior",
+      "status": "not-started",
+      "requirement": "Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions."
+    },
+    {
+      "id": "A11Y",
+      "title": "Accessibility",
+      "status": "not-started",
+      "requirement": "Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance."
+    },
+    {
+      "id": "SYSTEM-STATES",
+      "title": "System states",
+      "status": "not-started",
+      "requirement": "Every route deliberately covers loading, empty, partial, error, offline where applicable, unauthenticated, unauthorized, expired, subscription, and success states."
+    },
+    {
+      "id": "SEO-PWA",
+      "title": "SEO and PWA",
+      "status": "not-started",
+      "requirement": "League-aware metadata, canonical/social images, structured data, sitemap/robots rules, manifest/install flows, and private-route noindex behavior are preserved."
+    },
+    {
+      "id": "OBSERVABILITY",
+      "title": "Analytics and diagnostics",
+      "status": "not-started",
+      "requirement": "Consent-gated analytics, league attribution, Sentry capture, and bug-report context return without leaking personal or tenant data."
+    },
+    {
+      "id": "TIMEZONE-LOCALE",
+      "title": "Timezone and locale",
+      "status": "not-started",
+      "requirement": "Dates and game times use each league timezone and copy remains ready for English/French requirements."
+    },
+    {
+      "id": "PERFORMANCE",
+      "title": "Performance",
+      "status": "not-started",
+      "requirement": "Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads."
+    }
+  ],
+  "routes": [
+    {
+      "id": "LS-LEAGUESLUG-ABOUT",
+      "path": "/[leagueSlug]/about",
+      "source": "src/app/[leagueSlug]/about/page.tsx",
+      "title": "About the League",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "League identity and description",
+        "Staff/contact details",
+        "Rules and social links"
+      ],
+      "interactions": [
+        "Open contact/social links",
+        "Expand or navigate rules"
+      ],
+      "features": [
+        "Website-editor content",
+        "Safe rich content and visibility settings"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN-DUTIES",
+      "path": "/[leagueSlug]/captain/duties",
+      "source": "src/app/[leagueSlug]/captain/duties/page.tsx",
+      "title": "Captain Duties",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Assigned duty list",
+        "Completion/status controls",
+        "Schedule/team context"
+      ],
+      "interactions": [
+        "Mark duties complete",
+        "Navigate related game/team"
+      ],
+      "features": [
+        "Captain authorization",
+        "Season and assignment accuracy"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN-FEES",
+      "path": "/[leagueSlug]/captain/fees",
+      "source": "src/app/[leagueSlug]/captain/fees/page.tsx",
+      "title": "Team Fee Collection",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Team fee summary",
+        "Player balances",
+        "Reminder and collection actions"
+      ],
+      "interactions": [
+        "Send reminders",
+        "Record/open payment flows"
+      ],
+      "features": [
+        "Captain authorization",
+        "Currency/payment-state accuracy"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION",
+        "PAYMENT-AND-WAIVER-INTEGRITY"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN-GOALIES",
+      "path": "/[leagueSlug]/captain/goalies",
+      "source": "src/app/[leagueSlug]/captain/goalies/page.tsx",
+      "title": "Goalie Requests",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Game and goalie need context",
+        "Eligible goalie candidates",
+        "Request status/history"
+      ],
+      "interactions": [
+        "Request/cancel/replace goalie",
+        "Contact or inspect goalie"
+      ],
+      "features": [
+        "Captain authorization",
+        "Availability and duplicate-request rules"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN-LINEUPS-GAMEID",
+      "path": "/[leagueSlug]/captain/lineups/[gameId]",
+      "source": "src/app/[leagueSlug]/captain/lineups/[gameId]/page.tsx",
+      "title": "Game-day Lineup",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Game/attendance context",
+        "Rink lineup editor",
+        "Share/submit controls"
+      ],
+      "interactions": [
+        "Assign and reorder lineup slots",
+        "Save/share lineup"
+      ],
+      "features": [
+        "Captain authorization",
+        "Roster eligibility and concurrent-save handling"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN",
+      "path": "/[leagueSlug]/captain",
+      "source": "src/app/[leagueSlug]/captain/page.tsx",
+      "title": "Captain Dashboard",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Team summary and permissions",
+        "Roster/join requests",
+        "Upcoming game attendance and quick actions"
+      ],
+      "interactions": [
+        "Manage roster and invitations",
+        "Open fees, goalies, duties, lineups, and return flows"
+      ],
+      "features": [
+        "Captain authorization",
+        "Team/season scoping"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN-PLAYER-PAYMENTS",
+      "path": "/[leagueSlug]/captain/player-payments",
+      "source": "src/app/[leagueSlug]/captain/player-payments/page.tsx",
+      "title": "Player Payment Tracking",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Player payment ledger",
+        "Status/filter summary",
+        "Reminder/detail actions"
+      ],
+      "interactions": [
+        "Filter payment status",
+        "Send reminder or open detail"
+      ],
+      "features": [
+        "Captain authorization",
+        "Server-authoritative payment totals"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION",
+        "PAYMENT-AND-WAIVER-INTEGRITY"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CAPTAIN-TEAM-RETURN",
+      "path": "/[leagueSlug]/captain/team-return",
+      "source": "src/app/[leagueSlug]/captain/team-return/page.tsx",
+      "title": "Team Return",
+      "category": "captain",
+      "audience": "Authenticated team captains and designated team managers",
+      "status": "not-started",
+      "requiredSections": [
+        "Return intent and season offer",
+        "Roster/team confirmation",
+        "Submission result"
+      ],
+      "interactions": [
+        "Accept/decline team return",
+        "Confirm roster/contact data"
+      ],
+      "features": [
+        "Captain authorization",
+        "Single-response and deadline rules"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CHECKIN",
+      "path": "/[leagueSlug]/checkin",
+      "source": "src/app/[leagueSlug]/checkin/page.tsx",
+      "title": "Player Game Check-in",
+      "category": "player-account",
+      "audience": "Authenticated players; check-in links may start from guest traffic",
+      "status": "not-started",
+      "requiredSections": [
+        "Authenticated player/game context",
+        "Availability choice and roster",
+        "Share/reminder confirmation"
+      ],
+      "interactions": [
+        "Set or change availability",
+        "Share reminder"
+      ],
+      "features": [
+        "Current player identity",
+        "Game cutoff/status rules",
+        "Optimistic and conflict-safe updates"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-CONTACT",
+      "path": "/[leagueSlug]/contact",
+      "source": "src/app/[leagueSlug]/contact/page.tsx",
+      "title": "Contact the League",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "League contact details",
+        "Contact form",
+        "Submission confirmation"
+      ],
+      "interactions": [
+        "Validate and submit inquiry",
+        "Use published contact links"
+      ],
+      "features": [
+        "Spam-safe submission",
+        "League inbox routing"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-EVENTS",
+      "path": "/[leagueSlug]/events",
+      "source": "src/app/[leagueSlug]/events/page.tsx",
+      "title": "League Events",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Event calendar/list",
+        "Event cards and details",
+        "Date/status filters"
+      ],
+      "interactions": [
+        "Change date/view",
+        "Open event details"
+      ],
+      "features": [
+        "League timezone",
+        "Past/upcoming/cancelled states"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-GALLERY-ALBUMID",
+      "path": "/[leagueSlug]/gallery/[albumId]",
+      "source": "src/app/[leagueSlug]/gallery/[albumId]/page.tsx",
+      "title": "Gallery Album",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Album title/details",
+        "Responsive photo grid",
+        "Accessible lightbox"
+      ],
+      "interactions": [
+        "Open/close/navigate lightbox",
+        "Return to gallery"
+      ],
+      "features": [
+        "Published-photo visibility",
+        "Keyboard and swipe navigation"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-GALLERY",
+      "path": "/[leagueSlug]/gallery",
+      "source": "src/app/[leagueSlug]/gallery/page.tsx",
+      "title": "Photo Gallery",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Featured/recent photos",
+        "Album grid",
+        "Empty-gallery guidance"
+      ],
+      "interactions": [
+        "Open an album",
+        "Browse photos"
+      ],
+      "features": [
+        "Published album visibility",
+        "Responsive image loading"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-GAMES-GAMEID",
+      "path": "/[leagueSlug]/games/[gameId]",
+      "source": "src/app/[leagueSlug]/games/[gameId]/page.tsx",
+      "title": "Game Centre",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Game preview/live/final header",
+        "Box score and event timeline",
+        "Lineups and team/player comparisons",
+        "Recap and season-series context"
+      ],
+      "interactions": [
+        "Follow live state",
+        "Open players/teams",
+        "Navigate series and related games"
+      ],
+      "features": [
+        "Scheduled/live/final state matrix",
+        "League timezone",
+        "Grounded recap and official-stat accuracy"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-GOALIES-ACCEPT-TOKEN",
+      "path": "/[leagueSlug]/goalies/accept/[token]",
+      "source": "src/app/[leagueSlug]/goalies/accept/[token]/page.tsx",
+      "title": "Goalie Assignment Response",
+      "category": "goalie",
+      "audience": "Goalies using public registration or secure assignment links",
+      "status": "not-started",
+      "requiredSections": [
+        "Assignment/game summary",
+        "Accept/decline controls",
+        "Result and expiry status"
+      ],
+      "interactions": [
+        "Validate token",
+        "Accept or decline assignment"
+      ],
+      "features": [
+        "Token secrecy/expiry",
+        "Single-response and game-status rules"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Validate secure token, expiry, and replay rules before showing private data.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-GOALIES-REGISTER-CONFIRMATION",
+      "path": "/[leagueSlug]/goalies/register/confirmation",
+      "source": "src/app/[leagueSlug]/goalies/register/confirmation/page.tsx",
+      "title": "Goalie Registration Confirmation",
+      "category": "goalie",
+      "audience": "Goalies using public registration or secure assignment links",
+      "status": "not-started",
+      "requiredSections": [
+        "Success state",
+        "Next-step expectations",
+        "League navigation"
+      ],
+      "interactions": [
+        "Return to league",
+        "Review next steps"
+      ],
+      "features": [
+        "Safe direct-visit behavior",
+        "No duplicate submission"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-GOALIES-REGISTER",
+      "path": "/[leagueSlug]/goalies/register",
+      "source": "src/app/[leagueSlug]/goalies/register/page.tsx",
+      "title": "Goalie Pool Registration",
+      "category": "goalie",
+      "audience": "Goalies using public registration or secure assignment links",
+      "status": "not-started",
+      "requiredSections": [
+        "Goalie identity/contact form",
+        "Availability and level preferences",
+        "Consent and confirmation"
+      ],
+      "interactions": [
+        "Validate and submit goalie registration",
+        "Authenticate if required"
+      ],
+      "features": [
+        "League scoping",
+        "Duplicate registration and privacy rules"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-HISTORY",
+      "path": "/[leagueSlug]/history",
+      "source": "src/app/[leagueSlug]/history/page.tsx",
+      "title": "League History",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Champions timeline",
+        "Historical leaders",
+        "Season archive context"
+      ],
+      "interactions": [
+        "Expand leaderboards",
+        "Change historical season"
+      ],
+      "features": [
+        "Legacy/imported records",
+        "Stable player/team identity"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-ME-NOTIFICATIONS",
+      "path": "/[leagueSlug]/me/notifications",
+      "source": "src/app/[leagueSlug]/me/notifications/page.tsx",
+      "title": "Notification Settings",
+      "category": "player-account",
+      "audience": "Authenticated players; check-in links may start from guest traffic",
+      "status": "not-started",
+      "requiredSections": [
+        "Channel preferences",
+        "Team/game notification toggles",
+        "Push subscription status"
+      ],
+      "interactions": [
+        "Enable/disable notifications",
+        "Save preference changes"
+      ],
+      "features": [
+        "Authenticated ownership",
+        "Browser permission and unsupported-device states"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-ME",
+      "path": "/[leagueSlug]/me",
+      "source": "src/app/[leagueSlug]/me/page.tsx",
+      "title": "Player Dashboard",
+      "category": "player-account",
+      "audience": "Authenticated players; check-in links may start from guest traffic",
+      "status": "not-started",
+      "requiredSections": [
+        "Player/team summary",
+        "Upcoming games and recent results",
+        "Personal stats, invitations, and quick actions"
+      ],
+      "interactions": [
+        "Respond to invitations",
+        "Open profile/team/game/payment/waiver views"
+      ],
+      "features": [
+        "Authenticated player routing",
+        "Cross-team/season context"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-ME-PAYMENTS",
+      "path": "/[leagueSlug]/me/payments",
+      "source": "src/app/[leagueSlug]/me/payments/page.tsx",
+      "title": "Player Payments",
+      "category": "player-account",
+      "audience": "Authenticated players; check-in links may start from guest traffic",
+      "status": "not-started",
+      "requiredSections": [
+        "Balance and payment status",
+        "Payment items/history",
+        "Checkout/receipt actions"
+      ],
+      "interactions": [
+        "Open checkout",
+        "Review payment status"
+      ],
+      "features": [
+        "Authenticated ownership",
+        "Stripe pending/succeeded/failed/refunded states"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION",
+        "PAYMENT-AND-WAIVER-INTEGRITY"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-ME-PROFILE",
+      "path": "/[leagueSlug]/me/profile",
+      "source": "src/app/[leagueSlug]/me/profile/page.tsx",
+      "title": "Edit Player Profile",
+      "category": "player-account",
+      "audience": "Authenticated players; check-in links may start from guest traffic",
+      "status": "not-started",
+      "requiredSections": [
+        "Identity/contact form",
+        "Player photo upload",
+        "Position and profile fields"
+      ],
+      "interactions": [
+        "Validate/save profile",
+        "Upload/remove photo"
+      ],
+      "features": [
+        "Authenticated ownership",
+        "Storage validation and photo fallback"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-ME-WAIVERS",
+      "path": "/[leagueSlug]/me/waivers",
+      "source": "src/app/[leagueSlug]/me/waivers/page.tsx",
+      "title": "Player Waivers",
+      "category": "player-account",
+      "audience": "Authenticated players; check-in links may start from guest traffic",
+      "status": "not-started",
+      "requiredSections": [
+        "Required/signed waiver list",
+        "Waiver document viewer",
+        "Signature/status actions"
+      ],
+      "interactions": [
+        "Open and sign required waiver",
+        "Review signed records"
+      ],
+      "features": [
+        "Authenticated ownership",
+        "Versioned waiver and signature audit trail"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "SUPABASE-AUTH",
+        "ROLE-AUTHORIZATION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-NEWS-SLUG",
+      "path": "/[leagueSlug]/news/[slug]",
+      "source": "src/app/[leagueSlug]/news/[slug]/page.tsx",
+      "title": "News Article",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Article header and metadata",
+        "Sanitized rich article body",
+        "Related/back navigation"
+      ],
+      "interactions": [
+        "Follow safe links",
+        "Return to league news"
+      ],
+      "features": [
+        "Published slug resolution",
+        "Safe rich-text rendering and share metadata"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-NEWS",
+      "path": "/[leagueSlug]/news",
+      "source": "src/app/[leagueSlug]/news/page.tsx",
+      "title": "League News",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Featured story",
+        "News feed/cards",
+        "Pagination or archive controls"
+      ],
+      "interactions": [
+        "Open articles",
+        "Load/filter archive"
+      ],
+      "features": [
+        "Published-only visibility",
+        "Fallback artwork and author/date metadata"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-P-PAGESLUG",
+      "path": "/[leagueSlug]/p/[pageSlug]",
+      "source": "src/app/[leagueSlug]/p/[pageSlug]/page.tsx",
+      "title": "Custom League Page",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Custom page title",
+        "Sanitized page content",
+        "League navigation context"
+      ],
+      "interactions": [
+        "Follow configured links",
+        "Return to league home"
+      ],
+      "features": [
+        "Website-editor page visibility",
+        "Safe rich content and stable slug"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG",
+      "path": "/[leagueSlug]",
+      "source": "src/app/[leagueSlug]/page.tsx",
+      "title": "League Home",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Branded hero and registration CTA",
+        "Announcements and upcoming/recent games",
+        "Standings and statistical leaders",
+        "News, sponsors, and league highlights"
+      ],
+      "interactions": [
+        "Change season/division context",
+        "Open game, team, player, news, or registration detail"
+      ],
+      "features": [
+        "Website-editor visibility settings",
+        "League theming and premium content gates",
+        "Structured league metadata"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-PLAYERS-PLAYERID",
+      "path": "/[leagueSlug]/players/[playerId]",
+      "source": "src/app/[leagueSlug]/players/[playerId]/page.tsx",
+      "title": "Player Profile",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Player identity and current team",
+        "Season and career stat cards",
+        "Game log, matchups, badges, and articles"
+      ],
+      "interactions": [
+        "Change season",
+        "Open games/teams/articles"
+      ],
+      "features": [
+        "Career identity merging",
+        "Photo fallback and privacy",
+        "Advanced-stat entitlement"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-PLAYERS",
+      "path": "/[leagueSlug]/players",
+      "source": "src/app/[leagueSlug]/players/page.tsx",
+      "title": "Player Directory",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Player search and filters",
+        "Responsive player grid/list",
+        "Season/division/team context"
+      ],
+      "interactions": [
+        "Search/filter players",
+        "Open player profiles"
+      ],
+      "features": [
+        "Public-profile visibility",
+        "Photo fallback and team identity"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-PLAYOFFS",
+      "path": "/[leagueSlug]/playoffs",
+      "source": "src/app/[leagueSlug]/playoffs/page.tsx",
+      "title": "Playoffs",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Playoff bracket",
+        "Standings and qualification",
+        "Preview/odds context"
+      ],
+      "interactions": [
+        "Navigate rounds/games/teams",
+        "Change season/division"
+      ],
+      "features": [
+        "Bracket progression",
+        "No-playoff and unseeded states",
+        "Premium preview gates"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-PRIVACY",
+      "path": "/[leagueSlug]/privacy",
+      "source": "src/app/[leagueSlug]/privacy/page.tsx",
+      "title": "League Privacy Policy",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Document title and effective date",
+        "Readable policy sections",
+        "Contact/back navigation"
+      ],
+      "interactions": [
+        "Navigate policy headings",
+        "Return to the relevant site"
+      ],
+      "features": [
+        "Legal copy hierarchy",
+        "League-aware branding where applicable"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-REFEREE-DASHBOARD",
+      "path": "/[leagueSlug]/referee/dashboard",
+      "source": "src/app/[leagueSlug]/referee/dashboard/page.tsx",
+      "title": "Referee Dashboard",
+      "category": "referee",
+      "audience": "Token-authenticated referees",
+      "status": "not-started",
+      "requiredSections": [
+        "Upcoming assignments",
+        "Completed games and summary stats",
+        "Availability/navigation controls"
+      ],
+      "interactions": [
+        "Open assignment",
+        "Update availability or sign out"
+      ],
+      "features": [
+        "Referee session",
+        "Assignment and league scoping"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-REFEREE",
+      "path": "/[leagueSlug]/referee",
+      "source": "src/app/[leagueSlug]/referee/page.tsx",
+      "title": "Referee Sign-in",
+      "category": "referee",
+      "audience": "Token-authenticated referees",
+      "status": "not-started",
+      "requiredSections": [
+        "Token entry",
+        "Validation/expiry guidance",
+        "Portal routing status"
+      ],
+      "interactions": [
+        "Submit token",
+        "Resume valid session"
+      ],
+      "features": [
+        "Rate-limited referee session",
+        "League-scoped routing"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-REGISTER",
+      "path": "/[leagueSlug]/register",
+      "source": "src/app/[leagueSlug]/register/page.tsx",
+      "title": "Player Registration",
+      "category": "registration",
+      "audience": "Prospective players, captains, and teams registering with a league",
+      "status": "not-started",
+      "requiredSections": [
+        "League/season and fee summary",
+        "Personal, skill, preference, waiver, and payment steps",
+        "Confirmation"
+      ],
+      "interactions": [
+        "Navigate/validate steps",
+        "Authenticate or create account",
+        "Sign waiver and pay when required"
+      ],
+      "features": [
+        "Registration-open selection",
+        "Pricing/waiver/payment accuracy",
+        "Captain invite intent"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "PAYMENT-AND-WAIVER-INTEGRITY"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-REGISTER-TEAM",
+      "path": "/[leagueSlug]/register/team",
+      "source": "src/app/[leagueSlug]/register/team/page.tsx",
+      "title": "Team Registration",
+      "category": "registration",
+      "audience": "Prospective players, captains, and teams registering with a league",
+      "status": "not-started",
+      "requiredSections": [
+        "League/season offer",
+        "Team and captain form",
+        "Fee/waiver confirmation"
+      ],
+      "interactions": [
+        "Validate and submit team registration",
+        "Continue to payment when required"
+      ],
+      "features": [
+        "Registration-open selection",
+        "Captain/team deduplication and payment accuracy"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "PAYMENT-AND-WAIVER-INTEGRITY"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SCHEDULE",
+      "path": "/[leagueSlug]/schedule",
+      "source": "src/app/[leagueSlug]/schedule/page.tsx",
+      "title": "Schedule",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Season/week navigation",
+        "Division/team/date filters",
+        "Upcoming game table/list"
+      ],
+      "interactions": [
+        "Filter and change week",
+        "Open game or team details",
+        "Export/share schedule where available"
+      ],
+      "features": [
+        "League timezone formatting",
+        "Postponed/cancelled status display"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SCOREKEEPER-DASHBOARD",
+      "path": "/[leagueSlug]/scorekeeper/dashboard",
+      "source": "src/app/[leagueSlug]/scorekeeper/dashboard/page.tsx",
+      "title": "Scorekeeper Dashboard",
+      "category": "scorekeeper",
+      "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
+      "status": "not-started",
+      "requiredSections": [
+        "Assigned/upcoming games",
+        "Completed/history summary",
+        "Swap and navigation actions"
+      ],
+      "interactions": [
+        "Open a game",
+        "Request/respond to swap",
+        "Sign out"
+      ],
+      "features": [
+        "Scorekeeper session",
+        "Assignment and league scoping"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SCOREKEEPER-GAME-GAMEID",
+      "path": "/[leagueSlug]/scorekeeper/game/[gameId]",
+      "source": "src/app/[leagueSlug]/scorekeeper/game/[gameId]/page.tsx",
+      "title": "Live Scoring Console",
+      "category": "scorekeeper",
+      "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
+      "status": "not-started",
+      "requiredSections": [
+        "Pre-game check-in and rosters",
+        "Live clock, score, shots, goals, penalties, and events",
+        "Offline sync and correction controls",
+        "Game completion and captain signature/verification"
+      ],
+      "interactions": [
+        "Start/pause clock and record events",
+        "Edit/replay events and resolve sync",
+        "Submit/finalize game"
+      ],
+      "features": [
+        "Scorekeeper session and game assignment",
+        "Offline-first event log",
+        "Idempotent finalization and captain verification"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SCOREKEEPER",
+      "path": "/[leagueSlug]/scorekeeper",
+      "source": "src/app/[leagueSlug]/scorekeeper/page.tsx",
+      "title": "Scorekeeper Sign-in",
+      "category": "scorekeeper",
+      "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
+      "status": "not-started",
+      "requiredSections": [
+        "Token entry",
+        "Validation/expiry guidance",
+        "Portal routing status"
+      ],
+      "interactions": [
+        "Submit token",
+        "Resume valid session"
+      ],
+      "features": [
+        "Rate-limited token session",
+        "Single-game versus multi-game routing"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SCOREKEEPER-SCHEDULE",
+      "path": "/[leagueSlug]/scorekeeper/schedule",
+      "source": "src/app/[leagueSlug]/scorekeeper/schedule/page.tsx",
+      "title": "Scorekeeper Schedule",
+      "category": "scorekeeper",
+      "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
+      "status": "not-started",
+      "requiredSections": [
+        "Assigned schedule",
+        "Date/status filters",
+        "Swap/request context"
+      ],
+      "interactions": [
+        "Filter/open assignments",
+        "Request a swap"
+      ],
+      "features": [
+        "Scorekeeper session",
+        "League timezone and assignment state"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SCORES",
+      "path": "/[leagueSlug]/scores",
+      "source": "src/app/[leagueSlug]/scores/page.tsx",
+      "title": "Scores",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Season/division filters",
+        "Completed-game score cards",
+        "Pagination or date grouping"
+      ],
+      "interactions": [
+        "Filter results",
+        "Open game recap/box score"
+      ],
+      "features": [
+        "Final score and status accuracy",
+        "Team identity and winner treatment"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-STANDINGS",
+      "path": "/[leagueSlug]/standings",
+      "source": "src/app/[leagueSlug]/standings/page.tsx",
+      "title": "Standings",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Season/division selector",
+        "Searchable standings table",
+        "Playoff qualification/tiebreak context"
+      ],
+      "interactions": [
+        "Search and filter teams",
+        "Open team details"
+      ],
+      "features": [
+        "Points/tiebreak ordering",
+        "Playoff and division visibility"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-STATS-GOALIES",
+      "path": "/[leagueSlug]/stats/goalies",
+      "source": "src/app/[leagueSlug]/stats/goalies/page.tsx",
+      "title": "Goalie Statistics",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Season/division filters",
+        "Goalie leaderboard/table",
+        "Minimum-appearance context"
+      ],
+      "interactions": [
+        "Sort/filter goalie statistics",
+        "Open goalie/player profiles"
+      ],
+      "features": [
+        "Save percentage/GAA/shutout accuracy",
+        "Current/all-time view parity"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-STATS",
+      "path": "/[leagueSlug]/stats",
+      "source": "src/app/[leagueSlug]/stats/page.tsx",
+      "title": "Player Statistics",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Season/division/stat filters",
+        "Skater leaders and full table",
+        "Special-teams and goalie navigation"
+      ],
+      "interactions": [
+        "Sort/filter statistics",
+        "Open player profiles",
+        "Switch statistical views"
+      ],
+      "features": [
+        "Current and all-time aggregates",
+        "Premium advanced-stat gates"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-SUSPENSIONS",
+      "path": "/[leagueSlug]/suspensions",
+      "source": "src/app/[leagueSlug]/suspensions/page.tsx",
+      "title": "Suspensions",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Active/upcoming suspension list",
+        "Player/team and discipline details",
+        "Status/filter context"
+      ],
+      "interactions": [
+        "Filter or inspect suspensions",
+        "Open linked player/team"
+      ],
+      "features": [
+        "Public visibility rules",
+        "Pending/active/served/appealed states"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-TEAMS-TEAMSLUG",
+      "path": "/[leagueSlug]/teams/[teamSlug]",
+      "source": "src/app/[leagueSlug]/teams/[teamSlug]/page.tsx",
+      "title": "Team Page",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Team identity, record, and next game",
+        "Roster and leadership",
+        "Schedule/results and leaders",
+        "Lineup, rivals, and check-in context"
+      ],
+      "interactions": [
+        "Switch season/roster view",
+        "Open player/game details",
+        "Use eligible check-in or captain actions"
+      ],
+      "features": [
+        "Slug/ID canonical team resolution",
+        "Division and season scoping",
+        "Roster privacy rules"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-TEAMS-ID-TEAMID",
+      "path": "/[leagueSlug]/teams/id/[teamId]",
+      "source": "src/app/[leagueSlug]/teams/id/[teamId]/page.tsx",
+      "title": "Team Page by ID",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Team identity, record, and next game",
+        "Roster and leadership",
+        "Schedule/results and leaders",
+        "Lineup, rivals, and check-in context"
+      ],
+      "interactions": [
+        "Switch season/roster view",
+        "Open player/game details",
+        "Use eligible check-in or captain actions"
+      ],
+      "features": [
+        "Slug/ID canonical team resolution",
+        "Division and season scoping",
+        "Roster privacy rules"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-TEAMS",
+      "path": "/[leagueSlug]/teams",
+      "source": "src/app/[leagueSlug]/teams/page.tsx",
+      "title": "Team Directory",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Division selector",
+        "Team cards with identity and record",
+        "Directory navigation"
+      ],
+      "interactions": [
+        "Filter teams",
+        "Open team pages"
+      ],
+      "features": [
+        "Season participation filtering",
+        "Stable slug and ID links"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-TERMS",
+      "path": "/[leagueSlug]/terms",
+      "source": "src/app/[leagueSlug]/terms/page.tsx",
+      "title": "League Terms",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Document title and effective date",
+        "Readable policy sections",
+        "Contact/back navigation"
+      ],
+      "interactions": [
+        "Navigate policy headings",
+        "Return to the relevant site"
+      ],
+      "features": [
+        "Legal copy hierarchy",
+        "League-aware branding where applicable"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-VENUES",
+      "path": "/[leagueSlug]/venues",
+      "source": "src/app/[leagueSlug]/venues/page.tsx",
+      "title": "Venues",
+      "category": "public-league",
+      "audience": "Public league visitors, players, teams, families, and fans",
+      "status": "not-started",
+      "requiredSections": [
+        "Venue cards",
+        "Address/rink details",
+        "Map/directions actions"
+      ],
+      "interactions": [
+        "Open directions",
+        "Filter or inspect venues"
+      ],
+      "features": [
+        "Published venue visibility",
+        "Accessible address formatting"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "WEBSITE-EDITOR-VISIBILITY",
+        "LEAGUE-THEME"
+      ]
+    },
+    {
+      "id": "LS-LEAGUESLUG-VERIFY-TOKEN",
+      "path": "/[leagueSlug]/verify/[token]",
+      "source": "src/app/[leagueSlug]/verify/[token]/page.tsx",
+      "title": "Captain Game Verification",
+      "category": "scorekeeper",
+      "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
+      "status": "not-started",
+      "requiredSections": [
+        "Game summary and submitted statistics",
+        "Accept/dispute controls",
+        "Result and expiry status"
+      ],
+      "interactions": [
+        "Validate token",
+        "Accept or contest submitted stats"
+      ],
+      "features": [
+        "Captain verification token",
+        "Single-response audit trail and correction workflow"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Preserve authenticated/role authorization and safe sign-in redirect behavior.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE",
+        "TOKEN-SESSION"
+      ]
+    },
+    {
+      "id": "LS-DISCOVER",
+      "path": "/discover",
+      "source": "src/app/discover/page.tsx",
+      "title": "Discover Leagues",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Search and location filters",
+        "Registration-status filters",
+        "League result cards and pagination"
+      ],
+      "interactions": [
+        "Search/filter leagues",
+        "Open a league or registration flow"
+      ],
+      "features": [
+        "Public league discovery",
+        "City and registration availability data"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-ROOT",
+      "path": "/",
+      "source": "src/app/page.tsx",
+      "title": "League Sites Entry",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Platform identity and purpose",
+        "League-site entry guidance",
+        "Development/test league links"
+      ],
+      "interactions": [
+        "Open a league site",
+        "Navigate to league discovery"
+      ],
+      "features": [
+        "Base-domain behavior",
+        "Subdomain/custom-domain hand-off"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Provide league-aware canonical metadata, social previews, and structured content where present."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-PRIVACY-POLICY",
+      "path": "/privacy-policy",
+      "source": "src/app/privacy-policy/page.tsx",
+      "title": "Platform Privacy Policy",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Document title and effective date",
+        "Readable policy sections",
+        "Contact/back navigation"
+      ],
+      "interactions": [
+        "Navigate policy headings",
+        "Return to the relevant site"
+      ],
+      "features": [
+        "Legal copy hierarchy",
+        "League-aware branding where applicable"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-RESET-PASSWORD",
+      "path": "/reset-password",
+      "source": "src/app/reset-password/page.tsx",
+      "title": "Reset Password",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Recovery-token status",
+        "New password and confirmation form",
+        "Success/error guidance"
+      ],
+      "interactions": [
+        "Validate matching passwords",
+        "Submit password update"
+      ],
+      "features": [
+        "Supabase recovery session",
+        "Safe post-reset navigation"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    },
+    {
+      "id": "LS-TOS",
+      "path": "/tos",
+      "source": "src/app/tos/page.tsx",
+      "title": "Platform Terms of Service",
+      "category": "legal-platform",
+      "audience": "Public visitors, account holders, and recovery-flow users",
+      "status": "not-started",
+      "requiredSections": [
+        "Document title and effective date",
+        "Readable policy sections",
+        "Contact/back navigation"
+      ],
+      "interactions": [
+        "Navigate policy headings",
+        "Return to the relevant site"
+      ],
+      "features": [
+        "Legal copy hierarchy",
+        "League-aware branding where applicable"
+      ],
+      "states": {
+        "loading": "Use a stable skeleton or progress state that preserves layout and blocks duplicate actions.",
+        "empty": "Explain why no records are available and provide the next valid action without fabricating data.",
+        "error": "Show a recoverable message with retry/back navigation; never expose internal or tenant data.",
+        "auth": "Remain usable for guests; authenticated enhancements must not hide public content.",
+        "subscription": "Preserve existing premium/add-on gates and upsell boundaries; never unlock by presentation state alone.",
+        "mobile": "Support narrow screens, touch targets of at least 44px, no horizontal clipping, and readable dense data.",
+        "accessibility": "Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.",
+        "seo": "Use accurate metadata and noindex for private, token, transactional, or portal views."
+      },
+      "contracts": [
+        "ROUTE-COMPATIBILITY",
+        "TENANT-SCOPE"
+      ]
+    }
+  ],
+  "preservedHandlers": [
+    {
+      "path": "/[leagueSlug]/manifest.webmanifest",
+      "source": "src/app/[leagueSlug]/manifest.webmanifest/route.ts",
+      "purpose": "Generate the league-branded PWA manifest."
+    },
+    {
+      "path": "/[leagueSlug]/register/invite-image",
+      "source": "src/app/[leagueSlug]/register/invite-image/route.tsx",
+      "purpose": "Generate captain/player registration invite artwork."
+    },
+    {
+      "path": "/api/admin/game-lifecycle",
+      "source": "src/app/api/admin/game-lifecycle/route.ts",
+      "purpose": "Server-to-server game finalize/reopen escape hatch."
+    },
+    {
+      "path": "/api/auth/callback",
+      "source": "src/app/api/auth/callback/route.ts",
+      "purpose": "Complete Supabase authentication and safe redirects."
+    },
+    {
+      "path": "/api/cron/auto-finalize-games",
+      "source": "src/app/api/cron/auto-finalize-games/route.ts",
+      "purpose": "Finalize eligible games from the scheduled job."
+    },
+    {
+      "path": "/api/cron/push-reminders",
+      "source": "src/app/api/cron/push-reminders/route.ts",
+      "purpose": "Send scheduled push reminders."
+    },
+    {
+      "path": "/api/public/live-game",
+      "source": "src/app/api/public/live-game/route.ts",
+      "purpose": "Expose tenant-scoped public live-game state."
+    },
+    {
+      "path": "/api/push/subscribe",
+      "source": "src/app/api/push/subscribe/route.ts",
+      "purpose": "Create and manage web-push subscriptions."
+    },
+    {
+      "path": "/api/push/team-toggle",
+      "source": "src/app/api/push/team-toggle/route.ts",
+      "purpose": "Toggle team-level push preferences."
+    },
+    {
+      "path": "/api/revalidate",
+      "source": "src/app/api/revalidate/route.ts",
+      "purpose": "Securely invalidate league-site cache paths."
+    },
+    {
+      "path": "/api/scorekeeper/analyze-scoresheet",
+      "source": "src/app/api/scorekeeper/analyze-scoresheet/route.ts",
+      "purpose": "Analyze uploaded scoresheets for assisted stat entry."
+    }
+  ],
+  "workflow": [
+    "Choose one route ID from this checklist and change only its manifest status to `in-progress` before implementation.",
+    "Rebuild the route against the listed sections, interactions, features, states, and contract IDs; reuse non-visual actions/data code only after confirming its authorization boundary.",
+    "Run `pnpm --filter @hockey-life/league-sites rebuild:test` and `pnpm --filter @hockey-life/league-sites rebuild:tracker` after any route/status change.",
+    "Move the route to `review`, capture desktop/mobile and state evidence, and run type-check, lint, and build.",
+    "Set `complete` only after visual, keyboard, responsive, error/empty/auth, and data-contract acceptance passes."
+  ],
+  "acceptanceCriteria": [
+    "All 56 page routes still exist and each wrapper references exactly one matching manifest ID.",
+    "All 11 non-visual route handlers remain byte-for-byte untouched by the UI scaffold commit.",
+    "No files under `src/lib`, `src/hooks`, `src/providers`, middleware, Supabase, shared packages, or other apps change in the scaffold commit.",
+    "The route-coverage tests and live verifier pass and the generated checklist is current.",
+    "League-sites type-check, lint, and production build pass or any pre-existing baseline blocker is documented with exact output.",
+    "Each completed route has phone and desktop evidence plus loading, empty, error, auth/role, subscription, accessibility, and SEO review as applicable.",
+    "No secrets or real environment values are added to source, documentation, commits, or logs."
+  ],
+  "preservedBoundaries": [
+    "`apps/league-sites/src/lib/**`, `src/hooks/**`, `src/providers/**`, `src/middleware.ts`, instrumentation, Sentry config, robots, and sitemap remain the source contracts for later reconnection.",
+    "`apps/league-sites/src/app/**/route.ts(x)` handlers remain operational code and are not UI placeholders.",
+    "`apps/league-builder`, `apps/mobile`, `apps/player-companion`, shared packages, Supabase migrations, lockfiles, and production infrastructure are out of scope.",
+    "The original production UI remains recoverable from `origin/production`, the pre-rebuild branch/tag, and the saved git bundle."
+  ]
+}

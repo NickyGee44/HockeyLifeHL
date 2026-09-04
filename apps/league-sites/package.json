@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "jest --config jest.config.cjs",
     "test:watch": "jest --config jest.config.cjs --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "rebuild:check": "node scripts/verify-rebuild-routes.mjs",
+    "rebuild:test": "node --test scripts/__tests__/verify-rebuild-routes.test.mjs",
+    "rebuild:tracker": "node scripts/verify-rebuild-routes.mjs --write-tracker"
   },
   "dependencies": {
     "@hockey-life/database": "workspace:*",

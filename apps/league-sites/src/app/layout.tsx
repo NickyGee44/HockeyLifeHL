@@ -1,48 +1,33 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
-import { CookieConsentBanner, ConditionalAnalytics } from '@/components/cookie-consent';
-import { RecoveryRedirect } from '@/components/auth/RecoveryRedirect';
-import { PostHogProvider } from '@/providers/PostHogProvider';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
-
 export const metadata: Metadata = {
-  title: 'Beer League Hockey - League Website',
-  description: 'Public league website powered by Beer League Hockey',
-  icons: {
-    icon: [
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    ],
-    apple: '/apple-touch-icon.png',
-    shortcut: '/favicon.ico',
-  },
-  // manifest is set per-league in [leagueSlug]/layout.tsx
+  title: 'Beer League Hockey — League Sites Rebuild',
+  description: 'Offline-friendly route inventory for the league sites rebuild.',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <PostHogProvider>
-        <ThemeProvider
-          attribute="data-theme"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <RecoveryRedirect />
+    <html lang="en">
+      <body>
+        <a className="skip-link" href="#rebuild-content">
+          Skip to route details
+        </a>
+        <div className="neutral-shell">
+          <header className="neutral-shell__header">
+            <Link className="neutral-shell__brand" href="/" aria-label="Beer League Hockey home">
+              <span aria-hidden="true">BLH</span>
+              <span>Beer League Hockey</span>
+            </Link>
+            <p>League sites route rebuild</p>
+          </header>
           {children}
-          <CookieConsentBanner />
-        </ThemeProvider>
-        <ConditionalAnalytics />
-        </PostHogProvider>
+          <footer className="neutral-shell__footer">
+            <p>Static route specification shell. No live league data is loaded.</p>
+          </footer>
+        </div>
       </body>
     </html>
   );
