@@ -141,7 +141,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen py-8 px-4" style={{ background: 'var(--color-background)' }}>
+    <div className="league-page-shell min-h-screen px-4 py-8">
       {/* JSON-LD Structured Data for SEO */}
       {scheduleJsonLd.length > 0 && (
         <script
@@ -155,9 +155,10 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Calendar className="h-8 w-8 shrink-0 text-[var(--league-primary)] md:h-9 md:w-9" />
-            <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)] md:text-5xl">
-              Schedule
-            </h1>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">Game calendar</p>
+              <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)] md:text-5xl">Schedule</h1>
+            </div>
           </div>
           <ScheduleFilters
             venues={venues}
@@ -168,7 +169,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
         </div>
       </div>
 
-      <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
+      <div className="glass-card-strong max-w-[1200px] mx-auto overflow-hidden rounded-[32px]">
 
         {/* Weekday Summary Strip */}
         <div className="px-6 md:px-8 pt-6 md:pt-8 pb-4">
@@ -243,7 +244,7 @@ export default async function SchedulePage({ params, searchParams }: SchedulePag
 
         {/* Season Games — own card */}
         {seasonGames.length > 0 && (
-          <div className="league-reading-panel max-w-[1200px] mx-auto overflow-hidden rounded-[32px] mt-6">
+          <div className="glass-card-strong max-w-[1200px] mx-auto overflow-hidden rounded-[32px] mt-6">
             <div className="px-6 md:px-8 py-6 md:py-8">
               <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">Season Games</h2>
               <SeasonGamesTable

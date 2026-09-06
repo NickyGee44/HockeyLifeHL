@@ -17,6 +17,7 @@ import {
 import type { League, LeagueStats, NewsArticle, Season } from '@/lib/types';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import { EditorialHeroImage } from '@/components/news/EditorialHeroImage';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 const HERO_AUTOPLAY_MS = 7000;
 const HERO_MANUAL_HOLD_MS = 12000;
@@ -199,6 +200,7 @@ export function HomepageStoryHero({
   const [cycleMs, setCycleMs] = useState(hasMultipleSlides ? HERO_AUTOPLAY_MS : 0);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocusPaused, setIsFocusPaused] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // TODO(Pixel): derive cycleMs/remainingMs from slides.length; clamp activeIndex during render
   useEffect(() => {
@@ -224,7 +226,7 @@ export function HomepageStoryHero({
   }, [slides.length]);
 
   useEffect(() => {
-    if (!hasMultipleSlides || isHovered || isFocusPaused) {
+    if (!hasMultipleSlides || prefersReducedMotion || isHovered || isFocusPaused) {
       return undefined;
     }
 
@@ -233,11 +235,11 @@ export function HomepageStoryHero({
     }, HERO_TICK_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [hasMultipleSlides, isFocusPaused, isHovered]);
+  }, [hasMultipleSlides, isFocusPaused, isHovered, prefersReducedMotion]);
 
   // TODO(Pixel): restructure autoplay advance — consider setInterval + callback pattern instead
   useEffect(() => {
-    if (!hasMultipleSlides || isHovered || isFocusPaused || remainingMs > 0) {
+    if (!hasMultipleSlides || prefersReducedMotion || isHovered || isFocusPaused || remainingMs > 0) {
       return;
     }
 
@@ -247,7 +249,7 @@ export function HomepageStoryHero({
     setCycleMs(HERO_AUTOPLAY_MS);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemainingMs(HERO_AUTOPLAY_MS);
-  }, [hasMultipleSlides, isFocusPaused, isHovered, remainingMs, slides.length]);
+  }, [hasMultipleSlides, isFocusPaused, isHovered, prefersReducedMotion, remainingMs, slides.length]);
 
   const activeSlide = slides[activeIndex] || fallbackSlide;
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;
@@ -306,7 +308,7 @@ export function HomepageStoryHero({
 
   return (
     <section
-      className="relative isolate overflow-hidden border-b border-[var(--color-border)]"
+      className="relative isolate overflow-hidden border-b border-[var(--color-border)] shadow-[0_40px_110px_-72px_var(--league-primary)]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -372,7 +374,7 @@ export function HomepageStoryHero({
           }`}
         >
           {hasEditorialStage ? (
-            <div className="relative z-20 max-w-4xl">
+            <div className="glass-chrome relative z-20 max-w-4xl rounded-[32px] border border-white/12 p-5 sm:p-7 md:max-w-[min(62vw,880px)] md:p-8">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`${activeSlide.id}-content`}
@@ -399,7 +401,7 @@ export function HomepageStoryHero({
                   <div className="mt-5 flex flex-wrap items-center gap-3 md:mt-6">
                     <Link
                       href={activeSlide.href}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
+                      className="glass-control inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-5 py-3 text-sm font-bold text-[var(--league-on-primary)] transition-transform duration-200 hover:-translate-y-0.5"
                     >
                       {activeSlide.cta}
                       <ArrowRight className="h-4 w-4" />
@@ -407,7 +409,7 @@ export function HomepageStoryHero({
                     {hasStorySlides && (
                       <Link
                         href={`/${leagueSlug}/news`}
-                        className="hidden items-center gap-2 rounded-full border border-white/16 bg-black/18 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 backdrop-blur-sm transition-colors duration-200 hover:border-white/32 hover:text-white md:inline-flex"
+                        className="glass-control hidden min-h-11 items-center gap-2 rounded-full border border-white/14 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/82 transition-colors duration-200 hover:text-white md:inline-flex"
                       >
                         All News
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -446,7 +448,7 @@ export function HomepageStoryHero({
                       <button
                         type="button"
                         onClick={() => jumpToSlide(activeIndex - 1)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/22 text-white/86 backdrop-blur-sm transition-colors duration-200 hover:border-white/30 hover:text-white"
+                        className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/14 text-white/86 transition-colors duration-200 hover:text-white"
                         aria-label="Previous story"
                       >
                         <ChevronLeft className="h-4 w-4" />
@@ -454,7 +456,7 @@ export function HomepageStoryHero({
                       <button
                         type="button"
                         onClick={() => jumpToSlide(activeIndex + 1)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/14 bg-black/22 text-white/86 backdrop-blur-sm transition-colors duration-200 hover:border-white/30 hover:text-white"
+                        className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/14 text-white/86 transition-colors duration-200 hover:text-white"
                         aria-label="Next story"
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -466,13 +468,13 @@ export function HomepageStoryHero({
                           key={slide.id}
                           type="button"
                           onClick={() => jumpToSlide(index)}
-                          className="group inline-flex items-center gap-2"
+                          className="group inline-flex min-h-11 items-center gap-2"
                           aria-label={`Go to story ${index + 1}`}
                         >
                           <span className="relative h-[3px] w-10 overflow-hidden rounded-full bg-white/18">
                             <span
                               className={`absolute inset-y-0 left-0 rounded-full transition-all duration-200 ${
-                                activeIndex === index ? 'bg-white' : 'bg-white/0'
+                                activeIndex === index ? 'bg-[var(--league-primary)]' : 'bg-white/0'
                               }`}
                               style={{
                                 width: activeIndex === index ? `${Math.max(progress * 100, 6)}%` : '0%',
@@ -505,7 +507,7 @@ export function HomepageStoryHero({
           {showInfoCard ? (
             <div className={`relative z-20 ${hasEditorialStage ? 'lg:self-center lg:-translate-y-6 xl:-translate-y-8' : ''}`}>
               <motion.div
-                className="overflow-hidden rounded-[30px] border border-white/12 bg-[linear-gradient(180deg,rgba(8,15,27,0.78)_0%,rgba(8,15,27,0.9)_100%)] p-5 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.72)] backdrop-blur-xl md:p-6"
+                className="glass-card-strong overflow-hidden rounded-[30px] p-5 md:p-6"
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.12 }}
@@ -551,7 +553,7 @@ export function HomepageStoryHero({
                 <div className="mt-6 grid gap-3">
                   <Link
                     href={registrationSeason ? dockTertiaryCta : dockPrimaryCta}
-                    className="inline-flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
+                    className="glass-control inline-flex min-h-11 items-center justify-between rounded-2xl border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-4 py-3 text-sm font-bold text-[var(--league-on-primary)] transition-transform duration-200 hover:-translate-y-0.5"
                   >
                     <span className="inline-flex items-center gap-2">
                       {registrationSeason ? <UserPlus className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
@@ -564,7 +566,7 @@ export function HomepageStoryHero({
                       <Link
                         key={action.label}
                         href={action.href}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/14 bg-white/6 px-4 py-3 text-sm font-semibold text-white/84 transition-colors duration-200 hover:border-white/28 hover:text-white"
+                        className="glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/14 px-4 py-3 text-sm font-semibold text-white/84 transition-colors duration-200 hover:text-white"
                       >
                         {action.icon}
                         {action.label}

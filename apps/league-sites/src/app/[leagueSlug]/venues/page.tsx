@@ -136,12 +136,12 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
 
   return (
     <SubscriptionWall>
-      <div className="min-h-screen bg-[var(--color-background)]">
-        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_12%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))]">
+      <div className="min-h-screen">
+        <div className="glass-chrome border-b border-[var(--color-border)]">
           <div className="container mx-auto px-4 py-8 lg:py-12">
             <div className="mb-2 flex items-center gap-3">
               {league.logo_url ? (
-                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)]">
+                <div className="glass-card flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl">
                   <Image
                     src={league.logo_url}
                     alt={league.name}
@@ -167,16 +167,16 @@ export default async function VenuesPage({ params }: VenuesPageProps) {
 
         <div className="container mx-auto px-4 py-8 lg:max-w-7xl">
           {venues.length === 0 ? (
-            <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-8 text-center lg:py-20">
+            <div className="glass-card-strong rounded-[32px] p-8 text-center lg:py-20">
               <Building2 className="mx-auto mb-4 h-12 w-12 text-[var(--league-primary)]/70" />
               <p className="text-[var(--color-text-secondary)]">
                 No venues have been configured for this league yet.
               </p>
               <div className="mt-6 hidden justify-center gap-3 lg:flex">
-                <Link href={`/${leagueSlug}/schedule`} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
+                <Link href={`/${leagueSlug}/schedule`} className="glass-control inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
                   View schedule
                 </Link>
-                <Link href={`/${leagueSlug}/contact`} className="rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
+                <Link href={`/${leagueSlug}/contact`} className="glass-control inline-flex min-h-11 items-center rounded-full border-[var(--league-primary-border)] bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
                   Contact league
                 </Link>
               </div>
@@ -212,7 +212,7 @@ function VenueCard({
   const formatTime = (dateStr: string) => formatLeagueTime(dateStr, timezone);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+    <div className="glass-card overflow-hidden rounded-[24px]">
       <div className="border-b border-[var(--color-border)] p-4">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface-hover)]">
@@ -237,7 +237,7 @@ function VenueCard({
             href={venue.mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+            className="glass-control mt-3 flex min-h-11 items-center justify-between rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
           >
             <span>Open in Google Maps</span>
             <ChevronRight className="h-4 w-4" />

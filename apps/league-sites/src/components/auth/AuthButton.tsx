@@ -16,7 +16,7 @@ export function AuthButton({ leagueSlug, leagueId }: AuthButtonProps) {
 
   if (isLoading) {
     return (
-      <div className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] animate-pulse" />
+      <div className="glass-control h-11 w-11 animate-pulse rounded-full" aria-label="Loading account" />
     );
   }
 
@@ -28,7 +28,7 @@ export function AuthButton({ leagueSlug, leagueId }: AuthButtonProps) {
     <div className="flex items-center gap-2">
       <button
         onClick={openLogin}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors"
+        className="glass-control flex min-h-11 items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--blh-glass-border)] hover:text-[var(--color-text-primary)]"
       >
         <LogIn className="w-4 h-4" />
         <span className="hidden sm:inline">Sign In</span>
@@ -36,7 +36,7 @@ export function AuthButton({ leagueSlug, leagueId }: AuthButtonProps) {
 
       <button
         onClick={openSignup}
-        className="flex items-center gap-2 rounded-lg border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-4 py-2 text-sm font-medium text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
+        className="flex min-h-11 items-center gap-2 rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-4 py-2 text-sm font-semibold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
       >
         <UserPlus className="w-4 h-4 hidden sm:inline" />
         <span>Join</span>

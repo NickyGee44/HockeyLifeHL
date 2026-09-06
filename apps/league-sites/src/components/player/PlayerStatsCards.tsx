@@ -59,7 +59,7 @@ function StatCard({ label, value, highlight, variant }: StatCardProps) {
   };
 
   return (
-    <div className="league-reading-cell rounded-2xl p-4 text-center hover:border-[var(--league-primary)]/30 transition-colors">
+    <div className="glass-card rounded-2xl p-4 text-center hover:border-[var(--league-primary)]/30 transition-colors">
       <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
         {label}
       </div>

@@ -60,7 +60,7 @@ export function PlayerCareerStatsSection({
   }
 
   return (
-    <section className="mb-6">
+    <section className="glass-card-strong mb-6 rounded-[28px] p-5 md:p-6">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -79,7 +79,7 @@ export function PlayerCareerStatsSection({
               key={metric.key}
               type="button"
               onClick={() => setSelectedMetric(metric.key)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`glass-control min-h-11 rounded-full border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 active
                   ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/12 text-[var(--league-primary)]'
                   : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)]/40 hover:text-[var(--color-text-primary)]'
@@ -91,7 +91,7 @@ export function PlayerCareerStatsSection({
         })}
       </div>
 
-      <div className="h-64 w-full rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-background-elevated)]/55 p-3">
+      <div className="glass-card h-64 w-full rounded-2xl p-3">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
             <defs>
@@ -124,7 +124,7 @@ export function PlayerCareerStatsSection({
           <button
             type="button"
             onClick={() => setActiveHotFactIndex((current) => (current - 1 + boundedHotFacts.length) % boundedHotFacts.length)}
-            className="rounded-full p-1 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
+            className="glass-control flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
             aria-label="Previous hot take"
             disabled={boundedHotFacts.length <= 1}
           >
@@ -134,7 +134,7 @@ export function PlayerCareerStatsSection({
           <button
             type="button"
             onClick={() => setActiveHotFactIndex((current) => (current + 1) % boundedHotFacts.length)}
-            className="rounded-full p-1 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
+            className="glass-control flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
             aria-label="Next hot take"
             disabled={boundedHotFacts.length <= 1}
           >

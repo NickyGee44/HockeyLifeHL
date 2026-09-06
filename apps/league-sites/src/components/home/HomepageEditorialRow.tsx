@@ -137,7 +137,7 @@ export function HomepageEditorialRow({
   return (
     <section className="container mx-auto px-4 pt-4 md:pt-6">
       <div className={hideEditorialColumn ? '' : 'grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]'}>
-        <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
+        <section className="glass-card rounded-[30px] px-4 py-5 md:px-6 md:py-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
@@ -162,7 +162,7 @@ export function HomepageEditorialRow({
                 <Link
                   key={`${card.role}-${card.playerId}`}
                   href={card.href}
-                  className="group flex items-center gap-4 rounded-[26px] border border-[var(--color-border)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--color-surface)_90%,transparent),color-mix(in_srgb,var(--league-surface-tint)_100%,transparent))] px-4 py-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary-border)]"
+                  className="group glass-card flex items-center gap-4 rounded-[26px] px-4 py-4 transition-all duration-300 hover:-translate-y-0.5"
                 >
                   <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/92">
                     {card.avatarUrl ? (
@@ -223,7 +223,7 @@ export function HomepageEditorialRow({
         </section>
 
         {!hideEditorialColumn && (
-          <section className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-4 py-5 md:px-6 md:py-6">
+          <section className="glass-card rounded-[30px] px-4 py-5 md:px-6 md:py-6">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
@@ -250,7 +250,7 @@ export function HomepageEditorialRow({
                     href={`/${leagueSlug}/news/${article.slug || article.id}`}
                     className="group flex gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/74 p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary-border)]"
                   >
-                    <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+                    <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)]/45">
                       {article.image_url ? (
                         <img
                           src={article.image_url}

@@ -53,12 +53,14 @@ export function StandingsTable({ standings, leagueSlug }: StandingsTableProps) {
   );
 
   return (
-    <SharedStandingsTable
-      standings={mapped}
-      variant="public"
-      showOvertimeLosses
-      renderLogo={(team) => <TeamLogo team={team} />}
-      getTeamHref={(team) => leagueSlug ? `/${leagueSlug}/teams/id/${team.id}` : undefined}
-    />
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
+      <SharedStandingsTable
+        standings={mapped}
+        variant="public"
+        showOvertimeLosses
+        renderLogo={(team) => <TeamLogo team={team} />}
+        getTeamHref={(team) => leagueSlug ? `/${leagueSlug}/teams/id/${team.id}` : undefined}
+      />
+    </div>
   );
 }

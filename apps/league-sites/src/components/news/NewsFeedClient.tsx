@@ -46,7 +46,7 @@ export function NewsFeedClient({ articles, leagueSlug, leagueName, leagueLogoUrl
               key={filter.key}
               type="button"
               onClick={() => setActiveFilter(filter.key)}
-              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`glass-control inline-flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
                 active
                   ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)]/85 text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/35 hover:text-[var(--league-primary)]'

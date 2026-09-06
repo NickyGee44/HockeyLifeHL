@@ -200,7 +200,7 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
 
           {/* Collection Progress */}
           {summary.totalExpectedCents > 0 && (
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 mb-6">
+            <div className="glass-card-strong mb-6 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-[var(--color-text-secondary)]">Collection Progress</span>
                 <span className="text-sm font-medium text-[var(--color-text-primary)]">
@@ -223,7 +223,7 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
 
       {/* Payments Table */}
       {payments.length === 0 ? (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-12 text-center">
+        <div className="glass-card-strong rounded-xl p-12 text-center">
           <CreditCard className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
           <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
             No Roster Members
@@ -233,7 +233,7 @@ export default function PlayerPaymentsPage({ params }: PlayerPaymentsPageProps) 
           </p>
         </div>
       ) : (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+        <div className="glass-card-strong overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -405,7 +405,7 @@ function SummaryCard({
       className={`rounded-xl p-4 border transition-all ${
         highlight
           ? 'bg-red-500/10 border-red-500/30'
-          : 'bg-[var(--color-surface)] border-[var(--color-border)]'
+          : 'glass-card-strong border-[var(--color-border)]'
       }`}
     >
       <div className="flex items-center gap-3">
@@ -597,7 +597,7 @@ function ManualPlayerPaymentDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
+      <div className="glass-card-strong relative w-full max-w-lg overflow-hidden rounded-2xl">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Record Player Payment</h2>
@@ -611,7 +611,7 @@ function ManualPlayerPaymentDialog({
         </div>
 
         <div className="space-y-4 px-5 py-4">
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
+          <div className="glass-control rounded-xl border border-[var(--color-border)] p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Outstanding Balance</p>
             <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
               {formatMoney(outstandingCents)}
@@ -626,7 +626,7 @@ function ManualPlayerPaymentDialog({
               value={contributionTarget}
               onChange={(event) => setContributionTarget(event.target.value)}
               inputMode="decimal"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">
               Adjust what this player is expected to contribute toward the team invoice.
@@ -639,7 +639,7 @@ function ManualPlayerPaymentDialog({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
           </div>
 
@@ -650,7 +650,7 @@ function ManualPlayerPaymentDialog({
               onChange={(event) =>
                 setPaymentMethod(event.target.value as 'e_transfer' | 'cash' | 'check' | 'other')
               }
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             >
               <option value="e_transfer">e-Transfer</option>
               <option value="cash">Cash</option>
@@ -665,7 +665,7 @@ function ManualPlayerPaymentDialog({
               value={referenceNumber}
               onChange={(event) => setReferenceNumber(event.target.value)}
               placeholder="Optional transfer or receipt reference"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
           </div>
 
@@ -676,7 +676,7 @@ function ManualPlayerPaymentDialog({
               onChange={(event) => setNotes(event.target.value)}
               rows={3}
               placeholder="Optional notes for bookkeeping"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
           </div>
 

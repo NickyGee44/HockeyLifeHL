@@ -129,7 +129,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
         {canScrollLeft && (
           <button
             onClick={() => scrollToItem('left')}
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
             aria-label="Scroll left"
           >
             <ChevronLeft aria-hidden="true" className="w-5 h-5 text-[var(--color-text-secondary)]" />
@@ -138,7 +138,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
         {canScrollRight && (
           <button
             onClick={() => scrollToItem('right')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-10 h-10 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/90 backdrop-blur-sm shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-text-muted)] active:scale-95"
             aria-label="Scroll right"
           >
             <ChevronRight aria-hidden="true" className="w-5 h-5 text-[var(--color-text-secondary)]" />
@@ -162,7 +162,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
               className={`group relative flex-shrink-0 w-[260px] snap-start rounded-xl border overflow-hidden transition-[background-color,border-color,transform] duration-200 text-left ${
                 selected.id === champ.id
                   ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-500/5 scale-[1.02]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-amber-500/30 hover:bg-amber-500/5'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)]/45 hover:border-amber-500/30 hover:bg-amber-500/5'
               }`}
             >
               {/* Photo / Fallback */}

@@ -367,7 +367,7 @@ export function SubInviteModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col">
+      <div className="glass-card-strong relative mx-4 flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
           <div>
@@ -489,13 +489,13 @@ export function SubInviteModal({
                   value={manualName}
                   onChange={(event) => setManualName(event.target.value)}
                   placeholder="Player name"
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                  className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
                 />
                 <div className="grid grid-cols-[minmax(0,1fr)_96px] gap-2">
                   <select
                     value={manualPosition}
                     onChange={(event) => setManualPosition(event.target.value)}
-                    className="min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                    className="glass-control min-w-0 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
                   >
                     <option value="">Position</option>
                     {manualPositionOptions.map((option) => (
@@ -510,7 +510,7 @@ export function SubInviteModal({
                     value={manualJerseyNumber}
                     onChange={(event) => setManualJerseyNumber(event.target.value)}
                     placeholder="#"
-                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+                    className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
                   />
                 </div>
                 <label className="flex cursor-pointer items-center gap-2 text-xs text-[var(--color-text-secondary)]">

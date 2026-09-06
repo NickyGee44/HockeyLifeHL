@@ -37,7 +37,7 @@ export function WaiverDocumentPanel({
   const previewPdf = isPreviewablePdf(documentMimeType, documentUrl);
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div className="glass-card rounded-[24px] p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 rounded-lg bg-[var(--league-primary)]/10 p-2">
@@ -57,7 +57,7 @@ export function WaiverDocumentPanel({
           href={documentUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+          className="glass-control inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--glass-card-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
         >
           <ExternalLink className="h-4 w-4" />
           Open document

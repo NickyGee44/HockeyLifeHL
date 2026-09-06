@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { TeamLogo } from '@/components/shared/TeamLogo';
 import { formatLeagueRelativeDateLabel, formatLeagueTime } from '@/lib/league-timezone';
 import type { TickerGame } from '@/lib/types';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 interface PremiumScoreTickerProps {
   games: TickerGame[];
@@ -44,6 +45,7 @@ export function PremiumScoreTicker({
   const [isPaused, setIsPaused] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const liveGames = (games || []).filter((game) => game.status === 'in_progress');
   const upcomingGames = (games || []).filter((game) => game.status === 'scheduled');
@@ -60,7 +62,7 @@ export function PremiumScoreTicker({
     return () => mediaQuery.removeEventListener('change', syncDesktopState);
   }, []);
 
-  const shouldAutoScroll = autoScroll && isDesktop && orderedGames.length > 1;
+  const shouldAutoScroll = autoScroll && !prefersReducedMotion && isDesktop && orderedGames.length > 1;
   const displayGames = shouldAutoScroll ? [...orderedGames, ...orderedGames] : orderedGames;
   const showControls = isDesktop && orderedGames.length > 1;
 
@@ -147,19 +149,19 @@ export function PremiumScoreTicker({
     if (direction < 0) {
       trackRef.current.scrollTo({
         left: currentScroll <= 0 ? maxNativeScroll : Math.max(0, currentScroll - amount),
-        behavior: 'smooth',
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
       });
       return;
     }
 
     trackRef.current.scrollTo({
       left: currentScroll + amount >= maxNativeScroll ? 0 : currentScroll + amount,
-      behavior: 'smooth',
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
     });
   };
 
   return (
-    <div className="score-ticker relative w-full" data-testid="score-ticker">
+    <div className="score-ticker glass-chrome relative w-full" data-testid="score-ticker">
       <div
         className="relative w-full overflow-hidden backdrop-blur-md"
         style={{
@@ -189,7 +191,7 @@ export function PremiumScoreTicker({
           <button
             type="button"
             onClick={() => nudgeTrack(-1)}
-            className="absolute bottom-0 left-0 top-0 z-30 hidden w-7 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
+            className="absolute bottom-0 left-0 top-0 z-30 hidden min-h-11 w-11 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--league-primary)] lg:flex"
             style={{
               background:
                 'linear-gradient(to right, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
@@ -232,7 +234,7 @@ export function PremiumScoreTicker({
           <button
             type="button"
             onClick={() => nudgeTrack(1)}
-            className="absolute bottom-0 right-0 top-0 z-30 hidden w-7 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
+            className="absolute bottom-0 right-0 top-0 z-30 hidden min-h-11 w-11 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--league-primary)] lg:flex"
             style={{
               background:
                 'linear-gradient(to left, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
@@ -300,7 +302,7 @@ function TickerGameCard({ game, leagueSlug, timezone }: TickerGameCardProps) {
       style={{ minWidth: '208px' }}
     >
       <article
-        className="overflow-hidden rounded-[14px] border border-[var(--color-border-muted)] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary-border)] group-hover:bg-[var(--color-surface)]"
+        className="glass-card overflow-hidden rounded-[14px] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary-border)] group-focus-visible:border-[var(--league-primary-border)]"
         style={{
           background: isLive
             ? 'linear-gradient(135deg, rgba(239,68,68,0.11) 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 48%, color-mix(in srgb, var(--color-surface) 92%, transparent) 100%)'
@@ -359,7 +361,7 @@ function TickerGameCard({ game, leagueSlug, timezone }: TickerGameCardProps) {
         </div>
 
         {isScheduled && (
-          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
             <div className="absolute inset-0 bg-[linear-gradient(100deg,transparent_30%,rgba(255,255,255,0.08)_50%,transparent_70%)]" />
           </div>
         )}
@@ -408,7 +410,7 @@ function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamR
             />
           )}
           <span
-            className={`text-[15px] font-black tabular-nums ${
+            className={`text-xl font-black tabular-nums ${
               isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >

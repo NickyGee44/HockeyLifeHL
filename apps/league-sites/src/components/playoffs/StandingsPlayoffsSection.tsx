@@ -41,7 +41,7 @@ function BracketSquare({
 }) {
   return (
     <div
-      className={`relative flex h-[78px] w-[78px] items-center justify-center rounded-[18px] border-[2px] bg-[#171410] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_28px_rgba(0,0,0,0.26)] ${className}`}
+      className={`glass-card-strong relative flex h-[78px] w-[78px] items-center justify-center rounded-[18px] border-[2px] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_28px_rgba(0,0,0,0.26)] ${className}`}
       style={{ borderColor: BRACKET_GOLD, backgroundColor: '#16130f' }}
     >
       <div className="absolute inset-[7px] rounded-[13px] border" style={{ borderColor: BRACKET_GOLD_SOFT }} />
@@ -214,7 +214,7 @@ function FourTeamBracket({
 
 function PlayoffBrackets({ previews }: { previews: PlayoffPreview[] }) {
   return (
-    <div className="space-y-8">
+    <div className="glass-card-strong space-y-8 rounded-[28px] p-5 md:p-6">
       {previews.map((preview) => (
         <div key={preview.divisionId ?? 'league'}>
           {preview.divisionName && (
@@ -308,7 +308,7 @@ function PlayoffOddsTable({ standings, odds }: { standings: TeamStanding[]; odds
   }, [standings, oddsMap]);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-white/10 text-center text-[11px] font-black uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
@@ -366,22 +366,22 @@ export function StandingsPlayoffsSection({ previews, standings, odds }: Standing
   );
 
   return (
-    <section className="mt-10">
+    <section className="glass-card-strong mt-10 rounded-[28px] p-5 md:p-6">
       <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">Playoffs</h2>
 
-        <div className="inline-flex rounded-full border border-white/10 bg-black/15 p-1 text-xs font-semibold">
+        <div className="glass-control inline-flex rounded-full border border-white/10 p-1 text-xs font-semibold">
           <button
             type="button"
             onClick={() => setActivePanel('preview')}
-            className={`rounded-full px-3 py-1.5 transition-colors ${activePanel === 'preview' ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]' : 'text-[var(--color-text-secondary)]'}`}
+            className={`min-h-11 rounded-full px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${activePanel === 'preview' ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]' : 'text-[var(--color-text-secondary)]'}`}
           >
             Preview
           </button>
           <button
             type="button"
             onClick={() => setActivePanel('odds')}
-            className={`rounded-full px-3 py-1.5 transition-colors ${activePanel === 'odds' ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]' : 'text-[var(--color-text-secondary)]'}`}
+            className={`min-h-11 rounded-full px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${activePanel === 'odds' ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]' : 'text-[var(--color-text-secondary)]'}`}
           >
             Odds
           </button>

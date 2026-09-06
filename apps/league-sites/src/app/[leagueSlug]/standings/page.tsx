@@ -83,11 +83,12 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
 
   return (
     <SubscriptionWall>
-    <div className="container mx-auto px-4 py-12 animate-fade-in">
+    <div className="league-page-shell container mx-auto px-4 py-10 animate-fade-in md:py-12">
       {/* Header */}
       <div className="mb-8">
         <div className="mb-4">
-          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">Data desk</p>
+          <h1 className="text-4xl font-black tracking-tight md:text-5xl flex items-center gap-3">
             <Trophy className="w-8 h-8 text-[var(--league-primary)]" />
             Standings
           </h1>
@@ -111,7 +112,7 @@ export default async function StandingsPage({ params }: StandingsPageProps) {
           leagueSlug={leagueSlug}
         />
       ) : (
-        <div className="card p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <Trophy className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Standings Available</h3>
           <p className="text-[var(--color-text-secondary)]">

@@ -40,7 +40,7 @@ export function AwardsShowcase({ awards }: AwardsShowcaseProps) {
           <button
             onClick={() => setSelectedSeason(null)}
             className={`
-              px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+              glass-control min-h-11 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
               ${
                 selectedSeason === null
                   ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] shadow-md'
@@ -55,7 +55,7 @@ export function AwardsShowcase({ awards }: AwardsShowcaseProps) {
               key={id}
               onClick={() => setSelectedSeason(id)}
               className={`
-                px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                glass-control min-h-11 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
                 ${
                   selectedSeason === id
                     ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] shadow-md'

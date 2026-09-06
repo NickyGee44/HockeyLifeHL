@@ -71,7 +71,7 @@ export default async function StatsPage({ params, searchParams }: StatsPageProps
 
   return (
     <SubscriptionWall>
-      <div className="container mx-auto px-4 py-10 animate-fade-in md:py-12">
+      <div className="league-page-shell container mx-auto px-4 py-10 animate-fade-in md:py-12">
         <div className="mx-auto max-w-[1280px]">
           <StatsWorkspace
             leagueSlug={leagueSlug}

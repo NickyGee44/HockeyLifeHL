@@ -90,7 +90,11 @@ const LEAGUE_THEME_CSS_PROPERTIES = [
 ] as const;
 
 function applyLeagueCssVariables(root: HTMLElement, theme: LeagueTheme) {
-  const ambientColor = pickAmbientColor(theme.primaryColor, theme.secondaryColor);
+  const ambientColor = pickAmbientColor(
+    theme.primaryColor,
+    theme.secondaryColor,
+    theme.accentColor
+  );
 
   root.style.setProperty('--league-primary-raw', theme.primaryColor);
   root.style.setProperty('--league-secondary-raw', theme.secondaryColor);
@@ -117,7 +121,7 @@ function applyLeagueCssVariables(root: HTMLElement, theme: LeagueTheme) {
   root.style.setProperty('--league-ambient-strong', withAlpha(ambientColor, 0.3));
 }
 
-function pickAmbientColor(primaryColor: string, secondaryColor: string) {
+function pickAmbientColor(primaryColor: string, secondaryColor: string, accentColor: string) {
   if (!isNearBlack(primaryColor)) {
     return primaryColor;
   }
@@ -126,7 +130,11 @@ function pickAmbientColor(primaryColor: string, secondaryColor: string) {
     return secondaryColor;
   }
 
-  return '#d9d9d6';
+  if (!isNearBlack(accentColor)) {
+    return accentColor;
+  }
+
+  return '#22d3ee';
 }
 
 function isNearBlack(color: string) {

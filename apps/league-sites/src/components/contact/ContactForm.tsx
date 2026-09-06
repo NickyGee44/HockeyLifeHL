@@ -59,7 +59,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
         </p>
         <button
           onClick={() => setFormState('idle')}
-          className="text-[var(--league-primary)] hover:underline"
+          className="glass-control inline-flex min-h-11 items-center rounded-xl px-4 text-[var(--league-primary)] hover:underline"
         >
           Send another message
         </button>
@@ -88,8 +88,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="
-              w-full px-4 py-2.5 rounded-lg
-              bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+              glass-control min-h-11 w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5
               text-[var(--color-text-primary)]
               focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
               transition-all duration-200
@@ -109,8 +108,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="
-              w-full px-4 py-2.5 rounded-lg
-              bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+              glass-control min-h-11 w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5
               text-[var(--color-text-primary)]
               focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
               transition-all duration-200
@@ -131,8 +129,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
           value={formData.subject}
           onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
           className="
-            w-full px-4 py-2.5 rounded-lg
-            bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+            glass-control min-h-11 w-full rounded-lg border border-[var(--color-border)] px-4 py-2.5
             text-[var(--color-text-primary)]
             focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
             transition-all duration-200
@@ -152,8 +149,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
           value={formData.message}
           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
           className="
-            w-full px-4 py-2.5 rounded-lg resize-none
-            bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+            glass-control min-h-11 w-full resize-none rounded-lg border border-[var(--color-border)] px-4 py-2.5
             text-[var(--color-text-primary)]
             focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
             transition-all duration-200
@@ -166,7 +162,7 @@ export function ContactForm({ leagueId }: ContactFormProps) {
         type="submit"
         disabled={formState === 'submitting'}
         className="
-          w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg
+          glass-control min-h-11 w-full flex items-center justify-center gap-2 rounded-lg border border-[var(--league-primary-border)] px-6 py-3
           bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold
           hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
           transition-all duration-200

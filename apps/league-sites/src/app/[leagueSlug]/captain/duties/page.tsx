@@ -287,9 +287,10 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link
-          href={`/${leagueSlug}/captain`}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
+            <Link
+              href={`/${leagueSlug}/captain`}
+              className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:bg-[var(--color-surface-hover)]"
+              aria-label="Back to captain dashboard"
         >
           <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
         </Link>
@@ -305,7 +306,7 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Games List */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+        <div className="glass-card-strong overflow-hidden rounded-xl">
           <div className="p-4 border-b border-[var(--color-border)]">
             <h2 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
               <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
@@ -369,7 +370,7 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
         {/* Duty Assignments */}
         <div className="lg:col-span-2">
           {selectedGameData ? (
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+            <div className="glass-card-strong overflow-hidden rounded-xl">
               <div className="p-4 border-b border-[var(--color-border)]">
                 <div className="flex items-center justify-between">
                   <div>
@@ -393,7 +394,7 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
                   return (
                     <div
                       key={dutyType.id}
-                      className="flex items-center gap-4 p-4 bg-[var(--color-surface-hover)] rounded-xl"
+                      className="glass-control flex items-center gap-4 rounded-xl border border-[var(--color-border)] p-4"
                     >
                       <div className="w-10 h-10 rounded-lg bg-[var(--color-surface)] flex items-center justify-center text-[var(--league-primary)]">
                         {DUTY_ICONS[dutyType.icon || 'circle'] || <Circle className="w-4 h-4" />}
@@ -442,11 +443,14 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
                           </span>
                         )}
 
-                        <div className="relative group">
-                          <button className="p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors">
-                            <ChevronDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                          </button>
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-xl z-10 hidden group-hover:block">
+                            <div className="relative group">
+                              <button
+                                className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)]"
+                                aria-label={`Assign ${dutyType.name}`}
+                              >
+                                <ChevronDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                              </button>
+                              <div className="glass-card-strong absolute right-0 top-full z-10 mt-1 hidden w-48 rounded-lg group-hover:block group-focus-within:block">
                             <div className="py-1 max-h-48 overflow-y-auto">
                               <button
                                 onClick={() => handleAssignDuty(selectedGame!, dutyType.id, null)}
@@ -498,8 +502,9 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
                             setSelectedDutyType(dutyType);
                             setShowRotationModal(true);
                           }}
-                          className="p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors"
-                          title="Rotation settings"
+                              className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)]"
+                              title="Rotation settings"
+                              aria-label={`Rotation settings for ${dutyType.name}`}
                         >
                           <Settings className="w-4 h-4 text-[var(--color-text-muted)]" />
                         </button>
@@ -517,7 +522,7 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
               </div>
             </div>
           ) : (
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+            <div className="glass-card-strong rounded-xl p-8 text-center">
               <Calendar className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
               <p className="text-[var(--color-text-secondary)]">
                 Select a game to manage duties
@@ -578,7 +583,7 @@ function RotationModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden">
+      <div className="glass-card-strong max-h-[80vh] w-full max-w-md overflow-hidden rounded-xl">
         <div className="p-4 border-b border-[var(--color-border)]">
           <h3 className="font-semibold text-[var(--color-text-primary)]">
             Rotation Settings: {dutyType.name}
@@ -649,14 +654,16 @@ function RotationModal({
                         <button
                           onClick={() => movePlayer(index, 'up')}
                           disabled={index === 0}
-                          className="p-1 hover:bg-[var(--color-surface)] rounded disabled:opacity-30"
+                              className="flex h-11 w-11 items-center justify-center rounded hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)] disabled:opacity-30"
+                              aria-label={`Move ${player.full_name || 'player'} up`}
                         >
                           <ChevronDown className="w-3 h-3 rotate-180" />
                         </button>
                         <button
                           onClick={() => movePlayer(index, 'down')}
                           disabled={index === playerOrder.length - 1}
-                          className="p-1 hover:bg-[var(--color-surface)] rounded disabled:opacity-30"
+                              className="flex h-11 w-11 items-center justify-center rounded hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)] disabled:opacity-30"
+                              aria-label={`Move ${player.full_name || 'player'} down`}
                         >
                           <ChevronDown className="w-3 h-3" />
                         </button>

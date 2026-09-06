@@ -26,7 +26,7 @@ function LeaderCard({
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black ${
           rank === 1
             ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+            : 'bg-[var(--color-surface)]/45 text-[var(--color-text-secondary)]'
         }`}
       >
         {rank}
@@ -67,7 +67,7 @@ export function HomepagePreviousSeasonLeaders({
 
   return (
     <section className="container mx-auto px-4 pt-6">
-      <div className="league-shell-panel rounded-[30px] border border-[var(--color-border)] px-5 py-5 md:px-6">
+      <div className="glass-card rounded-[30px] px-5 py-5 md:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">

@@ -64,7 +64,7 @@ export function GoalieStatsTable({ goalies, leagueSlug, currentSort }: GoalieSta
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[var(--color-border)]">

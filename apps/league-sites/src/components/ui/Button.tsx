@@ -24,9 +24,9 @@ export interface ButtonProps
 }
 
 const sizeClasses = {
-  sm: 'px-3 py-1.5 text-sm gap-1.5',
-  md: 'px-5 py-2.5 text-sm gap-2',
-  lg: 'px-6 py-3 text-base gap-2.5',
+  sm: 'min-h-11 px-3 py-1.5 text-sm gap-1.5',
+  md: 'min-h-11 px-5 py-2.5 text-sm gap-2',
+  lg: 'min-h-12 px-6 py-3 text-base gap-2.5',
 };
 
 const iconSizes = {
@@ -79,8 +79,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ${glow && !isDisabled ? 'hover:shadow-[0_0_30px_var(--league-glow-color)]' : ''}
       `,
       secondary: `
+        glass-control
         text-[var(--color-accent)]
-        bg-transparent
         border border-[var(--league-primary-border)]
         hover:border-[var(--league-primary-strong)]
         hover:bg-[var(--league-primary-muted)]
@@ -94,8 +94,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ${!isDisabled ? 'active:scale-[0.98]' : ''}
       `,
       outline: `
+        glass-control
         text-[var(--color-text-primary)]
-        bg-transparent
         border border-[var(--color-border)]
         hover:border-[var(--color-border-emphasis)]
         hover:bg-[var(--color-surface)]
@@ -232,8 +232,8 @@ export interface IconButtonProps
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ icon, size = 'md', className = '', ...props }, ref) => {
     const sizeClasses = {
-      sm: 'w-8 h-8',
-      md: 'w-10 h-10',
+      sm: 'min-w-11 !h-11',
+      md: 'min-w-11 !h-11',
       lg: 'w-12 h-12',
     };
 

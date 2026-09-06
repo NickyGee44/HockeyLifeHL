@@ -121,7 +121,7 @@ export function TeamLineupView({
   const goalie = goalieLineup[0] || null;
 
   return (
-    <div className="mt-2 space-y-8">
+    <div className="glass-card-strong mt-2 space-y-8 rounded-[28px] p-4 md:p-6">
       <div>
         <h3 className="mb-4 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
           Forwards
@@ -223,7 +223,7 @@ function JerseySlot({
         />
         <ReplacementPill player={player} />
         {removeAffordance ? (
-          <span className="pointer-events-none absolute -top-1 -right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white opacity-0 ring-2 ring-white/40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="pointer-events-none absolute -top-1 -right-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white opacity-70 ring-2 ring-white/40 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             <X className="h-3.5 w-3.5" />
           </span>
         ) : null}

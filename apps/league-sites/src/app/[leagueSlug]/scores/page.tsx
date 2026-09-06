@@ -91,10 +91,11 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
 
   return (
     <SubscriptionWall>
-    <div className="container mx-auto px-4 py-12 animate-fade-in">
+    <div className="league-page-shell container mx-auto px-4 py-10 animate-fade-in md:py-12">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">Game monitor</p>
+        <h1 className="text-4xl font-black tracking-tight md:text-5xl flex items-center gap-3 mb-4">
           <ClipboardList className="w-8 h-8 text-[var(--league-primary)]" />
           Scores
         </h1>
@@ -133,7 +134,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
           <Link
             key={opt.value}
             href={`/${leagueSlug}/scores?period=${opt.value}${seasonFilter ? `&season=${seasonFilter}` : ''}${teamFilter ? `&team=${teamFilter}` : ''}`}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+            className={`glass-control min-h-11 px-4 py-2 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               String(daysBack) === opt.value
                 ? 'bg-[var(--league-primary)] text-white'
                 : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -167,7 +168,7 @@ export default async function ScoresPage({ params, searchParams }: ScoresPagePro
           ))}
         </div>
       ) : (
-        <div className="card p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <ClipboardList className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Recent Scores</h3>
           <p className="text-[var(--color-text-secondary)]">

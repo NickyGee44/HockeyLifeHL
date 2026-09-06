@@ -121,7 +121,7 @@ export function StepPayment({
             Payment
           </h2>
         </div>
-        <div className="flex flex-col items-center justify-center p-8 bg-green-500/10 rounded-xl border border-green-500/20">
+        <div className="glass-card-strong flex flex-col items-center justify-center rounded-[24px] border-green-500/20 bg-green-500/10 p-8">
           <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
           <p className="text-green-400 text-center text-lg font-medium">
             {isAlternateMethod ? 'Paying In Person' : 'Payment Complete'}
@@ -157,7 +157,7 @@ export function StepPayment({
       </div>
 
       {/* Fee Summary */}
-      <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="glass-card-strong rounded-[24px] p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-[var(--color-text-secondary)]">
             {isTeamContribution ? 'Team Contribution Target' : 'Registration Fee'}
@@ -212,7 +212,7 @@ export function StepPayment({
             onClick={handleInitiatePayment}
             disabled={isCreatingDraft}
             aria-busy={isCreatingDraft}
-            className="px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="min-h-11 rounded-xl bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isCreatingDraft ? 'Preparing...' : `Pay ${formatCurrency(totalChargeCents || registrationFee)}`}
           </button>

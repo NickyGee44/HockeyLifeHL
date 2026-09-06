@@ -38,7 +38,7 @@ export function SeasonSelector({ seasons, currentSeasonId }: SeasonSelectorProps
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="glass-control flex items-center gap-2 rounded-xl p-1">
       <label htmlFor="season-select" className="text-sm font-medium text-[var(--color-text-secondary)]">
         Season:
       </label>
@@ -46,7 +46,7 @@ export function SeasonSelector({ seasons, currentSeasonId }: SeasonSelectorProps
         id="season-select"
         value={selectedValue}
         onChange={(e) => handleSeasonChange(e.target.value)}
-        className="w-[240px] appearance-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-medium text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 cursor-pointer"
+        className="min-h-11 w-[240px] appearance-none rounded-xl border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm font-medium text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 cursor-pointer"
       >
         <option value="all-time">All-Time Career Stats</option>
         {seasons.map((s) => (

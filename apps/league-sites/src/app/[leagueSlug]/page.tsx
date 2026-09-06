@@ -532,7 +532,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       ? league.settings.website.themePreset
       : 'dark';
 
-  const panelClass = 'league-shell-panel rounded-3xl border border-[var(--color-border)] p-6 md:p-8';
+  const panelClass = 'glass-card-strong rounded-3xl p-6 md:p-8';
   const jsonLd = buildSportsOrganizationJsonLd(league);
 
   return (
@@ -558,7 +558,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         registrationSeason={registrationSeason}
         stats={stats}
         photoFallback={homepagePhotoHighlight}
-        showInfoCard={false}
+        showInfoCard={true}
       />
 
       <HomepageSeasonBand
@@ -575,7 +575,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       <div className="mx-auto max-w-[1480px] space-y-8 px-5 py-8 sm:px-6 md:py-10 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-12 xl:gap-8">
           <div className="space-y-6 lg:col-span-8 xl:col-span-9">
-            <section className="lg:rounded-[34px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/35 lg:p-5 lg:shadow-[0_40px_100px_-72px_rgba(0,0,0,0.95)]">
+            <section className="glass-card rounded-[34px] p-4 sm:p-5">
               <HomepageWeeklyGames
                 games={weeklyGames}
                 leagueSlug={leagueSlug}
@@ -584,7 +584,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
               />
             </section>
 
-            <section className="lg:rounded-[34px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/35 lg:p-5 lg:shadow-[0_40px_100px_-72px_rgba(0,0,0,0.95)]">
+            <section className="glass-card rounded-[34px] p-4 sm:p-5">
               <SectionHeading
                 title="League Leaders"
                 icon={<BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />}
@@ -601,7 +601,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </section>
           </div>
 
-          <section className="lg:col-span-4 xl:col-span-3">
+          <section className="glass-card rounded-[34px] p-4 lg:col-span-4 xl:col-span-3">
             <SectionHeading
               title="Standings"
               icon={<Trophy className="w-5 h-5 text-[var(--league-primary)]" />}
@@ -617,7 +617,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         </div>
 
         {reelPhotos.length > 0 ? (
-          <section className="lg:rounded-[34px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/35 lg:p-5 lg:shadow-[0_40px_100px_-72px_rgba(0,0,0,0.95)]">
+          <section className="glass-card rounded-[34px] p-4 sm:p-5">
             <div className="flex items-center justify-between">
               <SectionHeading
                 title="League Photos"
@@ -636,7 +636,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
             </div>
           </section>
         ) : hasAlbums ? (
-          <section>
+          <section className="glass-card rounded-[34px] p-4 sm:p-5">
             <SectionHeading
               title="League Photos"
               icon={<Camera className="w-5 h-5 text-[var(--league-primary)]" />}
@@ -648,7 +648,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
                 <Link
                   key={album.id}
                   href={`/${leagueSlug}/gallery/${album.id}`}
-                  className="group relative aspect-[4/3] overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]"
+                  className="group glass-card relative aspect-[4/3] overflow-hidden rounded-[24px] transition-all duration-300 hover:-translate-y-0.5"
                 >
                   {album.cover_photo_url ? (
                     <img

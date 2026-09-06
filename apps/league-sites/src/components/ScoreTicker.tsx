@@ -96,7 +96,7 @@ export function ScoreTicker({ games, leagueSlug, timezone }: ScoreTickerProps) {
 
   return (
     <div
-      className="score-ticker w-full border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_80%,transparent)] backdrop-blur-sm"
+      className="score-ticker glass-chrome w-full border-b border-[var(--color-border)]"
       role="region"
       aria-label="Game scores"
       data-testid="score-ticker"
@@ -108,7 +108,7 @@ export function ScoreTicker({ games, leagueSlug, timezone }: ScoreTickerProps) {
           <button
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
-            className={`absolute left-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
+            className={`absolute left-0 top-0 bottom-0 z-20 flex min-h-11 w-11 items-center justify-center transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--league-primary)] ${
               canScrollLeft
                 ? 'opacity-100 bg-gradient-to-r from-[var(--color-background-elevated)] via-[var(--color-background-elevated)]/55 to-transparent'
                 : 'opacity-20 cursor-not-allowed'
@@ -137,7 +137,7 @@ export function ScoreTicker({ games, leagueSlug, timezone }: ScoreTickerProps) {
           <button
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
-            className={`absolute right-0 top-0 bottom-0 z-20 flex items-center justify-center w-10 transition-opacity duration-150 ${
+            className={`absolute right-0 top-0 bottom-0 z-20 flex min-h-11 w-11 items-center justify-center transition-opacity duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--league-primary)] ${
               canScrollRight
                 ? 'opacity-100 bg-gradient-to-l from-[var(--color-background-elevated)] via-[var(--color-background-elevated)]/55 to-transparent'
                 : 'opacity-20 cursor-not-allowed'
@@ -217,7 +217,7 @@ function GameTile({ game, leagueSlug, timezone }: GameTileProps) {
   return (
     <Link
       href={`/${leagueSlug}/games/${game.id}`}
-      className="flex-shrink-0 block w-[300px] rounded-lg border border-[color-mix(in_srgb,var(--color-border)_60%,transparent)] bg-[color-mix(in_srgb,var(--color-surface)_70%,transparent)] backdrop-blur-sm transition-all duration-150 hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-emphasis)]"
+      className="glass-card flex-shrink-0 block w-[300px] rounded-2xl transition-all duration-150 hover:border-[var(--color-border-emphasis)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
     >
       {/* Header: Date + Status */}
       <div
@@ -334,7 +334,7 @@ function TeamRow({
             />
           )}
           <span
-            className={`text-base font-bold tabular-nums ${
+            className={`text-2xl font-black tabular-nums ${
               isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >

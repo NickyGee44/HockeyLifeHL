@@ -131,12 +131,13 @@ function SignatureCanvas({
   return (
     <div className="space-y-2">
       <div
+        data-glass-exception="signature-canvas"
         className={`relative rounded-xl overflow-hidden border-2 border-dashed ${
           disabled
-            ? 'border-neutral-700 bg-neutral-900/50'
+            ? 'border-neutral-700 bg-[var(--blh-night)] opacity-70'
             : hasSignature
-            ? 'border-[var(--league-primary,#d4af37)]/50 bg-neutral-950'
-            : 'border-neutral-600 bg-neutral-950'
+            ? 'border-[var(--league-primary,#d4af37)]/50 bg-[var(--blh-night)]'
+            : 'border-neutral-600 bg-[var(--blh-night)]'
         }`}
       >
         <canvas
@@ -155,7 +156,7 @@ function SignatureCanvas({
         />
 
         {/* Signature line */}
-        <div className="absolute bottom-8 left-8 right-8 h-px bg-neutral-700" />
+        <div className="absolute bottom-8 left-8 right-8 h-px bg-white/20" />
 
         {/* X marker */}
         {!hasSignature && !disabled && (
@@ -229,7 +230,7 @@ export function CaptainSignature({
 
   return (
     <div
-      className={`bg-neutral-900 border rounded-2xl p-6 ${
+      className={`glass-card-strong rounded-2xl p-6 ${
         isSigned ? 'border-emerald-500/30' : 'border-white/10'
       }`}
     >
@@ -264,7 +265,7 @@ export function CaptainSignature({
       {isSigned ? (
         <div className="space-y-2">
           {existingSignature && (
-            <div className="bg-neutral-950 rounded-xl p-4 border border-neutral-800">
+            <div data-glass-exception="signature-canvas" className="rounded-xl border border-neutral-800 bg-[var(--blh-night)] p-4">
               <Image
                 src={existingSignature}
                 alt="Captain signature"
@@ -296,7 +297,7 @@ export function CaptainSignature({
             className={`w-full py-3 px-4 rounded-xl font-semibold transition-all touch-manipulation ${
               signature && !isSubmitting
                 ? 'bg-[var(--league-primary,#d4af37)] text-black hover:shadow-lg hover:shadow-[var(--league-primary,#d4af37)]/20'
-                : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                : 'glass-control text-neutral-500 cursor-not-allowed'
             }`}
           >
             {isSubmitting ? (
@@ -366,7 +367,7 @@ export function GameSignatureVerification({
           className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
             homeIsSigned
               ? 'bg-emerald-500 text-white'
-              : 'bg-neutral-800 text-neutral-400'
+              : 'glass-control text-neutral-400'
           }`}
         >
           {homeIsSigned ? (
@@ -380,7 +381,7 @@ export function GameSignatureVerification({
 
         <div
           className={`flex-1 h-1 rounded-full max-w-[100px] ${
-            homeIsSigned ? 'bg-emerald-500' : 'bg-neutral-800'
+            homeIsSigned ? 'bg-emerald-500' : 'glass-control'
           }`}
         />
 
@@ -390,7 +391,7 @@ export function GameSignatureVerification({
               ? 'bg-emerald-500 text-white'
               : homeIsSigned
               ? 'bg-[var(--league-primary,#d4af37)] text-black'
-              : 'bg-neutral-800 text-neutral-400'
+              : 'glass-control text-neutral-400'
           }`}
         >
           {awayIsSigned ? (
@@ -404,7 +405,7 @@ export function GameSignatureVerification({
 
         <div
           className={`flex-1 h-1 rounded-full max-w-[100px] ${
-            awayIsSigned ? 'bg-emerald-500' : 'bg-neutral-800'
+            awayIsSigned ? 'bg-emerald-500' : 'glass-control'
           }`}
         />
 
@@ -412,7 +413,7 @@ export function GameSignatureVerification({
           className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
             bothSigned
               ? 'bg-[var(--league-primary,#d4af37)] text-black'
-              : 'bg-neutral-800 text-neutral-400'
+              : 'glass-control text-neutral-400'
           }`}
         >
           3

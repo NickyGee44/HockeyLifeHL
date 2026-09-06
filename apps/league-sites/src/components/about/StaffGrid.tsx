@@ -16,10 +16,10 @@ export function StaffGrid({ staff }: StaffGridProps) {
       {staff.map((member) => (
         <div
           key={member.id}
-          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden hover:border-[var(--league-primary)]/30 transition-colors"
+          className="glass-card overflow-hidden rounded-[24px] transition-colors hover:border-[var(--league-primary)]/30"
         >
           {/* Photo */}
-          <div className="relative aspect-[4/3] bg-[var(--color-background)]">
+          <div className="relative aspect-[4/3] bg-[var(--color-surface)]/35">
             {member.photo_url ? (
               <Image
                 src={member.photo_url}

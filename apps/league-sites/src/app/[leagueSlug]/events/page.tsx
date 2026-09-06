@@ -68,10 +68,10 @@ export default async function EventsPage({ params }: EventsPageProps) {
   const recent = events.filter((e) => new Date(e.start_time) < now);
 
   return (
-    <main className="min-h-screen bg-[var(--color-background)]">
+    <main className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         {/* Header */}
-        <div className="mb-8 lg:rounded-[32px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/58 lg:p-8 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-chrome mb-8 rounded-[28px] border border-[var(--color-border)] p-6 lg:rounded-[32px] lg:p-8">
           <div className="flex items-center gap-3 mb-2">
             <Calendar className="w-6 h-6 text-[var(--league-primary)]" />
             <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
@@ -82,7 +82,7 @@ export default async function EventsPage({ params }: EventsPageProps) {
         </div>
 
         {events.length === 0 ? (
-          <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 py-20 text-center">
+          <div className="glass-card-strong rounded-[32px] py-20 text-center">
             <Calendar className="w-12 h-12 mx-auto mb-4 text-[var(--league-primary)]/70" />
             <p className="text-lg font-semibold text-[var(--color-text-secondary)]">
               No upcoming events
@@ -91,10 +91,10 @@ export default async function EventsPage({ params }: EventsPageProps) {
               Check back soon for announcements.
             </p>
             <div className="mt-6 hidden justify-center gap-3 lg:flex">
-              <a href={`/${leagueSlug}/schedule`} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
+              <a href={`/${leagueSlug}/schedule`} className="glass-control inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
                 View schedule
               </a>
-              <a href={`/${leagueSlug}/news`} className="rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
+              <a href={`/${leagueSlug}/news`} className="glass-control inline-flex min-h-11 items-center rounded-full border-[var(--league-primary-border)] bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
                 League news
               </a>
             </div>
@@ -141,7 +141,7 @@ function EventCard({ event }: { event: LeagueEvent }) {
   const end = event.end_time ? new Date(event.end_time) : null;
 
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover:border-[var(--league-primary)]/30 transition-colors">
+    <div className="glass-card rounded-[24px] p-5 transition-colors hover:border-[var(--league-primary)]/30">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] truncate">

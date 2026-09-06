@@ -47,12 +47,12 @@ export function GameLineupsSection({
         </div>
       </div>
 
-      <div className="mt-4 rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_90px_rgba(15,23,42,0.16)] sm:p-6">
+      <div className="glass-card-strong mt-4 rounded-[32px] p-5 sm:p-6">
         <div className="grid gap-6 xl:grid-cols-2">
           {orderedLineups.map((lineup) => (
             <article
               key={lineup.id}
-              className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4 sm:p-5"
+              className="glass-card rounded-[28px] p-4 sm:p-5"
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -72,7 +72,7 @@ export function GameLineupsSection({
                   </div>
                 </div>
 
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-semibold text-[var(--color-text-secondary)]">
+                <div className="glass-control inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-2 text-xs font-semibold text-[var(--color-text-secondary)]">
                   <Clock3 className="h-3.5 w-3.5 text-[var(--league-primary)]" />
                   {formatPublishedTime(lineup.publishedAt || lineup.updatedAt)}
                 </div>

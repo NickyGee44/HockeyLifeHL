@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getLeagueBySlug, getLeagueTheme, getTickerGames, getDivisions, getSeasons, getLeagueSponsors, hasPlatformSubscription } from '@/lib/data';
 import { LeagueHeader } from '@/components/LeagueHeader';
+import { LeagueFooter } from '@/components/LeagueFooter';
 import { LeagueThemeProvider } from '@/components/LeagueThemeProvider';
 import { PreviewModeProvider } from '@/components/PreviewModeProvider';
 import { AuthProvider } from '@/components/auth';
@@ -37,6 +38,18 @@ export const revalidate = 60;
 interface LeagueLayoutProps {
   children: React.ReactNode;
   params: Promise<{ leagueSlug: string }>;
+}
+
+interface LeagueWebsiteSettings {
+  showGameTicker?: boolean;
+  visiblePages?: Record<string, boolean>;
+  navItems?: Array<{
+    label?: string;
+    href?: string;
+    isExternal?: boolean;
+    isCustomPage?: boolean;
+    pageSlug?: string;
+  }>;
 }
 
 /**
@@ -102,6 +115,9 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
     hasPlatformSubscription(league.id),
   ]);
   const templateClass = `league-template-${theme.templateVariant}`;
+  const websiteSettings = (league as unknown as {
+    settings?: { website?: LeagueWebsiteSettings };
+  }).settings?.website;
 
   // Check if any season has open registration
   const registrationSeason = pickRegistrationSeason(seasons as any[]);
@@ -118,7 +134,16 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
           <BugReportProvider leagueId={league.id} seasonId={activeSeasonId}>
             <SubscriptionProvider isSubscribed={isSubscribed}>
               <DivisionFilterProvider divisions={divisions} leagueId={league.id}>
-                <div className={`relative z-[1] min-h-screen flex flex-col overflow-x-clip ${templateClass}`}>
+                <div
+                  className={`league-site-shell relative z-[1] min-h-screen flex flex-col overflow-x-clip ${templateClass}`}
+                  data-blh-design-foundation="glass-v1"
+                >
+                  <a className="skip-link" href="#league-main">
+                    Skip to league content
+                  </a>
+                  <div className="league-atmosphere" aria-hidden="true">
+                    <span className="league-atmosphere__rink" />
+                  </div>
                   {league.banner_url && (
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">
                       <div
@@ -134,7 +159,7 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                       <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background)_92%,transparent)_0%,color-mix(in_srgb,var(--color-background)_98%,transparent)_30%,var(--color-background)_100%)]" />
                     </div>
                   )}
-                  {(league as any).settings?.website?.showGameTicker !== false && tickerGames.length > 0 && (
+                  {websiteSettings?.showGameTicker !== false && tickerGames.length > 0 && (
                     <div className="league-site-chrome">
                       <PremiumScoreTicker games={tickerGames} leagueSlug={leagueSlug} timezone={league.timezone} />
                     </div>
@@ -145,13 +170,13 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                       leagueSlug={leagueSlug}
                       registrationOpen={registrationOpen}
                       registrationSeasonId={(registrationSeason as any)?.id ?? null}
-                      visiblePages={(league as any).settings?.website?.visiblePages}
+                      visiblePages={websiteSettings?.visiblePages}
                       isPlayoffSeason={isPlayoffSeason}
                     />
                   </div>
                   <CheckinReminderBanner leagueId={league.id} leagueSlug={leagueSlug} seasonId={activeSeasonId} />
                   <LeagueSiteAnalytics leagueSlug={leagueSlug} />
-                  <main className="league-site-main flex-1">
+                  <main id="league-main" className="league-site-main flex-1" tabIndex={-1}>
                     <ScrollRevealObserver />
                     {children}
                   </main>
@@ -159,14 +184,19 @@ export default async function LeagueLayout({ children, params }: LeagueLayoutPro
                   <div className="league-site-chrome">
                     <SponsorFooterStrip sponsors={sponsors} />
                   </div>
+                  <LeagueFooter
+                    league={league}
+                    leagueSlug={leagueSlug}
+                    visiblePages={websiteSettings?.visiblePages}
+                  />
                   <FloatingDock
                     leagueId={league.id}
                     leagueSlug={leagueSlug}
                     leagueName={league.name}
                     leagueLogoUrl={league.logo_url}
                     seasonId={activeSeasonId}
-                    visiblePages={(league as any).settings?.website?.visiblePages}
-                    customNavItems={(league as any).settings?.website?.navItems}
+                    visiblePages={websiteSettings?.visiblePages}
+                    customNavItems={websiteSettings?.navItems}
                     isPlayoffSeason={isPlayoffSeason}
                     registrationOpen={registrationOpen}
                   />

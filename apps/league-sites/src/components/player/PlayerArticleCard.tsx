@@ -31,7 +31,7 @@ export function PlayerArticleCard({
   return (
     <Link
       href={`/${leagueSlug}/news/${article.slug || article.id}`}
-      className="group flex items-start gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/76 p-3 transition-colors hover:border-[var(--league-primary)]/35 hover:bg-[var(--color-surface)]"
+      className="glass-card group flex items-start gap-4 rounded-2xl p-3 transition-colors hover:border-[var(--league-primary)]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
     >
       <div className="hidden h-20 w-20 shrink-0 overflow-hidden rounded-2xl sm:block">
         {article.image_url ? (

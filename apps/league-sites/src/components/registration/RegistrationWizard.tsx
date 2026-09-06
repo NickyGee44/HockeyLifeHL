@@ -288,7 +288,7 @@ export function RegistrationWizard({
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-8">
+        <div className="glass-card-strong rounded-[32px] p-8">
           <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             Sign in to Register
           </h2>
@@ -297,7 +297,7 @@ export function RegistrationWizard({
           </p>
           <button
             onClick={openLogin}
-            className="px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity"
+            className="min-h-11 rounded-xl bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
           >
             Sign In / Create Account
           </button>
@@ -310,7 +310,7 @@ export function RegistrationWizard({
   if (isComplete) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-8">
+        <div className="glass-card-strong rounded-[32px] p-8">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
             <Check className="w-8 h-8 text-green-400" />
           </div>
@@ -332,7 +332,7 @@ export function RegistrationWizard({
           </p>
           <a
             href={`/${leagueSlug}`}
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex min-h-11 items-center rounded-xl bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
           >
             Back to {leagueName}
           </a>
@@ -411,7 +411,7 @@ export function RegistrationWizard({
       </div>
 
       {/* Step Content */}
-      <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-6 md:p-8">
+      <div className="glass-card-strong rounded-[32px] p-6 md:p-8">
         {currentStep === 1 && (
           <StepPersonalInfo
             formData={formData}
@@ -496,7 +496,7 @@ export function RegistrationWizard({
           <button
             onClick={goBack}
             disabled={isFirstStep}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`glass-control flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
               isFirstStep
                 ? 'opacity-0 pointer-events-none'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]'
@@ -525,7 +525,7 @@ export function RegistrationWizard({
                       ? 'Accept Terms of Service and Privacy Policy before submitting'
                       : undefined
                 }
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex min-h-11 items-center gap-2 rounded-xl bg-[var(--league-primary)] px-6 py-2.5 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -541,7 +541,7 @@ export function RegistrationWizard({
                 onClick={goNext}
                 disabled={!canGoNext}
                 title={!canGoNext ? 'Complete required fields to continue' : undefined}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex min-h-11 items-center gap-2 rounded-xl bg-[var(--league-primary)] px-6 py-2.5 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />

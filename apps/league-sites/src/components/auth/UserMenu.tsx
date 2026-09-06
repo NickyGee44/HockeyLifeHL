@@ -44,7 +44,7 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
 
   if (isLoading) {
     return (
-      <div className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] animate-pulse" />
+      <div className="glass-control h-11 w-11 animate-pulse rounded-full" aria-label="Loading account" />
     );
   }
 
@@ -71,7 +71,9 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        className="glass-control flex min-h-11 items-center gap-2 rounded-xl border border-transparent p-1.5 transition-colors hover:border-[var(--blh-glass-border)] hover:bg-[var(--color-surface-hover)]"
       >
         {/* Avatar */}
         {profile?.avatar_url ? (
@@ -104,7 +106,7 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 max-h-[calc(100dvh-120px)] overflow-y-auto bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl shadow-xl z-50">
+        <div role="menu" className="glass-card-strong absolute right-0 z-50 mt-2 max-h-[calc(100dvh-120px)] w-64 overflow-y-auto rounded-2xl">
           {/* User Info Header */}
           <div className="p-4 border-b border-[var(--color-border)]">
             <div className="flex items-center gap-3">
@@ -137,7 +139,7 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
 
             {/* Team Badge */}
             {currentTeam && (
-              <div className="mt-3 flex items-center gap-2 p-2 bg-[var(--color-surface-hover)] rounded-lg">
+              <div className="glass-control mt-3 flex items-center gap-2 rounded-xl border border-[var(--blh-glass-border)] p-2">
                 {currentTeam.team?.logo && (
                   <Image
                     src={currentTeam.team.logo}
@@ -227,7 +229,7 @@ export function UserMenu({ leagueSlug, leagueId }: UserMenuProps) {
 
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-red-400 hover:bg-red-500/10 transition-colors"
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-red-300 transition-colors hover:bg-red-500/10"
             >
               <LogOut className="w-4 h-4" />
               <span className="text-sm">Sign Out</span>
@@ -254,7 +256,8 @@ function MenuItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)] transition-colors"
+      role="menuitem"
+      className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
     >
       {icon}
       <span className="text-sm">{label}</span>

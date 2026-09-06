@@ -125,7 +125,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
+      <div className="glass-card-strong relative mx-4 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] p-4">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--color-text-primary)]">
@@ -181,7 +181,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
               </div>
               <label className="block text-sm text-[var(--color-text-primary)]">
                 Phone number
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]" placeholder="(555) 123-4567" />
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="glass-control mt-2 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]" placeholder="(555) 123-4567" />
               </label>
               <button onClick={() => setStep(40)} disabled={!phone.trim()} className="rounded-lg bg-[var(--league-primary)] px-4 py-2 font-medium text-[var(--color-accent-text)] disabled:opacity-50">Review invite</button>
             </div>
@@ -190,7 +190,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
           {!loading && mode === 'new' && step === 2 ? (
             <div className="space-y-4">
               <label className="block text-sm text-[var(--color-text-primary)]">Position
-                <select value={position} onChange={(e) => setPosition(e.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]">
+                <select value={position} onChange={(e) => setPosition(e.target.value)} className="glass-control mt-2 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]">
                   <option>Forward</option>
                   <option>Defense</option>
                   <option>Goalie</option>
@@ -210,10 +210,10 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
           {!loading && mode === 'new' && step === 5 ? (
             <div className="space-y-4">
               <label className="block text-sm text-[var(--color-text-primary)]">Full name
-                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]" />
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="glass-control mt-2 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]" />
               </label>
               <label className="block text-sm text-[var(--color-text-primary)]">Phone number
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]" />
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="glass-control mt-2 w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]" />
               </label>
               <button onClick={() => setStep(6)} disabled={!canCreate} className="rounded-lg bg-[var(--league-primary)] px-4 py-2 font-medium text-[var(--color-accent-text)] disabled:opacity-50">Review invite</button>
             </div>
@@ -246,7 +246,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
                     <div className="text-sm text-[var(--color-text-secondary)]">{preview.branding.name} · {preview.branding.kind === 'league' ? 'league' : 'team'} branded message</div>
                   </div>
                 </div>
-                <div className="mt-4 rounded-xl bg-[var(--color-background)] p-3 text-sm text-[var(--color-text-primary)]">{preview.shareText}</div>
+                <div className="glass-control mt-4 rounded-xl border border-[var(--color-border)] p-3 text-sm text-[var(--color-text-primary)]">{preview.shareText}</div>
               </div>
               <div className="grid gap-2 md:grid-cols-4">
                 <button onClick={() => shareCaptainPlayerInvite({ title: preview.shareTitle, text: preview.shareText, url: preview.registrationUrl, phone: preview.sharePhone })} className="rounded-lg bg-[var(--league-primary)] px-4 py-2 text-sm font-medium text-[var(--color-accent-text)]">Share sheet</button>
@@ -254,7 +254,7 @@ export function InvitePlayerWizard({ isOpen, onClose, teamId, seasonId }: Props)
                 <a href={buildWhatsAppShareUrl(preview.sharePhone, preview.shareText, preview.registrationUrl)} target="_blank" rel="noreferrer" className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-center text-sm font-medium text-[var(--color-text-primary)]">WhatsApp</a>
                 <button onClick={async () => navigator.clipboard?.writeText(buildInviteShareMessage(preview.shareText, preview.registrationUrl))} className="rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]">Copy message</button>
               </div>
-              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-xs text-[var(--color-text-secondary)] break-all">{preview.registrationUrl}</div>
+              <div className="glass-control rounded-xl border border-[var(--color-border)] p-3 text-xs text-[var(--color-text-secondary)] break-all">{preview.registrationUrl}</div>
               <button onClick={onClose} className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-surface-hover)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]"><Phone className="h-4 w-4" />Done</button>
             </div>
           ) : null}

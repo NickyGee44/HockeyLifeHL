@@ -98,7 +98,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </Link>
 
         {/* Article */}
-        <article className="league-reading-panel overflow-hidden rounded-[32px]">
+        <article className="glass-card-strong overflow-hidden rounded-[32px]">
           <div className="relative aspect-[4/3] sm:aspect-[16/7.2] min-h-[280px]">
             {article.image_url ? (
               <>

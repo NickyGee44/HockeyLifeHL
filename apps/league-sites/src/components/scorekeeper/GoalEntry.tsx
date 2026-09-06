@@ -112,7 +112,7 @@ export function GoalEntry({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-        <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150">
+        <div className="glass-card-strong relative rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150">
           <div className="text-2xl mb-2">&#127946;</div>
           <p className="font-semibold text-[var(--color-text-primary)]">Saving goal...</p>
         </div>
@@ -124,7 +124,7 @@ export function GoalEntry({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-        <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150 max-w-sm mx-4">
+        <div className="glass-card-strong relative mx-4 max-w-sm rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150">
           <div className="text-2xl mb-2">&#9888;&#65039;</div>
           <p className="font-semibold text-[var(--color-text-primary)] mb-1">Goal not saved</p>
           <p className="text-sm text-[var(--color-text-secondary)] mb-4">{submitError}</p>

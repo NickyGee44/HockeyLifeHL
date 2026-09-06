@@ -88,13 +88,10 @@ export function OAuthProviderButton({
         onClick={handleOAuth}
         disabled={loading}
         className={`
-          w-full py-3 px-4 rounded-lg font-medium text-sm
+          glass-control flex min-h-11 w-full items-center justify-center gap-3 rounded-xl
+          border border-[var(--blh-glass-border)] px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)]
           disabled:opacity-50 disabled:cursor-not-allowed
-          transition-all flex items-center justify-center gap-3
-          ${provider === 'apple'
-            ? 'bg-black text-white border border-neutral-700 hover:bg-neutral-900'
-            : 'bg-white text-neutral-900 border border-[var(--color-border)] hover:bg-neutral-50'
-          }
+          transition-colors hover:border-[var(--glass-card-border-hover)] hover:bg-[var(--color-surface-hover)]
           ${className || ''}
         `}
       >
@@ -108,7 +105,7 @@ export function OAuthProviderButton({
         )}
       </button>
       {error && (
-        <p className="text-xs text-red-400 mt-1.5 text-center">{error}</p>
+        <p role="alert" className="mt-1.5 text-center text-xs text-red-300">{error}</p>
       )}
     </div>
   );

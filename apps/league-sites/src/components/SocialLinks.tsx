@@ -45,8 +45,8 @@ export function SocialLinks({
   };
 
   const buttonSizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-10 h-10',
+    sm: 'w-11 h-11',
+    md: 'w-11 h-11',
     lg: 'w-12 h-12',
   };
 
@@ -113,7 +113,7 @@ export function SocialLinks({
             ${buttonSize}
             inline-flex items-center justify-center
             rounded-full
-            bg-[var(--color-surface)]
+            glass-control
             text-[var(--color-text-secondary)]
             hover:bg-[var(--league-primary-strong)]
             hover:text-[var(--league-on-primary)]

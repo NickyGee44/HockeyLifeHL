@@ -46,7 +46,7 @@ export function EventCard({ event }: EventCardProps) {
   const typeLabel = EVENT_TYPE_LABELS[event.event_type] || event.event_type;
 
   return (
-    <div className="card group flex gap-4 p-4">
+    <div className="glass-card group flex gap-4 rounded-[24px] p-4">
       {/* Date box */}
       <div className="shrink-0 w-16 text-center">
         <div className="rounded-xl border border-[var(--league-primary)]/25 bg-[var(--league-primary)]/10 p-2">

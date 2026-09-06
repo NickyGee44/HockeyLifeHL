@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { createElement, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, BarChart3, TrendingUp, Target, Trophy, Zap, Users, Percent, Flame } from 'lucide-react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 interface PointInsight {
   key: string;
@@ -25,6 +26,7 @@ function getIcon(key: string) {
 
 export function PointInsightsCarousel({ insights, asBanner = false }: { insights: PointInsight[]; asBanner?: boolean }) {
   const [index, setIndex] = useState(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const next = useCallback(() => {
     setIndex((i) => (i + 1) % insights.length);
@@ -35,15 +37,14 @@ export function PointInsightsCarousel({ insights, asBanner = false }: { insights
   }, [insights.length]);
 
   useEffect(() => {
-    if (insights.length <= 1) return;
+    if (prefersReducedMotion || insights.length <= 1) return;
     const timer = setInterval(next, 6000);
     return () => clearInterval(timer);
-  }, [next, insights.length]);
+  }, [next, insights.length, prefersReducedMotion]);
 
   if (insights.length === 0) return null;
 
   const insight = insights[index];
-  const Icon = getIcon(insight.key);
 
   return (
     <div className={asBanner ? 'mt-6' : 'mt-8 border-t border-[var(--color-border)]/50 pt-6'}>
@@ -61,7 +62,7 @@ export function PointInsightsCarousel({ insights, asBanner = false }: { insights
       }`}>
         <div className="flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--league-primary)]/12">
-            <Icon className="h-5 w-5 text-[var(--league-primary)]" />
+            {createElement(getIcon(insight.key), { className: 'h-5 w-5 text-[var(--league-primary)]' })}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
@@ -75,7 +76,7 @@ export function PointInsightsCarousel({ insights, asBanner = false }: { insights
           <div className="mt-4 flex items-center justify-between">
             <button
               onClick={prev}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/25 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+              className="glass-control flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               aria-label="Previous insight"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -92,7 +93,7 @@ export function PointInsightsCarousel({ insights, asBanner = false }: { insights
             </div>
             <button
               onClick={next}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/25 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+              className="glass-control flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               aria-label="Next insight"
             >
               <ChevronRight className="h-4 w-4" />

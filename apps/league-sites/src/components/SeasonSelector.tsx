@@ -34,7 +34,7 @@ export function SeasonSelector({ seasons, currentSeasonId, leagueSlug, basePath 
         id="season-selector"
         value={currentSeasonId || ''}
         onChange={(e) => handleChange(e.target.value)}
-        className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-transparent transition-all cursor-pointer appearance-none"
+        className="glass-control min-h-11 w-full appearance-none rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-transparent"
       >
         {seasons.map((season) => (
           <option key={season.id} value={season.id}>

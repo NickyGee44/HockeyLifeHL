@@ -80,8 +80,8 @@ export function GoalieStatsFilters({
   };
 
   const selectClass = `
-    px-4 py-2 rounded-lg
-    bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+    glass-control min-h-11 px-4 py-2 rounded-xl
+    border border-[var(--color-border)]
     text-[var(--color-text-primary)] text-sm
     focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50
     cursor-pointer transition-all duration-200
@@ -89,7 +89,7 @@ export function GoalieStatsFilters({
   `;
 
   return (
-    <div className="flex flex-wrap gap-3 mb-6">
+    <div className="glass-card-strong mb-6 flex flex-wrap gap-3 rounded-[24px] p-3">
       {/* Division Filter */}
       {!disableDivisionFilter && divisions.length > 1 && (
         <select
@@ -181,7 +181,7 @@ function SortChip({
     <button
       onClick={handleClick}
       className={`
-        px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
+        glass-control min-h-11 px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]
         ${
           isActive
             ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'

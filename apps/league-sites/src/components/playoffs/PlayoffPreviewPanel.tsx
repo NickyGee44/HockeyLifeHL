@@ -75,7 +75,7 @@ function PreviewBracket({ preview }: { preview: PlayoffPreview }) {
         {preview.firstRound.map((series) => (
           <div
             key={series.seriesNumber}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-[var(--color-surface)]/80"
+            className="glass-card-strong overflow-hidden rounded-2xl"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
               <span className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
@@ -93,7 +93,7 @@ function PreviewBracket({ preview }: { preview: PlayoffPreview }) {
       </div>
 
       {laterRounds > 0 && (
-        <div className="rounded-2xl border border-white/10 bg-[var(--color-surface)]/50 p-4">
+        <div className="glass-card rounded-2xl p-4">
           <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
             Later Rounds
           </p>
@@ -139,7 +139,7 @@ function DivisionChips({
             key={division.id}
             type="button"
             onClick={() => onSelect(division.id)}
-            className={`rounded-full border px-3 py-2 text-left transition-colors ${
+            className={`glass-control min-h-11 rounded-full border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               selected
                 ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/14 text-[var(--league-primary)]'
                 : 'border-white/10 bg-black/10 text-[var(--color-text-secondary)] hover:border-white/20 hover:text-[var(--color-text-primary)]'
@@ -210,7 +210,7 @@ export function PlayoffPreviewPanel({
       : 'Generate Preview';
 
   return (
-    <section className="mb-8 overflow-hidden rounded-[1.75rem] border border-white/10 bg-[var(--color-surface)]/75 shadow-[0_32px_120px_-48px_rgba(0,0,0,0.8)] backdrop-blur-xl">
+    <section className="glass-card-strong mb-8 overflow-hidden rounded-[1.75rem]">
       <div className="border-b border-white/10 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_18%,transparent),transparent_55%)] px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
@@ -230,7 +230,7 @@ export function PlayoffPreviewPanel({
             type="button"
             onClick={handleGeneratePreview}
             disabled={isPending || !canGenerate}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--league-primary)]/35 bg-[var(--league-primary)]/12 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/18 disabled:cursor-not-allowed disabled:opacity-45"
+            className="glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--league-primary)]/35 bg-[var(--league-primary)]/12 px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/18 disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           >
             {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : preview ? <RefreshCw className="w-4 h-4" /> : <Trophy className="w-4 h-4" />}
             {buttonLabel}
@@ -241,7 +241,7 @@ export function PlayoffPreviewPanel({
       <div className="grid gap-6 px-5 py-5 sm:px-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="space-y-4">
           {previewContext.requiresDivisionSelection ? (
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+            <div className="glass-card rounded-2xl p-4">
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
                 Choose Division
               </p>
@@ -262,7 +262,7 @@ export function PlayoffPreviewPanel({
               )}
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+            <div className="glass-card rounded-2xl p-4">
               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
                 League Snapshot
               </p>
@@ -278,7 +278,7 @@ export function PlayoffPreviewPanel({
             </div>
           )}
 
-          <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+          <div className="glass-card rounded-2xl p-4">
             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
               Preview Rules
             </p>
@@ -297,7 +297,7 @@ export function PlayoffPreviewPanel({
           )}
         </div>
 
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/10 p-4 sm:p-5">
+        <div className="glass-card-strong min-w-0 rounded-2xl p-4 sm:p-5">
           {preview ? (
             <PreviewBracket preview={preview} />
           ) : (

@@ -319,16 +319,18 @@ export default function CheckinPage() {
   // ── Not on a team ──
   if (!teamId) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <ClipboardCheck className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
-        <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Game Check-In</h1>
-        <p className="text-[var(--color-text-secondary)] mb-6">Join a team to check in for games.</p>
-        <Link
-          href={`/${leagueSlug}/me`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium"
-        >
-          Go to Dashboard
-        </Link>
+      <div className="container mx-auto px-4 py-12">
+        <div className="glass-card mx-auto max-w-md rounded-[28px] p-8 text-center">
+          <ClipboardCheck className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">Game Check-In</h1>
+          <p className="text-[var(--color-text-secondary)] mb-6">Join a team to check in for games.</p>
+          <Link
+            href={`/${leagueSlug}/me`}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--league-primary)] px-4 py-2 font-medium text-[var(--color-accent-text)]"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }
@@ -352,7 +354,7 @@ export default function CheckinPage() {
 
       {/* Save error banner */}
       {saveError && (
-        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3">
+        <div className="glass-card mb-4 flex items-center justify-between gap-3 rounded-xl border-red-500/20 bg-red-500/10 px-4 py-3">
           <p className="text-sm text-red-400">{saveError}</p>
           <button onClick={() => setSaveError(null)} className="text-red-400/60 hover:text-red-400">
             <X className="w-4 h-4" />
@@ -362,15 +364,15 @@ export default function CheckinPage() {
 
       {/* My RSVP Summary (all games) */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 text-center">
+        <div className="glass-card rounded-xl border-green-500/20 bg-green-500/10 p-3 text-center">
           <p className="text-2xl font-bold text-green-400">{confirmedCount}</p>
           <p className="text-xs text-green-400/70">Confirmed</p>
         </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+        <div className="glass-card rounded-xl border-amber-500/20 bg-amber-500/10 p-3 text-center">
           <p className="text-2xl font-bold text-amber-400">{tentativeCount}</p>
           <p className="text-xs text-amber-400/70">Maybe</p>
         </div>
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 text-center">
+        <div className="glass-card rounded-xl p-3 text-center">
           <p className="text-2xl font-bold text-[var(--color-text-primary)]">{needsResponse}</p>
           <p className="text-xs text-[var(--color-text-muted)]">Needs RSVP</p>
         </div>
@@ -380,11 +382,11 @@ export default function CheckinPage() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="animate-pulse h-24 bg-[var(--color-surface)] rounded-xl" />
+            <div key={i} className="glass-card h-24 animate-pulse rounded-xl" />
           ))}
         </div>
       ) : games.length === 0 ? (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+        <div className="glass-card rounded-xl p-8 text-center">
           <Calendar className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
           <p className="text-[var(--color-text-secondary)]">No upcoming games scheduled</p>
         </div>
@@ -395,7 +397,7 @@ export default function CheckinPage() {
             <button
               onClick={() => setCurrentGameIndex(i => Math.max(0, i - 1))}
               disabled={currentGameIndex === 0}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="glass-control flex min-h-11 items-center gap-1 rounded-xl border border-[var(--glass-card-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ArrowLeft className="w-4 h-4" />
               Prev
@@ -408,7 +410,7 @@ export default function CheckinPage() {
             <button
               onClick={() => setCurrentGameIndex(i => Math.min(games.length - 1, i + 1))}
               disabled={currentGameIndex === games.length - 1}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="glass-control flex min-h-11 items-center gap-1 rounded-xl border border-[var(--glass-card-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] disabled:cursor-not-allowed disabled:opacity-30"
             >
               Next
               <ArrowRight className="w-4 h-4" />
@@ -417,7 +419,7 @@ export default function CheckinPage() {
 
           {/* Game Card */}
           {currentGame && (
-            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden">
+            <div className="glass-card-strong overflow-hidden rounded-[28px]">
               {/* Matchup header */}
               <div className="p-4 border-b border-[var(--color-border)]">
                 {/* Teams */}
@@ -467,7 +469,7 @@ export default function CheckinPage() {
                     <button
                       onClick={() => handleCheckin(currentGame.id, 'confirmed')}
                       disabled={isPending}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                      className={`glass-control flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors ${
                         myCheckins[currentGame.id] === 'confirmed'
                           ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/30'
                           : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-green-500/10 hover:text-green-400'
@@ -479,7 +481,7 @@ export default function CheckinPage() {
                     <button
                       onClick={() => handleCheckin(currentGame.id, 'tentative')}
                       disabled={isPending}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                      className={`glass-control flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors ${
                         myCheckins[currentGame.id] === 'tentative'
                           ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30'
                           : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-amber-500/10 hover:text-amber-400'
@@ -491,7 +493,7 @@ export default function CheckinPage() {
                     <button
                       onClick={() => handleCheckin(currentGame.id, 'out')}
                       disabled={isPending}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                      className={`glass-control flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-colors ${
                         myCheckins[currentGame.id] === 'out'
                           ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
                           : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-red-500/10 hover:text-red-400'
@@ -586,7 +588,7 @@ export default function CheckinPage() {
                 <div className="px-4 pb-4 flex items-center flex-wrap gap-3">
                   <Link
                     href={`/${leagueSlug}/captain/lineups/${currentGame.id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--league-primary)]/10 text-[var(--league-primary)] hover:bg-[var(--league-primary)]/20 transition-colors border border-[var(--league-primary)]/20"
+                    className="glass-control inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--league-primary)]/20 bg-[var(--league-primary)]/10 px-3 py-2 text-sm font-medium text-[var(--league-primary)] transition-colors hover:bg-[var(--league-primary)]/20"
                   >
                     <Calendar className="w-4 h-4" />
                     Lineup Studio
@@ -594,7 +596,7 @@ export default function CheckinPage() {
 
                   <button
                     onClick={() => setShowSubModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)] transition-colors border border-[var(--color-border)]"
+                    className="glass-control inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--glass-card-border)] px-3 py-2 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)]"
                   >
                     <UserPlus className="w-4 h-4" />
                     Find Sub
@@ -603,7 +605,7 @@ export default function CheckinPage() {
                   {showGoalieButton && (
                     <button
                       onClick={() => setShowGoalieModal(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)] transition-colors border border-[var(--color-border)]"
+                      className="glass-control inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--glass-card-border)] px-3 py-2 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--league-primary)]/10 hover:text-[var(--league-primary)]"
                     >
                       <Shield className="w-4 h-4" />
                       Request Goalie
@@ -622,7 +624,7 @@ export default function CheckinPage() {
                     <button
                       onClick={() => handleStartScoring(currentGame.id)}
                       disabled={startingScore}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-[var(--league-primary)] text-white hover:opacity-90 active:opacity-80 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {startingScore ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

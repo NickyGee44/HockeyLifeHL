@@ -55,7 +55,7 @@ export function SponsorFooterStrip({ sponsors }: SponsorFooterStripProps) {
       : 'Featured Sponsors';
 
   return (
-    <section className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+    <section className="glass-chrome border-t border-[var(--color-border)]">
       <div className="container mx-auto px-4 py-8">
         <h3 className="mb-5 text-center text-xs font-medium uppercase tracking-widest text-[var(--color-text-muted)]">
           {title}

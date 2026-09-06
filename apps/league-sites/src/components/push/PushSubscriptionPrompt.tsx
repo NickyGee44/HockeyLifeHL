@@ -80,7 +80,7 @@ export function PushSubscriptionPrompt({ leagueName }: PushSubscriptionPromptPro
 
   if (state === 'subscribed') {
     return (
-      <div className="fixed bottom-24 right-4 z-50 hidden max-w-xs items-center gap-2 rounded-lg border border-emerald-500/20 bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-text-secondary)] shadow-xl md:flex">
+      <div className="glass-card fixed bottom-24 right-4 z-50 hidden max-w-xs items-center gap-2 rounded-[20px] border-emerald-500/20 px-3 py-2 text-xs text-[var(--color-text-secondary)] md:flex">
         <BellRing className="h-4 w-4 text-emerald-400" />
         <span>Game alerts are on.</span>
       </div>
@@ -88,7 +88,7 @@ export function PushSubscriptionPrompt({ leagueName }: PushSubscriptionPromptPro
   }
 
   return (
-    <div className="fixed inset-x-4 bottom-24 z-50 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-2xl md:inset-x-auto md:right-4 md:max-w-sm">
+    <div className="glass-card-strong fixed inset-x-4 bottom-24 z-50 rounded-[24px] p-4 md:inset-x-auto md:right-4 md:max-w-sm">
       <div className="flex items-start gap-3">
         <div className="rounded-md bg-[var(--league-primary)]/15 p-2 text-[var(--league-primary)]">
           <Bell className="h-5 w-5" />
@@ -107,7 +107,7 @@ export function PushSubscriptionPrompt({ leagueName }: PushSubscriptionPromptPro
             type="button"
             onClick={handleEnable}
             disabled={isSaving}
-            className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-md bg-[var(--league-primary)] px-3 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-opacity disabled:opacity-60"
+            className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--league-primary)] px-3 py-2 text-xs font-semibold text-[var(--color-accent-text)] transition-opacity disabled:opacity-60"
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
             Enable alerts

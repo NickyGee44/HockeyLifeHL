@@ -16,7 +16,7 @@ export function PlayerQuickActions({ playerId, leagueSlug }: PlayerQuickActionsP
   }
 
   return (
-    <div className="mb-6">
+    <div className="glass-card mb-6 rounded-[24px] p-3">
       <QuickActions leagueSlug={leagueSlug} />
     </div>
   );

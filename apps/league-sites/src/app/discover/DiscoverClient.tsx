@@ -57,36 +57,44 @@ export function DiscoverClient({
     new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 lg:px-12 lg:py-12">
       {/* Search & Filters */}
       <div className="mb-8 space-y-4">
-        <div className="flex gap-3">
+        <div className="glass-card-strong flex flex-col gap-3 p-3 sm:flex-row sm:p-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+            <label htmlFor="league-search" className="sr-only">
+              Search leagues by name or city
+            </label>
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--color-text-muted)]" aria-hidden="true" />
             <input
+              id="league-search"
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
               placeholder="Search leagues by name or city..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500"
+              className="glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] py-3 pl-11 pr-4 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--league-primary)] focus:outline-none"
             />
           </div>
           <button
+            type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-colors ${
+            aria-expanded={showFilters}
+            aria-controls="discover-filters"
+            className={`glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
               showFilters || hasActiveFilters
-                ? 'border-amber-500 text-amber-400 bg-amber-500/10'
-                : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                ? 'border-[var(--league-primary)] text-[var(--blh-cyan)]'
+                : 'border-[var(--blh-glass-border)] text-[var(--color-text-secondary)] hover:border-[var(--glass-card-border-hover)] hover:text-[var(--color-text-primary)]'
             }`}
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">Filters</span>
           </button>
           <button
+            type="button"
             onClick={applyFilters}
             disabled={isPending}
-            className="px-6 py-3 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition-colors disabled:opacity-50"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-6 py-3 font-bold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isPending ? 'Searching...' : 'Search'}
           </button>
@@ -94,15 +102,16 @@ export function DiscoverClient({
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="flex flex-wrap gap-4 p-4 rounded-xl border border-neutral-700 bg-neutral-900/50">
+          <div id="discover-filters" className="glass-card-strong flex flex-wrap gap-4 p-4 sm:p-5">
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs text-neutral-400 mb-1 uppercase tracking-wider">
+              <label htmlFor="discover-city" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
                 City
               </label>
               <select
+                id="discover-city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-900 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                className="glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] px-3 py-2 text-[var(--color-text-primary)] focus:border-[var(--league-primary)] focus:outline-none"
               >
                 <option value="">All Cities</option>
                 {cities.map((c) => (
@@ -113,23 +122,24 @@ export function DiscoverClient({
               </select>
             </div>
             <div className="flex items-end gap-3">
-              <label className="flex items-center gap-2 cursor-pointer py-2">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 py-2 text-sm text-[var(--color-text-secondary)]">
                 <input
                   type="checkbox"
                   checked={registrationOpen}
                   onChange={(e) => setRegistrationOpen(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-600 text-amber-500 focus:ring-amber-500"
+                  className="h-5 w-5 rounded border-[var(--blh-glass-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
                 />
-                <span className="text-sm text-neutral-300">Registration open</span>
+                <span>Registration open</span>
               </label>
             </div>
             {hasActiveFilters && (
               <div className="flex items-end">
                 <button
+                  type="button"
                   onClick={clearFilters}
-                  className="flex items-center gap-1 text-sm text-neutral-400 hover:text-white transition-colors py-2"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
                   Clear filters
                 </button>
               </div>
@@ -140,7 +150,7 @@ export function DiscoverClient({
 
       {/* Results Count */}
       <div className="mb-6">
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm font-medium text-[var(--color-text-secondary)]" aria-live="polite">
           {totalCount} league{totalCount !== 1 ? 's' : ''} found
           {hasActiveFilters && ' (filtered)'}
         </p>
@@ -148,21 +158,22 @@ export function DiscoverClient({
 
       {/* League Grid */}
       {initialLeagues.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {initialLeagues.map((league) => (
             <LeagueCard key={league.id} league={league} formatCurrency={formatCurrency} />
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <p className="text-xl text-neutral-400 mb-2">No leagues found</p>
-          <p className="text-neutral-500">
+        <div className="glass-card-strong py-16 text-center">
+          <p className="mb-2 text-xl font-semibold text-[var(--color-text-primary)]">No leagues found</p>
+          <p className="text-[var(--color-text-secondary)]">
             Try adjusting your search or filters.
           </p>
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={clearFilters}
-              className="mt-4 px-4 py-2 text-amber-400 hover:text-amber-300 transition-colors"
+              className="mt-4 inline-flex min-h-11 items-center rounded-xl px-4 py-2 font-semibold text-[var(--blh-cyan)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
             >
               Clear all filters
             </button>
@@ -183,7 +194,7 @@ function LeagueCard({
   const location = [league.city, league.state].filter(Boolean).join(', ');
 
   return (
-    <div className="group rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden hover:border-neutral-700 transition-all duration-300 hover:-translate-y-0.5">
+    <article className="glass-card group overflow-hidden transition-transform duration-300 hover:-translate-y-1">
       {/* Banner / Logo Area */}
       <div
         className="relative h-32 flex items-center justify-center"
@@ -194,7 +205,7 @@ function LeagueCard({
         }}
       >
         {league.banner_url && (
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-[var(--blh-night)]/55" />
         )}
         <div className="relative z-10">
           {league.logo_url ? (
@@ -203,11 +214,11 @@ function LeagueCard({
               alt={league.name}
               width={64}
               height={64}
-              className="h-16 w-16 rounded-xl object-contain bg-black/50 p-1"
+              className="h-16 w-16 rounded-xl border border-white/20 bg-[var(--blh-night)]/65 object-contain p-1 shadow-lg"
             />
           ) : (
             <div
-              className="h-16 w-16 rounded-xl flex items-center justify-center text-xl font-black text-black"
+              className="flex h-16 w-16 items-center justify-center rounded-xl border border-white/20 text-xl font-black text-[var(--blh-night)] shadow-lg"
               style={{ backgroundColor: league.primary_color || '#D4AF37' }}
             >
               {league.name
@@ -222,7 +233,7 @@ function LeagueCard({
 
         {/* Registration Badge */}
         {league.has_open_registration && (
-          <span className="absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white">
+          <span className="glass-control absolute right-3 top-3 rounded-full border border-emerald-300/35 px-2.5 py-1 text-xs font-bold text-emerald-300">
             Open Registration
           </span>
         )}
@@ -230,32 +241,32 @@ function LeagueCard({
 
       {/* Content */}
       <div className="p-5">
-        <h3 className="font-bold text-lg text-white group-hover:text-amber-400 transition-colors">
+        <h3 className="text-lg font-bold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--blh-cyan)]">
           {league.name}
         </h3>
 
         {location && (
-          <p className="flex items-center gap-1 text-sm text-neutral-400 mt-1">
-            <MapPin className="w-3.5 h-3.5" />
+          <p className="mt-1 flex items-center gap-1 text-sm text-[var(--color-text-secondary)]">
+            <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
             {location}
           </p>
         )}
 
         {league.description && (
-          <p className="text-sm text-neutral-500 mt-2 line-clamp-2">
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--color-text-muted)]">
             {league.description}
           </p>
         )}
 
         {/* Stats Row */}
-        <div className="flex items-center gap-4 mt-4 text-sm text-neutral-400">
+        <div className="mt-4 flex items-center gap-4 text-sm text-[var(--color-text-secondary)]">
           <span className="flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
+            <Users className="h-3.5 w-3.5" aria-hidden="true" />
             {league.teams_count} team{league.teams_count !== 1 ? 's' : ''}
           </span>
           {league.next_season_name && (
             <span className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
               {league.next_season_name}
             </span>
           )}
@@ -264,8 +275,8 @@ function LeagueCard({
         {/* Fee */}
         {league.registration_fee_cents != null && league.registration_fee_cents > 0 && (
           <p className="mt-2 text-sm">
-            <span className="text-neutral-500">Registration fee: </span>
-            <span className="font-semibold text-white">
+            <span className="text-[var(--color-text-muted)]">Registration fee: </span>
+            <span className="font-semibold text-[var(--color-text-primary)]">
               {formatCurrency(league.registration_fee_cents)}
             </span>
           </p>
@@ -275,22 +286,22 @@ function LeagueCard({
         <div className="flex items-center gap-3 mt-5">
           <Link
             href={`/${league.slug}`}
-            className="flex-1 flex items-center justify-center gap-1 px-4 py-2.5 rounded-lg border border-neutral-700 text-sm font-medium text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors"
+            className="glass-control flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-[var(--blh-glass-border)] px-4 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[var(--glass-card-border-hover)] hover:text-[var(--color-text-primary)]"
           >
             View League
           </Link>
           {league.has_open_registration && (
             <Link
               href={`/${league.slug}/register`}
-              className="flex-1 flex items-center justify-center gap-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors text-black hover:opacity-90"
+              className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-bold text-[var(--blh-night)] transition-[filter,transform] hover:-translate-y-0.5 hover:brightness-110"
               style={{ backgroundColor: league.primary_color || '#D4AF37' }}
             >
               Register
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }

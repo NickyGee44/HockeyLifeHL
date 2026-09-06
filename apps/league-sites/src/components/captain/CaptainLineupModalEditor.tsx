@@ -311,7 +311,7 @@ export function CaptainLineupModalEditor({
             type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft || publishing}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)]/70 px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:bg-[var(--color-background-elevated)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save draft
@@ -334,7 +334,7 @@ export function CaptainLineupModalEditor({
         </div>
       ) : null}
 
-      <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-background)]/60 p-4 sm:p-6">
+      <div className="glass-card-strong rounded-[26px] p-4 sm:p-6">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
             Lineup Card
@@ -360,7 +360,7 @@ export function CaptainLineupModalEditor({
         />
       </div>
 
-      <div className="rounded-[26px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-6">
+      <div className="glass-card-strong rounded-[26px] p-4 sm:p-6">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <UserPlus className="h-4 w-4 text-[var(--league-primary)]" />
@@ -392,10 +392,10 @@ export function CaptainLineupModalEditor({
                     type="button"
                     onClick={() => toggleSelect(player.playerId)}
                     aria-pressed={isSelected}
-                    className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors ${
+                    className={`flex min-h-11 w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors ${
                       isSelected
                         ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/15 text-[var(--color-text-primary)] ring-2 ring-[var(--league-primary)]/40'
-                        : 'border-[var(--color-border)] bg-[var(--color-background)]/70 text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/40 hover:bg-[var(--color-background-elevated)]'
+                        : 'glass-control border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/40'
                     }`}
                   >
                     <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[var(--league-primary)]/12 text-sm font-black text-[var(--league-primary)]">

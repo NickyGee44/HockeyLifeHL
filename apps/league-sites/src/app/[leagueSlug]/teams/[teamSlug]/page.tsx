@@ -287,9 +287,9 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
 
   return (
     <SubscriptionWall>
-      <div className="min-h-screen bg-[var(--color-background)] px-4 py-8">
+      <div className="league-page-shell min-h-screen px-4 py-8">
         <div className="mx-auto max-w-[1200px] animate-fade-in">
-          <section className="relative isolate overflow-hidden rounded-[34px]">
+          <section className="glass-card-strong relative isolate overflow-hidden rounded-[34px]">
             <div className="relative p-6 md:p-8 lg:p-10">
               <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="flex flex-col items-center text-center xl:items-start xl:text-left">
@@ -343,7 +343,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 </div>
 
                 <div className="hidden xl:grid xl:grid-cols-2 xl:gap-5">
-                  <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-6 shadow-[0_30px_80px_-58px_rgba(0,0,0,0.95)]">
+                  <div className="glass-card rounded-[30px] p-6">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
                       Next game
                     </p>
@@ -378,7 +378,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                     </p>
                   </div>
 
-                  <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-6 shadow-[0_30px_80px_-58px_rgba(0,0,0,0.95)]">
+                  <div className="glass-card rounded-[30px] p-6">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
                       Team pulse
                     </p>
@@ -451,7 +451,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                   title="Schedule"
                   icon={<CalendarDays className="w-5 h-5 text-[var(--league-primary)]" />}
                 />
-                <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
+                <div className="glass-card-strong mt-4 rounded-[28px] p-6 md:p-8">
                   <TeamScheduleList
                     games={teamScheduleGames as any}
                     leagueSlug={leagueSlug}
@@ -580,7 +580,7 @@ export default async function TeamPage({ params, searchParams }: TeamPageProps) 
                 title="Captain Contact"
                 icon={<Shield className="w-5 h-5 text-[var(--league-primary)]" />}
               />
-              <div className="league-reading-panel mt-4 rounded-[28px] p-6 md:p-8">
+              <div className="glass-card-strong mt-4 rounded-[28px] p-6 md:p-8">
               {captain ? (
                 <div className="flex items-center gap-3">
                   <Image
@@ -695,7 +695,7 @@ function StatsTableCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/82">
+    <div className="glass-card-strong overflow-hidden rounded-[24px]">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -817,7 +817,7 @@ function buildTeamPageLineupDisplay(lineup: PublishedGameTeamLineup | null): {
 
 function EmptyPanel({ title, description }: { title: string; description: string }) {
   return (
-    <div className="rounded-[24px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/55 px-6 py-10 text-center">
+    <div className="glass-card rounded-[24px] border-dashed px-6 py-10 text-center">
       <p className="text-lg font-semibold text-[var(--color-text-primary)]">{title}</p>
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">{description}</p>
     </div>

@@ -44,12 +44,12 @@ export function GameSelector({ games, leagueSlug }: GameSelectorProps) {
                 key={game.gameId}
                 href={`/${leagueSlug}/scorekeeper/game/${game.gameId}`}
                 className={`
-                  block p-4 rounded-xl border transition-all duration-200
+                  glass-card-strong block min-h-11 p-4 rounded-xl border transition-all duration-200
                   ${isCompleted
-                    ? 'bg-[var(--color-surface)] border-[var(--color-border)] opacity-60'
+                    ? 'border-[var(--color-border)] opacity-60'
                     : isInProgress
-                      ? 'bg-[var(--color-surface)] border-[var(--league-primary,#d4af37)] shadow-sm'
-                      : 'bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:-translate-y-0.5'
+                      ? 'border-[var(--league-primary,#d4af37)] shadow-sm'
+                      : 'border-[var(--color-border)] hover:border-[var(--color-border-emphasis)] hover:-translate-y-0.5'
                   }
                 `}
               >

@@ -34,7 +34,7 @@ export function ScheduleList({
     : Object.entries(gamesByMonth);
 
   return (
-    <div className="space-y-12">
+    <div className="glass-card-strong space-y-12 rounded-[28px] p-5 md:p-7">
       {filteredMonths.map(([month, games]) => {
         const filteredGames = filterGames(games);
         if (filteredGames.length === 0) return null;

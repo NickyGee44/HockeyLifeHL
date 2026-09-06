@@ -99,7 +99,7 @@ export function SwapRequestModal({ isOpen, onClose, gameId, game }: SwapRequestM
     >
       <div
         ref={modalRef}
-        className="w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden"
+        className="glass-card-strong w-full max-w-md overflow-hidden rounded-2xl"
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4">

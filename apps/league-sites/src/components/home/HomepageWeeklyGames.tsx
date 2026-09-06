@@ -409,7 +409,7 @@ function CoolView({
           className={`relative overflow-hidden ${
             blendToPage
               ? ''
-              : 'rounded-[30px] bg-[var(--color-surface)] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]'
+              : 'glass-card rounded-[30px] shadow-[0_34px_80px_-46px_rgba(0,0,0,0.88)]'
           }`}
         >
           <div
@@ -504,7 +504,7 @@ function CoolView({
                 type="button"
                 aria-label="Previous game"
                 onClick={() => onNavigate(-1)}
-                className="absolute -left-2 top-[38%] z-30 flex -translate-y-1/2 items-center justify-center text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-opacity duration-200 hover:opacity-80 sm:-left-4"
+                className="glass-control absolute -left-2 top-[38%] z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-opacity duration-200 hover:opacity-80 sm:-left-4"
               >
                 <ChevronLeft className="h-6 w-6" />
               </button>
@@ -512,7 +512,7 @@ function CoolView({
                 type="button"
                 aria-label="Next game"
                 onClick={() => onNavigate(1)}
-                className="absolute -right-2 top-[38%] z-30 flex -translate-y-1/2 items-center justify-center text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-opacity duration-200 hover:opacity-80 sm:-right-4"
+                className="glass-control absolute -right-2 top-[38%] z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)] transition-opacity duration-200 hover:opacity-80 sm:-right-4"
               >
                 <ChevronRight className="h-6 w-6" />
               </button>
@@ -527,7 +527,7 @@ function CoolView({
           }}
         >
           <div
-            className="mx-auto max-w-2xl overflow-hidden rounded-[26px] border p-3 sm:p-4"
+            className="glass-card-strong mx-auto max-w-2xl overflow-hidden rounded-[26px] p-3 sm:p-4"
             style={{
               backgroundColor:
                 'color-mix(in srgb, var(--league-secondary) 18%, rgba(255,255,255,0.12))',
@@ -584,7 +584,7 @@ function CompactView({
         return (
           <article
             key={game.id}
-            className="relative overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-background-elevated)_94%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))] p-4 shadow-[0_26px_60px_-42px_rgba(0,0,0,0.82)]"
+            className="glass-card relative overflow-hidden rounded-[24px] p-4 shadow-[0_26px_60px_-42px_rgba(0,0,0,0.82)]"
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,var(--league-primary-soft,rgba(192,192,192,0.16)),transparent_58%)]" />
             <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -733,7 +733,7 @@ export function HomepageWeeklyGames({
                 teamActions={teamActions}
                 backgroundPreset={backgroundPreset}
               />
-              <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 p-4 shadow-[0_34px_80px_-56px_rgba(0,0,0,0.9)] backdrop-blur">
+              <div className="glass-card rounded-[30px] p-4 shadow-[0_34px_80px_-56px_rgba(0,0,0,0.9)]">
                 <div className="mb-2 flex items-center justify-between gap-3 px-1">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
                     Full slate

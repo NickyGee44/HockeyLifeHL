@@ -67,13 +67,16 @@ export function TeamsGrid({
   }, [bumpChartData, selectedDivisionId]);
 
   return (
-    <div className="container mx-auto px-4 py-12 animate-fade-in">
+    <div className="league-page-shell container mx-auto px-4 py-10 animate-fade-in md:py-12">
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4 mb-2">
-          <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-            <Users className="w-8 h-8 text-[var(--league-primary)]" />
-            Teams
-          </h1>
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">Club index</p>
+            <h1 className="text-4xl font-black tracking-tight md:text-5xl flex items-center gap-3">
+              <Users className="w-8 h-8 text-[var(--league-primary)]" />
+              Teams
+            </h1>
+          </div>
           <SeasonSelector
             seasons={seasons}
             currentSeasonId={currentSeasonId || null}
@@ -92,7 +95,7 @@ export function TeamsGrid({
         <div className="flex flex-wrap gap-2 mb-8">
           <button
             onClick={() => setDivision(null)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+            className={`glass-control min-h-11 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               !selectedDivisionId
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] shadow-md'
                 : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]'
@@ -104,7 +107,7 @@ export function TeamsGrid({
             <button
               key={div.id}
               onClick={() => setDivision(div.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              className={`glass-control min-h-11 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 selectedDivisionId === div.id
                   ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)] shadow-md'
                   : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]'
@@ -149,7 +152,7 @@ export function TeamsGrid({
           )}
         </>
       ) : (
-        <div className="card p-12 text-center">
+        <div className="glass-card p-12 text-center">
           <Users className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Teams Yet</h3>
           <p className="text-[var(--color-text-secondary)]">
@@ -167,7 +170,7 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
   return (
     <Link
       href={`/${leagueSlug}/teams/${team.slug}`}
-      className="card group hover:border-[var(--league-primary)] transition-all"
+      className="glass-card group rounded-[24px] hover:border-[var(--league-primary)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
     >
       <div className="p-6 text-center">
         <div className="mb-5 flex justify-center">
@@ -188,7 +191,7 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-center gap-1 text-sm text-[var(--league-primary)] opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="mt-4 flex items-center justify-center gap-1 text-sm font-semibold text-[var(--league-primary)] lg:opacity-70 lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100 transition-opacity">
           View Roster
           <ChevronRight className="w-4 h-4" />
         </div>
@@ -230,7 +233,7 @@ function TeamsDirectoryBumpChart({
     : null;
 
   return (
-    <section className="mt-12">
+    <section className="glass-card-strong mt-12 rounded-[28px] p-5 md:p-7">
       <h2 className="mb-3 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
         Team Positioning
       </h2>
@@ -320,7 +323,7 @@ function TeamsDirectoryBumpChart({
                         ? null
                         : { teamId: team.teamId, metricKey: column.key }
                     ))}
-                    className="absolute flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/55"
+                    className="absolute flex min-h-11 min-w-11 items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/55"
                     style={{
                       left: metricCenterX(columnIndex),
                       top: metricTop(metric.rank),

@@ -28,7 +28,7 @@ export function LeagueFooter({ league, leagueSlug, visiblePages }: LeagueFooterP
   ].filter((item) => shouldShowDefaultPublicNavPage(item.pageKey, visiblePages));
 
   return (
-    <footer className="relative border-t border-[var(--color-border)] bg-[var(--color-background)] overflow-hidden">
+    <footer className="league-footer glass-chrome relative overflow-hidden border-t border-[var(--color-border)]">
       {/* Gradient top border using league colors */}
       <div
         className="absolute top-0 left-0 right-0 h-[3px]"
@@ -76,7 +76,7 @@ export function LeagueFooter({ league, leagueSlug, visiblePages }: LeagueFooterP
               >
                 <span className="relative">
                   {league.contact_email}
-                  <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--color-accent)] transition-all duration-300 group-hover:w-full" />
+                  <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--color-accent)] transition-all duration-300 group-hover:w-full group-focus-visible:w-full" />
                 </span>
               </a>
             )}
@@ -157,11 +157,11 @@ export function LeagueFooter({ league, leagueSlug, visiblePages }: LeagueFooterP
             >
               <span className="relative">
                 Beer League Hockey
-                <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--color-accent)] transition-all duration-300 group-hover:w-full" />
+                <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--color-accent)] transition-all duration-300 group-hover:w-full group-focus-visible:w-full" />
               </span>
               {/* Subtle glow on hover */}
               <span
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg -z-10"
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300 blur-lg -z-10"
                 style={{ background: 'var(--league-primary-strong)' }}
               />
             </a>
@@ -186,12 +186,12 @@ function FooterLink({
     >
       {/* Animated dot */}
       <span
-        className="h-1.5 w-1.5 scale-0 rounded-full bg-[var(--color-accent)] transition-transform duration-300 group-hover:scale-100"
+        className="h-1.5 w-1.5 scale-0 rounded-full bg-[var(--color-accent)] transition-transform duration-300 group-hover:scale-100 group-focus-visible:scale-100"
       />
       <span className="relative">
         {children}
         {/* Animated underline */}
-        <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--color-accent)] transition-all duration-300 group-hover:w-full" />
+        <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-[var(--color-accent)] transition-all duration-300 group-hover:w-full group-focus-visible:w-full" />
       </span>
     </Link>
   );

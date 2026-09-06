@@ -132,7 +132,7 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="glass-card-strong mx-auto flex min-h-screen w-full max-w-5xl flex-col overflow-hidden rounded-none sm:my-4 sm:min-h-[calc(100vh-2rem)] sm:rounded-[28px]">
       {/* Header */}
       <div className="px-4 py-3 border-b border-[var(--color-border)]">
         <div className="text-center">
@@ -169,7 +169,7 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
       </div>
 
       {/* Section Header with bulk actions */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[var(--color-surface)]">
+      <div className="glass-control flex items-center justify-between px-4 py-2">
         <div className="text-xs font-medium text-[var(--color-text-secondary)]">
           {confirmedCount}/{currentRoster.length} checked in
         </div>
@@ -305,7 +305,7 @@ export function PreGameCheckin({ game, checkins: initialCheckins, onGameStarted 
       </div>
 
       {/* Bottom: Next Team / Start Game */}
-      <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-background)]">
+      <div className="glass-control border-t border-[var(--color-border)] p-4">
         {/* Warning if not both teams reviewed */}
         {!bothReviewed && (
           <div className="flex items-center gap-2 mb-3 p-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20">

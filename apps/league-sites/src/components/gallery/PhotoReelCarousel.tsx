@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReelPhoto } from '@/lib/types';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -23,6 +24,7 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const total = shuffled.length;
 
@@ -35,18 +37,18 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
 
   // Auto-rotate every 8s unless paused
   useEffect(() => {
-    if (paused || total <= 1) return;
+    if (prefersReducedMotion || paused || total <= 1) return;
     timerRef.current = setInterval(() => advance(1), 8000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [paused, advance, total]);
+  }, [paused, advance, prefersReducedMotion, total]);
 
   if (total === 0) return null;
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl shadow-xl"
+      className="glass-card relative w-full overflow-hidden rounded-[28px] shadow-xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -74,14 +76,14 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
             <button
               onClick={() => advance(-1)}
               aria-label="Previous photo"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 backdrop-blur-sm p-2 text-white/80 hover:bg-black/50 hover:text-white transition-colors"
+              className="glass-control absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-black/50 hover:text-white"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               onClick={() => advance(1)}
               aria-label="Next photo"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 backdrop-blur-sm p-2 text-white/80 hover:bg-black/50 hover:text-white transition-colors"
+              className="glass-control absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-black/50 hover:text-white"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -96,12 +98,16 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
                 key={i}
                 onClick={() => setCurrent(i)}
                 aria-label={`Go to photo ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === current
-                    ? 'w-6 bg-white'
-                    : 'w-1.5 bg-white/40 hover:bg-white/60'
-                }`}
-              />
+                className="group flex h-11 w-11 items-center justify-center rounded-full"
+              >
+                <span
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === current
+                      ? 'w-6 bg-[var(--league-primary)]'
+                      : 'w-1.5 bg-white/40 group-hover:bg-white/60 group-focus-visible:bg-white/60'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         )}

@@ -241,7 +241,7 @@ function RosterTable({
   onUpdate: () => void;
 }) {
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
+    <div className="glass-card-strong rounded-xl overflow-hidden">
       <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <Users className="w-5 h-5 text-[var(--league-primary)]" />
@@ -509,7 +509,7 @@ function EditableRosterRow({
               <span className="text-[var(--color-text-secondary)]">
                 {shortPosition(player.position)}
               </span>
-              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
             </button>
           )}
         </td>
@@ -599,4 +599,3 @@ function EditableRosterRow({
     </>
   );
 }
-

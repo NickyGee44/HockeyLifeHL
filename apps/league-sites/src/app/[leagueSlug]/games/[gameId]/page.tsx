@@ -113,7 +113,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen">
+    <div className="league-page-shell min-h-screen">
       {/* Hero Header with diagonal stripes */}
       <LiveGameExperience
         initialGame={game}
@@ -223,7 +223,7 @@ export default async function GamePreviewPage({ params }: GamePageProps) {
 
             {/* Future Matchups between these teams */}
             {futureMatchups.length > 0 && (
-              <div className="card">
+              <div className="glass-card-strong overflow-hidden">
                 <div className="card-header">
                   <h3 className="text-lg font-bold flex items-center gap-2">
                     <Calendar className="w-5 h-5 text-[var(--league-primary)]" />

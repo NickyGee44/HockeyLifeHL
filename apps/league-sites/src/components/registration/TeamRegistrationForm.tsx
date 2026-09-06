@@ -27,10 +27,10 @@ interface TeamRegistrationFormProps {
 }
 
 const inputClass =
-  'w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50';
+  'glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50';
 
 const selectClass =
-  'w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50';
+  'glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50';
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -182,7 +182,7 @@ export function TeamRegistrationForm({
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-8">
+        <div className="glass-card-strong rounded-[32px] p-8">
           <Users className="w-12 h-12 mx-auto mb-4 text-[var(--league-primary)]" />
           <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             Sign in to Register Your Team
@@ -192,7 +192,7 @@ export function TeamRegistrationForm({
           </p>
           <button
             onClick={openLogin}
-            className="px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity"
+            className="min-h-11 rounded-xl bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
           >
             Sign In / Create Account
           </button>
@@ -205,7 +205,7 @@ export function TeamRegistrationForm({
   if (isComplete) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-        <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-8">
+        <div className="glass-card-strong rounded-[32px] p-8">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
             <Check className="w-8 h-8 text-green-400" />
           </div>
@@ -221,7 +221,7 @@ export function TeamRegistrationForm({
           </p>
           <a
             href={`/${leagueSlug}`}
-            className="inline-flex items-center px-6 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex min-h-11 items-center rounded-xl bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
           >
             Back to {leagueName}
           </a>
@@ -244,7 +244,7 @@ export function TeamRegistrationForm({
 
       <form
         onSubmit={handleSubmit}
-        className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-6 md:p-8 space-y-8"
+        className="glass-card-strong space-y-8 rounded-[32px] p-6 md:p-8"
       >
         {/* Team Info */}
         <div>
@@ -296,7 +296,7 @@ export function TeamRegistrationForm({
                             className={`rounded-xl border p-3 text-sm transition-colors ${
                               isSelected
                                 ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10'
-                                : 'border-[var(--color-border)] bg-[var(--color-surface)]'
+                                : 'glass-card border-[var(--glass-card-border)]'
                             }`}
                           >
                             <p className="font-semibold text-[var(--color-text-primary)]">
@@ -341,7 +341,7 @@ export function TeamRegistrationForm({
                     key={String(opt.value)}
                     type="button"
                     onClick={() => setPlayedLastSeason(opt.value)}
-                    className={`px-5 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    className={`glass-control min-h-11 rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${
                       playedLastSeason === opt.value
                         ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10 text-[var(--league-primary)]'
                         : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-emphasis)]'
@@ -512,7 +512,7 @@ export function TeamRegistrationForm({
           <div
             ref={waiverScrollRef}
             onScroll={handleWaiverScroll}
-            className="max-h-72 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] prose prose-sm prose-invert max-w-none mb-3 overscroll-contain"
+            className="glass-card-strong prose prose-sm prose-invert mb-3 max-h-72 max-w-none overscroll-contain rounded-[24px] p-4 text-sm text-[var(--color-text-secondary)]"
           >
             <div
               dangerouslySetInnerHTML={{
@@ -570,7 +570,7 @@ export function TeamRegistrationForm({
           <button
             type="submit"
             disabled={isSubmitting || !waiverAccepted || !teamName.trim()}
-            className="flex items-center gap-2 px-8 py-3 rounded-lg bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex min-h-11 items-center gap-2 rounded-xl bg-[var(--league-primary)] px-8 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

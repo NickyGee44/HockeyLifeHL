@@ -50,7 +50,7 @@ function SkaterRow({
         className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
           rank === 1
             ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
-            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+            : 'bg-[var(--color-surface)]/45 text-[var(--color-text-secondary)]'
         }`}
       >
         {rank}
@@ -110,7 +110,7 @@ function GoalieRow({
         className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black ${
           rank === 1
             ? 'bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'
-            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+            : 'bg-[var(--color-surface)]/45 text-[var(--color-text-secondary)]'
         }`}
       >
         {rank}
