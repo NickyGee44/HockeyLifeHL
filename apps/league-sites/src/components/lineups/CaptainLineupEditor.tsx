@@ -319,7 +319,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="rounded-[36px] border border-cyan-400/15 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_26%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(15,23,42,0.92))] p-6 shadow-[0_32px_120px_rgba(2,6,23,0.45)] backdrop-blur-xl sm:p-8">
+      <div className="glass-card-strong rounded-[36px] border-cyan-400/15 p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
             <Link
@@ -353,7 +353,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
             </div>
           </div>
 
-          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-white/[0.04] p-4">
+          <div className="glass-card-strong w-full max-w-md rounded-[28px] p-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Publishing status</p>
             <div className="mt-4 grid grid-cols-3 gap-3">
               {[
@@ -386,7 +386,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                 <button
                   type="button"
                   onClick={handleResetFromCheckins}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                  className="glass-control inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white"
                 >
                   <RotateCcw className="h-4 w-4" />
                   Reset from RSVP
@@ -394,7 +394,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                 <button
                   type="button"
                   onClick={handleClearIce}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white hover:bg-white/[0.08]"
+                  className="glass-control inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white"
                 >
                   <Eraser className="h-4 w-4" />
                   Clear ice
@@ -457,7 +457,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
           </div>
 
           <div className="space-y-5">
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
+            <div className="glass-card-strong rounded-[28px] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Controls</p>
               <div className="mt-4 space-y-4">
                 <label className="block space-y-2">
@@ -465,7 +465,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                   <select
                     value={formation}
                     onChange={(event) => setFormation(event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-medium text-white outline-none focus:border-cyan-300/35"
+                    className="glass-control w-full rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-white outline-none focus:border-cyan-300/35"
                   >
                     {FORMATION_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -478,7 +478,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                     type="button"
                     onClick={() => handleSave(false)}
                     disabled={isPending}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {editorData.lineup.status === 'published' ? 'Save changes' : 'Save draft'}
@@ -496,7 +496,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
+            <div className="glass-card-strong rounded-[28px] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Share</p>
               <h3 className="mt-3 text-xl font-black text-white">Send it to the room</h3>
               <p className="mt-2 text-sm leading-6 text-neutral-300">Create a clean lineup image, then send it straight to Messages or WhatsApp from your share sheet.</p>
@@ -506,7 +506,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                   type="button"
                   onClick={handleShare}
                   disabled={placedCount === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Share2 className="h-4 w-4" />
                   Share lineup image
@@ -515,7 +515,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
                   type="button"
                   onClick={handleDownload}
                   disabled={placedCount === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3 text-sm font-semibold text-white hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="glass-control inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
                   Download PNG
@@ -541,7 +541,7 @@ export function CaptainLineupEditor({ leagueSlug, gameId, teamId, canManage }: P
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
+            <div className="glass-card-strong rounded-[28px] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Publishing notes</p>
               <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral-300">
                 <li>Players will see the published lineup directly on the game page.</li>

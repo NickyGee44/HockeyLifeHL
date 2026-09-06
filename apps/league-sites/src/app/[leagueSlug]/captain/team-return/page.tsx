@@ -111,7 +111,7 @@ function TeamReturnResponseCard({
   };
 
   return (
-    <Card variant="glass" className="border-white/10" hover={false}>
+    <Card variant="strong" className="border-white/10" hover={false}>
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -183,7 +183,7 @@ function TeamReturnResponseCard({
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={4}
-              className="w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:border-[var(--league-primary)] focus:outline-none"
+              className="glass-control w-full resize-none rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:border-[var(--league-primary)] focus:outline-none"
               placeholder="Add context for the league office, like roster size, likely return timing, or what you still need."
             />
             <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
@@ -199,7 +199,7 @@ function TeamReturnResponseCard({
               value={declinedReason}
               onChange={(event) => setDeclinedReason(event.target.value)}
               rows={4}
-              className="w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:border-[var(--league-primary)] focus:outline-none"
+              className="glass-control w-full resize-none rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:border-[var(--league-primary)] focus:outline-none"
               placeholder="Optional unless you choose “Not returning”."
             />
           </div>

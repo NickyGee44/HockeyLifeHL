@@ -111,7 +111,7 @@ export function PenaltyBox({
     : null;
 
   return (
-    <div className="px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]/30">
+    <div className="glass-control border-b border-[var(--color-border)] px-4 py-2">
       {/* Strength indicator */}
       {strengthLabel && (
         <div className="text-center mb-1.5">

@@ -152,7 +152,7 @@ export function TeamAttendance({
 
   if (isLoading) {
     return (
-      <div className="glass-card rounded-xl p-6">
+      <div className="glass-card-strong rounded-xl p-6">
         <div className="flex items-center justify-center gap-2 text-[var(--color-text-secondary)]">
           <Loader2 className="w-5 h-5 animate-spin" />
           Loading attendance...
@@ -163,7 +163,7 @@ export function TeamAttendance({
 
   if (games.length === 0) {
     return (
-      <div className="glass-card rounded-xl p-6">
+      <div className="glass-card-strong rounded-xl p-6">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2 mb-4">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
           Team Attendance
@@ -202,7 +202,7 @@ export function TeamAttendance({
   };
 
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
+    <div className="glass-card-strong rounded-xl overflow-hidden">
       <div className="p-4 border-b border-[var(--color-border)]">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <Calendar className="w-5 h-5 text-[var(--league-primary)]" />
@@ -245,7 +245,7 @@ export function TeamAttendance({
                   key={player.id}
                   className="hover:bg-[var(--color-surface-hover)] transition-colors"
                 >
-                  <td className="px-4 py-2 sticky left-0 bg-[var(--color-surface)] z-10">
+                  <td className="glass-control sticky left-0 z-10 px-4 py-2">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs text-[var(--color-text-muted)] w-6 text-right">
                         {player.jersey_number ?? '-'}

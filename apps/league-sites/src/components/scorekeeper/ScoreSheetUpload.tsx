@@ -215,7 +215,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-background)]">
+    <div className="glass-card-strong fixed inset-0 z-50 flex flex-col rounded-none">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
@@ -223,7 +223,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
         </h2>
         <button
           onClick={onClose}
-          className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+          className="glass-control flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
           aria-label="Close"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -244,7 +244,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
         {/* SELECT state */}
         {state === 'select' && (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-            <div className="w-full max-w-sm border-2 border-dashed border-[var(--color-border)] rounded-2xl p-8 text-center">
+            <div className="glass-card-strong w-full max-w-sm rounded-2xl border-2 border-dashed border-[var(--color-border)] p-8 text-center">
               <svg className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-secondary)]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
@@ -262,7 +262,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                 </button>
                 <button
                   onClick={() => galleryInputRef.current?.click()}
-                  className="w-full py-3 px-4 rounded-xl bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium border border-[var(--color-border)] transition-all hover:bg-[var(--color-surface-hover)] active:scale-95"
+                  className="glass-control min-h-11 w-full rounded-xl border border-[var(--color-border)] px-4 py-3 font-medium text-[var(--color-text-primary)] transition-all active:scale-95"
                 >
                   Choose from Gallery
                 </button>
@@ -299,13 +299,13 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
             <div className="flex gap-3 w-full">
               <button
                 onClick={handleBack}
-                className="flex-1 py-3 rounded-xl bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium border border-[var(--color-border)] transition-all hover:bg-[var(--color-surface-hover)] active:scale-95"
+                className="glass-control min-h-11 flex-1 rounded-xl border border-[var(--color-border)] py-3 font-medium text-[var(--color-text-primary)] transition-all active:scale-95"
               >
                 Back
               </button>
               <button
                 onClick={() => galleryInputRef.current?.click()}
-                className="flex-1 py-3 rounded-xl bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium border border-[var(--color-border)] transition-all hover:bg-[var(--color-surface-hover)] active:scale-95"
+                className="glass-control min-h-11 flex-1 rounded-xl border border-[var(--color-border)] py-3 font-medium text-[var(--color-text-primary)] transition-all active:scale-95"
               >
                 Add Photos
               </button>
@@ -342,7 +342,7 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                 </p>
                 <button
                   onClick={handleBack}
-                  className="mt-4 px-4 py-2 rounded-lg text-sm text-[var(--color-text-primary)] bg-[var(--color-surface)] border border-[var(--color-border)]"
+                  className="glass-control mt-4 min-h-11 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-primary)]"
                 >
                   Try Again
                 </button>
@@ -394,10 +394,10 @@ export function ScoreSheetUpload({ gameId, game, onComplete, onClose }: ScoreShe
                     </div>
                   ))}
 
-                <div className="flex gap-3 mt-6 sticky bottom-0 py-4 bg-[var(--color-background)]">
+                <div className="glass-control sticky bottom-0 mt-6 flex gap-3 border-t border-[var(--color-border)] py-4">
                   <button
                     onClick={onClose}
-                    className="flex-1 py-3 rounded-xl bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium border border-[var(--color-border)] transition-all hover:bg-[var(--color-surface-hover)] active:scale-95"
+                    className="glass-control min-h-11 flex-1 rounded-xl border border-[var(--color-border)] py-3 font-medium text-[var(--color-text-primary)] transition-all active:scale-95"
                   >
                     Cancel
                   </button>
@@ -539,7 +539,7 @@ function ReviewEventRow({
   // Inline edit mode — show dropdowns to correct jersey numbers
   if (isEditing) {
     return (
-      <div className="p-3 rounded-lg bg-[var(--color-surface)] border border-[var(--league-primary,#d4af37)]/30 space-y-2">
+      <div className="glass-control space-y-2 rounded-lg border border-[var(--league-primary,#d4af37)]/30 p-3">
         <div className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase">
           Edit {isGoal ? 'Goal' : 'Penalty'} — P{data.period} {time}
         </div>
@@ -563,7 +563,7 @@ function ReviewEventRow({
   }
 
   return (
-    <div className="flex items-center gap-3 p-2.5 rounded-lg bg-[var(--color-surface)] group">
+    <div className="glass-control group flex items-center gap-3 rounded-lg p-2.5">
       {/* Icon */}
       <div
         className={`flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${
@@ -656,7 +656,7 @@ function GoalJerseyEditor({
       <JerseySelect label="Assist 1" value={a1} roster={roster} onChange={setA1} allowNull />
       <JerseySelect label="Assist 2" value={a2} roster={roster} onChange={setA2} allowNull />
       <div className="flex gap-2 pt-1">
-        <button onClick={onCancel} className="flex-1 py-2 text-xs rounded-lg bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">Cancel</button>
+        <button onClick={onCancel} className="glass-control min-h-11 flex-1 rounded-lg border border-[var(--color-border)] py-2 text-xs text-[var(--color-text-secondary)]">Cancel</button>
         <button onClick={() => onSave({ ...goal, scorerJersey: scorer, assist1Jersey: a1, assist2Jersey: a2, confidence: 'high' })} className="flex-1 py-2 text-xs rounded-lg bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] font-semibold">Save</button>
       </div>
     </div>
@@ -686,7 +686,7 @@ function PenaltyJerseyEditor({
         onChange={(v) => setJersey(v ?? penalty.playerJersey)}
       />
       <div className="flex gap-2 pt-1">
-        <button onClick={onCancel} className="flex-1 py-2 text-xs rounded-lg bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">Cancel</button>
+        <button onClick={onCancel} className="glass-control min-h-11 flex-1 rounded-lg border border-[var(--color-border)] py-2 text-xs text-[var(--color-text-secondary)]">Cancel</button>
         <button onClick={() => onSave({ ...penalty, playerJersey: jersey, confidence: 'high' })} className="flex-1 py-2 text-xs rounded-lg bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] font-semibold">Save</button>
       </div>
     </div>
@@ -716,7 +716,7 @@ function JerseySelect({
           const v = e.target.value;
           onChange(v === '' ? null : Number(v));
         }}
-        className="flex-1 text-sm rounded-lg px-2 py-1.5 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-primary)]"
+        className="glass-control min-h-11 flex-1 rounded-lg border border-[var(--color-border)] px-2 py-1.5 text-sm text-[var(--color-text-primary)]"
       >
         {allowNull && <option value="">None</option>}
         {roster.map((p: PlayerData) => (

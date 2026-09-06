@@ -20,7 +20,7 @@ export function CaptainFlowStepper({ current }: CaptainFlowStepperProps) {
   const activeMeta = CAPTAIN_GAME_FLOW_STEPS[currentIndex];
 
   return (
-    <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/40 px-3 py-2.5">
+    <div className="glass-control border-b border-[var(--color-border)] px-3 py-2.5">
       <ol className="flex items-center gap-1.5">
         {CAPTAIN_GAME_FLOW_STEPS.map((step, index) => {
           const state =

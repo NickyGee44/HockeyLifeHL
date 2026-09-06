@@ -73,7 +73,7 @@ export function ScorekeeperScheduleView({ games, leagueSlug }: ScorekeeperSchedu
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-1 mb-6 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-1">
+      <div className="glass-control mb-6 flex gap-1 rounded-xl border border-[var(--color-border)] p-1">
         {(['upcoming', 'completed', 'all'] as const).map((f) => (
           <button
             key={f}
@@ -93,7 +93,7 @@ export function ScorekeeperScheduleView({ games, leagueSlug }: ScorekeeperSchedu
 
       {/* Games by Week */}
       {gamesByWeek.length === 0 ? (
-        <div className="glass-card rounded-xl p-8 text-center">
+        <div className="glass-card-strong rounded-xl p-8 text-center">
           <svg className="w-12 h-12 mx-auto text-[var(--color-text-secondary)] opacity-50 mb-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
           </svg>
@@ -127,7 +127,7 @@ function ScheduleGameCard({ game, leagueSlug }: { game: ScheduleGame; leagueSlug
 
   return (
     <div className={`
-      bg-[var(--color-surface)] border rounded-xl p-4
+      glass-card-strong rounded-xl border p-4
       ${isLive ? 'border-red-500/30' : game.hasSwapRequest ? 'border-amber-400/30' : 'border-[var(--color-border)]'}
     `}>
       <div className="flex items-center justify-between">

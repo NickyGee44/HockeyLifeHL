@@ -175,7 +175,7 @@ export function GameSummaryModal({
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center">
-        <div className="bg-neutral-900 w-full md:max-w-2xl md:rounded-2xl p-8">
+        <div className="glass-card-strong w-full p-8 md:max-w-2xl md:rounded-2xl">
           <div className="flex items-center justify-center">
             <div className="w-12 h-12 border-4 border-white/10 border-t-cyan-500 rounded-full animate-spin" />
           </div>
@@ -187,9 +187,9 @@ export function GameSummaryModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center overflow-auto">
-      <div className="bg-neutral-900 w-full md:max-w-2xl md:rounded-2xl border-t md:border border-white/10 max-h-[95vh] flex flex-col">
+      <div className="glass-card-strong flex max-h-[95vh] w-full flex-col overflow-hidden rounded-none border-t border-white/10 md:max-w-2xl md:rounded-2xl md:border">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800 sticky top-0 bg-neutral-900 z-10">
+        <div className="glass-control sticky top-0 z-10 flex items-center justify-between border-b border-neutral-800 p-4">
           <div>
             <h2 className="text-lg font-bold text-white">Game Summary</h2>
             <p className="text-sm text-neutral-400">
@@ -198,7 +198,7 @@ export function GameSummaryModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-neutral-400 hover:text-white transition-colors touch-manipulation"
+            className="glass-control flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-neutral-400 transition-colors touch-manipulation hover:text-white"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -215,7 +215,7 @@ export function GameSummaryModal({
           )}
 
           {/* Final Score */}
-          <div className="bg-neutral-800 rounded-2xl p-6">
+          <div className="glass-card-strong rounded-2xl p-6">
             <h3 className="text-xs text-neutral-500 uppercase tracking-wider text-center mb-4">
               Final Score
             </h3>
@@ -245,7 +245,7 @@ export function GameSummaryModal({
           </div>
 
           {/* Period Breakdown */}
-          <div className="bg-neutral-800 rounded-xl p-4">
+          <div className="glass-control rounded-xl border border-white/10 p-4">
             <h3 className="text-sm font-medium text-neutral-300 mb-3">Score by Period</h3>
             <div className="grid grid-cols-4 gap-2 text-center">
               <div className="text-xs text-neutral-500">Team</div>
@@ -267,7 +267,7 @@ export function GameSummaryModal({
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-neutral-800 rounded-xl p-4">
+            <div className="glass-control rounded-xl border border-white/10 p-4">
               <h3 className="text-sm font-medium text-neutral-300 mb-3">Shots</h3>
               <div className="flex justify-between">
                 <div className="text-center">
@@ -281,7 +281,7 @@ export function GameSummaryModal({
               </div>
             </div>
 
-            <div className="bg-neutral-800 rounded-xl p-4">
+            <div className="glass-control rounded-xl border border-white/10 p-4">
               <h3 className="text-sm font-medium text-neutral-300 mb-3">Penalty Minutes</h3>
               <div className="flex justify-between">
                 <div className="text-center">
@@ -298,7 +298,7 @@ export function GameSummaryModal({
 
           {/* Special Teams Stats */}
           {summary && (summary.homePPGoals > 0 || summary.awayPPGoals > 0 || summary.homeSHGoals > 0 || summary.awaySHGoals > 0) && (
-            <div className="bg-neutral-800 rounded-xl p-4">
+            <div className="glass-control rounded-xl border border-white/10 p-4">
               <h3 className="text-sm font-medium text-neutral-300 mb-3">Special Teams</h3>
               <div className="grid grid-cols-3 gap-4 text-center text-sm">
                 <div className="text-neutral-500 font-medium">&nbsp;</div>
@@ -326,7 +326,7 @@ export function GameSummaryModal({
 
           {/* Top Scorers */}
           {summary && summary.scorers.length > 0 && (
-            <div className="bg-neutral-800 rounded-xl p-4">
+            <div className="glass-control rounded-xl border border-white/10 p-4">
               <h3 className="text-sm font-medium text-neutral-300 mb-3">Scoring Summary</h3>
               <div className="space-y-2">
                 {summary.scorers.slice(0, 10).map((scorer) => (
@@ -376,7 +376,7 @@ export function GameSummaryModal({
 
           {/* Goalie Stats */}
           {summary && summary.goalies.length > 0 && (
-            <div className="bg-neutral-800 rounded-xl p-4">
+            <div className="glass-control rounded-xl border border-white/10 p-4">
               <h3 className="text-sm font-medium text-neutral-300 mb-3">Goalie Summary</h3>
               <div className="space-y-4">
                 {summary.goalies.map((goalie) => (
@@ -470,10 +470,10 @@ export function GameSummaryModal({
                   const url = getVerificationUrl(link.token);
 
                   return (
-                    <div key={link.key} className="bg-neutral-900/50 rounded-lg p-3">
+                    <div key={link.key} className="glass-control rounded-lg border border-white/10 p-3">
                       <p className="text-xs text-neutral-500 mb-1">{link.label}</p>
                       <div className="flex items-center gap-2">
-                        <code className="flex-1 text-sm text-white bg-neutral-950 px-3 py-2 rounded break-all">
+                        <code className="glass-control flex-1 rounded px-3 py-2 text-sm text-white break-all">
                           {url}
                         </code>
                         <button
@@ -493,10 +493,10 @@ export function GameSummaryModal({
           )}
 
           {/* Verification Status Badges */}
-          <div className="bg-neutral-800 rounded-xl p-4">
+          <div className="glass-control rounded-xl border border-white/10 p-4">
             <h3 className="text-sm font-medium text-neutral-300 mb-3">Verification Status</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className={`p-3 rounded-lg border ${homeVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
+              <div className={`p-3 rounded-lg border ${homeVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'glass-control border-neutral-700'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   {homeVerifiedAt ? (
                     <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
@@ -520,7 +520,7 @@ export function GameSummaryModal({
                 </p>
               </div>
 
-              <div className={`p-3 rounded-lg border ${awayVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-neutral-900 border-neutral-700'}`}>
+              <div className={`p-3 rounded-lg border ${awayVerifiedAt ? 'bg-emerald-500/10 border-emerald-500/30' : 'glass-control border-neutral-700'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   {awayVerifiedAt ? (
                     <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
@@ -564,7 +564,7 @@ export function GameSummaryModal({
               rows={3}
               maxLength={2000}
               placeholder="e.g. Sanchez scored his first career hat trick; goalie stood on his head in the 3rd; chippy game but all handshakes after."
-              className="w-full rounded-xl bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white
+              className="glass-control w-full rounded-xl border border-neutral-700 px-3 py-2 text-sm text-white
                 placeholder:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
             />
           </div>
@@ -574,8 +574,8 @@ export function GameSummaryModal({
         <div className="p-4 border-t border-neutral-800 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-4 px-6 bg-neutral-800 text-white font-semibold rounded-xl
-              hover:bg-neutral-700 transition-colors touch-manipulation min-h-[56px]"
+            className="glass-control flex-1 py-4 px-6 text-white font-semibold rounded-xl
+              transition-colors touch-manipulation min-h-[56px]"
           >
             {submitted ? 'Close' : 'Continue Editing'}
           </button>

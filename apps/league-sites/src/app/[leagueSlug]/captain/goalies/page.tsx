@@ -134,7 +134,7 @@ function SummaryCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div className="glass-card-strong rounded-2xl p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm text-[var(--color-text-secondary)]">{label}</p>
@@ -190,7 +190,7 @@ function GoalieRatingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-4 w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+      <div className="glass-card-strong relative mx-4 w-full max-w-md overflow-hidden rounded-2xl">
         <div className="border-b border-[var(--color-border)] p-4">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Rate Sub Goalie</h2>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
@@ -229,7 +229,7 @@ function GoalieRatingModal({
               onChange={(event) => setNote(event.target.value)}
               rows={3}
               placeholder="Reliable, communicated well, arrived late, etc."
-              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              className="glass-control mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
             />
           </div>
 
@@ -243,7 +243,7 @@ function GoalieRatingModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl bg-[var(--color-surface-hover)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)]"
+            className="glass-control min-h-11 flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)]"
           >
             Cancel
           </button>
@@ -315,7 +315,7 @@ function GoaliePaymentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative mx-4 w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+      <div className="glass-card-strong relative mx-4 w-full max-w-md overflow-hidden rounded-2xl">
         <div className="border-b border-[var(--color-border)] p-4">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Mark Goalie as Paid</h2>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
@@ -334,7 +334,7 @@ function GoaliePaymentModal({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               placeholder="0.00"
-              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              className="glass-control mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
             />
           </div>
 
@@ -345,7 +345,7 @@ function GoaliePaymentModal({
             <select
               value={paymentMethod}
               onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
-              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              className="glass-control mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
             >
               <option value="e_transfer">e-Transfer</option>
               <option value="cash">Cash</option>
@@ -364,7 +364,7 @@ function GoaliePaymentModal({
               value={reference}
               onChange={(event) => setReference(event.target.value)}
               placeholder="e-Transfer reference, cheque #, etc."
-              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              className="glass-control mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
             />
           </div>
 
@@ -377,7 +377,7 @@ function GoaliePaymentModal({
               onChange={(event) => setNotes(event.target.value)}
               rows={3}
               placeholder="Optional payout notes or confirmation details."
-              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
+              className="glass-control mt-2 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--league-primary)]"
             />
           </div>
 
@@ -391,7 +391,7 @@ function GoaliePaymentModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl bg-[var(--color-surface-hover)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)]"
+            className="glass-control min-h-11 flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)]"
           >
             Cancel
           </button>
@@ -556,7 +556,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
 
       <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]">
         <section className="space-y-8">
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <div className="glass-card-strong rounded-2xl p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Upcoming Games</h2>
@@ -575,7 +575,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
                 {upcomingGames.map((game) => (
                   <div
                     key={game.id}
-                    className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4"
+                    className="glass-control rounded-2xl border border-[var(--color-border)] p-4"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
@@ -620,7 +620,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
             )}
           </div>
 
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <div className="glass-card-strong rounded-2xl p-5">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Your Goalie Requests</h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -637,7 +637,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
                 {requests.map((request) => (
                   <div
                     key={request.id}
-                    className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4"
+                    className="glass-control rounded-2xl border border-[var(--color-border)] p-4"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -672,7 +672,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
                     </div>
 
                     {request.filledGoalieName ? (
-                      <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                      <div className="glass-control mt-4 rounded-xl border border-[var(--color-border)] p-4">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-[var(--color-text-primary)]">
@@ -727,7 +727,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
         </section>
 
         <section>
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <div className="glass-card-strong rounded-2xl p-5">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Available Goalie Pool</h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -786,7 +786,7 @@ export default function CaptainGoaliesPage({ params }: CaptainGoaliesPageProps) 
 
 function GoaliePoolCard({ goalie }: { goalie: CaptainGoalieMarketplaceItem }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-4">
+    <div className="glass-control rounded-2xl border border-[var(--color-border)] p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-base font-semibold text-[var(--color-text-primary)]">{goalie.name}</p>

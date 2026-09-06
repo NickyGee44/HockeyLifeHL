@@ -51,7 +51,7 @@ export function TokenEntryPage({ leagueSlug, initialToken }: TokenEntryPageProps
 
   return (
     <div className="flex items-center justify-center min-h-screen px-4">
-      <div className="w-full max-w-md">
+      <div className="glass-card-strong w-full max-w-md rounded-[28px] p-6 sm:p-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--league-primary,#d4af37)]/10 mb-4">
@@ -85,7 +85,7 @@ export function TokenEntryPage({ leagueSlug, initialToken }: TokenEntryPageProps
               maxLength={20}
               className={`
                 w-full px-4 py-4 text-center text-xl font-mono tracking-[0.3em]
-                bg-[var(--color-surface)] border rounded-xl
+                glass-control border rounded-xl
                 text-[var(--color-text-primary)]
                 placeholder:text-[var(--color-text-secondary)]/40
                 placeholder:tracking-normal placeholder:text-base placeholder:font-sans
@@ -106,11 +106,11 @@ export function TokenEntryPage({ leagueSlug, initialToken }: TokenEntryPageProps
             onClick={handleSubmit}
             disabled={isPending || !token.trim()}
             className={`
-              w-full py-4 rounded-xl font-semibold text-base
+              w-full min-h-11 py-4 rounded-xl font-semibold text-base
               transition-all duration-200
               focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
               ${isPending || !token.trim()
-                ? 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] cursor-not-allowed'
+                ? 'glass-control text-[var(--color-text-secondary)] cursor-not-allowed'
                 : 'bg-[var(--league-primary,#d4af37)] text-[var(--color-accent-text,#000)] hover:opacity-90 active:scale-[0.98]'
               }
             `}

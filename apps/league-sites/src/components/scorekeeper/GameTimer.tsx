@@ -15,7 +15,7 @@ export function GameTimer({ timer, periodCount }: GameTimerProps) {
   return (
     <div className="flex items-center gap-4">
       {/* Period Indicator */}
-      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
+      <div className="glass-control flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--color-border)]">
         <span className="text-sm font-bold text-[var(--color-text-primary)]">
           {periodLabel}
         </span>
@@ -65,7 +65,7 @@ export function GameTimer({ timer, periodCount }: GameTimerProps) {
             {/* End Period */}
             <button
               onClick={timer.endPeriod}
-              className="flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-emphasis)] transition-all duration-200 active:scale-95"
+              className="glass-control flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-all duration-200 active:scale-95 hover:border-[var(--color-border-emphasis)] hover:text-[var(--color-text-primary)]"
               aria-label="End period"
               title="End period"
             >

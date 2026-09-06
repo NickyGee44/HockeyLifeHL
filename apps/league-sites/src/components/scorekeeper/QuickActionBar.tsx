@@ -20,7 +20,7 @@ export function QuickActionBar({
   const noTeamSelected = disabled && !selectedTeamName;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-lg pb-safe">
+    <div className="glass-control fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] pb-safe">
       {/* Prompt when no team selected */}
       {noTeamSelected && (
         <div className="text-center py-1.5 text-xs font-medium text-[var(--league-primary,#d4af37)] bg-[var(--league-primary,#d4af37)]/5 border-b border-[var(--color-border)] animate-pulse">

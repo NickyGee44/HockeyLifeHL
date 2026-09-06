@@ -218,7 +218,7 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
       </div>
 
       {invoices.length === 0 ? (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-12 text-center">
+        <div className="glass-card-strong rounded-xl p-12 text-center">
           <Receipt className="w-12 h-12 mx-auto text-[var(--color-text-muted)] mb-4" />
           <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
             No Invoices
@@ -256,7 +256,7 @@ export default function CaptainFeesPage({ params }: CaptainFeesPageProps) {
             return (
               <div
                 key={invoice.id}
-                className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl overflow-hidden"
+                className="glass-card-strong overflow-hidden rounded-xl"
               >
                 {/* Status Banner */}
                 <div className={`border-b ${config.bg} p-4`}>
@@ -526,7 +526,7 @@ function RecordTeamInvoicePaymentDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl">
+      <div className="glass-card-strong relative w-full max-w-lg overflow-hidden rounded-2xl">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Record Team Payment</h2>
@@ -540,7 +540,7 @@ function RecordTeamInvoicePaymentDialog({
         </div>
 
         <div className="space-y-4 px-5 py-4">
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] p-3">
+          <div className="glass-control rounded-xl border border-[var(--color-border)] p-3">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Outstanding Balance</p>
             <p className="mt-1 text-xl font-bold text-[var(--color-text-primary)]">
               {formatCurrency(outstandingCents, invoice.currency)}
@@ -553,7 +553,7 @@ function RecordTeamInvoicePaymentDialog({
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               inputMode="decimal"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
           </div>
 
@@ -564,7 +564,7 @@ function RecordTeamInvoicePaymentDialog({
               onChange={(event) =>
                 setPaymentMethod(event.target.value as 'e_transfer' | 'cash' | 'check' | 'other')
               }
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             >
               <option value="e_transfer">e-Transfer</option>
               <option value="cash">Cash</option>
@@ -579,7 +579,7 @@ function RecordTeamInvoicePaymentDialog({
               value={referenceNumber}
               onChange={(event) => setReferenceNumber(event.target.value)}
               placeholder="Optional reference number"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
           </div>
 
@@ -590,7 +590,7 @@ function RecordTeamInvoicePaymentDialog({
               onChange={(event) => setNotes(event.target.value)}
               rows={3}
               placeholder="Optional bookkeeping notes"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2 text-[var(--color-text-primary)]"
+              className="glass-control w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
             />
           </div>
 

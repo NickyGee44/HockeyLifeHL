@@ -69,7 +69,7 @@ export function GoalieRequestModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-xl max-w-md w-full mx-4">
+      <div className="glass-card-strong relative mx-4 w-full max-w-md overflow-hidden rounded-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
           <div>

@@ -202,7 +202,7 @@ export function CaptainGameDayPage({
           Captain dashboard
         </Link>
 
-        <div className="mt-6 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center shadow-[0_30px_80px_-48px_rgba(0,0,0,0.75)]">
+            <div className="glass-card-strong mt-6 rounded-[30px] p-8 text-center">
           <CalendarDays className="mx-auto h-12 w-12 text-[var(--league-primary)]" />
           <h1 className="mt-4 text-3xl font-black tracking-tight text-[var(--color-text-primary)]">
             Game Day
@@ -292,7 +292,7 @@ export function CaptainGameDayPage({
                 Our Lineup
               </h2>
             </div>
-            <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)] md:p-7">
+                <div className="glass-card-strong rounded-[30px] p-5 md:p-7">
               <TeamLineupView
                 skaters={skaters}
                 goalies={goalies}
@@ -460,10 +460,10 @@ function ActionTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`relative z-40 min-h-[108px] rounded-[24px] border px-4 py-3 text-center transition-all backdrop-blur-xl ${
-        disabled
-          ? 'cursor-not-allowed border-white/5 bg-slate-950/45 text-slate-500'
-          : 'border-white/10 bg-white/[0.05] text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08]'
+          className={`glass-control relative z-40 min-h-[108px] rounded-[24px] border px-4 py-3 text-center transition-all ${
+            disabled
+              ? 'cursor-not-allowed border-white/5 text-slate-500 opacity-50'
+              : 'border-white/10 text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/35'
       }`}
     >
       <div className="flex h-full flex-col items-center justify-center gap-2">
@@ -534,7 +534,7 @@ function Overlay({
       <div className="relative flex min-h-full items-center justify-center px-3 py-6 sm:px-4">
         <div className={`${fullScreen ? 'h-[min(92vh,980px)] w-full max-w-6xl' : 'w-full max-w-3xl'} relative`}>
           <div className="pointer-events-none absolute -inset-3 rounded-[38px] bg-[var(--league-primary)]/12 blur-2xl" />
-          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[var(--color-surface)] shadow-[0_40px_120px_-38px_rgba(0,0,0,0.95)]">
+          <div className="glass-card-strong relative overflow-hidden rounded-[32px]">
             <div className="flex items-center justify-between gap-3 border-b border-white/8 bg-black/25 px-5 py-4 backdrop-blur-sm sm:px-6">
               <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
                 {title}
@@ -547,7 +547,7 @@ function Overlay({
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className={fullScreen ? 'max-h-[calc(92vh-72px)] overflow-y-auto bg-[var(--color-background)]' : 'max-h-[calc(92vh-72px)] overflow-y-auto bg-[var(--color-surface)] p-5 sm:p-6'}>
+            <div className={fullScreen ? 'max-h-[calc(92vh-72px)] overflow-y-auto' : 'max-h-[calc(92vh-72px)] overflow-y-auto p-5 sm:p-6'}>
               {children}
             </div>
           </div>

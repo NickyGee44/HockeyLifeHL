@@ -57,7 +57,7 @@ export function PlayerPicker({
       />
 
       {/* Panel - slides up from bottom */}
-      <div className="relative mt-auto max-h-[85vh] flex flex-col bg-[var(--color-background)] rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+      <div className="glass-card-strong relative mt-auto flex max-h-[85vh] flex-col rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
         {/* Team color accent bar */}
         <div
           className="h-1 rounded-t-2xl"
@@ -97,7 +97,7 @@ export function PlayerPicker({
           <div className="px-3 pt-2">
             <button
               onClick={onSkip}
-              className="w-full py-3 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] font-medium active:scale-95 transition-all"
+              className="glass-control min-h-11 w-full rounded-xl border border-[var(--color-border)] py-3 font-medium text-[var(--color-text-secondary)] transition-all active:scale-95"
             >
               {skipLabel}
             </button>
@@ -116,7 +116,7 @@ export function PlayerPicker({
                 <button
                   key={player.id}
                   onClick={() => onSelect(player)}
-                  className="relative flex min-h-[108px] flex-col items-center justify-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-3 transition-all duration-150 active:scale-95 hover:border-[var(--color-border-emphasis)] hover:bg-[var(--color-surface-hover,var(--color-surface))]"
+                  className="glass-control relative flex min-h-[108px] flex-col items-center justify-center gap-1 rounded-xl border border-[var(--color-border)] px-2 py-3 transition-all duration-150 active:scale-95 hover:border-[var(--color-border-emphasis)]"
                 >
                   {player.avatarUrl ? (
                     <Image

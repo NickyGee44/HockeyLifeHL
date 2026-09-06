@@ -100,8 +100,8 @@ export default function CaptainVerificationPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-        <div className="text-center">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="glass-card-strong rounded-[28px] p-8 text-center">
           <div className="w-16 h-16 border-4 border-white/10 border-t-primary rounded-full animate-spin mx-auto" />
           <p className="text-neutral-400 mt-4">Loading verification...</p>
         </div>
@@ -111,8 +111,8 @@ export default function CaptainVerificationPage() {
 
   if (error || !game || !teamType) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="glass-card-strong max-w-md rounded-[28px] p-8 text-center">
           <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center mb-4">
             <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -129,9 +129,9 @@ export default function CaptainVerificationPage() {
   const oppTeam = teamType === 'home' ? game.awayTeam : game.homeTeam;
 
   return (
-    <div className="min-h-screen bg-neutral-950">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-neutral-900 border-b border-white/10 px-4 py-6">
+      <header className="glass-control border-b border-white/10 px-4 py-6">
         <div className="max-w-lg mx-auto text-center">
           <div
             className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
@@ -166,7 +166,7 @@ export default function CaptainVerificationPage() {
         )}
 
         {/* Final Score */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+        <div className="glass-card-strong rounded-2xl p-6">
           <h3 className="text-xs text-neutral-500 uppercase tracking-wider text-center mb-4">
             Final Score
           </h3>
@@ -196,7 +196,7 @@ export default function CaptainVerificationPage() {
         </div>
 
         {/* Period Breakdown */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+        <div className="glass-card-strong rounded-xl p-4">
           <h3 className="text-sm font-medium text-neutral-300 mb-3">Score by Period</h3>
           <div className="grid grid-cols-4 gap-2 text-center">
             <div className="text-xs text-neutral-500">Team</div>
@@ -218,7 +218,7 @@ export default function CaptainVerificationPage() {
 
         {/* Your Team's Scoring */}
         {summary && (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+          <div className="glass-card-strong rounded-xl p-4">
             <h3 className="text-sm font-medium text-neutral-300 mb-3">
               {myTeam.name} Scoring
             </h3>
@@ -250,7 +250,7 @@ export default function CaptainVerificationPage() {
         )}
 
         {/* Penalty Minutes */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+        <div className="glass-card-strong rounded-xl p-4">
           <h3 className="text-sm font-medium text-neutral-300 mb-3">Penalty Minutes</h3>
           <div className="flex justify-between">
             <div className="text-center flex-1">
@@ -289,7 +289,7 @@ export default function CaptainVerificationPage() {
             <button
               onClick={handleVerify}
               disabled={isVerifying}
-              className="w-full py-4 px-6 bg-primary text-black font-semibold text-lg rounded-xl
+              className="w-full min-h-11 py-4 px-6 bg-primary text-black font-semibold text-lg rounded-xl
                 hover:shadow-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-all touch-manipulation min-h-[56px]"
             >

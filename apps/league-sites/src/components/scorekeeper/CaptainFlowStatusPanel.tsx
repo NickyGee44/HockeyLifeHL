@@ -40,7 +40,7 @@ export function CaptainFlowStatusPanel({ game, session, leagueSlug }: CaptainFlo
 
   return (
     <div className="mx-auto max-w-md px-4 py-8">
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
+      <div className="glass-card-strong rounded-2xl p-6 text-center">
         <div
           className={[
             'mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full',

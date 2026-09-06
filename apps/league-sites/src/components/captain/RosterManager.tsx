@@ -241,7 +241,7 @@ function RosterTable({
   onUpdate: () => void;
 }) {
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
+    <div className="glass-card-strong rounded-xl overflow-hidden">
       <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <Users className="w-5 h-5 text-[var(--league-primary)]" />
@@ -599,4 +599,3 @@ function EditableRosterRow({
     </>
   );
 }
-

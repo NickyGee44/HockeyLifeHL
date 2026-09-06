@@ -248,7 +248,7 @@ export function ScoringInterface({
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="glass-card-strong mx-auto flex min-h-screen w-full max-w-5xl flex-col overflow-hidden rounded-none sm:my-4 sm:min-h-[calc(100vh-2rem)] sm:rounded-[28px]">
       {/* Sync Status */}
       <div className="px-4 pt-2">
         <SyncStatusBanner />
@@ -280,7 +280,7 @@ export function ScoringInterface({
           </span>
           <button
             onClick={() => setShowGameSummary(true)}
-            className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+            className="glass-control flex min-h-11 min-w-11 items-center justify-center rounded-lg p-1.5 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
             aria-label="Game summary"
             title="View game summary"
           >
@@ -291,7 +291,7 @@ export function ScoringInterface({
           <div className="relative">
             <button
               onClick={() => setShowNotes(true)}
-              className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+              className="glass-control flex min-h-11 min-w-11 items-center justify-center rounded-lg p-1.5 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
               aria-label="Game notes"
               title="Game notes"
             >
@@ -305,7 +305,7 @@ export function ScoringInterface({
           </div>
           <button
             onClick={() => setShowScoreSheetUpload(true)}
-            className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+            className="glass-control flex min-h-11 min-w-11 items-center justify-center rounded-lg p-1.5 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
             aria-label="Upload score sheet"
             title="Upload score sheet photo"
           >
@@ -369,7 +369,7 @@ export function ScoringInterface({
 
       {/* Officials Strip */}
       {game.officials && game.officials.length > 0 && (
-        <div className="px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50">
+        <div className="glass-control border-b border-[var(--color-border)] px-4 py-2">
           <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)]">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" />
@@ -421,7 +421,7 @@ export function ScoringInterface({
       {/* Event Timeline — Collapsible */}
       <div className="flex-1 overflow-y-auto">
         {/* Collapsible Header */}
-        <div className="flex items-center justify-between w-full px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]/50">
+        <div className="glass-control flex w-full items-center justify-between border-b border-[var(--color-border)] px-4 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[var(--color-text-primary)] uppercase tracking-wide">
               Events
@@ -602,7 +602,7 @@ export function ScoringInterface({
       {showNotes && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowNotes(false)} />
-          <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+          <div className="glass-card-strong relative mx-4 mb-4 w-full max-w-md rounded-2xl sm:mb-0 animate-in slide-in-from-bottom duration-200">
             <div className="px-4 py-3 border-b border-[var(--color-border)]">
               <h3 className="font-semibold text-[var(--color-text-primary)]">Game Notes</h3>
               <p className="text-xs text-[var(--color-text-secondary)]">Notes are saved to the game record</p>
@@ -612,7 +612,7 @@ export function ScoringInterface({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add notes about the game (injuries, disputes, ice conditions, etc.)..."
-                className="w-full h-32 px-3 py-2 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--league-primary,#d4af37)]/50"
+                className="glass-control h-32 w-full rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--league-primary,#d4af37)]/50"
               />
             </div>
             <div className="flex gap-2 px-4 py-3 border-t border-[var(--color-border)]">

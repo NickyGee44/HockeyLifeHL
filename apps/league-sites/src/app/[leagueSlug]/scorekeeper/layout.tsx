@@ -17,7 +17,7 @@ export default function ScorekeeperLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div className="min-h-screen bg-transparent">
       <ScorekeeperChromeMode />
       {children}
     </div>

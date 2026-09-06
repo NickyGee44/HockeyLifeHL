@@ -352,7 +352,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_28px_70px_-46px_rgba(0,0,0,0.8)]">
+      <div className="glass-card-strong mb-8 rounded-[30px] p-5">
         <div className="flex items-center gap-5">
           <div className="flex h-48 w-48 shrink-0 items-center justify-center overflow-hidden">
             {currentTeam.team.logo ? (
@@ -403,7 +403,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
             </>
           );
 
-          const className = 'relative z-40 min-h-[108px] rounded-[24px] border border-white/10 bg-white/[0.05] px-4 py-3 text-center text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] transition-all backdrop-blur-xl hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08]';
+          const className = 'glass-control relative z-40 min-h-[108px] rounded-[24px] border border-white/10 px-4 py-3 text-center text-[var(--color-text-primary)] transition-all hover:border-[var(--league-primary)]/35';
 
           if (item.type === 'button') {
             return (
@@ -434,7 +434,7 @@ export default function CaptainPage({ params }: CaptainPageProps) {
         onRosterUpdate={fetchRosterData}
       />
 
-      <div className="mt-8 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="glass-card-strong mt-8 overflow-hidden rounded-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Subs</h2>
           <span className="text-sm text-[var(--color-text-secondary)]">{subs.length} played this season</span>

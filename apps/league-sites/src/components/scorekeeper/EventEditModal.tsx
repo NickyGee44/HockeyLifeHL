@@ -23,7 +23,7 @@ function isGoalie(p: PlayerData): boolean {
 }
 
 const fieldClass =
-  'w-full rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary,#d4af37)]/50';
+  'glass-control w-full rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary,#d4af37)]/50';
 
 const labelClass =
   'block text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] mb-1.5';
@@ -117,7 +117,7 @@ export function EventEditModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 max-h-[90vh] overflow-y-auto bg-[var(--color-background)] rounded-2xl border border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+      <div className="glass-card-strong relative mx-4 mb-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl sm:mb-0 animate-in slide-in-from-bottom duration-200">
         <div className="px-4 py-3 border-b border-[var(--color-border)]">
           <h3 className="font-semibold text-[var(--color-text-primary)]">
             Edit {isGoal ? 'goal' : 'penalty'}
@@ -141,7 +141,7 @@ export function EventEditModal({
                       className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
                         period === p
                           ? 'bg-[var(--league-primary,#d4af37)] text-black'
-                          : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+                          : 'glass-control text-[var(--color-text-secondary)]'
                       }`}
                     >
                       {p}
@@ -221,7 +221,7 @@ export function EventEditModal({
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       active
                         ? 'bg-[var(--league-primary,#d4af37)] text-black'
-                        : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+                        : 'glass-control text-[var(--color-text-secondary)]'
                     }`}
                   >
                     {label}

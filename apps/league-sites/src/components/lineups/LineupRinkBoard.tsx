@@ -75,7 +75,7 @@ export function LineupRinkBoard({
   const paintColor = accentColor || '#0ea5e9';
 
   return (
-    <div className={cn('rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-4 shadow-[0_24px_80px_rgba(2,6,23,0.35)] backdrop-blur-xl', className)}>
+    <div className={cn('glass-card-strong rounded-[28px] border-white/10 p-4', className)}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-neutral-500">Tonight&apos;s Look</p>

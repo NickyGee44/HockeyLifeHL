@@ -143,7 +143,7 @@ export function PenaltyEntry({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-        <div className="relative bg-[var(--color-background)] rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150 max-w-sm mx-4">
+        <div className="glass-card-strong relative mx-4 max-w-sm rounded-2xl p-6 text-center animate-in zoom-in-95 duration-150">
           <div className="text-2xl mb-2">&#9888;&#65039;</div>
           <p className="font-semibold text-[var(--color-text-primary)] mb-1">Penalty not saved</p>
           <p className="text-sm text-[var(--color-text-secondary)] mb-4">{submitError}</p>
@@ -170,7 +170,7 @@ export function PenaltyEntry({
   return (
     <div className="fixed inset-0 z-50 flex flex-col">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative mt-auto max-h-[85vh] flex flex-col bg-[var(--color-background)] rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
+      <div className="glass-card-strong relative mt-auto flex max-h-[85vh] flex-col rounded-t-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom duration-200">
         {/* Team color accent bar */}
         <div
           className="h-1 rounded-t-2xl flex-shrink-0"
@@ -201,7 +201,7 @@ export function PenaltyEntry({
           {grouped.map(group => (
             <div key={group.minutes}>
               {/* Group Header */}
-              <div className="sticky top-0 z-10 px-4 py-2 bg-[var(--color-background)]/95 backdrop-blur-sm border-b border-[var(--color-border)]">
+              <div className="glass-control sticky top-0 z-10 border-b border-[var(--color-border)] px-4 py-2">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold uppercase tracking-wider ${group.colors.text}`}>
                     {group.label}
