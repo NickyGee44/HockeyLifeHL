@@ -4,7 +4,7 @@ import { forwardRef } from 'react';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Card style variant */
-  variant?: 'default' | 'glass' | 'gradient' | 'elevated';
+  variant?: 'default' | 'glass' | 'strong' | 'gradient' | 'elevated';
   /** Enable hover lift effect */
   hover?: boolean;
   /** Enable glow effect on hover */
@@ -65,6 +65,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       glass: `
         glass-card
       `,
+      strong: `
+        glass-card-strong
+      `,
       gradient: `
         glass-card
         before:absolute before:inset-0 before:-z-10
@@ -74,7 +77,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         ${hover ? 'hover:before:opacity-100 before:opacity-60' : ''}
       `,
       elevated: `
-        glass-card
+        glass-card-strong
       `,
     };
 
@@ -84,7 +87,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 
     const glowStyles = glow
       ? {
-          boxShadow: `0 0 0 rgba(var(--league-primary-rgb, 212, 175, 55), 0)`,
+          boxShadow: `0 0 0 rgba(var(--league-primary-rgb, 22, 119, 255), 0)`,
         }
       : {};
 

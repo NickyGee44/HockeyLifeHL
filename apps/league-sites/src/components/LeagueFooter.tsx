@@ -28,7 +28,7 @@ export function LeagueFooter({ league, leagueSlug, visiblePages }: LeagueFooterP
   ].filter((item) => shouldShowDefaultPublicNavPage(item.pageKey, visiblePages));
 
   return (
-    <footer className="relative border-t border-[var(--color-border)] bg-[var(--color-background)] overflow-hidden">
+    <footer className="league-footer glass-chrome relative overflow-hidden border-t border-[var(--color-border)]">
       {/* Gradient top border using league colors */}
       <div
         className="absolute top-0 left-0 right-0 h-[3px]"

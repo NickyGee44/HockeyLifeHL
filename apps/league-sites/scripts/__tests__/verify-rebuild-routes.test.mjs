@@ -95,7 +95,7 @@ test('normalizes Next app page and handler filenames', () => {
   assert.equal(routeFileToRoute('api/public/live-game/route.ts'), '/api/public/live-game');
 });
 
-test('reports missing/stale routes, exact source drift, wrapper drift, and handler drift', async () => {
+test('reports route/source/handler drift while accepting real in-progress pages', async () => {
   const root = await createFixture();
   const manifest = baseManifest(
     [
@@ -105,6 +105,7 @@ test('reports missing/stale routes, exact source drift, wrapper drift, and handl
         path: '/discover',
         source: 'src/app/discover/page.ts',
         title: 'Discover',
+        status: 'in-progress',
       }),
       route({
         id: 'LS-STALE',
@@ -129,8 +130,17 @@ test('reports missing/stale routes, exact source drift, wrapper drift, and handl
     'handler /api/wrong: manifest source src/app/api/health/route.ts resolves to /api/health',
     'route /discover: expected source src/app/discover/page.tsx, got src/app/discover/page.ts',
   ]);
+  assert.deepEqual(result.wrapperMismatches, []);
+});
+
+test('still rejects a placeholder wired to the wrong manifest route', async () => {
+  const root = await createFixture();
+  const manifest = baseManifest([route({ id: 'LS-WRONG' })]);
+
+  const result = await verifyManifestCoverage({ root, manifest });
+
   assert.deepEqual(result.wrapperMismatches, [
-    '/discover: expected RebuildRoute routeId LS-DISCOVER',
+    '/: RebuildRoute placeholder must use routeId LS-WRONG',
   ]);
 });
 

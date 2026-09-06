@@ -268,7 +268,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, registratio
 
   return (
     <header
-      className="league-header hidden lg:block sticky top-0 z-50 border-b border-[var(--header-border)] bg-[color-mix(in_srgb,var(--header-bg)_92%,transparent)] text-[var(--header-text)] backdrop-blur-xl"
+      className="league-header glass-chrome hidden lg:block sticky top-0 z-50 border-b border-[var(--header-border)] text-[var(--header-text)]"
       data-testid="league-header"
     >
       <div

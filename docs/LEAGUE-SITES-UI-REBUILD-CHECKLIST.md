@@ -58,7 +58,7 @@
 
 ### [ ] `LEAGUE-THEME` — League theming
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Contract:** Brand colours, logos, banners, template variants, light/dark behavior, and safe fallbacks remain configurable per league.
 
 ### [ ] `WEBSITE-EDITOR-VISIBILITY` — Website editor compatibility
@@ -73,14 +73,14 @@
 
 ## Shared/global requirements
 
-- [ ] `GLOBAL-SHELL` — **League shell:** Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently. (`not-started`)
-- [ ] `RESPONSIVE` — **Responsive behavior:** Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions. (`not-started`)
-- [ ] `A11Y` — **Accessibility:** Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance. (`not-started`)
+- [ ] `GLOBAL-SHELL` — **League shell:** Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently. (`in-progress`)
+- [ ] `RESPONSIVE` — **Responsive behavior:** Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions. (`in-progress`)
+- [ ] `A11Y` — **Accessibility:** Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance. (`in-progress`)
 - [ ] `SYSTEM-STATES` — **System states:** Every route deliberately covers loading, empty, partial, error, offline where applicable, unauthenticated, unauthorized, expired, subscription, and success states. (`not-started`)
 - [ ] `SEO-PWA` — **SEO and PWA:** League-aware metadata, canonical/social images, structured data, sitemap/robots rules, manifest/install flows, and private-route noindex behavior are preserved. (`not-started`)
 - [ ] `OBSERVABILITY` — **Analytics and diagnostics:** Consent-gated analytics, league attribution, Sentry capture, and bug-report context return without leaking personal or tenant data. (`not-started`)
 - [ ] `TIMEZONE-LOCALE` — **Timezone and locale:** Dates and game times use each league timezone and copy remains ready for English/French requirements. (`not-started`)
-- [ ] `PERFORMANCE` — **Performance:** Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads. (`not-started`)
+- [ ] `PERFORMANCE` — **Performance:** Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads. (`in-progress`)
 
 ## Public league content (24)
 

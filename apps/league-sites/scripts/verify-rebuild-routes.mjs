@@ -150,12 +150,15 @@ export async function verifyManifestCoverage({ root = DEFAULT_ROOT, manifest }) 
     const route = manifestRoutes.get(routePath);
     if (!route) continue;
     const contents = await readFile(path.join(root, source), 'utf8');
+    if (!/\bRebuildRoute\b/.test(contents)) {
+      continue;
+    }
     const escapedId = route.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const wrapperPattern = new RegExp(
       `<RebuildRoute\\s+[^>]*routeId=["']${escapedId}["']|<RebuildRoute\\s+routeId=["']${escapedId}["']`
     );
     if (!wrapperPattern.test(contents)) {
-      wrapperMismatches.push(`${routePath}: expected RebuildRoute routeId ${route.id}`);
+      wrapperMismatches.push(`${routePath}: RebuildRoute placeholder must use routeId ${route.id}`);
     }
   }
 

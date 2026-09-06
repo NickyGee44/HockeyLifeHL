@@ -86,7 +86,7 @@
     {
       "id": "LEAGUE-THEME",
       "title": "League theming",
-      "status": "not-started",
+      "status": "in-progress",
       "requirement": "Brand colours, logos, banners, template variants, light/dark behavior, and safe fallbacks remain configurable per league."
     },
     {
@@ -106,19 +106,19 @@
     {
       "id": "GLOBAL-SHELL",
       "title": "League shell",
-      "status": "not-started",
+      "status": "in-progress",
       "requirement": "Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently."
     },
     {
       "id": "RESPONSIVE",
       "title": "Responsive behavior",
-      "status": "not-started",
+      "status": "in-progress",
       "requirement": "Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions."
     },
     {
       "id": "A11Y",
       "title": "Accessibility",
-      "status": "not-started",
+      "status": "in-progress",
       "requirement": "Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance."
     },
     {
@@ -148,7 +148,7 @@
     {
       "id": "PERFORMANCE",
       "title": "Performance",
-      "status": "not-started",
+      "status": "in-progress",
       "requirement": "Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads."
     }
   ],
