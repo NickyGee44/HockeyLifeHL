@@ -1,6 +1,6 @@
 # League Sites UI Rebuild
 
-This branch intentionally replaces the rendered `apps/league-sites` page layer with a neutral route-by-route rebuild shell. The production implementation remains available in git history and the pre-rebuild backup artifacts. Backend actions, data helpers, middleware, API/route handlers, database code, shared packages, and other apps are not part of this strip-down.
+The `apps/league-sites` route-by-route UI rebuild is implemented and integrated with the existing production data and interaction contracts. Backend actions, data helpers, middleware, API/route handlers, database code, shared packages, and other apps remain outside the visual rebuild scope.
 
 ## Start locally
 
@@ -9,16 +9,14 @@ cd /Users/tonysoprano/workspaces/tony/projects/BeerLeagueHockey-league-sites-ui-
 pnpm --filter @hockey-life/league-sites dev
 ```
 
-The shell is intentionally offline-friendly. Use any route pattern with sample parameters, for example `/demo-league/schedule`.
+Use a real local league slug when reviewing data-backed routes, for example `/demo-league/schedule` when that fixture is available.
 
-## Work one page at a time
+## Review and acceptance
 
-1. Open `src/rebuild/route-manifest.json`.
-2. Pick a route ID and set its status from `not-started` to `in-progress`.
-3. Rebuild that page while preserving its listed sections, interactions, states, and contract IDs.
-4. Reconnect existing non-visual code deliberately; do not copy the legacy presentation wholesale.
-5. Set the status to `review`, generate the checklist, and verify desktop/mobile plus all applicable states.
-6. Set `complete` only after acceptance.
+1. Use `src/rebuild/route-manifest.json` to confirm route and contract coverage.
+2. Run the automated rebuild checks before design review.
+3. Review desktop and mobile layouts plus loading, empty, error, and interactive states where applicable.
+4. Record acceptance evidence in the generated checklist and keep the manifest status aligned with the reviewed result.
 
 ## Keep the tracker current
 

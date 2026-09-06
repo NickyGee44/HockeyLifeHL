@@ -11,7 +11,7 @@
     "test:watch": "jest --config jest.config.cjs --watch",
     "type-check": "tsc --noEmit",
     "rebuild:check": "node scripts/verify-rebuild-routes.mjs",
-    "rebuild:test": "node --test scripts/__tests__/verify-rebuild-routes.test.mjs scripts/__tests__/route-acceptance-evidence.test.mjs",
+    "rebuild:test": "node --test scripts/__tests__/*.test.mjs",
     "rebuild:tracker": "node scripts/verify-rebuild-routes.mjs --write-tracker"
   },
   "dependencies": {

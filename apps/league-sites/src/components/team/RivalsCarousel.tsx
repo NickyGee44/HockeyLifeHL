@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 interface RivalCard {
   team: {
@@ -26,6 +27,7 @@ export function RivalsCarousel({
   leagueSlug: string;
 }) {
   const [index, setIndex] = useState(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const next = useCallback(() => {
     setIndex((i) => (i + 1) % rivals.length);
@@ -36,10 +38,10 @@ export function RivalsCarousel({
   }, [rivals.length]);
 
   useEffect(() => {
-    if (rivals.length <= 1) return;
+    if (prefersReducedMotion || rivals.length <= 1) return;
     const timer = setInterval(next, 7000);
     return () => clearInterval(timer);
-  }, [next, rivals.length]);
+  }, [next, prefersReducedMotion, rivals.length]);
 
   if (rivals.length === 0) return null;
 

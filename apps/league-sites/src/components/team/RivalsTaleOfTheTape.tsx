@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -291,6 +292,7 @@ export function RivalsTaleOfTheTape({
   leagueSlug: string;
 }) {
   const [index, setIndex] = useState(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const next = useCallback(() => {
     setIndex((i) => (i + 1) % matchups.length);
@@ -301,10 +303,10 @@ export function RivalsTaleOfTheTape({
   }, [matchups.length]);
 
   useEffect(() => {
-    if (matchups.length <= 1) return;
+    if (prefersReducedMotion || matchups.length <= 1) return;
     const timer = setInterval(next, 8000);
     return () => clearInterval(timer);
-  }, [next, matchups.length]);
+  }, [matchups.length, next, prefersReducedMotion]);
 
   if (matchups.length === 0) return null;
 

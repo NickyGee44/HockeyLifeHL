@@ -558,7 +558,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         registrationSeason={registrationSeason}
         stats={stats}
         photoFallback={homepagePhotoHighlight}
-        showInfoCard
+        showInfoCard={true}
       />
 
       <HomepageSeasonBand

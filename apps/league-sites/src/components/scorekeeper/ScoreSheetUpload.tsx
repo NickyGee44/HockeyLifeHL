@@ -606,7 +606,7 @@ function ReviewEventRow({
       {(hasWarning || data.confidence === 'low' || data.confidence === 'medium') && (
         <button
           onClick={() => setIsEditing(true)}
-          className="flex-shrink-0 p-2 rounded-lg hover:bg-blue-500/10 text-[var(--color-text-secondary)] hover:text-blue-400 transition-all"
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition-all hover:bg-blue-500/10 hover:text-blue-400 focus-visible:bg-blue-500/10 focus-visible:text-blue-400"
           aria-label="Edit event"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -618,7 +618,7 @@ function ReviewEventRow({
       {/* Remove button */}
       <button
         onClick={onRemove}
-        className="flex-shrink-0 p-2 rounded-lg hover:bg-red-500/10 text-[var(--color-text-secondary)] hover:text-red-400 transition-all"
+        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition-all hover:bg-red-500/10 hover:text-red-400 focus-visible:bg-red-500/10 focus-visible:text-red-400"
         aria-label="Remove event"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

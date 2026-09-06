@@ -191,7 +191,7 @@ function TeamCard({ team, leagueSlug }: { team: Team; leagueSlug: string }) {
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-center gap-1 text-sm font-semibold text-[var(--league-primary)] lg:opacity-70 lg:group-hover:opacity-100 transition-opacity">
+        <div className="mt-4 flex items-center justify-center gap-1 text-sm font-semibold text-[var(--league-primary)] lg:opacity-70 lg:group-hover:opacity-100 lg:group-focus-visible:opacity-100 transition-opacity">
           View Roster
           <ChevronRight className="w-4 h-4" />
         </div>

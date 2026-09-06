@@ -464,7 +464,7 @@ export function ScoringInterface({
             <button
               type="button"
               onClick={() => setEventsCollapsed(prev => !prev)}
-              className="rounded-lg p-1 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)]"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text-primary)] focus-visible:bg-[var(--color-surface)] focus-visible:text-[var(--color-text-primary)]"
               aria-expanded={!eventsCollapsed}
               aria-label={eventsCollapsed ? 'Expand events' : 'Collapse events'}
             >
@@ -781,7 +781,7 @@ function EventRow({
       {canEdit && (
         <button
           onClick={onEdit}
-          className="flex-shrink-0 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-[var(--league-primary,#d4af37)]/10 text-[var(--color-text-secondary)] hover:text-[var(--league-primary,#d4af37)] transition-all"
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg opacity-0 transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-[var(--league-primary,#d4af37)]/10 hover:text-[var(--league-primary,#d4af37)] focus-visible:bg-[var(--league-primary,#d4af37)]/10 focus-visible:text-[var(--league-primary,#d4af37)] text-[var(--color-text-secondary)]"
           aria-label="Edit event"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -793,7 +793,7 @@ function EventRow({
       {/* Undo */}
       <button
         onClick={onUndo}
-        className="flex-shrink-0 p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-[var(--color-text-secondary)] hover:text-red-400 transition-all"
+        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg opacity-0 text-[var(--color-text-secondary)] transition-all group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-red-500/10 hover:text-red-400 focus-visible:bg-red-500/10 focus-visible:text-red-400"
         aria-label="Undo event"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

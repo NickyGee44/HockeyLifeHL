@@ -2,6 +2,7 @@
 
 import { createElement, useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, BarChart3, TrendingUp, Target, Trophy, Zap, Users, Percent, Flame } from 'lucide-react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 interface PointInsight {
   key: string;
@@ -25,6 +26,7 @@ function getIcon(key: string) {
 
 export function PointInsightsCarousel({ insights, asBanner = false }: { insights: PointInsight[]; asBanner?: boolean }) {
   const [index, setIndex] = useState(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const next = useCallback(() => {
     setIndex((i) => (i + 1) % insights.length);
@@ -35,10 +37,10 @@ export function PointInsightsCarousel({ insights, asBanner = false }: { insights
   }, [insights.length]);
 
   useEffect(() => {
-    if (insights.length <= 1) return;
+    if (prefersReducedMotion || insights.length <= 1) return;
     const timer = setInterval(next, 6000);
     return () => clearInterval(timer);
-  }, [next, insights.length]);
+  }, [next, insights.length, prefersReducedMotion]);
 
   if (insights.length === 0) return null;
 

@@ -509,7 +509,7 @@ function EditableRosterRow({
               <span className="text-[var(--color-text-secondary)]">
                 {shortPosition(player.position)}
               </span>
-              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Pencil className="w-3 h-3 text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
             </button>
           )}
         </td>

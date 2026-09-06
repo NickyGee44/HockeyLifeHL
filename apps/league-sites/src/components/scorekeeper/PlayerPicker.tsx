@@ -83,7 +83,7 @@ export function PlayerPicker({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)]"
             aria-label="Close"
           >
             <svg className="w-5 h-5 text-[var(--color-text-secondary)]" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

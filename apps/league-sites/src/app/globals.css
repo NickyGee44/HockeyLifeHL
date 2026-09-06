@@ -1123,7 +1123,17 @@ html[data-scorekeeper-mode='true'] .league-atmosphere {
     --blh-control-surface: #ffffff;
   }
 
-  :is(.glass-card, .glass-card-strong, .card, .glass-chrome, .glass-control) {
+  :is(
+    .glass-card,
+    .glass-card-strong,
+    .card,
+    .glass-chrome,
+    .glass-control,
+    .game-card,
+    .stat-card,
+    [class*='backdrop-blur']
+  ) {
+    background-color: var(--blh-glass-fallback) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }

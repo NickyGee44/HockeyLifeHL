@@ -80,10 +80,10 @@ export function PhotoLightbox({ photos, initialIndex = 0 }: PhotoLightboxProps) 
               src={photo.thumbnail_url || photo.url}
               alt={photo.caption || `Photo ${index + 1}`}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-cover group-hover:scale-105 group-focus-visible:scale-105 transition-transform duration-300"
             />
             {photo.caption && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
                 <p className="text-xs text-white truncate">{photo.caption}</p>
               </div>
             )}

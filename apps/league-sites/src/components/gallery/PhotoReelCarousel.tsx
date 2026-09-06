@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ReelPhoto } from '@/lib/types';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -23,6 +24,7 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const total = shuffled.length;
 
@@ -35,12 +37,12 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
 
   // Auto-rotate every 8s unless paused
   useEffect(() => {
-    if (paused || total <= 1) return;
+    if (prefersReducedMotion || paused || total <= 1) return;
     timerRef.current = setInterval(() => advance(1), 8000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [paused, advance, total]);
+  }, [paused, advance, prefersReducedMotion, total]);
 
   if (total === 0) return null;
 
@@ -102,7 +104,7 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
                   className={`h-1.5 rounded-full transition-all duration-300 ${
                     i === current
                       ? 'w-6 bg-[var(--league-primary)]'
-                      : 'w-1.5 bg-white/40 group-hover:bg-white/60'
+                      : 'w-1.5 bg-white/40 group-hover:bg-white/60 group-focus-visible:bg-white/60'
                   }`}
                 />
               </button>

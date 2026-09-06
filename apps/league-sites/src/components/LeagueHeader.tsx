@@ -469,7 +469,7 @@ export function LeagueHeader({ league, leagueSlug, registrationOpen, registratio
             <AuthButton leagueSlug={leagueSlug} leagueId={league.id} />
             <button
               type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--header-border)] text-[var(--header-text)]"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--header-border)] text-[var(--header-text)]"
               onClick={() => setIsMobileMenuOpen((open) => !open)}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               data-testid="mobile-menu-toggle"

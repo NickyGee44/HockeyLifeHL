@@ -238,7 +238,7 @@ export function FloatingDock({
       {/* More popup menu */}
       {moreOpen && (
         <div
-          className="fixed inset-x-4 z-[1000] mx-auto max-w-sm animate-in slide-in-from-bottom-4 rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
+          className="fixed inset-x-4 z-[1000] mx-auto max-h-[calc(100dvh_-_env(safe-area-inset-bottom,0px)_-_92px)] max-w-sm animate-in slide-in-from-bottom-4 overflow-y-auto overscroll-contain rounded-[20px] border border-white/[0.12] shadow-[0_8px_40px_rgba(0,0,0,0.5)] backdrop-blur-3xl duration-200"
           style={{
             bottom: moreMenuBottomOffset,
             background: `linear-gradient(170deg, color-mix(in srgb, var(--league-primary) 10%, rgba(20,20,28,0.92)) 0%, color-mix(in srgb, var(--league-secondary-safe) 6%, rgba(12,12,18,0.95)) 100%)`,
@@ -249,7 +249,8 @@ export function FloatingDock({
               {leagues && prevLeague && (
                 <Link
                   href={`/${prevLeague.slug}`}
-                  className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80 focus-visible:bg-white/[0.06] focus-visible:text-white/80"
+                  aria-label={`Switch to ${prevLeague.name}`}
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </Link>
@@ -279,7 +280,8 @@ export function FloatingDock({
               {leagues && nextLeague && (
                 <Link
                   href={`/${nextLeague.slug}`}
-                  className="rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80"
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/80 focus-visible:bg-white/[0.06] focus-visible:text-white/80"
+                  aria-label={`Switch to ${nextLeague.name}`}
                 >
                   <ChevronRight className="h-5 w-5" />
                 </Link>
@@ -385,7 +387,7 @@ export function FloatingDock({
                 <Link
                   href={`/${leagueSlug}/captain`}
                   onClick={() => setMoreOpen(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.04]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors hover:bg-white/[0.04] focus-visible:bg-white/[0.04]"
                   style={{
                     borderColor: `color-mix(in srgb, ${captainSecondary} 55%, transparent)`,
                     background: `color-mix(in srgb, ${captainPrimary} 10%, transparent)`,
@@ -408,7 +410,7 @@ export function FloatingDock({
                   <button
                     type="button"
                     onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80 focus-visible:bg-white/[0.08] focus-visible:text-white/80"
                     aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                   >
                     {isDark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
@@ -420,7 +422,7 @@ export function FloatingDock({
                     setMoreOpen(false);
                     window.dispatchEvent(new CustomEvent('open-bug-report'));
                   }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-white/[0.08] hover:text-white/80 focus-visible:bg-white/[0.08] focus-visible:text-white/80"
                   aria-label="Report a bug"
                 >
                   <Bug className="h-[18px] w-[18px]" />
@@ -429,7 +431,7 @@ export function FloatingDock({
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400"
+                    className="flex h-11 w-11 items-center justify-center rounded-xl text-white/40 transition-colors hover:bg-red-500/[0.12] hover:text-red-400 focus-visible:bg-red-500/[0.12] focus-visible:text-red-400"
                     aria-label="Sign out"
                   >
                     <LogOut className="h-[18px] w-[18px]" />
@@ -451,7 +453,7 @@ export function FloatingDock({
             {/* Standings */}
             <Link
               href={`/${leagueSlug}/standings`}
-              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+              className={`flex min-h-11 flex-col items-center justify-end gap-1 py-1 transition-colors ${
                 isActive('/standings')
                   ? 'text-[var(--league-primary)]'
                   : 'text-white/50 hover:text-white/80'
@@ -464,7 +466,7 @@ export function FloatingDock({
             {/* Schedule */}
             <Link
               href={`/${leagueSlug}/schedule`}
-              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+              className={`flex min-h-11 flex-col items-center justify-end gap-1 py-1 transition-colors ${
                 isActive('/schedule')
                   ? 'text-[var(--league-primary)]'
                   : 'text-white/50 hover:text-white/80'
@@ -510,7 +512,7 @@ export function FloatingDock({
             {/* Stats */}
             <Link
               href={`/${leagueSlug}/stats`}
-              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+              className={`flex min-h-11 flex-col items-center justify-end gap-1 py-1 transition-colors ${
                 isActive('/stats')
                   ? 'text-[var(--league-primary)]'
                   : 'text-white/50 hover:text-white/80'
@@ -524,7 +526,7 @@ export function FloatingDock({
             <button
               type="button"
               onClick={() => setMoreOpen((open) => !open)}
-              className={`flex flex-col items-center justify-end gap-1 py-1 transition-colors ${
+              className={`flex min-h-11 flex-col items-center justify-end gap-1 py-1 transition-colors ${
                 moreOpen || isMoreActive
                   ? 'text-[var(--league-primary)]'
                   : 'text-white/50 hover:text-white/80'

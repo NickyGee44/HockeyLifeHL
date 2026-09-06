@@ -17,6 +17,7 @@ import {
 import type { League, LeagueStats, NewsArticle, Season } from '@/lib/types';
 import { stripMarkdownLinks } from '@/lib/news/rich-text';
 import { EditorialHeroImage } from '@/components/news/EditorialHeroImage';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 const HERO_AUTOPLAY_MS = 7000;
 const HERO_MANUAL_HOLD_MS = 12000;
@@ -199,6 +200,7 @@ export function HomepageStoryHero({
   const [cycleMs, setCycleMs] = useState(hasMultipleSlides ? HERO_AUTOPLAY_MS : 0);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocusPaused, setIsFocusPaused] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // TODO(Pixel): derive cycleMs/remainingMs from slides.length; clamp activeIndex during render
   useEffect(() => {
@@ -224,7 +226,7 @@ export function HomepageStoryHero({
   }, [slides.length]);
 
   useEffect(() => {
-    if (!hasMultipleSlides || isHovered || isFocusPaused) {
+    if (!hasMultipleSlides || prefersReducedMotion || isHovered || isFocusPaused) {
       return undefined;
     }
 
@@ -233,11 +235,11 @@ export function HomepageStoryHero({
     }, HERO_TICK_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [hasMultipleSlides, isFocusPaused, isHovered]);
+  }, [hasMultipleSlides, isFocusPaused, isHovered, prefersReducedMotion]);
 
   // TODO(Pixel): restructure autoplay advance — consider setInterval + callback pattern instead
   useEffect(() => {
-    if (!hasMultipleSlides || isHovered || isFocusPaused || remainingMs > 0) {
+    if (!hasMultipleSlides || prefersReducedMotion || isHovered || isFocusPaused || remainingMs > 0) {
       return;
     }
 
@@ -247,7 +249,7 @@ export function HomepageStoryHero({
     setCycleMs(HERO_AUTOPLAY_MS);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemainingMs(HERO_AUTOPLAY_MS);
-  }, [hasMultipleSlides, isFocusPaused, isHovered, remainingMs, slides.length]);
+  }, [hasMultipleSlides, isFocusPaused, isHovered, prefersReducedMotion, remainingMs, slides.length]);
 
   const activeSlide = slides[activeIndex] || fallbackSlide;
   const progress = cycleMs > 0 ? Math.min(1, Math.max(0, 1 - remainingMs / cycleMs)) : 0;

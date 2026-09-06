@@ -287,9 +287,10 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <Link
-          href={`/${leagueSlug}/captain`}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors"
+            <Link
+              href={`/${leagueSlug}/captain`}
+              className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:bg-[var(--color-surface-hover)]"
+              aria-label="Back to captain dashboard"
         >
           <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
         </Link>
@@ -442,11 +443,14 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
                           </span>
                         )}
 
-                        <div className="relative group">
-                          <button className="p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors">
-                            <ChevronDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
-                          </button>
-                          <div className="glass-card-strong absolute right-0 top-full z-10 mt-1 hidden w-48 rounded-lg group-hover:block">
+                            <div className="relative group">
+                              <button
+                                className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)]"
+                                aria-label={`Assign ${dutyType.name}`}
+                              >
+                                <ChevronDown className="w-4 h-4 text-[var(--color-text-secondary)]" />
+                              </button>
+                              <div className="glass-card-strong absolute right-0 top-full z-10 mt-1 hidden w-48 rounded-lg group-hover:block group-focus-within:block">
                             <div className="py-1 max-h-48 overflow-y-auto">
                               <button
                                 onClick={() => handleAssignDuty(selectedGame!, dutyType.id, null)}
@@ -498,8 +502,9 @@ export default function CaptainDutiesPage({ params }: CaptainDutiesPageProps) {
                             setSelectedDutyType(dutyType);
                             setShowRotationModal(true);
                           }}
-                          className="p-2 rounded-lg hover:bg-[var(--color-surface)] transition-colors"
-                          title="Rotation settings"
+                              className="flex h-11 w-11 items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)]"
+                              title="Rotation settings"
+                              aria-label={`Rotation settings for ${dutyType.name}`}
                         >
                           <Settings className="w-4 h-4 text-[var(--color-text-muted)]" />
                         </button>
@@ -649,14 +654,16 @@ function RotationModal({
                         <button
                           onClick={() => movePlayer(index, 'up')}
                           disabled={index === 0}
-                          className="p-1 hover:bg-[var(--color-surface)] rounded disabled:opacity-30"
+                              className="flex h-11 w-11 items-center justify-center rounded hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)] disabled:opacity-30"
+                              aria-label={`Move ${player.full_name || 'player'} up`}
                         >
                           <ChevronDown className="w-3 h-3 rotate-180" />
                         </button>
                         <button
                           onClick={() => movePlayer(index, 'down')}
                           disabled={index === playerOrder.length - 1}
-                          className="p-1 hover:bg-[var(--color-surface)] rounded disabled:opacity-30"
+                              className="flex h-11 w-11 items-center justify-center rounded hover:bg-[var(--color-surface)] focus-visible:bg-[var(--color-surface)] disabled:opacity-30"
+                              aria-label={`Move ${player.full_name || 'player'} down`}
                         >
                           <ChevronDown className="w-3 h-3" />
                         </button>
