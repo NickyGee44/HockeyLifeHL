@@ -199,9 +199,9 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden border-b border-[var(--color-border)] lg:min-h-[360px]">
+      <div className="glass-chrome relative overflow-hidden border-b border-[var(--color-border)] lg:min-h-[360px]">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--league-primary)]/10 via-transparent to-amber-500/5" />
         <div className="absolute inset-0 hidden bg-[radial-gradient(circle_at_18%_20%,color-mix(in_srgb,var(--league-primary)_22%,transparent),transparent_34%),radial-gradient(circle_at_82%_30%,rgba(245,158,11,0.14),transparent_32%)] lg:block" />
         <div className="relative container mx-auto px-4 py-12 text-center lg:flex lg:min-h-[360px] lg:items-end lg:justify-between lg:gap-10 lg:py-14 lg:text-left">
@@ -239,7 +239,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
               {dynasties.map((dynasty, index) => (
                 <div
                   key={dynasty.name}
-                  className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex items-center gap-4"
+                  className="glass-card rounded-xl p-4 flex items-center gap-4"
                 >
                   <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[var(--league-primary)]/10 shrink-0">
                     {index === 0 ? (
@@ -337,7 +337,7 @@ export default async function HistoryPage({ params }: HistoryPageProps) {
                     {seasonAwards.map((award) => (
                       <div
                         key={award.id}
-                        className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 flex items-start gap-3"
+                        className="glass-card rounded-xl p-4 flex items-start gap-3"
                       >
                         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500/10 shrink-0">
                           <Award className="w-5 h-5 text-amber-400" />
@@ -411,7 +411,7 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
 
 function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-8 text-center">
+    <div className="glass-card rounded-xl p-8 text-center">
       <div className="flex justify-center mb-4">{icon}</div>
       <p className="text-[var(--color-text-secondary)]">{message}</p>
     </div>
@@ -428,7 +428,7 @@ function StatCard({
   label: string;
 }) {
   return (
-    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-4 text-center">
+    <div className="glass-card rounded-xl p-4 text-center">
       <div className="flex justify-center mb-2">{icon}</div>
       <p className="text-2xl font-bold text-[var(--color-text-primary)]">{value}</p>
       <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>

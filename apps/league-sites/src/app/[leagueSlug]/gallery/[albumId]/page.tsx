@@ -44,9 +44,9 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_12%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))]">
+      <div className="glass-chrome border-b border-[var(--color-border)]">
         <div className="container mx-auto px-4 py-8 lg:py-12">
           <Link
             href={`/${leagueSlug}/gallery`}
@@ -70,7 +70,7 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
 
       <div className="container mx-auto px-4 py-8 lg:max-w-7xl">
         {photos.length === 0 ? (
-          <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 py-16 text-center lg:py-24">
+          <div className="glass-card-strong rounded-[30px] py-16 text-center lg:py-24">
             <ImageIcon className="w-16 h-16 mx-auto text-[var(--league-primary)]/70 mb-4" />
             <p className="text-[var(--color-text-secondary)]">
               No photos in this album yet.

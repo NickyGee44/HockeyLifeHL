@@ -39,8 +39,7 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  const panelClass =
-    'bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] border-[var(--color-border)] shadow-[0_25px_60px_rgba(0,0,0,0.14)]';
+  const panelClass = 'glass-card-strong';
 
   const ctaPrimaryText = variant === 'light' ? 'Explore Schedule' : 'View Schedule';
   const sectionBadge =
@@ -51,7 +50,7 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
       <div className="relative container mx-auto px-4 pb-6 pt-3 md:pb-8 md:pt-4 lg:pb-10 lg:pt-5">
         <div className="mx-auto max-w-6xl">
           <div
-            className={`rounded-3xl border p-5 backdrop-blur-xl transition-all duration-700 md:p-6 lg:p-8 ${panelClass} ${
+            className={`rounded-3xl p-5 transition-all duration-700 md:p-6 lg:p-8 ${panelClass} ${
               isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
           >
@@ -116,7 +115,7 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
             <div className="mt-5 flex flex-wrap gap-2.5 md:gap-3">
               <Link
                 href={`/${leagueSlug}/schedule`}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--league-primary)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-text)] shadow-lg shadow-[var(--league-glow-color)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[var(--league-glow-color)] md:px-6 md:py-3"
+                className="glass-control inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary)] px-5 py-2.5 text-sm font-bold text-[var(--color-accent-text)] shadow-lg shadow-[var(--league-glow-color)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[var(--league-glow-color)] md:px-6 md:py-3"
               >
                 <Calendar className="h-4 w-4" />
                 {ctaPrimaryText}
@@ -124,14 +123,14 @@ export function HeroSection({ league, stats, leagueSlug }: HeroSectionProps) {
               </Link>
               <Link
                 href={`/${leagueSlug}/standings`}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] bg-[color-mix(in_srgb,var(--color-surface)_65%,transparent)] px-5 py-2.5 text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-surface-hover)] hover:border-[var(--league-primary)] md:px-6 md:py-3"
+                className="glass-control inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] px-5 py-2.5 text-sm font-bold text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)] md:px-6 md:py-3"
               >
                 <Trophy className="h-4 w-4 text-[var(--league-primary)]" />
                 Standings
               </Link>
               <Link
                 href={`/${leagueSlug}/scores`}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-transparent px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-all duration-200 hover:border-[var(--color-border-emphasis)] hover:text-[var(--color-text-primary)] md:px-6 md:py-3"
+                className="glass-control inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-transparent px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-all duration-200 hover:border-[var(--color-border-emphasis)] hover:text-[var(--color-text-primary)] md:px-6 md:py-3"
               >
                 <TrendingUp className="h-4 w-4 text-[var(--league-primary)]" />
                 Latest Scores

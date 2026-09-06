@@ -133,7 +133,7 @@ export function HomepagePulseRail({
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {countdown && countdownParts && (
-        <section className="league-shell-panel rounded-[28px] border border-[var(--color-border)] px-5 py-5 md:px-6">
+        <section className="glass-card rounded-[28px] px-5 py-5 md:px-6">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
@@ -186,7 +186,7 @@ export function HomepagePulseRail({
       )}
 
       {hasCalendar && (
-        <section className="league-shell-panel rounded-[28px] border border-[var(--color-border)] px-5 py-5 md:px-6">
+        <section className="glass-card rounded-[28px] px-5 py-5 md:px-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
@@ -279,7 +279,7 @@ export function HomepagePulseRail({
       )}
 
       {photoHighlight ? (
-        <section className="relative overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <section className="glass-card relative overflow-hidden rounded-[28px]">
           <div className="relative h-full min-h-[320px]">
             {photoHighlight.imageUrl ? (
               <img
@@ -301,7 +301,7 @@ export function HomepagePulseRail({
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Link
                   href={photoHighlight.href}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-900 transition-transform duration-200 hover:-translate-y-0.5"
+                  className="glass-control inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary)] px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--color-accent-text)] transition-transform duration-200 hover:-translate-y-0.5"
                 >
                   {photoHighlight.cta}
                   <ChevronRight className="h-3.5 w-3.5" />
@@ -316,7 +316,7 @@ export function HomepagePulseRail({
           </div>
         </section>
       ) : socialSettings ? (
-        <section className="league-shell-panel rounded-[28px] border border-[var(--color-border)] px-5 py-5 md:px-6">
+        <section className="glass-card rounded-[28px] px-5 py-5 md:px-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">

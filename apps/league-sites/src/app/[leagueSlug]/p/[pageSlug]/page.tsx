@@ -307,7 +307,7 @@ export default async function CustomPageRoute({ params }: CustomPageRouteProps) 
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <article className="space-y-6">
+      <article className="glass-card-strong space-y-6 rounded-[32px] p-6 md:p-10">
         {page.title ? (
           <h1 className="text-3xl md:text-4xl font-extrabold text-[var(--color-text-primary)] leading-tight">
             {page.title}

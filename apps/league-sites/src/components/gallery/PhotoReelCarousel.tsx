@@ -46,7 +46,7 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-2xl shadow-xl"
+      className="glass-card relative w-full overflow-hidden rounded-[28px] shadow-xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -74,14 +74,14 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
             <button
               onClick={() => advance(-1)}
               aria-label="Previous photo"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 backdrop-blur-sm p-2 text-white/80 hover:bg-black/50 hover:text-white transition-colors"
+              className="glass-control absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-black/50 hover:text-white"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               onClick={() => advance(1)}
               aria-label="Next photo"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-black/30 backdrop-blur-sm p-2 text-white/80 hover:bg-black/50 hover:text-white transition-colors"
+              className="glass-control absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-black/50 hover:text-white"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -96,12 +96,16 @@ export default function PhotoReelCarousel({ photos, galleryHref }: PhotoReelCaro
                 key={i}
                 onClick={() => setCurrent(i)}
                 aria-label={`Go to photo ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === current
-                    ? 'w-6 bg-white'
-                    : 'w-1.5 bg-white/40 hover:bg-white/60'
-                }`}
-              />
+                className="group flex h-11 w-11 items-center justify-center rounded-full"
+              >
+                <span
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === current
+                      ? 'w-6 bg-[var(--league-primary)]'
+                      : 'w-1.5 bg-white/40 group-hover:bg-white/60'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         )}

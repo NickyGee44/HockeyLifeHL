@@ -20,7 +20,7 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
   const showFallback = featureFlags.enableHomepageNewsFallback;
 
   return (
-    <div className="flex h-full w-full flex-col rounded-3xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_var(--glass-opacity),transparent)] p-5 shadow-[0_25px_60px_rgba(0,0,0,0.14)] backdrop-blur-xl md:p-6 lg:p-8">
+    <div className="glass-card-strong flex h-full w-full flex-col rounded-3xl p-5 md:p-6 lg:p-8">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-base font-black uppercase tracking-wide text-[var(--color-text-primary)] md:text-lg">
           <Newspaper className="h-5 w-5 text-[var(--league-primary)]" />
@@ -78,7 +78,7 @@ export function NewsHeadlines({ articles, leagueSlug }: NewsHeadlinesProps) {
 
       <Link
         href={`/${leagueSlug}/news`}
-        className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] bg-[color-mix(in_srgb,var(--color-surface)_65%,transparent)] px-4 py-2 text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-surface-hover)] hover:border-[var(--league-primary)]"
+        className="glass-control mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--color-border-emphasis)] px-4 py-2 text-sm font-bold text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)]"
       >
         <Newspaper className="h-4 w-4 text-[var(--league-primary)]" />
         View All News

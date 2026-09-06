@@ -49,7 +49,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
   return (
     <div className="container mx-auto px-4 py-12 animate-fade-in lg:max-w-7xl">
       {/* Header */}
-      <div className="mb-8 lg:rounded-[32px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/58 lg:p-8 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+      <div className="glass-chrome mb-8 rounded-[28px] border border-[var(--color-border)] p-6 lg:rounded-[32px] lg:p-8">
         <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3 mb-4 lg:text-5xl lg:font-black">
           <Info className="w-8 h-8 text-[var(--league-primary)]" />
           About {league.name}
@@ -60,7 +60,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
           {/* About Section */}
-          <section className="card p-8">
+          <section className="glass-card-strong rounded-[28px] p-6 md:p-8">
             <div className="flex items-start gap-6">
               {/* League Logo */}
               {league.logo_url ? (
@@ -99,7 +99,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
           </section>
 
           {/* League Stats */}
-          <section className="card p-8">
+          <section className="glass-card rounded-[28px] p-6 md:p-8">
             <h3 className="text-xl font-bold mb-6">League Statistics</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <StatBox
@@ -146,7 +146,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
 
           {/* League Rules */}
           {rulesContent && (
-            <section className="card p-8">
+            <section className="glass-card-strong rounded-[28px] p-6 md:p-8">
               <h2 className="text-2xl font-bold mb-6">League Rules</h2>
               <RulesContent content={rulesContent} />
             </section>
@@ -156,7 +156,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
         {/* Sidebar - Contact Info */}
         <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           {/* Contact Card */}
-          <section className="card p-6">
+          <section className="glass-card rounded-[24px] p-6">
             <h3 className="text-lg font-bold mb-4">Contact Information</h3>
 
             <div className="space-y-4">
@@ -214,14 +214,14 @@ export default async function AboutPage({ params }: AboutPageProps) {
 
           {/* Social Links */}
           {league.settings?.website && (
-            <section className="card p-6">
+            <section className="glass-card rounded-[24px] p-6">
               <h3 className="text-lg font-bold mb-4">Follow Us</h3>
               <SocialLinks settings={league.settings.website} size="md" />
             </section>
           )}
 
           {/* Quick Links */}
-          <section className="card p-6">
+          <section className="glass-card rounded-[24px] p-6">
             <h3 className="text-lg font-bold mb-4">Quick Links</h3>
             <nav className="space-y-2">
               <QuickLink href={`/${leagueSlug}/schedule`} label="View Schedule" />

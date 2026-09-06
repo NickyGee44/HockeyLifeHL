@@ -11,7 +11,7 @@ interface AlbumGridProps {
 export function AlbumGrid({ albums, leagueSlug }: AlbumGridProps) {
   if (albums.length === 0) {
     return (
-      <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 py-16 text-center lg:py-20">
+      <div className="glass-card-strong rounded-[28px] py-16 text-center lg:py-20">
         <ImageIcon className="w-16 h-16 mx-auto text-[var(--league-primary)]/70 mb-4" />
         <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
           No Photo Albums
@@ -58,9 +58,9 @@ function AlbumCard({
   return (
     <Link
       href={`/${leagueSlug}/gallery/${album.id}`}
-      className={`group block overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/78 shadow-[0_24px_70px_-58px_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--league-primary)]/45 ${className}`}
+      className={`group glass-card block overflow-hidden rounded-[24px] shadow-[0_24px_70px_-58px_rgba(0,0,0,0.95)] transition-all duration-300 hover:-translate-y-0.5 ${className}`}
     >
-      <div className="album-cover relative aspect-video overflow-hidden bg-[var(--color-background)]">
+      <div className="album-cover relative aspect-video overflow-hidden bg-[var(--color-surface)]/35">
         {album.cover_photo_url ? (
           <Image
             src={album.cover_photo_url}

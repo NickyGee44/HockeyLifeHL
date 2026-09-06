@@ -68,7 +68,7 @@ export function PhotoLightbox({ photos, initialIndex = 0 }: PhotoLightboxProps) 
           <button
             key={photo.id}
             onClick={() => open(index)}
-            className={`group relative aspect-square overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] transition-all hover:border-[var(--league-primary)]/50 lg:aspect-auto lg:rounded-2xl ${
+            className={`group glass-card relative aspect-square min-h-11 overflow-hidden rounded-lg transition-all hover:border-[var(--league-primary)]/50 lg:aspect-auto lg:rounded-2xl ${
               index % 9 === 0
                 ? 'lg:col-span-2 lg:row-span-2'
                 : index % 7 === 0
@@ -109,7 +109,7 @@ export function PhotoLightbox({ photos, initialIndex = 0 }: PhotoLightboxProps) 
             {/* Close button */}
             <button
               onClick={close}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+              className="glass-control absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
               aria-label="Close lightbox"
             >
               <X className="w-6 h-6" />
@@ -122,7 +122,7 @@ export function PhotoLightbox({ photos, initialIndex = 0 }: PhotoLightboxProps) 
                   e.stopPropagation();
                   goPrev();
                 }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                className="glass-control absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
                 aria-label="Previous photo"
               >
                 <ChevronLeft className="w-6 h-6" />
@@ -147,7 +147,7 @@ export function PhotoLightbox({ photos, initialIndex = 0 }: PhotoLightboxProps) 
                   e.stopPropagation();
                   goNext();
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+                className="glass-control absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20"
                 aria-label="Next photo"
               >
                 <ChevronRight className="w-6 h-6" />

@@ -71,19 +71,22 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8 space-y-10">
-        <SectionHeading
-          title="Photo Gallery"
-          icon={<ImageIcon className="w-5 h-5 text-[var(--league-primary)]" />}
-        />
+        <div className="glass-chrome rounded-[28px] border border-[var(--color-border)] p-6 lg:rounded-[32px] lg:p-8">
+          <SectionHeading
+            title="Photo Gallery"
+            icon={<ImageIcon className="w-5 h-5 text-[var(--league-primary)]" />}
+          />
+          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">Game nights, team moments, and stories from around the rink.</p>
+        </div>
 
         {albums.length === 0 ? (
           <AlbumGrid albums={[]} leagueSlug={leagueSlug} />
         ) : (
           <>
             {seasonGroups.map(({ season, albums: seasonAlbums }) => (
-              <section key={season.id}>
+              <section key={season.id} className="glass-card rounded-[28px] p-5 md:p-6">
                 <h3 className="text-lg font-semibold text-[var(--color-text-secondary)] mb-4">
                   {season.name}
                 </h3>
@@ -91,7 +94,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
               </section>
             ))}
             {ungroupedAlbums.length > 0 && (
-              <section>
+              <section className="glass-card rounded-[28px] p-5 md:p-6">
                 <h3 className="text-lg font-semibold text-[var(--color-text-secondary)] mb-4">
                   Other
                 </h3>

@@ -22,7 +22,7 @@ export function AnnouncementBanner({ announcement, leagueSlug }: AnnouncementBan
 
   return (
     <Link href={href} className="group block">
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--league-primary-border)] bg-[var(--league-primary-muted)] px-5 py-4 transition-all hover:border-[var(--league-primary-strong)] hover:bg-[var(--league-primary-soft)]">
+      <div className="glass-card relative overflow-hidden rounded-2xl border-[var(--league-primary-border)] px-5 py-4 transition-all hover:border-[var(--league-primary-strong)]">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--league-primary-soft)]">
             <Megaphone className="h-4.5 w-4.5 text-[var(--color-accent)]" />

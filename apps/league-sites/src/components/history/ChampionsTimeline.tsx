@@ -162,7 +162,7 @@ export function ChampionsTimeline({ champions, leagueSlug }: ChampionsTimelinePr
               className={`group relative flex-shrink-0 w-[260px] snap-start rounded-xl border overflow-hidden transition-[background-color,border-color,transform] duration-200 text-left ${
                 selected.id === champ.id
                   ? 'border-amber-500/60 ring-2 ring-amber-500/20 bg-amber-500/5 scale-[1.02]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-amber-500/30 hover:bg-amber-500/5'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)]/45 hover:border-amber-500/30 hover:bg-amber-500/5'
               }`}
             >
               {/* Photo / Fallback */}

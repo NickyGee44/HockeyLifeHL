@@ -33,7 +33,7 @@ export default async function NewsPage({ params }: NewsPageProps) {
     <SubscriptionWall>
     <div className="container mx-auto px-4 py-8 lg:py-12">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center gap-3 rounded-[30px] border border-transparent text-[var(--color-text-primary)] lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/55 lg:p-6 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-chrome mb-8 flex items-center gap-3 rounded-[30px] border border-[var(--color-border)] p-5 text-[var(--color-text-primary)] lg:p-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/85 text-[var(--league-primary)]">
             <Newspaper className="h-5 w-5" />
           </div>
@@ -53,7 +53,7 @@ export default async function NewsPage({ params }: NewsPageProps) {
             leagueLogoUrl={league.logo_url}
           />
         ) : (
-          <div className="league-reading-panel rounded-[28px] p-12 text-center">
+          <div className="glass-card-strong rounded-[28px] p-12 text-center">
             <Newspaper className="w-12 h-12 text-[var(--color-text-muted)] mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
               No News Yet

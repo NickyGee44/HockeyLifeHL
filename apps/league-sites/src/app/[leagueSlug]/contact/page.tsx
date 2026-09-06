@@ -45,7 +45,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
 
       <div className="mx-auto max-w-5xl lg:max-w-7xl">
         {/* Header */}
-        <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl p-6 md:p-8 mb-8 lg:rounded-[32px] lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-chrome mb-8 rounded-2xl border border-[var(--color-border)] p-6 md:p-8 lg:rounded-[32px]">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {/* League Logo */}
             {league.logo_url ? (
@@ -81,7 +81,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
           {/* Contact Information */}
           <div className="lg:col-span-2 space-y-6">
             {/* Contact Details Card */}
-            <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 lg:rounded-[28px]">
+            <div className="glass-card rounded-xl p-6 lg:rounded-[28px]">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-[var(--league-primary)]" />
                 Contact Details
@@ -169,7 +169,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
             </div>
 
             {/* Response Time */}
-            <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 lg:rounded-[28px]">
+            <div className="glass-card rounded-xl p-6 lg:rounded-[28px]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/20 flex items-center justify-center">
                   <Clock className="w-5 h-5 text-[var(--league-primary)]" />
@@ -186,7 +186,7 @@ export default async function ContactPage({ params }: ContactPageProps) {
 
           {/* Contact Form */}
           <div className="lg:col-span-3">
-            <div className="bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-xl p-6 lg:rounded-[28px] lg:shadow-[0_30px_80px_-64px_rgba(0,0,0,0.95)]">
+            <div className="glass-card-strong rounded-xl p-6 lg:rounded-[28px]">
               <h2 className="text-lg font-bold mb-4">Send a Message</h2>
               <ContactForm
                 leagueId={league.id}

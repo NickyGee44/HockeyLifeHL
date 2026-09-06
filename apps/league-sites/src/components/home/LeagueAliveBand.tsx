@@ -172,7 +172,7 @@ export function LeagueAliveBand({
         </div>
         <Link
           href={`/${leagueSlug}/news`}
-          className="hidden items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] md:inline-flex"
+          className="glass-control hidden min-h-11 items-center gap-2 rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-text-primary)] transition-all duration-200 hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] md:inline-flex"
         >
           Full Coverage
           <ArrowUpRight className="h-3.5 w-3.5" />
@@ -184,7 +184,7 @@ export function LeagueAliveBand({
           <Link
             key={`${card.title}-${index}`}
             href={card.href}
-            className={`group overflow-hidden rounded-3xl border border-[var(--color-border)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--league-primary)] ${
+            className={`group glass-card overflow-hidden rounded-3xl transition-all duration-300 hover:-translate-y-1 hover:border-[var(--league-primary)] ${
               index === 0 ? 'md:col-span-2' : ''
             }`}
           >

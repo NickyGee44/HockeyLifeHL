@@ -82,10 +82,10 @@ export function EventCalendar({ events }: EventCalendarProps) {
     <div>
       {/* View Toggle */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-1 rounded-lg border border-[var(--color-border)] p-1 bg-[var(--color-surface)]">
+        <div className="glass-control flex gap-1 rounded-xl border border-[var(--color-border)] p-1">
           <button
             onClick={() => setViewMode('list')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'list'
                 ? 'bg-[var(--league-primary)] text-[var(--color-text-inverse)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -96,7 +96,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
           </button>
           <button
             onClick={() => setViewMode('calendar')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'calendar'
                 ? 'bg-[var(--league-primary)] text-[var(--color-text-inverse)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
@@ -138,7 +138,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
             <div className="mt-8">
               <button
                 onClick={() => setShowPast(!showPast)}
-                className="flex items-center gap-2 text-sm font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors mb-3"
+                className="glass-control mb-3 flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
               >
                 <ChevronRight
                   className={`w-4 h-4 transition-transform ${showPast ? 'rotate-90' : ''}`}
@@ -164,7 +164,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
               onClick={() =>
                 setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
               }
-              className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+              className="glass-control flex h-11 w-11 items-center justify-center rounded-xl text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -175,7 +175,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
               onClick={() =>
                 setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
               }
-              className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface)] transition-colors"
+              className="glass-control flex h-11 w-11 items-center justify-center rounded-xl text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -200,7 +200,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
                 key={i}
                 className={`min-h-[80px] rounded-lg border p-1.5 ${
                   day
-                    ? 'border-[var(--color-border)] bg-[var(--color-surface)]'
+                    ? 'border-[var(--color-border)] bg-[var(--color-surface)]/45'
                     : 'border-transparent'
                 }`}
               >

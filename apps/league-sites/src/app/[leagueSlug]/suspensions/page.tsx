@@ -46,7 +46,7 @@ export default async function SuspensionsPage({ params, searchParams }: Suspensi
   return (
     <SubscriptionWall>
     <div className="container mx-auto px-4 py-8 lg:py-12">
-      <div className="mx-auto max-w-6xl rounded-[32px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-6 shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)] md:p-8">
+      <div className="glass-card-strong mx-auto max-w-6xl rounded-[32px] p-6 md:p-8">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between gap-6 lg:border-b lg:border-[var(--color-border)] lg:pb-6">
           <div>

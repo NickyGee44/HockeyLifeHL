@@ -93,7 +93,7 @@ function RegistrationCard({ spotlight }: { spotlight: RegistrationSpotlight }) {
   const progress = getRegistrationProgress(spotlight.opensAt, spotlight.closesAt);
 
   return (
-    <section className="league-shell-panel self-start rounded-[28px] border border-[var(--color-border)] px-4 py-4 md:px-5">
+    <section className="glass-card self-start rounded-[28px] px-4 py-4 md:px-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
@@ -142,7 +142,7 @@ function RegistrationCard({ spotlight }: { spotlight: RegistrationSpotlight }) {
 
       <Link
         href={spotlight.href}
-        className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--league-primary)] px-3.5 py-2.5 text-sm font-bold text-[var(--color-accent-text)] transition-transform duration-200 hover:-translate-y-0.5"
+        className="glass-control mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary)] px-3.5 py-2.5 text-sm font-bold text-[var(--color-accent-text)] transition-transform duration-200 hover:-translate-y-0.5"
       >
         Register Now
         <ArrowRight className="h-4 w-4" />
@@ -153,7 +153,7 @@ function RegistrationCard({ spotlight }: { spotlight: RegistrationSpotlight }) {
 
 function GalleryCard({ spotlight }: { spotlight: GallerySpotlightCard }) {
   return (
-    <section className="relative self-start overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]">
+    <section className="glass-card relative self-start overflow-hidden rounded-[28px]">
       <div className="absolute inset-0">
         {spotlight.highlight.imageUrl ? (
           <img src={spotlight.highlight.imageUrl} alt={spotlight.highlight.title} className="h-full w-full object-cover" />
@@ -172,7 +172,7 @@ function GalleryCard({ spotlight }: { spotlight: GallerySpotlightCard }) {
         <p className="mt-2 max-w-sm text-sm leading-5 text-white/78">{spotlight.highlight.subtitle}</p>
         <Link
           href={spotlight.highlight.href}
-          className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-white px-3.5 py-2.5 text-sm font-bold text-slate-950 transition-transform duration-200 hover:-translate-y-0.5"
+          className="glass-control mt-4 inline-flex min-h-11 w-fit items-center gap-2 rounded-full border border-[var(--league-primary-border)] bg-[var(--league-primary)] px-3.5 py-2.5 text-sm font-bold text-[var(--color-accent-text)] transition-transform duration-200 hover:-translate-y-0.5"
         >
           {spotlight.highlight.cta}
           <ArrowRight className="h-4 w-4" />
@@ -209,7 +209,7 @@ export function HomepageSeasonBand({
           ))}
 
         {hasLeaders && (
-          <section className="league-shell-panel self-start rounded-[28px] border border-[var(--color-border)] px-4 py-4 md:px-5 md:py-5">
+          <section className="glass-card self-start rounded-[28px] px-4 py-4 md:px-5 md:py-5">
             <HomepageLeadersTabs
               leagueSlug={leagueSlug}
               eyebrow={leadersEyebrow}

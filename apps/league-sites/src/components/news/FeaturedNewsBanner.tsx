@@ -41,7 +41,7 @@ export function FeaturedNewsBanner({
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.24fr)_minmax(300px,0.9fr)]">
       <Link
         href={`/${leagueSlug}/news/${featured.slug || featured.id}`}
-        className="group relative overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_28px_70px_-42px_rgba(15,23,42,0.55)]"
+        className="group glass-card relative overflow-hidden rounded-[28px] shadow-[0_28px_70px_-42px_rgba(15,23,42,0.55)]"
       >
         <div className="relative aspect-[16/7.1] min-h-[240px] overflow-hidden">
           {featured.image_url ? (
@@ -92,7 +92,7 @@ export function FeaturedNewsBanner({
             <Link
               key={article.id}
               href={`/${leagueSlug}/news/${article.slug || article.id}`}
-              className="group flex min-h-[96px] gap-4 overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/92 p-4 transition-colors hover:border-[var(--league-primary)]/40"
+              className="group glass-card flex min-h-[96px] gap-4 overflow-hidden rounded-[24px] p-4 transition-colors hover:border-[var(--league-primary)]/40"
             >
               <div className="hidden w-24 shrink-0 overflow-hidden rounded-2xl sm:block">
                 {article.image_url ? (
