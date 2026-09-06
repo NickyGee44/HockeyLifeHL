@@ -91,7 +91,7 @@ interface WeekHeaderProps {
 
 export function WeekHeader({ label, gameCount, confirmedCount }: WeekHeaderProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-[var(--color-surface-hover)]">
+    <div className="glass-control flex items-center justify-between px-4 py-2">
       <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
         {label}
       </span>
@@ -101,7 +101,7 @@ export function WeekHeader({ label, gameCount, confirmedCount }: WeekHeaderProps
             {confirmedCount}/{gameCount} confirmed
           </span>
         )}
-        <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-surface)] text-[var(--color-text-muted)]">
+        <span className="rounded bg-[var(--color-surface-hover)] px-1.5 py-0.5 text-xs text-[var(--color-text-muted)]">
           {gameCount} {gameCount === 1 ? 'game' : 'games'}
         </span>
       </div>

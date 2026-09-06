@@ -269,7 +269,7 @@ export function MyUpcomingGames({ teamId, leagueSlug }: MyUpcomingGamesProps) {
 
                 {/* Bulk check-in for week */}
                 {unconfirmedIds.length > 0 && (
-                  <div className="px-4 py-1.5 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+                  <div className="glass-control border-b border-[var(--color-border)] px-4 py-1.5">
                     <button
                       onClick={() =>
                         handleBulkCheckin(group.label, unconfirmedIds)

@@ -172,7 +172,7 @@ export function PushNotificationSettingsRow({
         : 'text-[var(--color-text-muted)]';
 
   return (
-    <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="glass-card-strong flex flex-col gap-3 rounded-[20px] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 pr-4">
         <p className="text-sm font-medium text-[var(--color-text-primary)]">
           Browser Push Notifications
@@ -199,7 +199,7 @@ export function PushNotificationSettingsRow({
         aria-busy={saving || loading}
         onClick={handleToggle}
         disabled={saving || loading}
-        className={`inline-flex min-h-10 flex-shrink-0 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-wait disabled:opacity-70 ${
+        className={`glass-control inline-flex min-h-11 flex-shrink-0 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-wait disabled:opacity-70 ${
           enabled
             ? 'border-green-500/35 bg-green-500/12 text-green-300 hover:bg-green-500/18'
             : 'border-[var(--color-border)] bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/40'

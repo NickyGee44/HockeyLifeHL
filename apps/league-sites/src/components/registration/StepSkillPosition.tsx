@@ -46,7 +46,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
               key={pos.value}
               type="button"
               onClick={() => onUpdate({ primary_position: pos.value })}
-              className={`px-3 py-2.5 rounded-lg border text-center text-sm font-medium transition-all ${
+              className={`glass-control min-h-11 rounded-xl border px-3 py-2.5 text-center text-sm font-medium transition-all ${
                 formData.primary_position === pos.value
                   ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10 text-[var(--league-primary)]'
                   : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-emphasis)]'
@@ -73,7 +73,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
                   secondary_position: formData.secondary_position === pos.value ? '' : pos.value,
                 })
               }
-              className={`px-3 py-2.5 rounded-lg border text-center text-sm font-medium transition-all ${
+              className={`glass-control min-h-11 rounded-xl border px-3 py-2.5 text-center text-sm font-medium transition-all ${
                 formData.secondary_position === pos.value
                   ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10 text-[var(--league-primary)]'
                   : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-emphasis)]'
@@ -101,7 +101,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
             })
           }
           placeholder="e.g. 99"
-          className="w-24 px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+          className="glass-control min-h-11 w-24 rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
         />
       </div>
 
@@ -116,7 +116,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
               key={skill.value}
               type="button"
               onClick={() => onUpdate({ skill_level: skill.value })}
-              className={`w-full p-3 rounded-lg border text-left transition-all ${
+              className={`glass-control min-h-11 w-full rounded-xl border p-3 text-left transition-all ${
                 formData.skill_level === skill.value
                   ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10'
                   : 'border-[var(--color-border)] hover:border-[var(--color-border-emphasis)]'
@@ -154,7 +154,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
                 key={opt.value}
                 type="button"
                 onClick={() => onUpdate({ goalie_role: opt.value })}
-                className={`w-full p-3 rounded-lg border text-left transition-all ${
+                className={`glass-control min-h-11 w-full rounded-xl border p-3 text-left transition-all ${
                   formData.goalie_role === opt.value
                     ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10'
                     : 'border-[var(--color-border)] hover:border-[var(--color-border-emphasis)]'
@@ -185,7 +185,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
               })
             }
             placeholder="0"
-            className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+            className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
           />
         </div>
         <div>
@@ -197,7 +197,7 @@ export function StepSkillPosition({ formData, onUpdate }: StepSkillPositionProps
             value={formData.previous_leagues || ''}
             onChange={(e) => onUpdate({ previous_leagues: e.target.value })}
             placeholder="List any previous leagues..."
-            className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+            className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
           />
         </div>
       </div>

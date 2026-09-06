@@ -169,7 +169,7 @@ export function PhotoUpload({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          relative flex flex-col items-center justify-center
+          glass-card-strong relative flex flex-col items-center justify-center
           w-32 h-32 rounded-full cursor-pointer
           border-2 border-dashed transition-all duration-200
           ${isDragging
@@ -249,7 +249,7 @@ export function PhotoUpload({
           type="button"
           onClick={handleClick}
           disabled={uploadState === 'uploading'}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] rounded-lg text-sm font-medium hover:bg-[var(--color-border)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="glass-control flex min-h-11 items-center gap-2 rounded-xl border border-[var(--glass-card-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--glass-card-border-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {uploadState === 'uploading' ? (
             <>
@@ -269,7 +269,7 @@ export function PhotoUpload({
           <button
             type="button"
             onClick={handleDelete}
-            className="flex items-center gap-1 px-3 py-1 text-red-400 text-xs font-medium hover:text-red-300 transition-colors"
+            className="flex min-h-11 items-center gap-1 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:text-red-300"
           >
             <X className="w-3 h-3" />
             Remove Photo

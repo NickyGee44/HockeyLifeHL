@@ -49,7 +49,7 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
   if (!league) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4">
-        <div className="max-w-md text-center">
+        <div className="glass-card-strong max-w-md rounded-[28px] p-8 text-center">
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             League Not Found
           </h1>
@@ -68,7 +68,7 @@ export default async function TeamRegisterPage({ params }: TeamRegisterPageProps
   if (!activeSeason) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4">
-        <div className="max-w-md text-center">
+        <div className="glass-card-strong max-w-md rounded-[28px] p-8 text-center">
           <XCircle className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-muted)]" />
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             Registration Closed

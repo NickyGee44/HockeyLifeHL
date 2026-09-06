@@ -57,7 +57,7 @@ export function MySubInvitations({ leagueId }: MySubInvitationsProps) {
   }
 
   return (
-    <div className="bg-[var(--color-surface)] border border-amber-500/30 rounded-xl overflow-hidden">
+    <div className="glass-card overflow-hidden rounded-[24px] border-amber-500/30">
       <div className="p-4 border-b border-[var(--color-border)] bg-amber-500/5">
         <h3 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2">
           <UserPlus className="w-5 h-5 text-amber-400" />

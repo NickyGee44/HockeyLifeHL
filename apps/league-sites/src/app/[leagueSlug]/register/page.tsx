@@ -82,7 +82,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
   if (!league) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4 lg:min-h-[68vh]">
-        <div className="max-w-md rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-8 text-center shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-card-strong max-w-md rounded-[32px] p-8 text-center">
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             League Not Found
           </h1>
@@ -111,7 +111,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
   if (!activeSeason) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4 lg:min-h-[68vh]">
-        <div className="max-w-md rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-8 text-center shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-card-strong max-w-md rounded-[32px] p-8 text-center">
           <XCircle className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-muted)]" />
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             Registration Closed
@@ -139,7 +139,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
     if (status === 'approved') {
       return (
         <div className="min-h-[60vh] flex items-center justify-center p-4 lg:min-h-[68vh]">
-          <div className="max-w-md rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-8 text-center shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+          <div className="glass-card-strong max-w-md rounded-[32px] p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/20 flex items-center justify-center">
               <Check className="w-8 h-8 text-green-400" />
             </div>
@@ -163,7 +163,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
     if (status === 'pending') {
       return (
         <div className="min-h-[60vh] flex items-center justify-center p-4 lg:min-h-[68vh]">
-          <div className="max-w-md rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-8 text-center shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+          <div className="glass-card-strong max-w-md rounded-[32px] p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-amber-500/20 flex items-center justify-center">
               <Clock className="w-8 h-8 text-amber-400" />
             </div>
@@ -209,7 +209,7 @@ export default async function RegisterPage({ params, searchParams }: RegisterPag
   if (!registrationConfig.feeConfigured) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center p-4 lg:min-h-[68vh]">
-        <div className="max-w-md rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 p-8 text-center shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-card-strong max-w-md rounded-[32px] p-8 text-center">
           <Clock className="w-12 h-12 mx-auto mb-4 text-[var(--color-text-muted)]" />
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-4">
             Registration Opening Soon

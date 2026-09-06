@@ -50,7 +50,7 @@ export function EmbeddedPaymentCheckout({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-red-500/10 rounded-xl border border-red-500/20">
+      <div className="glass-card-strong flex flex-col items-center justify-center rounded-[24px] border-red-500/20 bg-red-500/10 p-8">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
         <p className="text-red-400 text-center">{error}</p>
         <button
@@ -58,7 +58,7 @@ export function EmbeddedPaymentCheckout({
             setError(null);
             window.location.reload();
           }}
-          className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors"
+          className="glass-control mt-4 min-h-11 rounded-xl border border-red-500/30 bg-red-500/20 px-4 py-2 text-red-400 transition-colors hover:bg-red-500/30"
         >
           Try Again
         </button>
@@ -68,7 +68,7 @@ export function EmbeddedPaymentCheckout({
 
   if (isComplete) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-green-500/10 rounded-xl border border-green-500/20">
+      <div className="glass-card-strong flex flex-col items-center justify-center rounded-[24px] border-green-500/20 bg-green-500/10 p-8">
         <CheckCircle2 className="w-12 h-12 text-green-500 mb-4" />
         <p className="text-green-400 text-center text-lg font-medium">Payment Successful!</p>
         <p className="text-[var(--color-text-secondary)] text-center mt-2">
@@ -96,7 +96,7 @@ export function EmbeddedPaymentCheckout({
 // Simple loading placeholder
 export function CheckoutLoading() {
   return (
-    <div className="flex items-center justify-center p-12 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)]">
+    <div className="glass-card-strong flex items-center justify-center rounded-[24px] p-12">
       <div className="text-center">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--league-primary)] mx-auto mb-4" />
         <p className="text-[var(--color-text-secondary)]">Loading payment form...</p>

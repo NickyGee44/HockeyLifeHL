@@ -91,7 +91,7 @@ export function StepConfirmation({
       {/* Registration Summary */}
       <div className="space-y-4">
         {/* League & Season */}
-        <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="glass-card rounded-[20px] p-4">
           <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
             League & Season
           </p>
@@ -100,7 +100,7 @@ export function StepConfirmation({
         </div>
 
         {/* Personal Info */}
-        <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="glass-card rounded-[20px] p-4">
           <div className="flex items-center gap-2 mb-3">
             <User className="w-4 h-4 text-[var(--league-primary)]" />
             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -142,7 +142,7 @@ export function StepConfirmation({
         </div>
 
         {/* Skill & Position */}
-        <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="glass-card rounded-[20px] p-4">
           <div className="flex items-center gap-2 mb-3">
             <Shield className="w-4 h-4 text-[var(--league-primary)]" />
             <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -184,7 +184,7 @@ export function StepConfirmation({
 
         {/* Payment */}
         {(registrationFee > 0 || paymentMode === 'hidden' || isTeamContribution) && (
-          <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <div className="glass-card-strong rounded-[20px] p-4">
             <div className="flex items-center gap-2 mb-3">
               <CreditCard className="w-4 h-4 text-[var(--league-primary)]" />
               <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -250,7 +250,7 @@ export function StepConfirmation({
         )}
 
         {/* Waiver */}
-        <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="glass-card rounded-[20px] p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-[var(--color-text-muted)]">Waiver</span>
             <span className={`text-sm font-medium ${formData.signed_name ? 'text-green-400' : 'text-amber-400'}`}>
@@ -278,7 +278,7 @@ export function StepConfirmation({
             type="checkbox"
             checked={!!formData.tos_accepted}
             onChange={(e) => onUpdate({ tos_accepted: e.target.checked })}
-            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
+                className="glass-control mt-1 h-4 w-4 rounded border-[var(--glass-card-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
           />
           <span className="text-sm text-[var(--color-text-primary)]">
             I have read and agree to the{' '}
@@ -308,7 +308,7 @@ export function StepConfirmation({
             type="checkbox"
             checked={!!formData.email_marketing_opt_in}
             onChange={(e) => onUpdate({ email_marketing_opt_in: e.target.checked })}
-            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
+                className="glass-control mt-1 h-4 w-4 rounded border-[var(--glass-card-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
           />
           <span className="text-xs text-[var(--color-text-secondary)]">
             I&apos;d like to receive league updates, news, and promotions via email.

@@ -108,7 +108,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
       <div className="max-w-2xl">
         {/* Avatar Section */}
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6 mb-6">
+        <div className="glass-card mb-6 rounded-[24px] p-6">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
             Profile Photo
           </h2>
@@ -129,7 +129,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
 
         {/* Profile Form */}
         <form onSubmit={handleSave}>
-          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+          <div className="glass-card-strong rounded-[28px] p-6">
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
               Personal Information
             </h2>
@@ -150,7 +150,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)] focus:border-transparent"
+                    className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] py-2 pl-10 pr-4 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -171,7 +171,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     type="email"
                     value={user?.email || ''}
                     disabled
-                    className="w-full pl-10 pr-4 py-2 bg-[var(--color-surface-hover)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-secondary)] cursor-not-allowed"
+                    className="glass-control min-h-11 w-full cursor-not-allowed rounded-xl border border-[var(--glass-card-border)] py-2 pl-10 pr-4 text-[var(--color-text-secondary)] opacity-70"
                   />
                 </div>
                 <p className="text-xs text-[var(--color-text-muted)] mt-1">
@@ -195,7 +195,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-[var(--color-background)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)] focus:border-transparent"
+                    className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] py-2 pl-10 pr-4 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
                     placeholder="(555) 123-4567"
                   />
                 </div>
@@ -221,7 +221,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex items-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex min-h-11 items-center gap-2 rounded-xl bg-[var(--league-primary)] px-6 py-2 font-medium text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {isSaving ? (
                   <>

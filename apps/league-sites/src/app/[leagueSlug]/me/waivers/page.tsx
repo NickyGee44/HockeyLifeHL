@@ -326,7 +326,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
         </button>
 
         <div className="max-w-3xl mx-auto">
-          <div className="glass-card rounded-xl overflow-hidden">
+          <div className="glass-card-strong overflow-hidden rounded-[28px]">
             {/* Header */}
             <div className="p-6 border-b border-[var(--color-border)]">
               <div className="flex items-start gap-4">
@@ -353,7 +353,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
               </div>
 
             {/* Waiver Content - HTML is sanitized with DOMPurify to prevent XSS */}
-            <div className="p-6 max-h-[400px] overflow-y-auto bg-[var(--color-background)]">
+            <div className="glass-control max-h-[400px] overflow-y-auto p-6">
               <div className="prose prose-invert prose-sm max-w-none">
                 <div
                   className="whitespace-pre-wrap text-[var(--color-text-secondary)]"
@@ -386,7 +386,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                       type="checkbox"
                       checked={agreedToTerms}
                       onChange={(e) => setAgreedToTerms(e.target.checked)}
-                      className="mt-1 w-4 h-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
+                      className="glass-control mt-1 h-4 w-4 rounded border-[var(--glass-card-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
                     />
                     <span className="text-sm text-[var(--color-text-secondary)]">
                       I have read and agree to the terms and conditions outlined in this waiver.
@@ -404,7 +404,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                       value={signedName}
                       onChange={(e) => setSignedName(e.target.value)}
                       placeholder="Enter your full name"
-                      className="w-full px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)] focus:border-transparent"
+                      className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-4 py-2 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
                     />
                   </div>
 
@@ -430,7 +430,7 @@ export default function WaiversPage({ params }: WaiversPageProps) {
                   <button
                     onClick={handleSign}
                     disabled={!signedName.trim() || !agreedToTerms || isSigning}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--league-primary)] px-6 py-3 font-medium text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isSigning ? (
                       <>

@@ -50,7 +50,7 @@ export function StepWaiver({
 
       {/* Waiver Content */}
       <div
-        className="max-h-80 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-text-secondary)] prose prose-sm prose-invert max-w-none"
+        className="glass-card-strong prose prose-sm prose-invert max-h-80 max-w-none overflow-y-auto rounded-[24px] p-4 text-sm text-[var(--color-text-secondary)]"
       >
         <div
           dangerouslySetInnerHTML={{
@@ -80,7 +80,7 @@ export function StepWaiver({
             type="checkbox"
             checked={!!formData.waiver_accepted}
             onChange={(e) => handleAcceptChange(e.target.checked)}
-            className="mt-1 w-4 h-4 rounded border-[var(--color-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
+            className="glass-control mt-1 h-4 w-4 rounded border-[var(--glass-card-border)] text-[var(--league-primary)] focus:ring-[var(--league-primary)]"
           />
           <span className="text-sm text-[var(--color-text-primary)]">
             I have read and agree to the waiver and release of liability above. I understand that

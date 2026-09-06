@@ -61,7 +61,7 @@ export default function GoalieAcceptPage() {
 
   return (
     <div className="container mx-auto px-4 py-16">
-      <div className="max-w-xl mx-auto card p-8">
+      <div className="glass-card-strong mx-auto max-w-xl rounded-[28px] p-8">
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Goalie Sub Request</h1>
         <p className="text-[var(--color-text-secondary)] mt-2">{view.leagueName} • {view.teamName}</p>
 
@@ -85,7 +85,7 @@ export default function GoalieAcceptPage() {
           <button
             onClick={onAccept}
             disabled={accepting}
-            className="mt-6 inline-flex rounded-lg bg-[var(--league-primary)] px-4 py-2 font-semibold text-[var(--color-accent-text)] hover:opacity-90 disabled:opacity-60"
+            className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-[var(--league-primary)] px-4 py-2 font-semibold text-[var(--color-accent-text)] hover:opacity-90 disabled:opacity-60"
           >
             {accepting ? 'Accepting...' : 'Accept Request'}
           </button>

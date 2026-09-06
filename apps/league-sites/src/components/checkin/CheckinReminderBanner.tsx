@@ -168,7 +168,7 @@ export function CheckinReminderBanner({ leagueId, leagueSlug, seasonId }: Checki
 
   return (
     <div
-      className="league-site-chrome relative z-30 border-b px-4 py-3 backdrop-blur-xl"
+      className="glass-card league-site-chrome relative z-30 rounded-none border-x-0 border-t-0 px-4 py-3 backdrop-blur-xl"
       style={{
         borderColor: `${teamColor}55`,
         background:
@@ -179,7 +179,7 @@ export function CheckinReminderBanner({ leagueId, leagueSlug, seasonId }: Checki
       <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/35 bg-white/20 text-white shadow-lg"
+            className="glass-control flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/35 text-white shadow-lg"
             style={{ boxShadow: `0 0 28px ${teamColor}55` }}
           >
             <CalendarCheck className="h-5 w-5" aria-hidden="true" />
@@ -189,7 +189,7 @@ export function CheckinReminderBanner({ leagueId, leagueSlug, seasonId }: Checki
 
         <Link
           href={`/${leagueSlug}/teams/${teamSlug}#next-game`}
-          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/35 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-white/70"
+          className="glass-control inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-white/35 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/70"
         >
           Check in
           <ChevronRight className="h-4 w-4" aria-hidden="true" />

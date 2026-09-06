@@ -47,10 +47,10 @@ export function TeamPushToggle({ teamId, initialEnabled }: TeamPushToggleProps) 
       onClick={() => updateSetting(!enabled)}
       aria-pressed={enabled}
       aria-label={`Team push alerts ${statusLabel.toLowerCase()}. ${actionLabel}.`}
-      className="relative z-40 min-h-[108px] rounded-[24px] border border-white/10 bg-white/[0.05] px-4 py-3 text-center text-[var(--color-text-primary)] shadow-[0_28px_70px_-46px_rgba(0,0,0,0.88)] transition-all backdrop-blur-xl hover:border-[var(--league-primary)]/35 hover:bg-white/[0.08] disabled:cursor-wait disabled:opacity-70"
+      className="glass-card relative z-40 min-h-[108px] rounded-[24px] px-4 py-3 text-center text-[var(--color-text-primary)] transition-all hover:border-[var(--league-primary)]/35 disabled:cursor-wait disabled:opacity-70"
     >
       <div className="flex h-full flex-col items-center justify-center gap-2">
-        <div className="rounded-[20px] border border-white/10 bg-black/20 p-3 text-[var(--league-primary)]">
+        <div className="glass-control rounded-[20px] border border-[var(--glass-card-border)] p-3 text-[var(--league-primary)]">
           {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Icon className="h-5 w-5" />}
         </div>
         <p className="text-sm font-black uppercase tracking-[0.12em] sm:text-base">

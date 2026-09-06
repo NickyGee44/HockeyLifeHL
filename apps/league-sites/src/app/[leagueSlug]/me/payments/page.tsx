@@ -247,7 +247,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
 
       {/* Summary Cards */}
       {totalOwed > 0 && primaryOutstanding && (
-        <div className="mb-6 rounded-2xl border border-[var(--league-primary)]/25 bg-[var(--league-primary)]/10 p-5">
+        <div className="glass-card-strong mb-6 rounded-[28px] border-[var(--league-primary)]/25 bg-[var(--league-primary)]/10 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--league-primary)]">
@@ -272,7 +272,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                 )
               }
               disabled={isProcessing}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--league-primary)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--league-primary)] px-5 py-3 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               <CreditCard className="h-4 w-4" />
               Pay Online Now
@@ -284,7 +284,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         {/* Outstanding Balance */}
         <div
-          className={`bg-[var(--color-surface)] border rounded-xl p-6 ${
+          className={`glass-card rounded-[24px] p-6 ${
             totalOwed > 0
               ? 'border-amber-500/30 bg-amber-500/5'
               : 'border-[var(--color-border)]'
@@ -346,7 +346,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                 return (
                   <div
                     key={reg.id}
-                    className="glass-card rounded-xl p-4"
+                    className="glass-card-strong rounded-[24px] p-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex-1">
@@ -395,7 +395,7 @@ export default function PaymentsPage({ params }: PaymentsPageProps) {
                           )
                         }
                         disabled={isProcessing}
-                        className="flex items-center justify-center gap-2 px-6 py-2 bg-[var(--league-primary)] text-[var(--color-accent-text)] rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--league-primary)] px-6 py-2 font-medium text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
                       >
                         {isProcessing ? (
                           <Loader2 className="w-4 h-4 animate-spin" />

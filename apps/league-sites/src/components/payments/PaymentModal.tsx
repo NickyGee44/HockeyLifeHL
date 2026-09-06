@@ -57,7 +57,7 @@ export function PaymentModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-lg mx-4 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-2xl overflow-hidden">
+      <div className="glass-card-strong relative mx-4 w-full max-w-lg overflow-hidden rounded-[28px]">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
           <div>
@@ -70,7 +70,7 @@ export function PaymentModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[var(--color-surface-hover)] rounded-lg transition-colors"
+            className="glass-control min-h-11 min-w-11 rounded-xl p-2 transition-colors hover:bg-[var(--color-surface-hover)]"
           >
             <X className="w-5 h-5 text-[var(--color-text-secondary)]" />
           </button>

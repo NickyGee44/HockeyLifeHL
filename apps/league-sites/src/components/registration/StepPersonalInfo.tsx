@@ -194,7 +194,7 @@ export function StepPersonalInfo({
             <select
               value={formData.previous_team_id || previousTeams[0]?.teamId || ''}
               onChange={(e) => handlePreviousTeamChange(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+              className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
             >
               {previousTeams.map((team) => (
                 <option key={team.teamId} value={team.teamId}>
@@ -210,7 +210,7 @@ export function StepPersonalInfo({
       )}
 
       {intent === 'join_team' && teams.length > 0 && (
-        <div className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="glass-card space-y-4 rounded-[20px] p-4">
           <div>
             <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
               Select Team *
@@ -218,7 +218,7 @@ export function StepPersonalInfo({
             <select
               value={formData.requested_team_id || ''}
               onChange={(e) => handleRequestedTeamChange(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+              className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
             >
               <option value="">Select a team...</option>
               {teams.map((team) => (
@@ -246,7 +246,7 @@ export function StepPersonalInfo({
                     key={String(opt.value)}
                     type="button"
                     onClick={() => onUpdate({ paid_team_rep: opt.value })}
-                    className={`px-5 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                    className={`glass-control min-h-11 rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${
                       formData.paid_team_rep === opt.value
                         ? 'border-[var(--league-primary)] bg-[var(--league-primary)]/10 text-[var(--league-primary)]'
                         : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-emphasis)]'
@@ -262,7 +262,7 @@ export function StepPersonalInfo({
       )}
 
       {intent === 'free_agent' && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="glass-card rounded-[20px] p-4">
           <p className="text-sm text-[var(--color-text-secondary)]">
             We&apos;ll put you into the free agent pool so the league can help place you on a team.
           </p>
@@ -280,7 +280,7 @@ export function StepPersonalInfo({
               value={formData.requested_team_name || ''}
               onChange={(e) => onUpdate({ requested_team_name: e.target.value })}
               placeholder="e.g. Wolves, Tuesday Night Crew"
-              className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+              className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
             />
           </div>
           <p className="text-sm text-[var(--color-text-secondary)]">
@@ -298,7 +298,7 @@ export function StepPersonalInfo({
           value={formData.full_name || ''}
           onChange={(e) => onUpdate({ full_name: e.target.value })}
           placeholder="John Smith"
-          className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+          className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
         />
       </div>
 
@@ -312,7 +312,7 @@ export function StepPersonalInfo({
             value={formData.date_of_birth || ''}
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => onUpdate({ date_of_birth: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+            className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
           />
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
             Used for league administration only. Not shown publicly on the league site.
@@ -327,7 +327,7 @@ export function StepPersonalInfo({
             value={formData.phone || ''}
             onChange={(e) => onUpdate({ phone: e.target.value })}
             placeholder="(555) 123-4567"
-            className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+            className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
           />
         </div>
       </div>
@@ -345,7 +345,7 @@ export function StepPersonalInfo({
               type="text"
               value={formData.emergency_contact_name || ''}
               onChange={(e) => onUpdate({ emergency_contact_name: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+              className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -357,7 +357,7 @@ export function StepPersonalInfo({
                 type="tel"
                 value={formData.emergency_contact_phone || ''}
                 onChange={(e) => onUpdate({ emergency_contact_phone: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
               />
             </div>
             <div>
@@ -369,7 +369,7 @@ export function StepPersonalInfo({
                 value={formData.emergency_contact_relationship || ''}
                 onChange={(e) => onUpdate({ emergency_contact_relationship: e.target.value })}
                 placeholder="Spouse, Parent, etc."
-                className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
               />
             </div>
           </div>
@@ -385,7 +385,7 @@ export function StepPersonalInfo({
           onChange={(e) => onUpdate({ medical_notes: e.target.value })}
           rows={2}
           placeholder="Any medical conditions, allergies, or special requirements..."
-          className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 resize-none"
+          className="glass-control min-h-11 w-full rounded-xl border border-[var(--glass-card-border)] px-3 py-2.5 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 resize-none"
         />
       </div>
     </div>
