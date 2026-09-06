@@ -54,7 +54,7 @@ export function StandingsWithSearch({
       )}
 
       {/* Standings Table */}
-      <div className="card overflow-hidden">
+      <div className="glass-card-strong overflow-x-auto">
         <StandingsTable standings={currentStandings} leagueSlug={leagueSlug} />
       </div>
 
@@ -62,7 +62,7 @@ export function StandingsWithSearch({
         <button
           type="button"
           onClick={() => setShowLegend((current) => !current)}
-          className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+          className="glass-control inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           aria-expanded={showLegend}
           aria-controls="standings-legend"
         >
@@ -72,7 +72,7 @@ export function StandingsWithSearch({
       </div>
 
       {showLegend && (
-        <div id="standings-legend" className="mt-4 card p-4">
+        <div id="standings-legend" className="mt-4 glass-card p-4">
           <div className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-[var(--color-text-secondary)]">
             <span><strong>GP</strong> - Games Played</span>
             <span><strong>W</strong> - Wins</span>

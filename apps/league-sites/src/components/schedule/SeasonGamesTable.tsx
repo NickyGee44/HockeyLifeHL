@@ -74,14 +74,14 @@ export function SeasonGamesTable({
   if (games.length === 0) return null;
 
   return (
-    <div>
+    <div className="glass-card-strong overflow-hidden rounded-[24px] p-3 md:p-4">
       {/* Team filter */}
       {!hideFilter && (
         <div className="mb-4">
           <select
             value={selectedTeamId}
             onChange={(e) => setSelectedTeamId(e.target.value)}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+            className="glass-control min-h-11 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-sm text-[var(--color-text-primary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
           >
             <option value="">All Teams</option>
             {teams
@@ -200,7 +200,7 @@ export function SeasonGamesTable({
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+            className="glass-control inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           >
             {expanded ? (
               <>

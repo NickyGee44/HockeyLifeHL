@@ -105,7 +105,7 @@ export function LiveGameExperience({
       /> 
 
       {showLivePanel ? (
-        <div className="border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_94%,transparent)] backdrop-blur-md">
+        <div className="glass-card-strong mx-4 mt-4 overflow-hidden rounded-[28px]">
           <div className="container mx-auto px-4 py-5">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -116,7 +116,7 @@ export function LiveGameExperience({
                       Live Game
                     </span>
                     {liveState.activePenalties.strengthLabel ? (
-                      <span className="rounded-full bg-[var(--color-background)] px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
+                      <span className="glass-control rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
                         Strength {liveState.activePenalties.strengthLabel}
                       </span>
                     ) : null}
@@ -157,7 +157,7 @@ export function LiveGameExperience({
                         className={`rounded-2xl border px-3 py-3 ${eventAccent(event)}`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="min-w-12 rounded-xl bg-[var(--color-background)] px-2 py-1 text-center text-xl font-black tabular-nums text-[var(--league-primary,#d4af37)]">
+                          <div className="glass-control min-w-12 rounded-xl px-2 py-1 text-center text-xl font-black tabular-nums text-[var(--league-primary,#d4af37)]">
                             {event.playerNumber || '?'}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -194,7 +194,7 @@ export function LiveGameExperience({
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_96%,transparent)] px-3 py-2">
+    <div className="glass-card rounded-2xl px-3 py-2">
       <div className="text-lg font-bold tabular-nums text-[var(--color-text-primary)]">{value}</div>
       <div className="text-[11px] uppercase tracking-wide text-[var(--color-text-secondary)]">{label}</div>
     </div>
@@ -203,12 +203,12 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 function PenaltyColumn({ title, penalties }: { title: string; penalties: LivePenaltyState[] }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-background-elevated)_96%,transparent)] p-3">
+    <div className="glass-card rounded-2xl p-3">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">{title}</h3>
       <div className="mt-3 grid gap-2">
         {penalties.map((penalty) => (
           <div key={penalty.eventId} className="flex items-center gap-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-3 py-2">
-            <div className="min-w-10 rounded-lg bg-[var(--color-background)] px-2 py-1 text-center text-lg font-black tabular-nums text-yellow-400">
+            <div className="glass-control min-w-10 rounded-lg px-2 py-1 text-center text-lg font-black tabular-nums text-yellow-400">
               {penalty.playerNumber || '?'}
             </div>
             <div className="min-w-0 flex-1">

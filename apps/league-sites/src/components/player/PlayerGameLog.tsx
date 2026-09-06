@@ -10,7 +10,7 @@ interface PlayerGameLogProps {
 export function PlayerGameLog({ gameLog, isGoalie = false }: PlayerGameLogProps) {
   if (isGoalie) {
     return (
-      <div className="overflow-x-auto">
+      <div className="glass-card-strong overflow-x-auto rounded-[24px]">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/68">
@@ -69,7 +69,7 @@ export function PlayerGameLog({ gameLog, isGoalie = false }: PlayerGameLogProps)
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/68">

@@ -50,7 +50,7 @@ export function RivalsCarousel({
       ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500'
       : rival.status === 'trailing'
         ? 'border-rose-500/20 bg-rose-500/10 text-rose-500'
-        : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)]';
+        : 'glass-control border-[var(--color-border)] text-[var(--color-text-secondary)]';
 
   return (
     <div className="relative">
@@ -108,7 +108,7 @@ export function RivalsCarousel({
         <div className="mt-4 flex items-center justify-between px-1">
           <button
             onClick={prev}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/25 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+            className="glass-control flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
             aria-label="Previous rival"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -125,7 +125,7 @@ export function RivalsCarousel({
           </div>
           <button
             onClick={next}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/25 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+            className="glass-control flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
             aria-label="Next rival"
           >
             <ChevronRight className="h-4 w-4" />

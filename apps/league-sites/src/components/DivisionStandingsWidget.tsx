@@ -35,7 +35,7 @@ export function DivisionStandingsWidget({
   };
 
   return (
-    <div>
+    <div className="glass-card-strong rounded-[24px] p-3">
       {/* Division selector - scrollable pills */}
       <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {divisions.map((division) => (
@@ -43,7 +43,7 @@ export function DivisionStandingsWidget({
             key={division.id}
             onClick={() => handleDivisionSelect(division.id)}
             className={`
-              px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all duration-200
+              glass-control min-h-11 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]
               ${
                 activeDivision === division.id
                   ? 'border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] text-[var(--league-on-primary)]'

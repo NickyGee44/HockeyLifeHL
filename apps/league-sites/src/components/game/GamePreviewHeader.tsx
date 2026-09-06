@@ -77,7 +77,7 @@ export function GamePreviewHeader({
   };
 
   return (
-    <div className="relative overflow-hidden" style={{ minHeight: '280px' }}>
+    <div className="glass-card-strong relative mx-4 mt-6 overflow-hidden rounded-[30px]" style={{ minHeight: '280px' }}>
       {/* Background with diagonal split */}
       <div className="absolute inset-0 flex">
         {/* Away team side (left) */}

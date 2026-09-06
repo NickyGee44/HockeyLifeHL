@@ -34,7 +34,7 @@ export function GameCard({ game, leagueSlug, showScore = false, timezone }: Game
   return (
     <div
       ref={cardRef}
-      className="game-card group relative overflow-hidden"
+      className="game-card glass-card group relative overflow-hidden rounded-[24px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
       onMouseMove={handleMouseMove}
       style={
         {
@@ -66,7 +66,7 @@ export function GameCard({ game, leagueSlug, showScore = false, timezone }: Game
           </Link>
           {showScore && isCompleted && (
             <span
-              className={`text-2xl font-bold score transition-all duration-300 ${
+              className={`score text-4xl font-black tabular-nums transition-all duration-300 ${
                 (game.away_score || 0) > (game.home_score || 0)
                   ? 'text-[var(--league-primary)]'
                   : 'text-[var(--color-text-secondary)]'
@@ -116,7 +116,7 @@ export function GameCard({ game, leagueSlug, showScore = false, timezone }: Game
           </Link>
           {showScore && isCompleted && (
             <span
-              className={`text-2xl font-bold score transition-all duration-300 ${
+              className={`score text-4xl font-black tabular-nums transition-all duration-300 ${
                 (game.home_score || 0) > (game.away_score || 0)
                   ? 'text-[var(--league-primary)]'
                   : 'text-[var(--color-text-secondary)]'

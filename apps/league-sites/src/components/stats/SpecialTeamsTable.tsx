@@ -58,7 +58,7 @@ export function SpecialTeamsTable({ leaders, leagueSlug }: SpecialTeamsTableProp
 
   if (leaders.length === 0) {
     return (
-      <div className="p-8 text-center">
+      <div className="glass-card p-8 text-center">
         <Zap className="w-10 h-10 text-[var(--color-text-muted)] mx-auto mb-3" />
         <p className="text-[var(--color-text-secondary)]">
           No special teams stats available yet.
@@ -68,7 +68,7 @@ export function SpecialTeamsTable({ leaders, leagueSlug }: SpecialTeamsTableProp
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[var(--color-border)]">

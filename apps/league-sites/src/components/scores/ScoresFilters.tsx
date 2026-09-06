@@ -77,8 +77,8 @@ export function ScoresFilters({
   };
 
   const selectClass = `
-    px-4 py-2 rounded-lg
-    bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+    glass-control min-h-11 px-4 py-2 rounded-xl
+    border border-[var(--color-border)]
     text-[var(--color-text-primary)] text-sm
     focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50
     cursor-pointer transition-all duration-200
@@ -86,7 +86,7 @@ export function ScoresFilters({
   `;
 
   return (
-    <div className="flex flex-wrap gap-3 mb-6">
+    <div className="glass-card-strong mb-6 flex flex-wrap gap-3 rounded-[24px] p-3">
       {/* Division Filter */}
       {divisions.length > 1 && (
         <select

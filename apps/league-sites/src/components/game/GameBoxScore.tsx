@@ -46,7 +46,7 @@ export function GameBoxScore({
     <div className="space-y-8">
       {/* Scoring Summary */}
       {goals.length > 0 && (
-        <div className="card">
+        <div className="glass-card-strong overflow-hidden">
           <div className="card-header">
             <h3 className="text-lg font-bold">Scoring Summary</h3>
           </div>
@@ -65,7 +65,7 @@ export function GameBoxScore({
 
       {/* Penalty Summary */}
       {penalties.length > 0 && (
-        <div className="card">
+        <div className="glass-card-strong overflow-hidden">
           <div className="card-header">
             <h3 className="text-lg font-bold">Penalty Summary</h3>
           </div>
@@ -102,7 +102,7 @@ export function GameBoxScore({
 
       {/* Goalie Stats */}
       {goalies.length > 0 && (
-        <div className="card">
+        <div className="glass-card-strong overflow-hidden">
           <div className="card-header">
             <h3 className="text-lg font-bold">Goalie Stats</h3>
           </div>
@@ -386,7 +386,7 @@ function PlayerStatsTable({
   if (players.length === 0) return null;
 
   return (
-    <div className="card">
+    <div className="glass-card-strong overflow-hidden">
       <div className="card-header">
         <Link
           href={`/${leagueSlug}/teams/${team.slug}`}

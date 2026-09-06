@@ -133,16 +133,16 @@ export function TeamRosterToggle({
   );
 
   return (
-    <div>
+    <div className="glass-card-strong rounded-[28px] p-4 md:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] md:text-3xl">
           {title}
         </h2>
-        <div className="inline-flex items-center self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] lg:hidden">
+        <div className="glass-control inline-flex items-center self-start rounded-full border border-[var(--color-border)] lg:hidden">
           <button
             type="button"
             onClick={() => setView('lineup')}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+            className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               view === 'lineup'
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
@@ -155,7 +155,7 @@ export function TeamRosterToggle({
           <button
             type="button"
             onClick={() => setView('stats')}
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+            className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               view === 'stats'
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
@@ -173,7 +173,7 @@ export function TeamRosterToggle({
       </div>
 
       <div className="hidden gap-6 lg:grid lg:grid-cols-[minmax(380px,0.95fr)_minmax(0,1.05fr)] lg:items-start">
-        <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/55 p-4 shadow-[0_30px_80px_-56px_rgba(0,0,0,0.9)]">
+        <div className="glass-card rounded-[30px] p-4">
           <div className="mb-3 flex items-center gap-2 px-1">
             <JerseyIcon className="h-4 w-4 text-[var(--league-primary)]" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
@@ -183,7 +183,7 @@ export function TeamRosterToggle({
           {lineupView}
         </div>
 
-        <div className="rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)]/55 p-4 shadow-[0_30px_80px_-56px_rgba(0,0,0,0.9)]">
+        <div className="glass-card rounded-[30px] p-4">
           <div className="mb-3 flex items-center gap-2 px-1">
             <List className="h-4 w-4 text-[var(--league-primary)]" />
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">

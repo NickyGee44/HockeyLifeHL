@@ -104,7 +104,7 @@ export function TeamLeadersSection({
   const maxValue = sortedBarChartPlayers.length > 0 ? sortedBarChartPlayers[0].values[metric] ?? 0 : 1;
 
   return (
-    <section className="league-reading-panel rounded-[28px] p-6 md:p-8">
+    <section className="glass-card-strong rounded-[28px] p-6 md:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {!hideTitle && (
           <div className="flex items-center gap-3">
@@ -114,13 +114,13 @@ export function TeamLeadersSection({
         )}
 
         <div className={`flex items-center gap-3 ${hideTitle ? '' : 'sm:ml-auto'}`}>
-          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-1">
+          <div className="glass-control inline-flex rounded-full border border-[var(--color-border)] p-1">
             {TAB_OPTIONS.map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setMetric(value)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                   metric === value
                     ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                     : 'text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
@@ -134,10 +134,10 @@ export function TeamLeadersSection({
           <button
             type="button"
             onClick={() => setShowChart((prev) => !prev)}
-            className={`ml-auto flex h-10 w-10 items-center justify-center rounded-full border transition-colors lg:hidden ${
+            className={`glass-control ml-auto flex h-11 w-11 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] lg:hidden ${
               showChart
                 ? 'border-[var(--league-primary)]/40 bg-[var(--league-primary)]/15 text-[var(--league-primary)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
+                : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--league-primary)]'
             }`}
             aria-label="Toggle bar chart view"
           >
@@ -169,7 +169,7 @@ export function TeamLeadersSection({
           podiumLeaders={podiumLeaders}
           leagueSlug={leagueSlug}
         />
-        <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]/54 p-4">
+        <div className="glass-card rounded-[24px] p-4">
           <TeamBarsView
             metric={metric}
             players={sortedBarChartPlayers}
@@ -203,7 +203,7 @@ function TeamMetricMiniBoard({
   leagueSlug: string;
 }) {
   return (
-    <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]/54 p-4">
+    <section className="glass-card rounded-[24px] p-4">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
         {METRIC_LABELS[metric]}
       </p>
@@ -246,7 +246,7 @@ function TeamPodiumView({
 }) {
   if (leaders.length === 0) {
     return (
-      <div className="rounded-[24px] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/55 px-6 py-10 text-center">
+      <div className="glass-card rounded-[24px] border-dashed px-6 py-10 text-center">
         <p className="text-lg font-semibold text-[var(--color-text-primary)]">No team leaders yet</p>
         <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">
           Leader cards will populate once current-season player stats are recorded.

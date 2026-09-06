@@ -201,7 +201,7 @@ export function StatLeaders({
       : metrics.slice(0, 3);
 
   return (
-    <div className="league-shell-panel rounded-[30px] border border-[var(--color-border)] p-4 md:p-6">
+    <div className="glass-card-strong rounded-[30px] p-4 md:p-6">
       {!hideTitle && (
         <div>
           <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
@@ -224,7 +224,7 @@ export function StatLeaders({
                   setInternalSelectedMetric(metric.id);
                   onMetricChange?.(metric.id);
                 }}
-                className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                className={`glass-control inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-2 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                   isActive
                     ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)]'
                     : 'border-[var(--glass-card-border)] bg-[var(--color-surface)]/60 text-[var(--color-text-secondary)] hover:border-[var(--glass-card-border-hover)] hover:text-[var(--color-text-primary)]'
@@ -291,7 +291,7 @@ export function StatLeaders({
                           <button
                             type="button"
                             onClick={() => setOpenTeamTooltipFor((current) => (current === leader.player_id ? null : leader.player_id))}
-                            className="rounded-full p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
+                            className="flex min-h-11 min-w-11 items-center justify-center rounded-full p-1 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/45"
                             aria-label={`Show team for ${leader.player_name}`}
                           >
                             <img
@@ -301,13 +301,13 @@ export function StatLeaders({
                             />
                           </button>
                           {teamTooltipOpen ? (
-                            <div className="absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full border border-white/10 bg-[rgba(10,13,29,0.96)] px-3 py-1.5 text-[11px] font-semibold text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.8)]">
+                            <div className="glass-chrome absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)] shadow-[0_12px_30px_-18px_rgba(0,0,0,0.8)]">
                               <div className="flex items-center gap-2">
                                 <span className="truncate max-w-[150px]">{teamName}</span>
                                 <button
                                   type="button"
                                   onClick={() => setOpenTeamTooltipFor(null)}
-                                  className="rounded-full text-white/60 transition-colors hover:text-white"
+                                  className="glass-control flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                                   aria-label="Close team name"
                                 >
                                   <X className="h-3 w-3" />
@@ -340,7 +340,7 @@ export function StatLeaders({
           return (
             <section
               key={metric.id}
-              className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)]/62 p-4 shadow-[0_22px_58px_-46px_rgba(0,0,0,0.85)]"
+              className="glass-card rounded-[24px] p-4"
             >
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ export function StatLeaders({
                         <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-black ${
                           index < 3
                             ? 'bg-[var(--league-primary)]/18 text-[var(--league-primary)]'
-                            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+                            : 'glass-control text-[var(--color-text-secondary)]'
                         }`}>
                           {index + 1}
                         </span>
@@ -381,7 +381,7 @@ export function StatLeaders({
                             <img
                               src={teamLogo}
                               alt={teamName}
-                              className="h-7 w-7 shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] object-contain p-0.5"
+                              className="glass-control h-7 w-7 shrink-0 rounded-lg border border-[var(--color-border)] object-contain p-0.5"
                             />
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--league-primary)]">

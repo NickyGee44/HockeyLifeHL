@@ -53,7 +53,7 @@ export function StandingsWidget({
 
   if (standings.length === 0) {
     return (
-      <div className="p-6 text-center">
+      <div className="glass-card p-6 text-center">
         <p className="text-[var(--color-text-secondary)]">
           No standings available yet
         </p>
@@ -62,7 +62,7 @@ export function StandingsWidget({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
       <table ref={tableRef} className="standings-table">
         <thead>
           <tr>
@@ -152,7 +152,7 @@ export function StandingsWidget({
 
 export function StandingsWidgetSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="glass-card-strong overflow-x-auto rounded-[24px]">
       <table className="standings-table">
         <thead>
           <tr>

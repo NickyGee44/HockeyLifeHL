@@ -98,7 +98,7 @@ export function PlayerDirectoryFilters({
   const hasFilters = selectedTeam || selectedPosition || searchQuery || selectedDivision;
 
   return (
-    <div className="mb-8 space-y-4 lg:sticky lg:top-24 lg:rounded-[28px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/70 lg:p-5 lg:shadow-[0_30px_90px_-64px_rgba(0,0,0,0.95)] lg:backdrop-blur">
+    <div className="glass-card-strong mb-8 space-y-4 rounded-[28px] p-4 lg:sticky lg:top-24 lg:p-5">
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="relative" aria-label="Search players">
         <label htmlFor="player-directory-search" className="sr-only">
@@ -117,7 +117,7 @@ export function PlayerDirectoryFilters({
           autoComplete="off"
           spellCheck={false}
           placeholder="Search players by name or jersey number…"
-          className="w-full pl-12 pr-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)] focus:border-transparent"
+          className="glass-control min-h-11 w-full rounded-xl border border-[var(--color-border)] py-3 pl-12 pr-4 text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)] focus:border-transparent"
         />
       </form>
 
@@ -149,7 +149,7 @@ export function PlayerDirectoryFilters({
                 }
                 router.push(`${pathname}?${params.toString()}`);
               }}
-              className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
+              className="glass-control min-h-11 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
             >
               <option value="">All Divisions</option>
               {divisions.map((div) => (
@@ -170,7 +170,7 @@ export function PlayerDirectoryFilters({
           aria-label="Filter by team"
           value={selectedTeam || ''}
           onChange={(e) => updateFilters('team', e.target.value || null)}
-          className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
+          className="glass-control min-h-11 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
         >
           <option value="">All Teams</option>
           {teams.map((team) => (
@@ -189,7 +189,7 @@ export function PlayerDirectoryFilters({
           aria-label="Filter by position"
           value={selectedPosition || ''}
           onChange={(e) => updateFilters('position', e.target.value || null)}
-          className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
+          className="glass-control min-h-11 rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]"
         >
           <option value="">All Positions</option>
           {positions.map((pos) => (
@@ -204,7 +204,7 @@ export function PlayerDirectoryFilters({
           <button
             type="button"
             onClick={clearFilters}
-            className="flex items-center gap-1 px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+            className="glass-control flex min-h-11 items-center gap-1 rounded-xl px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           >
             <X aria-hidden="true" className="w-4 h-4" />
             Clear filters

@@ -66,10 +66,10 @@ export function WeekPicker({
   };
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="glass-card-strong flex items-center gap-1.5 rounded-[24px] p-2">
       <button
         onClick={handlePrevWeek}
-        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] transition-all"
+        className="glass-control flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
         aria-label="Previous week"
       >
         <ChevronLeft className="w-5 h-5" />
@@ -83,7 +83,7 @@ export function WeekPicker({
           <button
             key={day.date}
             onClick={() => handleDayClick(day.date)}
-            className={`relative flex flex-col items-center gap-0.5 rounded-[18px] border px-1 py-2.5 text-center transition-all ${
+            className={`glass-control relative flex min-h-11 flex-col items-center gap-0.5 rounded-[18px] border px-1 py-2.5 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               isSelected
                 ? 'border-[var(--league-primary)] bg-[var(--league-primary)] text-[var(--color-accent-text)] shadow-md'
                 : hasGames
@@ -120,7 +120,7 @@ export function WeekPicker({
     </div>
       <button
         onClick={handleNextWeek}
-        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] transition-all"
+        className="glass-control flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--league-primary)] hover:text-[var(--league-primary)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
         aria-label="Next week"
       >
         <ChevronRight className="w-5 h-5" />

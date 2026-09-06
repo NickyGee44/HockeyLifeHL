@@ -31,13 +31,13 @@ export function SeasonSelector({
   }
 
   return (
-    <div>
+    <div className="glass-control rounded-xl">
       <select
         value={currentSeasonId || 'all'}
         onChange={(e) => handleSeasonChange(e.target.value)}
         className="
-          px-4 py-2 rounded-lg
-          bg-[var(--color-background-elevated)] border border-[var(--color-border)]
+          min-h-11 px-4 py-2 rounded-xl
+          border border-[var(--color-border)]
           text-[var(--color-text-primary)] text-sm
           focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50
           cursor-pointer transition-all duration-200

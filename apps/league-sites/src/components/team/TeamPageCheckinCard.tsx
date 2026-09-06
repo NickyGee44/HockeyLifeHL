@@ -242,7 +242,7 @@ export function TeamPageCheckinCard({
   }
 
   return (
-    <div className={`grid gap-2 ${canSend ? 'grid-cols-4' : 'grid-cols-3'}`}>
+    <div className={`glass-card grid gap-2 rounded-[24px] p-2 ${canSend ? 'grid-cols-4' : 'grid-cols-3'}`}>
       {tiles.map((tile) => {
         const Icon = tile.icon;
         const loading = tile.key === 'send' ? shareState === 'sharing' : isPending;
@@ -291,5 +291,5 @@ function buildTileClass(accent: string, active: boolean) {
     blue: 'border-white/8 bg-[var(--color-surface-hover)] text-[var(--color-text-primary)] hover:border-sky-400/35 hover:text-sky-300',
   };
 
-  return `flex h-10 items-center justify-center gap-1.5 rounded-xl border px-3 text-center transition-all ${accentMap[accent]} disabled:cursor-not-allowed disabled:opacity-60`;
+  return `glass-control flex min-h-11 items-center justify-center gap-1.5 rounded-xl border px-3 text-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${accentMap[accent]} disabled:cursor-not-allowed disabled:opacity-60`;
 }

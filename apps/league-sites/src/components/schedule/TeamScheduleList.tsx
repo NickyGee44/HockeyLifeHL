@@ -70,7 +70,7 @@ export function TeamScheduleList({
   if (allGames.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <div className="glass-card-strong space-y-2 rounded-[24px] p-3">
       {visibleGames.map((game) => {
         const isCompleted = game.status === 'completed' || game.status === 'pending_verification';
         const isLive = game.status === 'in_progress';
@@ -83,7 +83,7 @@ export function TeamScheduleList({
           <Link
             key={game.id}
             href={`/${leagueSlug}/games/${game.id}`}
-            className="group block rounded-2xl border border-[var(--color-border)]/60 bg-[var(--color-surface)]/50 px-4 py-3 transition-colors hover:border-[var(--league-primary)]/40 hover:bg-[var(--color-surface-hover)]/50"
+            className="glass-card group block rounded-2xl px-4 py-3 transition-colors hover:border-[var(--league-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           >
             {/* Row 1: Team vs Opponent + score */}
             <div className="flex items-center justify-between gap-3">
@@ -148,7 +148,7 @@ export function TeamScheduleList({
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+            className="glass-control inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           >
             {expanded ? (
               <>

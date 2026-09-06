@@ -52,7 +52,7 @@ export function ScheduleTable({
   }
 
   return (
-    <>
+    <div className="glass-card-strong overflow-hidden rounded-[24px]">
       {/* Desktop Table View */}
       <div className="hidden md:block">
         <table className="w-full border-collapse">
@@ -98,7 +98,7 @@ export function ScheduleTable({
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden divide-y divide-[var(--color-border-muted)] overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/78">
+      <div className="md:hidden divide-y divide-[var(--color-border-muted)] overflow-hidden">
         {games.map((game) => (
           <ScheduleCard
             key={game.id}
@@ -109,7 +109,7 @@ export function ScheduleTable({
           />
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -267,7 +267,7 @@ function ScheduleTableRow({
         <div className="flex items-center justify-center gap-1.5">
           <Link
             href={`/${leagueSlug}/games/${game.id}`}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full transition-all"
+            className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
             style={{ background: 'var(--league-primary)', color: 'var(--color-accent-text)' }}
             aria-label={`View game: ${game.away_team?.name} vs ${game.home_team?.name}`}
           >
@@ -276,7 +276,7 @@ function ScheduleTableRow({
           {isCompleted && (
             <Link
               href={`/${leagueSlug}/games/${game.id}`}
-              className="inline-flex items-center justify-center w-7 h-7 rounded-full transition-all"
+              className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               style={{ background: 'var(--league-secondary)', color: 'var(--league-secondary-contrast)' }}
               aria-label="View scoresheet"
             >

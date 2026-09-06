@@ -62,10 +62,10 @@ export function StatsLeadersTabs({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`glass-control flex min-h-11 items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 activeTab === tab.id
                   ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-                  : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -75,7 +75,7 @@ export function StatsLeadersTabs({
         </div>
 
         {/* Search */}
-        <div className="relative max-w-xs w-full">
+        <div className="glass-control relative max-w-xs w-full rounded-xl">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
           <input
             type="text"
@@ -83,7 +83,7 @@ export function StatsLeadersTabs({
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search players..."
             className="
-              w-full pl-10 pr-10 py-2 rounded-lg text-sm
+              min-h-11 w-full pl-10 pr-12 py-2 rounded-xl text-sm
               bg-[var(--color-surface-hover)] border border-[var(--color-border)]
               text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]
               focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
@@ -93,7 +93,8 @@ export function StatsLeadersTabs({
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-[var(--color-border)] transition-colors"
+              className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full hover:bg-[var(--color-border)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
+              aria-label="Clear player search"
             >
               <X className="w-3 h-3 text-[var(--color-text-muted)]" />
             </button>
@@ -102,7 +103,7 @@ export function StatsLeadersTabs({
       </div>
 
       {/* Content */}
-      <div className="card overflow-hidden">
+      <div className="glass-card-strong overflow-x-auto">
         {filteredData.length > 0 ? (
           <div className="overflow-x-auto">
           <table className="standings-table w-full">
@@ -142,10 +143,10 @@ export function StatsLeadersTabs({
                           originalRank === 0
                             ? 'bg-gold-500 text-black'
                             : originalRank === 1
-                            ? 'bg-gray-400 text-gray-900'
+                            ? 'bg-slate-300/80 text-slate-950'
                             : originalRank === 2
                             ? 'bg-amber-700 text-white'
-                            : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)]'
+                            : 'glass-control text-[var(--color-text-secondary)]'
                         }`}
                       >
                         {originalRank + 1}
@@ -242,7 +243,7 @@ export function StatsLeadersTabs({
       {hasMorePlayers && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-colors bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] border border-[var(--color-border)]"
+          className="glass-control mt-4 min-h-11 w-full rounded-xl border border-[var(--color-border)] py-2.5 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
         >
           {showAll ? 'Show Top 10' : `Show All ${activeData.length} Players`}
         </button>

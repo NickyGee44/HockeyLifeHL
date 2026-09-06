@@ -39,7 +39,7 @@ export function PlayerStatsComparison({
 
   if (!hasLeaders) {
     return (
-      <div className="card">
+      <div className="glass-card-strong overflow-hidden">
         <div className="card-header">
           <h3 className="text-lg font-bold">Player Leaders</h3>
         </div>
@@ -54,7 +54,7 @@ export function PlayerStatsComparison({
   }
 
   return (
-    <div className="card">
+    <div className="glass-card-strong overflow-hidden">
       <div className="card-header">
         <h3 className="text-lg font-bold">Points Leaders</h3>
       </div>

@@ -238,15 +238,15 @@ export function ScheduleFilters({
   };
 
   const selectClass =
-    'w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-3 text-sm text-[var(--color-text-primary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50';
+    'glass-control min-h-11 w-full rounded-xl border border-[var(--color-border)] px-3 py-3 text-sm text-[var(--color-text-primary)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50';
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="glass-card rounded-[24px] p-3 space-y-3">
         <button
           type="button"
           onClick={openFilters}
-          className="relative inline-flex items-center justify-center rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+          className="glass-control relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-[18px] border border-[var(--color-border)] p-2.5 text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
           aria-expanded={isModalOpen}
           aria-haspopup="dialog"
           aria-label="Filter schedule"
@@ -299,7 +299,7 @@ export function ScheduleFilters({
             role="dialog"
             aria-modal="true"
             aria-labelledby="schedule-filter-modal-title"
-            className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl"
+            className="glass-card-strong relative w-full max-w-xl overflow-hidden rounded-[28px] shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-4">
               <div>
@@ -317,7 +317,7 @@ export function ScheduleFilters({
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="rounded-xl p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
+                className="glass-control flex h-11 w-11 items-center justify-center rounded-xl text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                 aria-label="Close filters"
               >
                 <X className="h-5 w-5" />
@@ -423,7 +423,7 @@ export function ScheduleFilters({
               <button
                 type="button"
                 onClick={clearFilters}
-                className="text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+                className="min-h-11 rounded-xl px-3 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               >
                 Reset filters
               </button>
@@ -432,14 +432,14 @@ export function ScheduleFilters({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                  className="glass-control min-h-11 rounded-xl border border-[var(--color-border)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={applyFilters}
-                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
+                  className="min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                   style={{ background: 'var(--league-primary)' }}
                 >
                   Apply Filters

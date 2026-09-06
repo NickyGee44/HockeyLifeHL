@@ -159,7 +159,7 @@ export function PremiumScoreTicker({
   };
 
   return (
-    <div className="score-ticker relative w-full" data-testid="score-ticker">
+    <div className="score-ticker glass-chrome relative w-full" data-testid="score-ticker">
       <div
         className="relative w-full overflow-hidden backdrop-blur-md"
         style={{
@@ -189,7 +189,7 @@ export function PremiumScoreTicker({
           <button
             type="button"
             onClick={() => nudgeTrack(-1)}
-            className="absolute bottom-0 left-0 top-0 z-30 hidden w-7 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
+            className="absolute bottom-0 left-0 top-0 z-30 hidden min-h-11 w-11 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--league-primary)] lg:flex"
             style={{
               background:
                 'linear-gradient(to right, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
@@ -232,7 +232,7 @@ export function PremiumScoreTicker({
           <button
             type="button"
             onClick={() => nudgeTrack(1)}
-            className="absolute bottom-0 right-0 top-0 z-30 hidden w-7 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 lg:flex"
+            className="absolute bottom-0 right-0 top-0 z-30 hidden min-h-11 w-11 items-center justify-center transition-opacity duration-200 hover:opacity-100 focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--league-primary)] lg:flex"
             style={{
               background:
                 'linear-gradient(to left, color-mix(in srgb, var(--color-background) 96%, transparent) 34%, transparent)',
@@ -300,7 +300,7 @@ function TickerGameCard({ game, leagueSlug, timezone }: TickerGameCardProps) {
       style={{ minWidth: '208px' }}
     >
       <article
-        className="overflow-hidden rounded-[14px] border border-[var(--color-border-muted)] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary-border)] group-hover:bg-[var(--color-surface)]"
+        className="glass-card overflow-hidden rounded-[14px] px-2 py-1.5 transition-all duration-200 group-hover:border-[var(--league-primary-border)]"
         style={{
           background: isLive
             ? 'linear-gradient(135deg, rgba(239,68,68,0.11) 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 48%, color-mix(in srgb, var(--color-surface) 92%, transparent) 100%)'
@@ -408,7 +408,7 @@ function TeamRow({ team, score, isWinning, showScore, teamColor, isLive }: TeamR
             />
           )}
           <span
-            className={`text-[15px] font-black tabular-nums ${
+            className={`text-xl font-black tabular-nums ${
               isWinning ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)]'
             }`}
           >

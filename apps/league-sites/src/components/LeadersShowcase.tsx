@@ -46,7 +46,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug }: L
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       {/* Scoring Leaders */}
       {hasScoring && (
-        <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-6">
+        <div className="glass-card rounded-3xl p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-lg font-black text-[var(--color-text-primary)]">
               <TrendingUp className="h-5 w-5 text-[var(--league-primary)]" />
@@ -96,7 +96,7 @@ export function LeadersShowcase({ scoringLeaders, goalieLeaders, leagueSlug }: L
 
       {/* Goalie Leaders */}
       {hasGoalies && (
-        <div className="league-shell-panel rounded-3xl border border-[var(--color-border)] p-6">
+        <div className="glass-card rounded-3xl p-6">
           <div className="mb-5 flex items-center justify-between">
             <h3 className="flex items-center gap-2 text-lg font-black text-[var(--color-text-primary)]">
               <Shield className="h-5 w-5 text-[var(--league-primary)]" />

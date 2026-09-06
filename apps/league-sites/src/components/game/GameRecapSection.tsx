@@ -35,7 +35,7 @@ export function GameRecapSection({ recap, leagueSlug }: GameRecapSectionProps) {
         )}
       </div>
 
-      <div className="card mt-4 overflow-hidden">
+      <div className="glass-card-strong mt-4 overflow-hidden">
         <div className="p-5 md:p-6">
           {/* Article title */}
           <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-4">

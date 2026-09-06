@@ -118,7 +118,7 @@ function PlayerListRow({
         </span>
       </span>
 
-      <span className="inline-flex w-fit rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
+      <span className="glass-control inline-flex w-fit rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
         {player.position || 'Roster'}
       </span>
     </Link>
@@ -138,7 +138,7 @@ function PlayerCard({
   return (
     <Link
       href={`/${leagueSlug}/players/${player.id}`}
-      className="group glass-card rounded-xl overflow-hidden"
+      className="group glass-card rounded-[24px] overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
     >
       {/* Avatar */}
       <div className="aspect-square relative bg-[var(--color-surface-hover)]">

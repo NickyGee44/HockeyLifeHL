@@ -28,10 +28,10 @@ export function StandingsTabs({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`glass-control min-h-11 px-4 py-2 rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
               activeTab === tab.id
                 ? 'bg-[var(--league-primary)] text-[var(--color-accent-text)]'
-                : 'bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
             }`}
           >
             {tab.label}
@@ -40,7 +40,7 @@ export function StandingsTabs({
       </div>
 
       {/* Content */}
-      <div className="card overflow-hidden">
+      <div className="glass-card-strong overflow-x-auto">
         <StandingsTable standings={standingsByDivision[activeTab] || []} />
       </div>
     </div>

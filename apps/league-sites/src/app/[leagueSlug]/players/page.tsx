@@ -163,17 +163,18 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
 
   return (
     <SubscriptionWall>
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div className="league-page-shell min-h-screen">
       {/* Header */}
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_14%,transparent),color-mix(in_srgb,var(--color-surface)_92%,transparent))]">
+      <div className="glass-chrome border-b border-[var(--color-border)] lg:bg-[linear-gradient(135deg,color-mix(in_srgb,var(--league-primary)_14%,transparent),color-mix(in_srgb,var(--blh-glass-surface)_82%,transparent))]">
         <div className="container mx-auto px-4 py-8 lg:py-12">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-lg bg-[var(--league-primary)]/10 flex items-center justify-center lg:h-14 lg:w-14 lg:rounded-2xl lg:border lg:border-[var(--league-primary)]/20">
               <Users className="w-5 h-5 text-[var(--league-primary)]" />
             </div>
-            <h1 className="text-2xl font-bold text-[var(--color-text-primary)] lg:text-4xl lg:font-black">
-              Player Directory
-            </h1>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">Player index</p>
+              <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] lg:text-5xl">Player Directory</h1>
+            </div>
           </div>
           <p className="text-[var(--color-text-secondary)]">
             {players.length} players across {filteredTeams.length} teams
@@ -210,7 +211,7 @@ export default async function PlayersPage({ params, searchParams }: PlayersPageP
             </div>
 
             {players.length === 0 ? (
-              <div className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/68 py-16 text-center">
+              <div className="glass-card rounded-[28px] py-16 text-center">
                 <User className="w-16 h-16 mx-auto text-[var(--color-text-muted)] mb-4" />
                 <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
                   No players found

@@ -42,7 +42,7 @@ export function TeamStatsComparison({
 
   if (!hasStats) {
     return (
-      <div className="card">
+      <div className="glass-card-strong overflow-hidden">
         <div className="card-header">
           <h3 className="text-lg font-bold flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />
@@ -60,7 +60,7 @@ export function TeamStatsComparison({
   }
 
   return (
-    <div className="card">
+    <div className="glass-card-strong overflow-hidden">
       <div className="card-header">
         <h3 className="text-lg font-bold flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-[var(--league-primary)]" />

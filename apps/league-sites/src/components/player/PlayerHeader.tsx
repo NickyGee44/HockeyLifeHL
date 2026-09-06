@@ -21,7 +21,7 @@ export function PlayerHeader({ player, playerName, leagueSlug, badges, careerAch
   const compactBadges = badges?.filter((badge) => !FEATURED_TROPHY_BADGE_TYPES.has(badge.badge_type));
 
   return (
-    <div className="league-reading-panel relative isolate overflow-hidden rounded-[30px] mb-6">
+    <div className="glass-card-strong relative isolate overflow-hidden rounded-[30px] mb-6">
       {/* Background: team logo tiled watermark */}
       {team?.logo_url && (
         <div

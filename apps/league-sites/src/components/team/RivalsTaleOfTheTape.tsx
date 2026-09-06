@@ -316,7 +316,7 @@ export function RivalsTaleOfTheTape({
         Rivalry Matchup · {m.gamesPlayed} {m.gamesPlayed === 1 ? 'game' : 'games'} this season
       </p>
 
-      <div className="league-reading-panel rounded-[28px] px-5 py-7 md:px-8 md:py-8">
+      <div className="glass-card-strong rounded-[28px] px-5 py-7 md:px-8 md:py-8">
         <div className="mb-7 flex items-center justify-center gap-4 md:gap-10">
           <TeamLogo
             name={m.team.name}
@@ -444,7 +444,7 @@ export function RivalsTaleOfTheTape({
           <div className="mt-7 flex items-center justify-between px-1">
             <button
               onClick={prev}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/20 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+              className="glass-control flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               aria-label="Previous rival"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -454,16 +454,18 @@ export function RivalsTaleOfTheTape({
                 <button
                   key={i}
                   onClick={() => setIndex(i)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === index ? 'w-5 bg-[var(--league-primary)]' : 'w-1.5 bg-white/20 hover:bg-white/40'
-                  }`}
+                  className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                   aria-label={`Go to rival ${i + 1}`}
-                />
+                >
+                  <span className={`h-1.5 rounded-full transition-all ${
+                    i === index ? 'w-5 bg-[var(--league-primary)]' : 'w-1.5 bg-white/20'
+                  }`} />
+                </button>
               ))}
             </div>
             <button
               onClick={next}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/20 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+              className="glass-control flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               aria-label="Next rival"
             >
               <ChevronRight className="h-4 w-4" />

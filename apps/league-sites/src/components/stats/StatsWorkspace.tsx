@@ -337,7 +337,7 @@ const GOALIE_LEGEND = [
 ] as const;
 
 const MODAL_SELECT_CLASS =
-  "w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--league-primary)]";
+  "glass-control min-h-11 w-full rounded-2xl border border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--league-primary)] focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]";
 
 function isSkaterStatKey(value: string | null): value is SkaterStatKey {
   return SKATER_COLUMNS.some((column) => column.key === value);
@@ -515,7 +515,7 @@ export function getMobileVisibleColumns<
 
 function FilterTag({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
+    <span className="glass-control inline-flex items-center rounded-full border border-[var(--color-border)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">
       {label}
     </span>
   );
@@ -1036,20 +1036,21 @@ export function StatsWorkspace({
       : filteredRows;
 
   return (
-    <>
+    <div className="glass-data-workspace">
       <div className="mb-5 md:mb-6">
-        <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] md:text-4xl">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">League data desk</p>
+        <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)] md:text-5xl">
           Stats
         </h1>
       </div>
 
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-2 lg:hidden">
-          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+          <div className="glass-control inline-flex rounded-full border border-[var(--color-border)] p-1">
             <button
               type="button"
               onClick={() => handleViewChange(false)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 !isAllTime
                   ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
@@ -1061,7 +1062,7 @@ export function StatsWorkspace({
             <button
               type="button"
               onClick={() => handleViewChange(true)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 isAllTime
                   ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
@@ -1071,13 +1072,13 @@ export function StatsWorkspace({
             </button>
           </div>
 
-          <div className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+          <div className="glass-control inline-flex rounded-full border border-[var(--color-border)] p-1">
             <button
               type="button"
               onClick={() => handleModeChange("skaters")}
               aria-label="Players"
               title="Players"
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 mode === "skaters"
                   ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
@@ -1090,7 +1091,7 @@ export function StatsWorkspace({
               onClick={() => handleModeChange("goalies")}
               aria-label="Goalies"
               title="Goalies"
-              className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+              className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                 mode === "goalies"
                   ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
@@ -1103,7 +1104,7 @@ export function StatsWorkspace({
           <button
             type="button"
             onClick={openFilterPanel}
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-background-elevated)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+            className="glass-control relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
             aria-label="Open filters"
             title="Open filters"
           >
@@ -1116,7 +1117,7 @@ export function StatsWorkspace({
           </button>
         </div>
 
-        <div className="hidden rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)]/70 p-4 shadow-[0_34px_90px_-66px_rgba(0,0,0,0.95)] backdrop-blur lg:block">
+        <div className="glass-card-strong hidden rounded-[28px] p-4 lg:block">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--league-primary)]">
@@ -1129,18 +1130,18 @@ export function StatsWorkspace({
             <button
               type="button"
               onClick={clearFilters}
-              className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+              className="glass-control min-h-11 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
             >
               Reset
             </button>
           </div>
 
           <div className="grid gap-3 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr]">
-            <div className="flex rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-1">
+            <div className="glass-control flex rounded-2xl border border-[var(--color-border)] p-1">
               <button
                 type="button"
                 onClick={() => handleModeChange("skaters")}
-                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                className={`min-h-11 flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                   mode === "skaters"
                     ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
                     : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
@@ -1151,7 +1152,7 @@ export function StatsWorkspace({
               <button
                 type="button"
                 onClick={() => handleModeChange("goalies")}
-                className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
+                className={`min-h-11 flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                   mode === "goalies"
                     ? "bg-[var(--league-primary)] text-[var(--color-accent-text)]"
                     : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
@@ -1275,7 +1276,7 @@ export function StatsWorkspace({
             </select>
           </div>
 
-          <div className="mt-3 flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3">
+          <div className="glass-control mt-3 flex items-center gap-3 rounded-2xl border border-[var(--color-border)] px-4 py-3">
             <Search className="h-4 w-4 shrink-0 text-[var(--league-primary)]" />
             <input
               type="text"
@@ -1315,7 +1316,7 @@ export function StatsWorkspace({
 
         {filteredRows.length > 0 ? (
           <div>
-            <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)]">
+            <div className="glass-card-strong overflow-hidden rounded-[24px]">
               <div className="overflow-x-auto">
                 <div>
                   <table className="w-fit table-fixed border-separate border-spacing-0 text-sm">
@@ -1328,7 +1329,7 @@ export function StatsWorkspace({
                   <thead>
                     <tr>
                       <th
-                        className={`sticky left-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] ${playerColumnWidthClass}`}
+                        className={`sticky left-0 z-30 border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--blh-glass-surface-strong)_94%,transparent)] px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)] backdrop-blur-xl ${playerColumnWidthClass}`}
                       >
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
@@ -1338,7 +1339,7 @@ export function StatsWorkspace({
                             <button
                               type="button"
                               onClick={openHeaderSearch}
-                              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${
+                              className={`glass-control inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)] ${
                                 isHeaderSearchOpen || normalizedSearch
                                   ? "border-[var(--league-primary)]/40 text-[var(--league-primary)]"
                                   : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--league-primary)]/30 hover:text-[var(--league-primary)]"
@@ -1369,7 +1370,7 @@ export function StatsWorkspace({
                               <button
                                 type="button"
                                 onClick={closeHeaderSearch}
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+                                className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                                 aria-label="Clear search"
                               >
                                 <X className="h-3.5 w-3.5" />
@@ -1384,7 +1385,7 @@ export function StatsWorkspace({
                         return (
                           <th
                             key={column.key}
-                            className={`border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] ${statColumnWidthClass} ${
+                            className={`border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--blh-glass-surface-strong)_94%,transparent)] py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)] backdrop-blur-xl ${statColumnWidthClass} ${
                               active ? SORTED_COLUMN_HEADER_CLASS : ""
                             }`}
                           >
@@ -1428,14 +1429,14 @@ export function StatsWorkspace({
                       return (
                         <tr key={row.player_id} className="group">
                           <td
-                            className={`sticky left-0 z-20 border-b border-[var(--color-border)] bg-[var(--color-background-elevated)] px-3 py-2.5 transition-colors group-hover:bg-[var(--color-surface-hover)] ${playerColumnWidthClass}`}
+                            className={`sticky left-0 z-20 border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--blh-glass-surface-strong)_92%,transparent)] px-3 py-2.5 backdrop-blur-xl transition-colors group-hover:bg-[var(--color-surface-hover)] ${playerColumnWidthClass}`}
                           >
                             <div className="flex items-center gap-2">
                               <div className="relative h-9 w-9 shrink-0">
                                 <img
                                   src={teamLogoSrc}
                                   alt={teamLogoAlt}
-                                  className="h-9 w-9 rounded-[11px] border border-[var(--color-border)] bg-[var(--color-surface)] object-cover p-1"
+                                  className="glass-control h-9 w-9 rounded-[11px] border border-[var(--color-border)] object-cover p-1"
                                 />
                                 <span className="absolute -bottom-1 -right-1 inline-flex min-w-6 items-center justify-center rounded-[8px] border border-black/10 bg-[var(--color-background)]/95 px-1.5 py-0.5 text-[8px] font-black tabular-nums leading-none tracking-[0.08em] text-[var(--color-text-primary)] shadow-[0_10px_18px_-14px_rgba(0,0,0,0.85)] backdrop-blur">
                                   {formatJerseyDisplay(row.jersey_number)}
@@ -1513,7 +1514,7 @@ export function StatsWorkspace({
                       setIsShowingAllRows((current) => !current)
                     }
                     aria-expanded={isShowingAllRows}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)]"
+                    className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-text-secondary)] transition-colors hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                     aria-label={
                       isShowingAllRows
                         ? "Collapse stats rows"
@@ -1552,8 +1553,8 @@ export function StatsWorkspace({
           </div>
         )}
 
-        <div className="hidden grid-cols-3 gap-3 lg:grid">
-          <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4">
+          <div className="hidden grid-cols-3 gap-3 lg:grid">
+          <div className="glass-card rounded-[24px] px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
               Visible result
             </p>
@@ -1564,7 +1565,7 @@ export function StatsWorkspace({
               of {scopeRows.length} scoped rows
             </p>
           </div>
-          <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4">
+          <div className="glass-card rounded-[24px] px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
               Active sort
             </p>
@@ -1575,7 +1576,7 @@ export function StatsWorkspace({
               {currentDirection === "desc" ? "High to low" : "Low to high"}
             </p>
           </div>
-          <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4">
+          <div className="glass-card rounded-[24px] px-4 py-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
               Filters
             </p>
@@ -1593,7 +1594,7 @@ export function StatsWorkspace({
             <button
               type="button"
               onClick={() => setIsLegendOpen((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-3.5 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)]"
+              className="glass-control inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--color-border)] px-3.5 py-2 text-sm font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--league-primary)]/40 hover:text-[var(--league-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
             >
               Legend
               {isLegendOpen ? (
@@ -1605,11 +1606,11 @@ export function StatsWorkspace({
           </div>
 
           {isLegendOpen ? (
-            <div className="mt-3 grid gap-3 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)]/65 px-4 py-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="glass-card mt-3 grid gap-3 rounded-[24px] px-4 py-4 sm:grid-cols-2 xl:grid-cols-4">
               {legendItems.map(([label, description]) => (
                 <div
                   key={label}
-                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] px-4 py-3"
+                  className="glass-card rounded-2xl px-4 py-3"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
                     {label}
@@ -1633,7 +1634,7 @@ export function StatsWorkspace({
             onClick={() => setIsFilterOpen(false)}
           />
 
-          <div className="relative z-[81] w-full max-w-3xl rounded-[30px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_40px_120px_-50px_rgba(0,0,0,0.65)]">
+          <div className="glass-card-strong relative z-[81] w-full max-w-3xl rounded-[30px]">
             <div className="flex items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-5 md:px-6">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
@@ -1650,7 +1651,7 @@ export function StatsWorkspace({
               <button
                 type="button"
                 onClick={() => setIsFilterOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+                className="glass-control inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1773,7 +1774,7 @@ export function StatsWorkspace({
                 </select>
               </FilterField>
 
-              <div className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-4">
+              <div className="glass-card rounded-[24px] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--league-primary)]">
                   Active View
                 </p>
@@ -1793,7 +1794,7 @@ export function StatsWorkspace({
               <button
                 type="button"
                 onClick={clearFilters}
-                className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+                className="glass-control min-h-11 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
               >
                 Reset filters
               </button>
@@ -1801,14 +1802,14 @@ export function StatsWorkspace({
                 <button
                   type="button"
                   onClick={() => setIsFilterOpen(false)}
-                  className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
+                  className="glass-control min-h-11 rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={applyFilterDraft}
-                  className="rounded-full bg-[var(--league-primary)] px-5 py-2 text-sm font-semibold text-[var(--color-accent-text)]"
+                  className="min-h-11 rounded-full bg-[var(--league-primary)] px-5 py-2 text-sm font-semibold text-[var(--color-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--league-primary)]"
                 >
                   Apply filters
                 </button>
@@ -1817,7 +1818,7 @@ export function StatsWorkspace({
           </div>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 

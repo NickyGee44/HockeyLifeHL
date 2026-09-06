@@ -249,9 +249,9 @@ function SeriesCard({ series, totalRounds: _totalRounds }: { series: PlayoffSeri
     <div
       className={`rounded-xl border p-1 min-w-[180px] ${
         isCompleted
-          ? 'border-white/15 bg-[var(--color-surface)]'
+          ? 'glass-card-strong border-white/15'
           : hasTeams
-          ? 'border-[var(--league-primary)]/30 bg-[var(--color-surface)]'
+          ? 'glass-card-strong border-[var(--league-primary)]/30'
           : 'border-white/5 bg-[var(--color-surface)]/50 opacity-60'
       }`}
     >
@@ -380,16 +380,17 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
     : null;
 
   return (
-    <main className="min-h-screen bg-[var(--color-background)]">
+    <main className="league-page-shell min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
 
         {/* Header */}
-        <div className="mb-8 lg:rounded-[32px] lg:border lg:border-[var(--color-border)] lg:bg-[var(--color-surface)]/58 lg:p-8 lg:shadow-[0_34px_90px_-70px_rgba(0,0,0,0.95)]">
+        <div className="glass-card mb-8 rounded-[32px] p-6 lg:p-8">
           <div className="flex items-center gap-3 mb-2">
             <Trophy className="w-6 h-6 text-[var(--league-primary)]" />
-            <h1 className="text-3xl font-black text-[var(--color-text-primary)] tracking-tight">
-              Playoff Bracket
-            </h1>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--league-primary)]">Postseason monitor</p>
+              <h1 className="text-4xl font-black text-[var(--color-text-primary)] tracking-tight md:text-5xl">Playoff Bracket</h1>
+            </div>
           </div>
           <p className="text-[var(--color-text-secondary)]">{league.name}</p>
         </div>
@@ -439,7 +440,7 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             {sections.map((section) => (
               <div
                 key={section.key}
-                className="rounded-2xl border border-white/10 bg-[var(--color-surface)] p-5"
+                className="glass-card rounded-2xl p-5"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)] opacity-70">
                   Division Champion
@@ -505,7 +506,7 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
             ))}
           </div>
         ) : (
-          <div className="rounded-[32px] border border-[var(--color-border)] bg-[var(--color-surface)]/62 py-20 text-center">
+          <div className="glass-card rounded-[32px] py-20 text-center">
             <Trophy className="w-12 h-12 mx-auto mb-4 text-[var(--league-primary)]/70" />
             <p className="text-lg font-semibold text-[var(--color-text-secondary)]">
               Playoff bracket not yet generated
@@ -514,10 +515,10 @@ export default async function PlayoffsPage({ params, searchParams }: PlayoffsPag
               Check back when the official bracket is generated.
             </p>
             <div className="mt-6 hidden justify-center gap-3 lg:flex">
-              <Link href={`/${leagueSlug}/standings`} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
+              <Link href={`/${leagueSlug}/standings`} className="glass-control inline-flex min-h-11 items-center rounded-full border border-[var(--color-border)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] hover:border-[var(--league-primary)]/45">
                 Current standings
               </Link>
-              <Link href={`/${leagueSlug}/schedule`} className="rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
+              <Link href={`/${leagueSlug}/schedule`} className="inline-flex min-h-11 items-center rounded-full bg-[var(--league-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-accent-text)]">
                 Schedule
               </Link>
             </div>
