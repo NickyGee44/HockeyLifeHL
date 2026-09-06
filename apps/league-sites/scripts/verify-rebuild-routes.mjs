@@ -18,6 +18,7 @@ const STATE_FIELDS = [
   'accessibility',
   'seo',
 ];
+const EVIDENCE_REQUIRED_STATUSES = new Set(['review', 'complete']);
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -100,6 +101,34 @@ function validateRouteShape(route) {
   for (const field of STATE_FIELDS) {
     if (typeof route.states?.[field] !== 'string' || route.states[field].trim() === '') {
       errors.push(`${route.id ?? route.path ?? '<unknown>'}: states.${field} is required`);
+    }
+  }
+  if (EVIDENCE_REQUIRED_STATUSES.has(route.status)) {
+    if (!route.evidence || typeof route.evidence !== 'object' || Array.isArray(route.evidence)) {
+      errors.push(`${route.id ?? route.path ?? '<unknown>'}: evidence is required when status is ${route.status}`);
+    } else {
+      for (const field of ['sourceContractTest', 'acceptanceNote']) {
+        if (typeof route.evidence[field] !== 'string' || route.evidence[field].trim() === '') {
+          errors.push(`${route.id ?? route.path ?? '<unknown>'}: evidence.${field} is required when status is ${route.status}`);
+        }
+      }
+    }
+  }
+  return errors;
+}
+
+function validateSharedEvidence(manifest) {
+  const errors = [];
+  for (const [kind, items] of [
+    ['global contract', manifest.globalContracts ?? []],
+    ['shared requirement', manifest.sharedRequirements ?? []],
+  ]) {
+    for (const item of items) {
+      if (!EVIDENCE_REQUIRED_STATUSES.has(item.status)) continue;
+      const evidence = item.evidence ?? manifest.sharedVerificationNote;
+      if (typeof evidence !== 'string' || evidence.trim() === '') {
+        errors.push(`${item.id ?? `<unknown ${kind}>`}: evidence is required when status is ${item.status}`);
+      }
     }
   }
   return errors;
@@ -199,6 +228,7 @@ export async function verifyManifestCoverage({ root = DEFAULT_ROOT, manifest }) 
   const shapeErrors = [
     ...manifest.routes.flatMap(validateRouteShape),
     ...manifest.preservedHandlers.flatMap(validateHandlerShape),
+    ...validateSharedEvidence(manifest),
   ].sort();
 
   return {
@@ -226,6 +256,10 @@ function checkbox(status) {
 
 function bulletList(values) {
   return values.map((value) => `  - ${value}`).join('\n');
+}
+
+function sharedEvidence(manifest, item) {
+  return item.evidence ?? manifest.sharedVerificationNote;
 }
 
 export function renderTrackerMarkdown(manifest) {
@@ -260,13 +294,19 @@ export function renderTrackerMarkdown(manifest) {
       '',
       `- **Status:** \`${contract.status}\``,
       `- **Contract:** ${contract.requirement}`,
+      ...(EVIDENCE_REQUIRED_STATUSES.has(contract.status)
+        ? [`- **Evidence:** ${sharedEvidence(manifest, contract)}`]
+        : []),
       '',
     ]),
     '## Shared/global requirements',
     '',
-    ...manifest.sharedRequirements.map(
-      (requirement) => `- [${checkbox(requirement.status)}] \`${requirement.id}\` — **${requirement.title}:** ${requirement.requirement} (\`${requirement.status}\`)`
-    ),
+    ...manifest.sharedRequirements.flatMap((requirement) => [
+      `- [${checkbox(requirement.status)}] \`${requirement.id}\` — **${requirement.title}:** ${requirement.requirement} (\`${requirement.status}\`)`,
+      ...(EVIDENCE_REQUIRED_STATUSES.has(requirement.status)
+        ? [`  - **Evidence:** ${sharedEvidence(manifest, requirement)}`]
+        : []),
+    ]),
     '',
   ];
 
@@ -291,6 +331,12 @@ export function renderTrackerMarkdown(manifest) {
         '- **Required states:**',
         ...STATE_FIELDS.map((state) => `  - **${state}:** ${route.states[state]}`),
         `- **TODO contracts:** ${route.contracts.map((contract) => `\`${contract}\``).join(', ')}`,
+        ...(EVIDENCE_REQUIRED_STATUSES.has(route.status)
+          ? [
+              `- **Source-contract test:** \`${route.evidence?.sourceContractTest ?? '<missing>'}\``,
+              `- **Acceptance evidence:** ${route.evidence?.acceptanceNote ?? '<missing>'}`,
+            ]
+          : []),
         ''
       );
     }

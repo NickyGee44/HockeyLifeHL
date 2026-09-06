@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   pageFileToRoute,
+  renderTrackerMarkdown,
   routeFileToRoute,
   verifyManifestCoverage,
 } from '../verify-rebuild-routes.mjs';
@@ -42,11 +43,13 @@ function route(overrides) {
 function baseManifest(routes, preservedHandlers = []) {
   return {
     version: 1,
+    productionBaseline: 'fixture',
     expectedPageCount: routes.length,
     expectedHandlerCount: preservedHandlers.length,
     statuses: {
       'not-started': 'Tracked but not rebuilt.',
       'in-progress': 'Implementation is active.',
+      review: 'Implementation awaits acceptance.',
       blocked: 'Blocked by a named dependency.',
       complete: 'Acceptance criteria are verified.',
     },
@@ -172,4 +175,40 @@ test('rejects duplicate IDs/routes, invalid statuses/categories, and category co
   assert.deepEqual(result.invalidStatuses, ['LS-ROOT: done']);
   assert.deepEqual(result.invalidCategories, ['LS-ROOT: unknown']);
   assert.deepEqual(result.categoryCountMismatches, ['public: expected 3, found 2']);
+});
+
+test('requires and renders evidence for review and complete work', async () => {
+  const root = await createFixture();
+  const manifest = baseManifest([route({ status: 'review' })]);
+  manifest.sharedVerificationNote = 'Pending final integrated build, independent review, and preview/browser acceptance.';
+  manifest.globalContracts = [{
+    id: 'ROUTE-COMPATIBILITY',
+    title: 'Route compatibility',
+    status: 'review',
+    requirement: 'Keep paths compatible.',
+  }];
+  manifest.sharedRequirements = [{
+    id: 'RESPONSIVE',
+    title: 'Responsive behavior',
+    status: 'complete',
+    requirement: 'Support narrow screens.',
+  }];
+
+  const missingEvidence = await verifyManifestCoverage({ root, manifest });
+  assert.deepEqual(missingEvidence.shapeErrors, [
+    'LS-ROOT: evidence is required when status is review',
+  ]);
+
+  manifest.routes[0].evidence = {
+    sourceContractTest: 'node --test source-contract.test.mjs',
+    acceptanceNote: 'Pending final integrated build, independent review, and preview/browser acceptance.',
+  };
+
+  const withEvidence = await verifyManifestCoverage({ root, manifest });
+  assert.deepEqual(withEvidence.shapeErrors, []);
+
+  const tracker = renderTrackerMarkdown(manifest);
+  assert.match(tracker, /\*\*Source-contract test:\*\* `node --test source-contract\.test\.mjs`/);
+  assert.match(tracker, /\*\*Acceptance evidence:\*\* Pending final integrated build/);
+  assert.equal((tracker.match(/\*\*Evidence:\*\* Pending final integrated build/g) ?? []).length, 2);
 });

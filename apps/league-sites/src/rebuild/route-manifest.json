@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "productionBaseline": "940f79d6ea4b5d5c55fdafe61d477547ea1680ff",
   "expectedPageCount": 56,
   "expectedHandlerCount": 11,
@@ -56,49 +56,49 @@
     {
       "id": "ROUTE-COMPATIBILITY",
       "title": "Route compatibility",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Keep all 56 page paths, dynamic parameter names, deep links, redirects, and custom-domain/subdomain behavior compatible."
     },
     {
       "id": "TENANT-SCOPE",
       "title": "Tenant data isolation",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Every league-derived read/write remains scoped to the resolved league and existing RLS/server authorization."
     },
     {
       "id": "SUPABASE-AUTH",
       "title": "Authentication recovery and sessions",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Preserve login, signup, recovery, callback, session refresh, and safe redirect behavior."
     },
     {
       "id": "ROLE-AUTHORIZATION",
       "title": "Role authorization",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Player, captain, scorekeeper, and referee views enforce server-authoritative role and assignment boundaries."
     },
     {
       "id": "TOKEN-SESSION",
       "title": "Token portals",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Token validation, expiry, rate limiting, cookie/session scope, replay protection, and noindex metadata remain intact."
     },
     {
       "id": "LEAGUE-THEME",
       "title": "League theming",
-      "status": "in-progress",
+      "status": "review",
       "requirement": "Brand colours, logos, banners, template variants, light/dark behavior, and safe fallbacks remain configurable per league."
     },
     {
       "id": "WEBSITE-EDITOR-VISIBILITY",
       "title": "Website editor compatibility",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Visible pages, custom navigation, preview postMessage updates, registration CTAs, ticker, sponsors, and custom content honor editor settings."
     },
     {
       "id": "PAYMENT-AND-WAIVER-INTEGRITY",
       "title": "Payments and waivers",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Server-calculated prices, Stripe states, signed waiver versions, idempotency, and ownership checks remain authoritative."
     }
   ],
@@ -106,49 +106,49 @@
     {
       "id": "GLOBAL-SHELL",
       "title": "League shell",
-      "status": "in-progress",
+      "status": "review",
       "requirement": "Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently."
     },
     {
       "id": "RESPONSIVE",
       "title": "Responsive behavior",
-      "status": "in-progress",
+      "status": "review",
       "requirement": "Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions."
     },
     {
       "id": "A11Y",
       "title": "Accessibility",
-      "status": "in-progress",
+      "status": "review",
       "requirement": "Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance."
     },
     {
       "id": "SYSTEM-STATES",
       "title": "System states",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Every route deliberately covers loading, empty, partial, error, offline where applicable, unauthenticated, unauthorized, expired, subscription, and success states."
     },
     {
       "id": "SEO-PWA",
       "title": "SEO and PWA",
-      "status": "not-started",
+      "status": "review",
       "requirement": "League-aware metadata, canonical/social images, structured data, sitemap/robots rules, manifest/install flows, and private-route noindex behavior are preserved."
     },
     {
       "id": "OBSERVABILITY",
       "title": "Analytics and diagnostics",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Consent-gated analytics, league attribution, Sentry capture, and bug-report context return without leaking personal or tenant data."
     },
     {
       "id": "TIMEZONE-LOCALE",
       "title": "Timezone and locale",
-      "status": "not-started",
+      "status": "review",
       "requirement": "Dates and game times use each league timezone and copy remains ready for English/French requirements."
     },
     {
       "id": "PERFORMANCE",
       "title": "Performance",
-      "status": "in-progress",
+      "status": "review",
       "requirement": "Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads."
     }
   ],
@@ -160,7 +160,7 @@
       "title": "About the League",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "League identity and description",
         "Staff/contact details",
@@ -189,7 +189,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN-DUTIES",
@@ -198,7 +202,7 @@
       "title": "Captain Duties",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Assigned duty list",
         "Completion/status controls",
@@ -227,7 +231,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN-FEES",
@@ -236,7 +244,7 @@
       "title": "Team Fee Collection",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Team fee summary",
         "Player balances",
@@ -266,7 +274,11 @@
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION",
         "PAYMENT-AND-WAIVER-INTEGRITY"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN-GOALIES",
@@ -275,7 +287,7 @@
       "title": "Goalie Requests",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Game and goalie need context",
         "Eligible goalie candidates",
@@ -304,7 +316,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN-LINEUPS-GAMEID",
@@ -313,7 +329,7 @@
       "title": "Game-day Lineup",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Game/attendance context",
         "Rink lineup editor",
@@ -342,7 +358,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN",
@@ -351,7 +371,7 @@
       "title": "Captain Dashboard",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Team summary and permissions",
         "Roster/join requests",
@@ -380,7 +400,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN-PLAYER-PAYMENTS",
@@ -389,7 +413,7 @@
       "title": "Player Payment Tracking",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Player payment ledger",
         "Status/filter summary",
@@ -419,7 +443,11 @@
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION",
         "PAYMENT-AND-WAIVER-INTEGRITY"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CAPTAIN-TEAM-RETURN",
@@ -428,7 +456,7 @@
       "title": "Team Return",
       "category": "captain",
       "audience": "Authenticated team captains and designated team managers",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Return intent and season offer",
         "Roster/team confirmation",
@@ -457,7 +485,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CHECKIN",
@@ -466,7 +498,7 @@
       "title": "Player Game Check-in",
       "category": "player-account",
       "audience": "Authenticated players; check-in links may start from guest traffic",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Authenticated player/game context",
         "Availability choice and roster",
@@ -496,7 +528,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-CONTACT",
@@ -505,7 +541,7 @@
       "title": "Contact the League",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "League contact details",
         "Contact form",
@@ -534,7 +570,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-EVENTS",
@@ -543,7 +583,7 @@
       "title": "League Events",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Event calendar/list",
         "Event cards and details",
@@ -572,7 +612,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-GALLERY-ALBUMID",
@@ -581,7 +625,7 @@
       "title": "Gallery Album",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Album title/details",
         "Responsive photo grid",
@@ -610,7 +654,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-GALLERY",
@@ -619,7 +667,7 @@
       "title": "Photo Gallery",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Featured/recent photos",
         "Album grid",
@@ -648,7 +696,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-GAMES-GAMEID",
@@ -657,7 +709,7 @@
       "title": "Game Centre",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Game preview/live/final header",
         "Box score and event timeline",
@@ -689,7 +741,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-GOALIES-ACCEPT-TOKEN",
@@ -698,7 +754,7 @@
       "title": "Goalie Assignment Response",
       "category": "goalie",
       "audience": "Goalies using public registration or secure assignment links",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Assignment/game summary",
         "Accept/decline controls",
@@ -726,7 +782,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-GOALIES-REGISTER-CONFIRMATION",
@@ -735,7 +795,7 @@
       "title": "Goalie Registration Confirmation",
       "category": "goalie",
       "audience": "Goalies using public registration or secure assignment links",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Success state",
         "Next-step expectations",
@@ -762,7 +822,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-GOALIES-REGISTER",
@@ -771,7 +835,7 @@
       "title": "Goalie Pool Registration",
       "category": "goalie",
       "audience": "Goalies using public registration or secure assignment links",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Goalie identity/contact form",
         "Availability and level preferences",
@@ -798,7 +862,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-HISTORY",
@@ -807,7 +875,7 @@
       "title": "League History",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Champions timeline",
         "Historical leaders",
@@ -836,7 +904,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-ME-NOTIFICATIONS",
@@ -845,7 +917,7 @@
       "title": "Notification Settings",
       "category": "player-account",
       "audience": "Authenticated players; check-in links may start from guest traffic",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Channel preferences",
         "Team/game notification toggles",
@@ -874,7 +946,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-ME",
@@ -883,7 +959,7 @@
       "title": "Player Dashboard",
       "category": "player-account",
       "audience": "Authenticated players; check-in links may start from guest traffic",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Player/team summary",
         "Upcoming games and recent results",
@@ -912,7 +988,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-ME-PAYMENTS",
@@ -921,7 +1001,7 @@
       "title": "Player Payments",
       "category": "player-account",
       "audience": "Authenticated players; check-in links may start from guest traffic",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Balance and payment status",
         "Payment items/history",
@@ -951,7 +1031,11 @@
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION",
         "PAYMENT-AND-WAIVER-INTEGRITY"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-ME-PROFILE",
@@ -960,7 +1044,7 @@
       "title": "Edit Player Profile",
       "category": "player-account",
       "audience": "Authenticated players; check-in links may start from guest traffic",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Identity/contact form",
         "Player photo upload",
@@ -989,7 +1073,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-ME-WAIVERS",
@@ -998,7 +1086,7 @@
       "title": "Player Waivers",
       "category": "player-account",
       "audience": "Authenticated players; check-in links may start from guest traffic",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Required/signed waiver list",
         "Waiver document viewer",
@@ -1027,7 +1115,11 @@
         "TENANT-SCOPE",
         "SUPABASE-AUTH",
         "ROLE-AUTHORIZATION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-NEWS-SLUG",
@@ -1036,7 +1128,7 @@
       "title": "News Article",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Article header and metadata",
         "Sanitized rich article body",
@@ -1065,7 +1157,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-NEWS",
@@ -1074,7 +1170,7 @@
       "title": "League News",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Featured story",
         "News feed/cards",
@@ -1103,7 +1199,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-P-PAGESLUG",
@@ -1112,7 +1212,7 @@
       "title": "Custom League Page",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Custom page title",
         "Sanitized page content",
@@ -1141,7 +1241,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG",
@@ -1150,7 +1254,7 @@
       "title": "League Home",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Branded hero and registration CTA",
         "Announcements and upcoming/recent games",
@@ -1181,7 +1285,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-PLAYERS-PLAYERID",
@@ -1190,7 +1298,7 @@
       "title": "Player Profile",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Player identity and current team",
         "Season and career stat cards",
@@ -1220,7 +1328,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-PLAYERS",
@@ -1229,7 +1341,7 @@
       "title": "Player Directory",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Player search and filters",
         "Responsive player grid/list",
@@ -1258,7 +1370,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-PLAYOFFS",
@@ -1267,7 +1383,7 @@
       "title": "Playoffs",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Playoff bracket",
         "Standings and qualification",
@@ -1297,7 +1413,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-PRIVACY",
@@ -1306,7 +1426,7 @@
       "title": "League Privacy Policy",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Document title and effective date",
         "Readable policy sections",
@@ -1333,7 +1453,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-REFEREE-DASHBOARD",
@@ -1342,7 +1466,7 @@
       "title": "Referee Dashboard",
       "category": "referee",
       "audience": "Token-authenticated referees",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Upcoming assignments",
         "Completed games and summary stats",
@@ -1370,7 +1494,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-REFEREE",
@@ -1379,7 +1507,7 @@
       "title": "Referee Sign-in",
       "category": "referee",
       "audience": "Token-authenticated referees",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Token entry",
         "Validation/expiry guidance",
@@ -1407,7 +1535,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-REGISTER",
@@ -1416,7 +1548,7 @@
       "title": "Player Registration",
       "category": "registration",
       "audience": "Prospective players, captains, and teams registering with a league",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "League/season and fee summary",
         "Personal, skill, preference, waiver, and payment steps",
@@ -1446,7 +1578,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "PAYMENT-AND-WAIVER-INTEGRITY"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-REGISTER-TEAM",
@@ -1455,7 +1591,7 @@
       "title": "Team Registration",
       "category": "registration",
       "audience": "Prospective players, captains, and teams registering with a league",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "League/season offer",
         "Team and captain form",
@@ -1483,7 +1619,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "PAYMENT-AND-WAIVER-INTEGRITY"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SCHEDULE",
@@ -1492,7 +1632,7 @@
       "title": "Schedule",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Season/week navigation",
         "Division/team/date filters",
@@ -1522,7 +1662,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SCOREKEEPER-DASHBOARD",
@@ -1531,7 +1675,7 @@
       "title": "Scorekeeper Dashboard",
       "category": "scorekeeper",
       "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Assigned/upcoming games",
         "Completed/history summary",
@@ -1560,7 +1704,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SCOREKEEPER-GAME-GAMEID",
@@ -1569,7 +1717,7 @@
       "title": "Live Scoring Console",
       "category": "scorekeeper",
       "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Pre-game check-in and rosters",
         "Live clock, score, shots, goals, penalties, and events",
@@ -1600,7 +1748,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SCOREKEEPER",
@@ -1609,7 +1761,7 @@
       "title": "Scorekeeper Sign-in",
       "category": "scorekeeper",
       "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Token entry",
         "Validation/expiry guidance",
@@ -1637,7 +1789,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SCOREKEEPER-SCHEDULE",
@@ -1646,7 +1802,7 @@
       "title": "Scorekeeper Schedule",
       "category": "scorekeeper",
       "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Assigned schedule",
         "Date/status filters",
@@ -1674,7 +1830,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SCORES",
@@ -1683,7 +1843,7 @@
       "title": "Scores",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Season/division filters",
         "Completed-game score cards",
@@ -1712,7 +1872,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-STANDINGS",
@@ -1721,7 +1885,7 @@
       "title": "Standings",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Season/division selector",
         "Searchable standings table",
@@ -1750,7 +1914,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-STATS-GOALIES",
@@ -1759,7 +1927,7 @@
       "title": "Goalie Statistics",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Season/division filters",
         "Goalie leaderboard/table",
@@ -1788,7 +1956,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-STATS",
@@ -1797,7 +1969,7 @@
       "title": "Player Statistics",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Season/division/stat filters",
         "Skater leaders and full table",
@@ -1827,7 +1999,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-SUSPENSIONS",
@@ -1836,7 +2012,7 @@
       "title": "Suspensions",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Active/upcoming suspension list",
         "Player/team and discipline details",
@@ -1865,7 +2041,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-TEAMS-TEAMSLUG",
@@ -1874,7 +2054,7 @@
       "title": "Team Page",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Team identity, record, and next game",
         "Roster and leadership",
@@ -1906,7 +2086,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-TEAMS-ID-TEAMID",
@@ -1915,7 +2099,7 @@
       "title": "Team Page by ID",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Team identity, record, and next game",
         "Roster and leadership",
@@ -1947,7 +2131,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-TEAMS",
@@ -1956,7 +2144,7 @@
       "title": "Team Directory",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Division selector",
         "Team cards with identity and record",
@@ -1985,7 +2173,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-TERMS",
@@ -1994,7 +2186,7 @@
       "title": "League Terms",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Document title and effective date",
         "Readable policy sections",
@@ -2021,7 +2213,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-VENUES",
@@ -2030,7 +2226,7 @@
       "title": "Venues",
       "category": "public-league",
       "audience": "Public league visitors, players, teams, families, and fans",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Venue cards",
         "Address/rink details",
@@ -2059,7 +2255,11 @@
         "TENANT-SCOPE",
         "WEBSITE-EDITOR-VISIBILITY",
         "LEAGUE-THEME"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-LEAGUESLUG-VERIFY-TOKEN",
@@ -2068,7 +2268,7 @@
       "title": "Captain Game Verification",
       "category": "scorekeeper",
       "audience": "Token-authenticated scorekeepers and captains verifying submitted games",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Game summary and submitted statistics",
         "Accept/dispute controls",
@@ -2096,7 +2296,11 @@
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE",
         "TOKEN-SESSION"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-DISCOVER",
@@ -2105,7 +2309,7 @@
       "title": "Discover Leagues",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Search and location filters",
         "Registration-status filters",
@@ -2132,7 +2336,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-ROOT",
@@ -2141,7 +2349,7 @@
       "title": "League Sites Entry",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Platform identity and purpose",
         "League-site entry guidance",
@@ -2168,7 +2376,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-PRIVACY-POLICY",
@@ -2177,7 +2389,7 @@
       "title": "Platform Privacy Policy",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Document title and effective date",
         "Readable policy sections",
@@ -2204,7 +2416,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-RESET-PASSWORD",
@@ -2213,7 +2429,7 @@
       "title": "Reset Password",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Recovery-token status",
         "New password and confirmation form",
@@ -2240,7 +2456,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     },
     {
       "id": "LS-TOS",
@@ -2249,7 +2469,7 @@
       "title": "Platform Terms of Service",
       "category": "legal-platform",
       "audience": "Public visitors, account holders, and recovery-flow users",
-      "status": "not-started",
+      "status": "review",
       "requiredSections": [
         "Document title and effective date",
         "Readable policy sections",
@@ -2276,7 +2496,11 @@
       "contracts": [
         "ROUTE-COMPATIBILITY",
         "TENANT-SCOPE"
-      ]
+      ],
+      "evidence": {
+        "sourceContractTest": "node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs",
+        "acceptanceNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
+      }
     }
   ],
   "preservedHandlers": [
@@ -2357,5 +2581,6 @@
     "`apps/league-sites/src/app/**/route.ts(x)` handlers remain operational code and are not UI placeholders.",
     "`apps/league-builder`, `apps/mobile`, `apps/player-companion`, shared packages, Supabase migrations, lockfiles, and production infrastructure are out of scope.",
     "The original production UI remains recoverable from `origin/production`, the pre-rebuild branch/tag, and the saved git bundle."
-  ]
+  ],
+  "sharedVerificationNote": "Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance."
 }

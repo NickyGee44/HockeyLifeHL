@@ -2,7 +2,7 @@
 
 <!-- GENERATED from apps/league-sites/src/rebuild/route-manifest.json. Do not edit route rows by hand. -->
 
-- Manifest version: `1.0.0`
+- Manifest version: `1.1.0`
 - Production baseline: `940f79d6ea4b5d5c55fdafe61d477547ea1680ff`
 - Page routes: **56**
 - Preserved route handlers: **11**
@@ -33,54 +33,70 @@
 
 ### [ ] `ROUTE-COMPATIBILITY` — Route compatibility
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Keep all 56 page paths, dynamic parameter names, deep links, redirects, and custom-domain/subdomain behavior compatible.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `TENANT-SCOPE` — Tenant data isolation
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Every league-derived read/write remains scoped to the resolved league and existing RLS/server authorization.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `SUPABASE-AUTH` — Authentication recovery and sessions
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Preserve login, signup, recovery, callback, session refresh, and safe redirect behavior.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `ROLE-AUTHORIZATION` — Role authorization
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Player, captain, scorekeeper, and referee views enforce server-authoritative role and assignment boundaries.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `TOKEN-SESSION` — Token portals
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Token validation, expiry, rate limiting, cookie/session scope, replay protection, and noindex metadata remain intact.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `LEAGUE-THEME` — League theming
 
-- **Status:** `in-progress`
+- **Status:** `review`
 - **Contract:** Brand colours, logos, banners, template variants, light/dark behavior, and safe fallbacks remain configurable per league.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `WEBSITE-EDITOR-VISIBILITY` — Website editor compatibility
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Visible pages, custom navigation, preview postMessage updates, registration CTAs, ticker, sponsors, and custom content honor editor settings.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ### [ ] `PAYMENT-AND-WAIVER-INTEGRITY` — Payments and waivers
 
-- **Status:** `not-started`
+- **Status:** `review`
 - **Contract:** Server-calculated prices, Stripe states, signed waiver versions, idempotency, and ownership checks remain authoritative.
+- **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Shared/global requirements
 
-- [ ] `GLOBAL-SHELL` — **League shell:** Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently. (`in-progress`)
-- [ ] `RESPONSIVE` — **Responsive behavior:** Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions. (`in-progress`)
-- [ ] `A11Y` — **Accessibility:** Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance. (`in-progress`)
-- [ ] `SYSTEM-STATES` — **System states:** Every route deliberately covers loading, empty, partial, error, offline where applicable, unauthenticated, unauthorized, expired, subscription, and success states. (`not-started`)
-- [ ] `SEO-PWA` — **SEO and PWA:** League-aware metadata, canonical/social images, structured data, sitemap/robots rules, manifest/install flows, and private-route noindex behavior are preserved. (`not-started`)
-- [ ] `OBSERVABILITY` — **Analytics and diagnostics:** Consent-gated analytics, league attribution, Sentry capture, and bug-report context return without leaking personal or tenant data. (`not-started`)
-- [ ] `TIMEZONE-LOCALE` — **Timezone and locale:** Dates and game times use each league timezone and copy remains ready for English/French requirements. (`not-started`)
-- [ ] `PERFORMANCE` — **Performance:** Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads. (`in-progress`)
+- [ ] `GLOBAL-SHELL` — **League shell:** Header, desktop/mobile navigation, season/division context, score ticker, sponsors, footer/dock, account entry, announcements, and registration CTA are redesigned consistently. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `RESPONSIVE` — **Responsive behavior:** Phone, tablet, and desktop layouts support dense hockey data without clipped controls or inaccessible hover-only actions. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `A11Y` — **Accessibility:** Keyboard navigation, focus order, labels, contrast, reduced motion, semantic tables, dialogs, and status announcements meet WCAG-oriented acceptance. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `SYSTEM-STATES` — **System states:** Every route deliberately covers loading, empty, partial, error, offline where applicable, unauthenticated, unauthorized, expired, subscription, and success states. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `SEO-PWA` — **SEO and PWA:** League-aware metadata, canonical/social images, structured data, sitemap/robots rules, manifest/install flows, and private-route noindex behavior are preserved. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `OBSERVABILITY` — **Analytics and diagnostics:** Consent-gated analytics, league attribution, Sentry capture, and bug-report context return without leaking personal or tenant data. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `TIMEZONE-LOCALE` — **Timezone and locale:** Dates and game times use each league timezone and copy remains ready for English/French requirements. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
+- [ ] `PERFORMANCE` — **Performance:** Images, live updates, tables, fonts, and animations are responsive and avoid unnecessary tenant-wide data loads. (`review`)
+  - **Evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Public league content (24)
 
@@ -90,7 +106,7 @@
 - **Route:** `/[leagueSlug]/about`
 - **Source page:** `src/app/[leagueSlug]/about/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - League identity and description
   - Staff/contact details
@@ -111,6 +127,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-contact"></a>
 ### [ ] `LS-LEAGUESLUG-CONTACT` — Contact the League
@@ -118,7 +136,7 @@
 - **Route:** `/[leagueSlug]/contact`
 - **Source page:** `src/app/[leagueSlug]/contact/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - League contact details
   - Contact form
@@ -139,6 +157,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-events"></a>
 ### [ ] `LS-LEAGUESLUG-EVENTS` — League Events
@@ -146,7 +166,7 @@
 - **Route:** `/[leagueSlug]/events`
 - **Source page:** `src/app/[leagueSlug]/events/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Event calendar/list
   - Event cards and details
@@ -167,6 +187,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-gallery-albumid"></a>
 ### [ ] `LS-LEAGUESLUG-GALLERY-ALBUMID` — Gallery Album
@@ -174,7 +196,7 @@
 - **Route:** `/[leagueSlug]/gallery/[albumId]`
 - **Source page:** `src/app/[leagueSlug]/gallery/[albumId]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Album title/details
   - Responsive photo grid
@@ -195,6 +217,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-gallery"></a>
 ### [ ] `LS-LEAGUESLUG-GALLERY` — Photo Gallery
@@ -202,7 +226,7 @@
 - **Route:** `/[leagueSlug]/gallery`
 - **Source page:** `src/app/[leagueSlug]/gallery/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Featured/recent photos
   - Album grid
@@ -223,6 +247,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-games-gameid"></a>
 ### [ ] `LS-LEAGUESLUG-GAMES-GAMEID` — Game Centre
@@ -230,7 +256,7 @@
 - **Route:** `/[leagueSlug]/games/[gameId]`
 - **Source page:** `src/app/[leagueSlug]/games/[gameId]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Game preview/live/final header
   - Box score and event timeline
@@ -254,6 +280,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-history"></a>
 ### [ ] `LS-LEAGUESLUG-HISTORY` — League History
@@ -261,7 +289,7 @@
 - **Route:** `/[leagueSlug]/history`
 - **Source page:** `src/app/[leagueSlug]/history/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Champions timeline
   - Historical leaders
@@ -282,6 +310,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-news-slug"></a>
 ### [ ] `LS-LEAGUESLUG-NEWS-SLUG` — News Article
@@ -289,7 +319,7 @@
 - **Route:** `/[leagueSlug]/news/[slug]`
 - **Source page:** `src/app/[leagueSlug]/news/[slug]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Article header and metadata
   - Sanitized rich article body
@@ -310,6 +340,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-news"></a>
 ### [ ] `LS-LEAGUESLUG-NEWS` — League News
@@ -317,7 +349,7 @@
 - **Route:** `/[leagueSlug]/news`
 - **Source page:** `src/app/[leagueSlug]/news/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Featured story
   - News feed/cards
@@ -338,6 +370,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-p-pageslug"></a>
 ### [ ] `LS-LEAGUESLUG-P-PAGESLUG` — Custom League Page
@@ -345,7 +379,7 @@
 - **Route:** `/[leagueSlug]/p/[pageSlug]`
 - **Source page:** `src/app/[leagueSlug]/p/[pageSlug]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Custom page title
   - Sanitized page content
@@ -366,6 +400,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug"></a>
 ### [ ] `LS-LEAGUESLUG` — League Home
@@ -373,7 +409,7 @@
 - **Route:** `/[leagueSlug]`
 - **Source page:** `src/app/[leagueSlug]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Branded hero and registration CTA
   - Announcements and upcoming/recent games
@@ -396,6 +432,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-players-playerid"></a>
 ### [ ] `LS-LEAGUESLUG-PLAYERS-PLAYERID` — Player Profile
@@ -403,7 +441,7 @@
 - **Route:** `/[leagueSlug]/players/[playerId]`
 - **Source page:** `src/app/[leagueSlug]/players/[playerId]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Player identity and current team
   - Season and career stat cards
@@ -425,6 +463,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-players"></a>
 ### [ ] `LS-LEAGUESLUG-PLAYERS` — Player Directory
@@ -432,7 +472,7 @@
 - **Route:** `/[leagueSlug]/players`
 - **Source page:** `src/app/[leagueSlug]/players/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Player search and filters
   - Responsive player grid/list
@@ -453,6 +493,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-playoffs"></a>
 ### [ ] `LS-LEAGUESLUG-PLAYOFFS` — Playoffs
@@ -460,7 +502,7 @@
 - **Route:** `/[leagueSlug]/playoffs`
 - **Source page:** `src/app/[leagueSlug]/playoffs/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Playoff bracket
   - Standings and qualification
@@ -482,6 +524,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-schedule"></a>
 ### [ ] `LS-LEAGUESLUG-SCHEDULE` — Schedule
@@ -489,7 +533,7 @@
 - **Route:** `/[leagueSlug]/schedule`
 - **Source page:** `src/app/[leagueSlug]/schedule/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Season/week navigation
   - Division/team/date filters
@@ -511,6 +555,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-scores"></a>
 ### [ ] `LS-LEAGUESLUG-SCORES` — Scores
@@ -518,7 +564,7 @@
 - **Route:** `/[leagueSlug]/scores`
 - **Source page:** `src/app/[leagueSlug]/scores/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Season/division filters
   - Completed-game score cards
@@ -539,6 +585,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-standings"></a>
 ### [ ] `LS-LEAGUESLUG-STANDINGS` — Standings
@@ -546,7 +594,7 @@
 - **Route:** `/[leagueSlug]/standings`
 - **Source page:** `src/app/[leagueSlug]/standings/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Season/division selector
   - Searchable standings table
@@ -567,6 +615,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-stats-goalies"></a>
 ### [ ] `LS-LEAGUESLUG-STATS-GOALIES` — Goalie Statistics
@@ -574,7 +624,7 @@
 - **Route:** `/[leagueSlug]/stats/goalies`
 - **Source page:** `src/app/[leagueSlug]/stats/goalies/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Season/division filters
   - Goalie leaderboard/table
@@ -595,6 +645,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-stats"></a>
 ### [ ] `LS-LEAGUESLUG-STATS` — Player Statistics
@@ -602,7 +654,7 @@
 - **Route:** `/[leagueSlug]/stats`
 - **Source page:** `src/app/[leagueSlug]/stats/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Season/division/stat filters
   - Skater leaders and full table
@@ -624,6 +676,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-suspensions"></a>
 ### [ ] `LS-LEAGUESLUG-SUSPENSIONS` — Suspensions
@@ -631,7 +685,7 @@
 - **Route:** `/[leagueSlug]/suspensions`
 - **Source page:** `src/app/[leagueSlug]/suspensions/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Active/upcoming suspension list
   - Player/team and discipline details
@@ -652,6 +706,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-teams-teamslug"></a>
 ### [ ] `LS-LEAGUESLUG-TEAMS-TEAMSLUG` — Team Page
@@ -659,7 +715,7 @@
 - **Route:** `/[leagueSlug]/teams/[teamSlug]`
 - **Source page:** `src/app/[leagueSlug]/teams/[teamSlug]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Team identity, record, and next game
   - Roster and leadership
@@ -683,6 +739,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-teams-id-teamid"></a>
 ### [ ] `LS-LEAGUESLUG-TEAMS-ID-TEAMID` — Team Page by ID
@@ -690,7 +748,7 @@
 - **Route:** `/[leagueSlug]/teams/id/[teamId]`
 - **Source page:** `src/app/[leagueSlug]/teams/id/[teamId]/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Team identity, record, and next game
   - Roster and leadership
@@ -714,6 +772,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-teams"></a>
 ### [ ] `LS-LEAGUESLUG-TEAMS` — Team Directory
@@ -721,7 +781,7 @@
 - **Route:** `/[leagueSlug]/teams`
 - **Source page:** `src/app/[leagueSlug]/teams/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Division selector
   - Team cards with identity and record
@@ -742,6 +802,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-data-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-venues"></a>
 ### [ ] `LS-LEAGUESLUG-VENUES` — Venues
@@ -749,7 +811,7 @@
 - **Route:** `/[leagueSlug]/venues`
 - **Source page:** `src/app/[leagueSlug]/venues/page.tsx`
 - **Audience:** Public league visitors, players, teams, families, and fans
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Venue cards
   - Address/rink details
@@ -770,6 +832,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `WEBSITE-EDITOR-VISIBILITY`, `LEAGUE-THEME`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/public-editorial-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Player account (6)
 
@@ -779,7 +843,7 @@
 - **Route:** `/[leagueSlug]/checkin`
 - **Source page:** `src/app/[leagueSlug]/checkin/page.tsx`
 - **Audience:** Authenticated players; check-in links may start from guest traffic
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Authenticated player/game context
   - Availability choice and roster
@@ -801,6 +865,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-me-notifications"></a>
 ### [ ] `LS-LEAGUESLUG-ME-NOTIFICATIONS` — Notification Settings
@@ -808,7 +874,7 @@
 - **Route:** `/[leagueSlug]/me/notifications`
 - **Source page:** `src/app/[leagueSlug]/me/notifications/page.tsx`
 - **Audience:** Authenticated players; check-in links may start from guest traffic
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Channel preferences
   - Team/game notification toggles
@@ -829,6 +895,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-me"></a>
 ### [ ] `LS-LEAGUESLUG-ME` — Player Dashboard
@@ -836,7 +904,7 @@
 - **Route:** `/[leagueSlug]/me`
 - **Source page:** `src/app/[leagueSlug]/me/page.tsx`
 - **Audience:** Authenticated players; check-in links may start from guest traffic
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Player/team summary
   - Upcoming games and recent results
@@ -857,6 +925,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-me-payments"></a>
 ### [ ] `LS-LEAGUESLUG-ME-PAYMENTS` — Player Payments
@@ -864,7 +934,7 @@
 - **Route:** `/[leagueSlug]/me/payments`
 - **Source page:** `src/app/[leagueSlug]/me/payments/page.tsx`
 - **Audience:** Authenticated players; check-in links may start from guest traffic
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Balance and payment status
   - Payment items/history
@@ -885,6 +955,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`, `PAYMENT-AND-WAIVER-INTEGRITY`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-me-profile"></a>
 ### [ ] `LS-LEAGUESLUG-ME-PROFILE` — Edit Player Profile
@@ -892,7 +964,7 @@
 - **Route:** `/[leagueSlug]/me/profile`
 - **Source page:** `src/app/[leagueSlug]/me/profile/page.tsx`
 - **Audience:** Authenticated players; check-in links may start from guest traffic
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Identity/contact form
   - Player photo upload
@@ -913,6 +985,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-me-waivers"></a>
 ### [ ] `LS-LEAGUESLUG-ME-WAIVERS` — Player Waivers
@@ -920,7 +994,7 @@
 - **Route:** `/[leagueSlug]/me/waivers`
 - **Source page:** `src/app/[leagueSlug]/me/waivers/page.tsx`
 - **Audience:** Authenticated players; check-in links may start from guest traffic
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Required/signed waiver list
   - Waiver document viewer
@@ -941,6 +1015,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Captain tools (7)
 
@@ -950,7 +1026,7 @@
 - **Route:** `/[leagueSlug]/captain/duties`
 - **Source page:** `src/app/[leagueSlug]/captain/duties/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Assigned duty list
   - Completion/status controls
@@ -971,6 +1047,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-captain-fees"></a>
 ### [ ] `LS-LEAGUESLUG-CAPTAIN-FEES` — Team Fee Collection
@@ -978,7 +1056,7 @@
 - **Route:** `/[leagueSlug]/captain/fees`
 - **Source page:** `src/app/[leagueSlug]/captain/fees/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Team fee summary
   - Player balances
@@ -999,6 +1077,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`, `PAYMENT-AND-WAIVER-INTEGRITY`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-captain-goalies"></a>
 ### [ ] `LS-LEAGUESLUG-CAPTAIN-GOALIES` — Goalie Requests
@@ -1006,7 +1086,7 @@
 - **Route:** `/[leagueSlug]/captain/goalies`
 - **Source page:** `src/app/[leagueSlug]/captain/goalies/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Game and goalie need context
   - Eligible goalie candidates
@@ -1027,6 +1107,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-captain-lineups-gameid"></a>
 ### [ ] `LS-LEAGUESLUG-CAPTAIN-LINEUPS-GAMEID` — Game-day Lineup
@@ -1034,7 +1116,7 @@
 - **Route:** `/[leagueSlug]/captain/lineups/[gameId]`
 - **Source page:** `src/app/[leagueSlug]/captain/lineups/[gameId]/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Game/attendance context
   - Rink lineup editor
@@ -1055,6 +1137,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-captain"></a>
 ### [ ] `LS-LEAGUESLUG-CAPTAIN` — Captain Dashboard
@@ -1062,7 +1146,7 @@
 - **Route:** `/[leagueSlug]/captain`
 - **Source page:** `src/app/[leagueSlug]/captain/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Team summary and permissions
   - Roster/join requests
@@ -1083,6 +1167,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-captain-player-payments"></a>
 ### [ ] `LS-LEAGUESLUG-CAPTAIN-PLAYER-PAYMENTS` — Player Payment Tracking
@@ -1090,7 +1176,7 @@
 - **Route:** `/[leagueSlug]/captain/player-payments`
 - **Source page:** `src/app/[leagueSlug]/captain/player-payments/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Player payment ledger
   - Status/filter summary
@@ -1111,6 +1197,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`, `PAYMENT-AND-WAIVER-INTEGRITY`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-captain-team-return"></a>
 ### [ ] `LS-LEAGUESLUG-CAPTAIN-TEAM-RETURN` — Team Return
@@ -1118,7 +1206,7 @@
 - **Route:** `/[leagueSlug]/captain/team-return`
 - **Source page:** `src/app/[leagueSlug]/captain/team-return/page.tsx`
 - **Audience:** Authenticated team captains and designated team managers
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Return intent and season offer
   - Roster/team confirmation
@@ -1139,6 +1227,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `SUPABASE-AUTH`, `ROLE-AUTHORIZATION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Goalie flows (3)
 
@@ -1148,7 +1238,7 @@
 - **Route:** `/[leagueSlug]/goalies/accept/[token]`
 - **Source page:** `src/app/[leagueSlug]/goalies/accept/[token]/page.tsx`
 - **Audience:** Goalies using public registration or secure assignment links
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Assignment/game summary
   - Accept/decline controls
@@ -1169,6 +1259,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-goalies-register-confirmation"></a>
 ### [ ] `LS-LEAGUESLUG-GOALIES-REGISTER-CONFIRMATION` — Goalie Registration Confirmation
@@ -1176,7 +1268,7 @@
 - **Route:** `/[leagueSlug]/goalies/register/confirmation`
 - **Source page:** `src/app/[leagueSlug]/goalies/register/confirmation/page.tsx`
 - **Audience:** Goalies using public registration or secure assignment links
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Success state
   - Next-step expectations
@@ -1197,6 +1289,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-goalies-register"></a>
 ### [ ] `LS-LEAGUESLUG-GOALIES-REGISTER` — Goalie Pool Registration
@@ -1204,7 +1298,7 @@
 - **Route:** `/[leagueSlug]/goalies/register`
 - **Source page:** `src/app/[leagueSlug]/goalies/register/page.tsx`
 - **Audience:** Goalies using public registration or secure assignment links
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Goalie identity/contact form
   - Availability and level preferences
@@ -1225,6 +1319,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Scorekeeper and game verification (5)
 
@@ -1234,7 +1330,7 @@
 - **Route:** `/[leagueSlug]/scorekeeper/dashboard`
 - **Source page:** `src/app/[leagueSlug]/scorekeeper/dashboard/page.tsx`
 - **Audience:** Token-authenticated scorekeepers and captains verifying submitted games
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Assigned/upcoming games
   - Completed/history summary
@@ -1256,6 +1352,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-scorekeeper-game-gameid"></a>
 ### [ ] `LS-LEAGUESLUG-SCOREKEEPER-GAME-GAMEID` — Live Scoring Console
@@ -1263,7 +1361,7 @@
 - **Route:** `/[leagueSlug]/scorekeeper/game/[gameId]`
 - **Source page:** `src/app/[leagueSlug]/scorekeeper/game/[gameId]/page.tsx`
 - **Audience:** Token-authenticated scorekeepers and captains verifying submitted games
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Pre-game check-in and rosters
   - Live clock, score, shots, goals, penalties, and events
@@ -1287,6 +1385,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-scorekeeper"></a>
 ### [ ] `LS-LEAGUESLUG-SCOREKEEPER` — Scorekeeper Sign-in
@@ -1294,7 +1394,7 @@
 - **Route:** `/[leagueSlug]/scorekeeper`
 - **Source page:** `src/app/[leagueSlug]/scorekeeper/page.tsx`
 - **Audience:** Token-authenticated scorekeepers and captains verifying submitted games
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Token entry
   - Validation/expiry guidance
@@ -1315,6 +1415,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-scorekeeper-schedule"></a>
 ### [ ] `LS-LEAGUESLUG-SCOREKEEPER-SCHEDULE` — Scorekeeper Schedule
@@ -1322,7 +1424,7 @@
 - **Route:** `/[leagueSlug]/scorekeeper/schedule`
 - **Source page:** `src/app/[leagueSlug]/scorekeeper/schedule/page.tsx`
 - **Audience:** Token-authenticated scorekeepers and captains verifying submitted games
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Assigned schedule
   - Date/status filters
@@ -1343,6 +1445,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-verify-token"></a>
 ### [ ] `LS-LEAGUESLUG-VERIFY-TOKEN` — Captain Game Verification
@@ -1350,7 +1454,7 @@
 - **Route:** `/[leagueSlug]/verify/[token]`
 - **Source page:** `src/app/[leagueSlug]/verify/[token]/page.tsx`
 - **Audience:** Token-authenticated scorekeepers and captains verifying submitted games
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Game summary and submitted statistics
   - Accept/dispute controls
@@ -1371,6 +1475,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Referee portal (2)
 
@@ -1380,7 +1486,7 @@
 - **Route:** `/[leagueSlug]/referee/dashboard`
 - **Source page:** `src/app/[leagueSlug]/referee/dashboard/page.tsx`
 - **Audience:** Token-authenticated referees
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Upcoming assignments
   - Completed games and summary stats
@@ -1401,6 +1507,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-referee"></a>
 ### [ ] `LS-LEAGUESLUG-REFEREE` — Referee Sign-in
@@ -1408,7 +1516,7 @@
 - **Route:** `/[leagueSlug]/referee`
 - **Source page:** `src/app/[leagueSlug]/referee/page.tsx`
 - **Audience:** Token-authenticated referees
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Token entry
   - Validation/expiry guidance
@@ -1429,6 +1537,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `TOKEN-SESSION`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/official-operations-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Registration (2)
 
@@ -1438,7 +1548,7 @@
 - **Route:** `/[leagueSlug]/register`
 - **Source page:** `src/app/[leagueSlug]/register/page.tsx`
 - **Audience:** Prospective players, captains, and teams registering with a league
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - League/season and fee summary
   - Personal, skill, preference, waiver, and payment steps
@@ -1461,6 +1571,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `PAYMENT-AND-WAIVER-INTEGRITY`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-register-team"></a>
 ### [ ] `LS-LEAGUESLUG-REGISTER-TEAM` — Team Registration
@@ -1468,7 +1580,7 @@
 - **Route:** `/[leagueSlug]/register/team`
 - **Source page:** `src/app/[leagueSlug]/register/team/page.tsx`
 - **Audience:** Prospective players, captains, and teams registering with a league
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - League/season offer
   - Team and captain form
@@ -1489,6 +1601,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`, `PAYMENT-AND-WAIVER-INTEGRITY`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/player-registration-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Platform and legal (7)
 
@@ -1498,7 +1612,7 @@
 - **Route:** `/[leagueSlug]/privacy`
 - **Source page:** `src/app/[leagueSlug]/privacy/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Document title and effective date
   - Readable policy sections
@@ -1519,6 +1633,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-leagueslug-terms"></a>
 ### [ ] `LS-LEAGUESLUG-TERMS` — League Terms
@@ -1526,7 +1642,7 @@
 - **Route:** `/[leagueSlug]/terms`
 - **Source page:** `src/app/[leagueSlug]/terms/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Document title and effective date
   - Readable policy sections
@@ -1547,6 +1663,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-discover"></a>
 ### [ ] `LS-DISCOVER` — Discover Leagues
@@ -1554,7 +1672,7 @@
 - **Route:** `/discover`
 - **Source page:** `src/app/discover/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Search and location filters
   - Registration-status filters
@@ -1575,6 +1693,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-root"></a>
 ### [ ] `LS-ROOT` — League Sites Entry
@@ -1582,7 +1702,7 @@
 - **Route:** `/`
 - **Source page:** `src/app/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Platform identity and purpose
   - League-site entry guidance
@@ -1603,6 +1723,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Provide league-aware canonical metadata, social previews, and structured content where present.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-privacy-policy"></a>
 ### [ ] `LS-PRIVACY-POLICY` — Platform Privacy Policy
@@ -1610,7 +1732,7 @@
 - **Route:** `/privacy-policy`
 - **Source page:** `src/app/privacy-policy/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Document title and effective date
   - Readable policy sections
@@ -1631,6 +1753,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-reset-password"></a>
 ### [ ] `LS-RESET-PASSWORD` — Reset Password
@@ -1638,7 +1762,7 @@
 - **Route:** `/reset-password`
 - **Source page:** `src/app/reset-password/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Recovery-token status
   - New password and confirmation form
@@ -1659,6 +1783,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 <a id="ls-tos"></a>
 ### [ ] `LS-TOS` — Platform Terms of Service
@@ -1666,7 +1792,7 @@
 - **Route:** `/tos`
 - **Source page:** `src/app/tos/page.tsx`
 - **Audience:** Public visitors, account holders, and recovery-flow users
-- **Status:** `not-started`
+- **Status:** `review`
 - **Required visible sections:**
   - Document title and effective date
   - Readable policy sections
@@ -1687,6 +1813,8 @@
   - **accessibility:** Provide semantic headings, labelled controls, keyboard operation, visible focus, and announced status/errors.
   - **seo:** Use accurate metadata and noindex for private, token, transactional, or portal views.
 - **TODO contracts:** `ROUTE-COMPATIBILITY`, `TENANT-SCOPE`
+- **Source-contract test:** `node --test apps/league-sites/scripts/__tests__/platform-legal-glass.test.mjs`
+- **Acceptance evidence:** Implementation is complete; status is pending final integrated build, independent review, and preview/browser acceptance.
 
 ## Workflow
 
