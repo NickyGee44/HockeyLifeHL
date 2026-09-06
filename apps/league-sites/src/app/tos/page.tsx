@@ -7,8 +7,15 @@ export const metadata: Metadata = {
 
 export default function TermsOfServicePage() {
   return (
-    <main className="min-h-screen" style={{ background: 'var(--color-background)' }}>
-      <div className="max-w-3xl mx-auto px-6 py-16">
+    <main
+      className="league-site-shell relative isolate min-h-screen overflow-hidden text-[var(--color-text-primary)]"
+      data-blh-design-foundation="glass-v1"
+    >
+      <div className="league-atmosphere" aria-hidden="true">
+        <span className="league-atmosphere__rink" />
+      </div>
+      <div className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-16">
+        <article className="glass-card-strong overflow-hidden p-6 sm:p-8 md:p-10">
         {/* Header */}
         <div className="mb-12">
           <h1
@@ -27,14 +34,8 @@ export default function TermsOfServicePage() {
           </p>
         </div>
 
-        <div
-          className="rounded-xl p-px mb-10"
-          style={{ background: 'var(--color-border)' }}
-        >
-          <div
-            className="rounded-xl p-6"
-            style={{ background: 'var(--color-surface)' }}
-          >
+        <div className="glass-control mb-10 rounded-2xl border border-[var(--blh-glass-border)] p-6">
+          <div>
             <p style={{ color: 'var(--color-text-secondary)' }}>
               If you do not agree with these terms, please do not use the platform. Questions? Contact us at{' '}
               <a
@@ -234,8 +235,7 @@ export default function TermsOfServicePage() {
               For questions about these Terms, or to report a violation:
             </p>
             <div
-              className="mt-4 rounded-lg p-4"
-              style={{ background: 'var(--color-background-elevated)', border: '1px solid var(--color-border-muted)' }}
+              className="glass-control mt-4 rounded-xl border border-[var(--blh-glass-border)] p-4"
             >
               <p style={{ color: 'var(--color-text-primary)' }}><strong>Bridg3 Inc.</strong></p>
               <p style={{ color: 'var(--color-text-secondary)' }}>Ontario, Canada</p>
@@ -255,6 +255,7 @@ export default function TermsOfServicePage() {
             posted constitutes your acceptance of the updated Terms. Effective date: March 1, 2026.
           </p>
         </div>
+        </article>
       </div>
     </main>
   );

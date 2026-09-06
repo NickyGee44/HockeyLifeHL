@@ -38,8 +38,8 @@ export default async function TermsPage({ params }: TermsPageProps) {
   if (!league) notFound();
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-12">
-      <article className="card p-6 md:p-10">
+    <div className="container mx-auto max-w-4xl px-4 py-10 md:py-14">
+      <article className="glass-card-strong overflow-hidden p-6 md:p-10 lg:p-12">
         <h1 className="text-3xl md:text-4xl font-bold text-[var(--color-text-primary)]">
           Terms of Service
         </h1>
@@ -48,11 +48,11 @@ export default async function TermsPage({ params }: TermsPageProps) {
           registration flows.
         </p>
 
-        <div className="mt-8 space-y-6">
+        <div className="mt-8 space-y-8">
           {TERMS_SECTIONS.map((section) => (
             <section key={section}>
               <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">{section}</h2>
-              <p className="mt-2 text-[var(--color-text-secondary)] leading-relaxed">
+              <p className="mt-2 max-w-3xl leading-7 text-[var(--color-text-secondary)]">
                 Placeholder policy text for {section}. This section will be replaced with final
                 legal language for this league.
               </p>
@@ -65,7 +65,7 @@ export default async function TermsPage({ params }: TermsPageProps) {
         </p>
         <a
           href={`/${leagueSlug}`}
-          className="mt-4 inline-flex text-sm font-medium text-[var(--league-primary)] hover:opacity-80"
+          className="glass-control mt-4 inline-flex min-h-11 items-center rounded-xl border border-[var(--blh-glass-border)] px-4 py-2 text-sm font-semibold text-[var(--league-primary)] transition-colors hover:border-[var(--league-primary)] hover:bg-[var(--color-surface-hover)]"
         >
           Back to {league.name}
         </a>

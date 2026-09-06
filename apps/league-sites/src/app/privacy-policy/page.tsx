@@ -7,8 +7,15 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen" style={{ background: 'var(--color-background)' }}>
-      <div className="max-w-3xl mx-auto px-6 py-16">
+    <main
+      className="league-site-shell relative isolate min-h-screen overflow-hidden text-[var(--color-text-primary)]"
+      data-blh-design-foundation="glass-v1"
+    >
+      <div className="league-atmosphere" aria-hidden="true">
+        <span className="league-atmosphere__rink" />
+      </div>
+      <div className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-16">
+        <article className="glass-card-strong overflow-hidden p-6 sm:p-8 md:p-10">
         {/* Header */}
         <div className="mb-12">
           <h1
@@ -27,14 +34,8 @@ export default function PrivacyPolicyPage() {
           </p>
         </div>
 
-        <div
-          className="rounded-xl p-px mb-10"
-          style={{ background: 'var(--color-border)' }}
-        >
-          <div
-            className="rounded-xl p-6"
-            style={{ background: 'var(--color-surface)' }}
-          >
+        <div className="glass-control mb-10 rounded-2xl border border-[var(--blh-glass-border)] p-6">
+          <div>
             <p style={{ color: 'var(--color-text-secondary)' }}>
               By using BeerLeagueHockey.ca or our mobile app, you agree to the collection and use
               of information as described in this policy. Questions? Contact us at{' '}
@@ -148,8 +149,7 @@ export default function PrivacyPolicyPage() {
               ].map((provider) => (
                 <div
                   key={provider.name}
-                  className="rounded-lg p-4"
-                  style={{ background: 'var(--color-background-elevated)', border: '1px solid var(--color-border-muted)' }}
+                  className="glass-control rounded-xl border border-[var(--blh-glass-border)] p-4"
                 >
                   <p className="font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>{provider.name}</p>
                   <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
@@ -227,8 +227,7 @@ export default function PrivacyPolicyPage() {
               For questions or concerns about this Privacy Policy or how your data is handled:
             </p>
             <div
-              className="mt-4 rounded-lg p-4"
-              style={{ background: 'var(--color-background-elevated)', border: '1px solid var(--color-border-muted)' }}
+              className="glass-control mt-4 rounded-xl border border-[var(--blh-glass-border)] p-4"
             >
               <p style={{ color: 'var(--color-text-primary)' }}><strong>Bridg3 Inc.</strong></p>
               <p style={{ color: 'var(--color-text-secondary)' }}>Ontario, Canada</p>
@@ -249,6 +248,7 @@ export default function PrivacyPolicyPage() {
             the updated policy.
           </p>
         </div>
+        </article>
       </div>
     </main>
   );

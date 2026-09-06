@@ -74,14 +74,20 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--blh-night)]/75 p-4 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
-      <div className="relative w-full max-w-md mx-4 bg-[var(--color-background-elevated)] border border-[var(--color-border)] rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create Account"
+        className="glass-card-strong relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto"
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors z-10"
+          className="glass-control absolute right-3 top-3 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-transparent text-[var(--color-text-muted)] transition-colors hover:border-[var(--blh-glass-border)] hover:text-[var(--color-text-primary)]"
+          aria-label="Close account creation"
         >
           <X className="w-5 h-5 text-[var(--color-text-muted)]" />
         </button>
@@ -90,8 +96,8 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
           {isSuccess ? (
             // Success State
             <div className="text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-400" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-500/15">
+                <Check className="h-8 w-8 text-emerald-400" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold mb-2">Check Your Email</h2>
               <p className="text-[var(--color-text-secondary)] mb-6">
@@ -105,7 +111,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                   setIsSuccess(false);
                   onLoginClick();
                 }}
-                className="text-[var(--league-primary)] font-medium hover:underline"
+                className="inline-flex min-h-11 items-center rounded-lg px-3 font-medium text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)]"
               >
                 Back to login
               </button>
@@ -136,7 +142,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                   <div className="w-full border-t border-[var(--color-border)]" />
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-[var(--color-background-elevated)] px-3 text-[var(--color-text-muted)]">
+                  <span className="glass-control rounded-full px-3 text-[var(--color-text-muted)]">
                     or continue with email
                   </span>
                 </div>
@@ -144,7 +150,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
-                  <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                  <div role="alert" className="glass-control flex items-center gap-2 rounded-xl border border-red-400/25 p-3 text-sm text-red-300">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>{error}</span>
                   </div>
@@ -166,8 +172,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                         value={formData.firstName}
                         onChange={handleChange}
                         className="
-                          w-full pl-11 pr-4 py-3 rounded-lg
-                          bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+                          glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] py-3 pl-11 pr-4
                           text-[var(--color-text-primary)]
                           focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
                           transition-all duration-200
@@ -189,8 +194,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                       value={formData.lastName}
                       onChange={handleChange}
                       className="
-                        w-full px-4 py-3 rounded-lg
-                        bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+                        glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] px-4 py-3
                         text-[var(--color-text-primary)]
                         focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
                         transition-all duration-200
@@ -214,8 +218,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                       value={formData.email}
                       onChange={handleChange}
                       className="
-                        w-full pl-11 pr-4 py-3 rounded-lg
-                        bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+                        glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] py-3 pl-11 pr-4
                         text-[var(--color-text-primary)]
                         focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
                         transition-all duration-200
@@ -240,8 +243,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                       value={formData.password}
                       onChange={handleChange}
                       className="
-                        w-full pl-11 pr-4 py-3 rounded-lg
-                        bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+                        glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] py-3 pl-11 pr-4
                         text-[var(--color-text-primary)]
                         focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
                         transition-all duration-200
@@ -265,8 +267,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       className="
-                        w-full pl-11 pr-4 py-3 rounded-lg
-                        bg-[var(--color-surface-hover)] border border-[var(--color-border)]
+                        glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] py-3 pl-11 pr-4
                         text-[var(--color-text-primary)]
                         focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50 focus:border-[var(--league-primary)]
                         transition-all duration-200
@@ -280,8 +281,8 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                   type="submit"
                   disabled={isLoading}
                   className="
-                    w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg
-                    bg-[var(--league-primary)] text-[var(--color-accent-text)] font-semibold
+                    flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--league-primary-border)] px-6 py-3
+                    bg-[var(--league-primary-strong)] text-[var(--league-on-primary)] font-semibold
                     hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed
                     transition-all duration-200
                   "
@@ -305,7 +306,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                 <span className="text-[var(--color-text-secondary)]">Already have an account? </span>
                 <button
                   onClick={onLoginClick}
-                  className="text-[var(--league-primary)] font-medium hover:underline"
+                  className="inline-flex min-h-11 items-center rounded-lg px-2 font-medium text-[var(--league-primary)] hover:bg-[var(--color-surface-hover)]"
                 >
                   Sign in
                 </button>

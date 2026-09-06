@@ -54,12 +54,18 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
-      <section className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-background-elevated)] p-8 shadow-2xl">
+    <main
+      className="league-site-shell relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 text-[var(--color-text-primary)]"
+      data-blh-design-foundation="glass-v1"
+    >
+      <div className="league-atmosphere" aria-hidden="true">
+        <span className="league-atmosphere__rink" />
+      </div>
+      <section className="glass-card-strong relative z-10 w-full max-w-md overflow-hidden p-6 sm:p-8">
         {isComplete ? (
           <div className="text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/15">
-              <CheckCircle2 className="h-8 w-8 text-green-400" />
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-500/15">
+              <CheckCircle2 className="h-8 w-8 text-emerald-400" aria-hidden="true" />
             </div>
             <h1 className="mb-2 text-2xl font-bold text-[var(--color-text-primary)]">
               Password Updated
@@ -69,15 +75,15 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               href="/"
-              className="inline-flex w-full items-center justify-center rounded-lg bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-6 py-3 font-bold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)]"
             >
               Continue
             </Link>
           </div>
         ) : (
           <>
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--league-primary)]/15">
-              <KeyRound className="h-6 w-6 text-[var(--league-primary)]" />
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary-muted)]">
+              <KeyRound className="h-6 w-6 text-[var(--blh-cyan)]" aria-hidden="true" />
             </div>
             <h1 className="mb-2 text-2xl font-bold text-[var(--color-text-primary)]">
               Reset Password
@@ -88,8 +94,8 @@ export default function ResetPasswordPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <div role="alert" className="glass-control flex items-start gap-2 rounded-xl border border-red-400/25 p-3 text-sm text-red-300">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
                   <span>{error}</span>
                 </div>
               )}
@@ -105,7 +111,7 @@ export default function ResetPasswordPage() {
                   minLength={8}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-4 py-3 text-[var(--color-text-primary)] transition-all duration-200 focus:border-[var(--league-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                  className="glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] px-4 py-3 text-[var(--color-text-primary)] transition-colors focus:border-[var(--league-primary)] focus:outline-none"
                   placeholder="Enter new password"
                 />
               </div>
@@ -121,7 +127,7 @@ export default function ResetPasswordPage() {
                   minLength={8}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-4 py-3 text-[var(--color-text-primary)] transition-all duration-200 focus:border-[var(--league-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--league-primary)]/50"
+                  className="glass-control min-h-11 w-full rounded-xl border border-[var(--blh-glass-border)] px-4 py-3 text-[var(--color-text-primary)] transition-colors focus:border-[var(--league-primary)] focus:outline-none"
                   placeholder="Confirm new password"
                 />
               </div>
@@ -129,11 +135,11 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--league-primary)] px-6 py-3 font-semibold text-[var(--color-accent-text)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--league-primary-border)] bg-[var(--league-primary-strong)] px-6 py-3 font-bold text-[var(--league-on-primary)] transition-colors hover:bg-[var(--league-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                     Updating...
                   </>
                 ) : (
